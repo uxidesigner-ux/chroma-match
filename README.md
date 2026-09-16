@@ -40,16 +40,27 @@ same reason: next to the existing blue it is the hardest pair to tell apart.
 candidate board — 6 to 8 columns, 7 to 10 rows, 5 or 6 colours — with a
 mid-strength policy and reports the tap-target size, how much of the screen the
 board covers, how many legal moves it offers per turn, how often it deadlocks
-and what it scores. The 8×8 board this game started with turns out to give 40px
-cells on a 375pt phone, under the 44px minimum touch target, while covering 54%
-of the stage. The 6×9 board it ships with gives 57px cells and covers 85%.
+and the spread of what it scores. An 8-wide board cannot clear the 44px minimum
+touch target on a 375pt phone — it lands at 43px even after the page gutters
+were tightened — and the square board covered a little over half the stage. The
+6×9 board it ships with gives 57px cells and covers 85%.
 
-The same harness found a balance bug that was invisible by inspection: with the
-original targets, level 4 asked for 3000 points when 25 moves could score about
-2300. The run was ending on arithmetic rather than on play. Targets now start at
-1800 and climb by 200, and every third level grants two more moves, which pushes
-that wall from level 4 out past level 17 — beyond where difficulty ends a run
-anyway.
+The same harness drove the difficulty retune. The original curve started at 1200
+and climbed 900 a level against a fixed 25 moves, which ended runs at level 4.3
+on average. Starting at 1800 and climbing 200, with two extra moves every third
+level, takes that to 7.9.
+
+**The harness was wrong once, which is worth recording.** Its first version
+derived a "wall" — the level a target becomes unclearable — from the *mean*
+points per move, and reported that the old curve made level 4 arithmetically
+impossible. A mean is not a ceiling; half of all runs beat it, and level 4 was
+in fact cleared by a good share of seeds. Worse, the measurement stopped each
+run the moment it crossed the level-1 target, so it was averaging truncated
+level openings against the very curve it was evaluating. The sweep now plays a
+full move budget with the target lifted out of the way and reports the median
+and p90 of whole runs; the only line it calls a wall is one a p90 run still
+falls short of. The retune survived the correction — the old curve was steep
+rather than impossible — but the reasoning that justified it did not.
 
 **Boards are seeded and reproducible.** The URL takes a `?seed=` parameter, and
 the current seed is printed under the board. `?seed=1A2B` always deals the same

@@ -16,11 +16,19 @@ import type { Geom, Grid, Kind, Power } from './types.ts'
 
 export const MOVES_PER_LEVEL = 25
 /**
- * Targets climb every level while the move count stays put, so past some level
- * the target exceeds what that many moves can possibly score and the run ends
- * on arithmetic rather than on play. `npm run tune` puts that wall at level 4
- * with the numbers this game shipped with. Handing out a couple of extra moves
- * every few levels pushes it out past where difficulty ends a run anyway.
+ * The curve this game shipped with started at 1200 and climbed by 900 a level
+ * against a fixed 25 moves, which ended runs early — `npm run tune` measures a
+ * mean death at level 4.3 with the bottom decile dead by level 3.
+ *
+ * That was steepness, not impossibility: the first level even a strong run
+ * genuinely could not clear sat at 9. (An earlier version of the sweep claimed
+ * level 4 was arithmetically unreachable. It was deriving that from a MEAN
+ * points-per-move and treating it as a ceiling, which half of all runs beat.)
+ *
+ * Starting lower and climbing gently roughly doubles a typical run, and handing
+ * out a couple of extra moves every few levels keeps the target from outrunning
+ * the move budget at all — the sweep now reports no arithmetic wall at any
+ * level it simulates.
  */
 const MOVES_BONUS_EVERY = 3
 const MOVES_BONUS = 2

@@ -19,7 +19,20 @@ export interface Geom {
   inBounds(c: number, r: number): boolean
 }
 
+/**
+ * The renderer maps a kind onto the palette with `kind % PALETTE.length`, so a
+ * board asking for more colours than the palette holds would silently deal two
+ * different gems that draw identically — unplayable, and invisible in the
+ * rules, which never look at colour. Kept here rather than in the renderer so
+ * the headless tests and the tuning harness trip on it too.
+ */
+export const MAX_KINDS = 6
+
 export function makeGeom(cols: number, rows: number, kinds: number): Geom {
+  if (cols < 3 || rows < 3) throw new Error(`a ${cols}x${rows} board cannot hold a match`)
+  if (kinds < 3 || kinds > MAX_KINDS) {
+    throw new Error(`a board needs 3 to ${MAX_KINDS} colours, not ${kinds}`)
+  }
   return {
     cols,
     rows,

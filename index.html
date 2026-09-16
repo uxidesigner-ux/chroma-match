@@ -46,7 +46,7 @@
       <section class="goal">
         <div class="goal-row">
           <span class="goal-level" id="level">Level 1</span>
-          <span class="goal-numbers"><span id="progress">0</span> / <span id="target">1200</span></span>
+          <span class="goal-numbers"><span id="progress">0</span> / <span id="target">&mdash;</span></span>
         </div>
         <div class="bar"><div class="bar-fill" id="bar"></div></div>
       </section>
@@ -57,7 +57,7 @@
         shipping a 37px tap target, short landscape viewports get asked to turn
         back, with an escape for anyone who means it.
       -->
-      <section class="rotate" id="rotate">
+      <section class="rotate" id="rotate" role="alert" aria-live="assertive">
         <div class="rotate-card">
           <span class="rotate-icon" aria-hidden="true"></span>
           <h2>Turn your phone upright</h2>

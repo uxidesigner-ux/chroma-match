@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { findMatches, findMoves, makeGem } from './board.ts'
-import { Game, MOVES_PER_LEVEL, movesForLevel } from './game.ts'
+import { Game, MOVES_PER_LEVEL, movesForLevel, targetForLevel } from './game.ts'
 import { at, BOARD, makeGeom } from './types.ts'
 import type { Geom } from './types.ts'
 
@@ -197,4 +197,68 @@ test('the shipping board is playable, not just the one the tests pin', () => {
       assert.equal(findMatches(game.geom, game.grid).length, 0)
     }
   }
+})
+
+/**
+ * The difficulty curve is four constants that nothing else reads, so a typo in
+ * any of them used to leave the suite green. These pin the shape the curve is
+ * meant to have — not the magic numbers, which are allowed to be retuned, but
+ * the properties that made the retune worth doing.
+ *
+ * The rates come from `npm run tune` on the shipping board: a middle run scores
+ * about 4230 over a 25-move budget and a strong one about 7570, so roughly 170
+ * and 300 points per move.
+ */
+const STRONG_RUN_PER_MOVE = 300
+
+test('the target curve keeps climbing', () => {
+  assert.equal(targetForLevel(1), targetForLevel(1), 'sanity')
+  for (let level = 1; level < 40; level++) {
+    const step = targetForLevel(level + 1) - targetForLevel(level)
+    assert.ok(
+      step >= 100,
+      `level ${level} to ${level + 1} only asks for ${step} more, which is not a difficulty curve`,
+    )
+  }
+})
+
+test('the move budget grows, and on a cadence a player can feel', () => {
+  assert.equal(movesForLevel(1), MOVES_PER_LEVEL)
+  for (let level = 1; level < 40; level++) {
+    assert.ok(
+      movesForLevel(level + 1) >= movesForLevel(level),
+      `the budget shrinks between level ${level} and ${level + 1}`,
+    )
+  }
+  assert.ok(
+    movesForLevel(10) >= MOVES_PER_LEVEL + 4,
+    `by level 10 the budget is still ${movesForLevel(10)}; the grant is not landing`,
+  )
+})
+
+test('the target never outruns what a strong run can score', () => {
+  // This is the whole point of granting extra moves: without it the target
+  // eventually demands more per move than the board can produce, and the run
+  // ends on arithmetic instead of on play.
+  for (let level = 1; level <= 40; level++) {
+    const perMove = targetForLevel(level) / movesForLevel(level)
+    assert.ok(
+      perMove < STRONG_RUN_PER_MOVE,
+      `level ${level} demands ${perMove.toFixed(0)} points per move, past what a strong run scores`,
+    )
+  }
+})
+
+test('a level transition applies both halves of the curve', () => {
+  const game = newGame(5)
+  const startMoves = game.moves
+  for (let i = 0; i < 12; i++) {
+    const before = game.level
+    game.score = game.target + game.levelStartScore
+    game.nextLevel()
+    assert.equal(game.level, before + 1)
+    assert.equal(game.target, targetForLevel(game.level), 'the target must follow the curve')
+    assert.equal(game.moves, movesForLevel(game.level), 'and so must the move budget')
+  }
+  assert.ok(game.moves > startMoves, 'twelve levels in, the budget should have grown')
 })

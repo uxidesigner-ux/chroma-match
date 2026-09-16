@@ -70,7 +70,9 @@ export class Renderer {
   /** Grid index under a point given in CSS pixels relative to the canvas. */
   cellAtPoint(px: number, py: number): number | null {
     const { x, y, cell } = this.layout
-    if (cell <= 0) return null
+    // Must match draw()'s threshold: a board too small to render must not still
+    // be swallowing taps and spending the player's moves.
+    if (cell < MIN_CELL) return null
     const c = Math.floor((px - x) / cell)
     const r = Math.floor((py - y) / cell)
     if (!this.geom.inBounds(c, r)) return null
