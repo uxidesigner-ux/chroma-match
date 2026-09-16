@@ -67,8 +67,15 @@ export class ItemTray {
       button.classList.toggle('is-armed', key === item)
       button.setAttribute('aria-pressed', String(key === item))
     }
-    this.hint.textContent = item ? HINTS[item] : ''
-    this.hint.hidden = !item
+    if (item) {
+      this.hint.textContent = HINTS[item]
+      this.hint.hidden = false
+    } else {
+      // Dropping the mode hands the hint line back to whatever else wants it —
+      // the nudge repaints on the next frame if it is still owed.
+      this.hint.textContent = ''
+      this.hint.hidden = true
+    }
     document.body.classList.toggle('is-aiming', item !== null)
     for (const listener of this.listeners) listener(item)
   }
@@ -97,6 +104,25 @@ export class ItemTray {
     // Spending the last one has to drop the mode with it, or the next tap on
     // the board fires an item that is no longer there.
     if (this.armedItem && inventory[this.armedItem] <= 0) this.arm(null)
+  }
+
+  /**
+   * The first-run nudge.
+   *
+   * Arming is the one interaction in this game a player cannot discover by
+   * trying: the tray looks like a readout until you press it, and pressing it
+   * only pays off if you then press the board. It says so once, until the first
+   * item is spent, and then never again.
+   */
+  nudge(on: boolean): void {
+    for (const [, button] of this.buttons) button.classList.toggle('is-nudged', on)
+    if (on) {
+      this.hint.textContent = 'Tap an item, then tap a gem to use it'
+      this.hint.hidden = false
+    } else if (!this.armedItem) {
+      this.hint.textContent = ''
+      this.hint.hidden = true
+    }
   }
 
   /** Plays the earned animation on one item's button. */

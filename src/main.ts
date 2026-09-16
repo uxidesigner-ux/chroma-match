@@ -19,7 +19,16 @@ import { Effects } from './render/particles.ts'
 import { Renderer } from './render/renderer.ts'
 import { activeSkin, initSkin, nextSkin, onSkinChange, setSkin } from './render/skins/index.ts'
 import { contrastingShade, styleFor } from './render/theme.ts'
-import { BOOSTER_LIMIT, coins, payoutFor, setCoins, spendBoosters } from './meta.ts'
+import {
+  BOOSTER_LIMIT,
+  coins,
+  grantStarterKit,
+  hasUsedItem,
+  markItemUsed,
+  payoutFor,
+  setCoins,
+  spendBoosters,
+} from './meta.ts'
 import { ComboMeter } from './ui/combo.ts'
 import { Loadout } from './ui/loadout.ts'
 import { Shop } from './ui/shop.ts'
@@ -29,6 +38,10 @@ import { Hud } from './ui/hud.ts'
 import { Overlay } from './ui/overlay.ts'
 import type { OverlayContent } from './ui/overlay.ts'
 import { Screens } from './ui/screens.ts'
+
+function totalHeld(inventory: { hammer: number; rocket: number; bomb: number }): number {
+  return inventory.hammer + inventory.rocket + inventory.bomb
+}
 
 /** What the next level wants, in one sentence for the level-complete card. */
 function nextLevelAsk(level: number): string {
@@ -71,6 +84,8 @@ const hud = new Hud()
 const overlay = new Overlay()
 const combo = new ComboMeter()
 const tray = new ItemTray()
+/** Read once: the nudge is a first-run affordance, not a per-frame question. */
+let itemUsed = hasUsedItem()
 const shop = new Shop()
 const loadout = new Loadout()
 const screens = new Screens()
@@ -180,6 +195,12 @@ const hooks: Partial<GameHooks> = {
   onItemUsed(item, cell) {
     sfx.power()
     haptics.power()
+    // The nudge has served its purpose the moment an item is spent.
+    if (!itemUsed) {
+      itemUsed = true
+      markItemUsed()
+      tray.nudge(false)
+    }
     // A bomb is felt harder than a hammer, because it does more.
     renderer.hit(item === 'bomb' ? 0.85 : item === 'rocket' ? 0.7 : 0.4)
     const { x, y } = renderer.centreOf(cell)
@@ -456,14 +477,32 @@ function frame(now: number): void {
     renderer.draw(game, effects, time)
     hud.update(game, displayBest())
     tray.update(game.items)
+    if (!itemUsed) tray.nudge(!tray.armed && totalHeld(game.items) > 0)
   }
 
   requestAnimationFrame(frame)
 }
 
-// The wallet is on the launch screen, so it has to be painted before anyone
-// opens the shop — it was showing the markup's placeholder zero until the
-// first purchase or the first finished run.
+/**
+ * A first-time player used to meet every part of the meta as an absence: three
+ * greyed-out item buttons, a shop they cannot afford anything in, and a loadout
+ * screen whose whole content was an apology. The kit turns all three on, and
+ * the card says where it came from — an inventory that fills itself silently is
+ * a bug as far as the player can tell.
+ */
+const granted = grantStarterKit()
 shop.refresh()
 void home.refresh()
+
+if (granted) {
+  const names = granted.items.map((item) => ITEM_LABELS[item]).join(' and a ')
+  overlay.show({
+    kicker: 'Welcome',
+    title: 'Your starter kit',
+    hero: { value: String(granted.coins), caption: 'coins', flair: `A ${names}` },
+    body: 'Items are aimed at any gem and cost no move. Coins buy more in the shop.',
+    action: 'Got it',
+    onAction: () => {},
+  })
+}
 requestAnimationFrame(frame)

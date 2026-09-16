@@ -1787,3 +1787,69 @@ body {
     transform: none;
   }
 }
+
+/* ---- the first-run nudge ------------------------------------------------ */
+
+/*
+ * Arming is the one interaction here a player cannot discover by trying: the
+ * tray reads as a readout until it is pressed, and pressing it only pays off if
+ * the board is pressed next. This runs until the first item is spent, once ever
+ * per device — a hint that keeps coming back is an accusation.
+ */
+.item.is-nudged:not(.is-empty) {
+  animation: item-nudge 2.1s ease-in-out infinite;
+}
+
+@keyframes item-nudge {
+  0%,
+  72%,
+  100% {
+    border-color: var(--line);
+  }
+  84% {
+    border-color: var(--accent-2);
+  }
+}
+
+.item.is-nudged:not(.is-empty)::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid var(--accent-2);
+  opacity: 0;
+  animation: item-nudge-ring 2.1s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes item-nudge-ring {
+  0%,
+  70% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  82% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+[data-skin='paper'] .item.is-nudged:not(.is-empty)::after {
+  border-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The hint line still says what to do; only the pulse goes. */
+  .item.is-nudged:not(.is-empty),
+  .item.is-nudged:not(.is-empty)::after {
+    animation: none;
+  }
+
+  .item.is-nudged:not(.is-empty) {
+    border-color: var(--accent-2);
+  }
+}

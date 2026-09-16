@@ -166,11 +166,36 @@ and every goal is a pure function of the level number — a goal decided by a di
 roll would have to be recorded and trusted, while one derived from the level is
 recomputed by anyone replaying the run.
 
+### The first session
+
+A new player used to meet every part of the meta as an absence: three greyed-out
+item buttons, a shop they could afford nothing in, and a loadout screen whose
+whole content was an apology. None of it turned on until they cleared a level.
+
+So a first visit hands out a starter kit — 150 coins, a hammer and a bomb — and
+says so on a card, because an inventory that fills itself silently reads as a
+bug. The kit is deliberately enough to use an item on the first board and to
+afford one hammer in the shop, and nowhere near enough to skip earning the rest.
+It is granted once per device against a flag, not against an empty stash: a
+player who spends everything and comes back is not a new player.
+
+Arming an item is the one interaction here that cannot be discovered by trying —
+the tray reads as a readout until you press it, and pressing it only pays off if
+you press the board next. So the tray says what to do while a run holds an item
+and nothing has ever been spent, and stops for good the first time one is.
+
 ### Coins, the shop, and what you carry in
 
 A finished run pays coins for the score it reached and the levels it cleared.
 Coins buy items in the shop, and items bought there are kept between runs; when
 you press **Play** you choose up to two to carry in, and they start in the tray.
+
+Prices are set in runs rather than in coins. The sweep puts a median run at
+around 130 coins, and the ladder is built on it: a hammer is about one run, a
+rocket two, a bomb three and a half. The first attempt priced a bomb at 1.4 runs,
+which made carrying two boosters the default state rather than a decision —
+`meta.test.ts` now holds the ladder to those run-counts so neither side can move
+without the other noticing.
 
 This is the one place where something outside a run touches a run, so the seam
 is drawn explicitly:
