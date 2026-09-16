@@ -45,20 +45,28 @@ export function scoreTargetForLevel(level: number): number {
   return BASE_TARGET + (level - 1) * TARGET_STEP
 }
 
-/**
- * How many gems of one colour a colour level wants.
+/*
+ * The two counts below are measured, not argued.
  *
- * Roughly a fifth of the board per level of climb. Deliberately gentler than
- * the score curve: a colour goal cannot be finished by one lucky cascade, so
- * the same nominal difficulty takes more moves to reach.
+ * They started from a guess about what felt reasonable — a fifth of the board,
+ * power gems being rare — and `npm run tune` says the guess was wrong in the
+ * same direction twice. A colour level finished in 13 of its 25 moves and a
+ * power level in 8.5, against 19 for the score level either of them sat next
+ * to. They were not variety, they were a rest stop that still paid an item.
+ *
+ * Both curves now aim to use around three quarters of the move budget, which
+ * puts their clear rates alongside the score levels rather than well above
+ * them. The sweep's third table is what these are checked against.
  */
+
+/** Gems of one colour. The board gives up roughly 1.3 a move at this level. */
 function colourNeed(level: number): number {
-  return 14 + Math.floor(level / 2) * 3
+  return 21 + level + Math.floor(level / 3)
 }
 
-/** Power gems are rare enough that this climbs slowly or it climbs past reach. */
+/** Power gems. About two moves each, so this climbs faster than it looks. */
 function powerNeed(level: number): number {
-  return 3 + Math.floor(level / 4)
+  return 7 + Math.floor(level / 3)
 }
 
 export function goalForLevel(level: number, kinds: number): Goal {

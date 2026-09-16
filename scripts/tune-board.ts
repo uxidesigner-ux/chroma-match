@@ -13,6 +13,7 @@
 import { findMatches, findMoves, powerFor } from '../src/game/board.ts'
 import type { Move } from '../src/game/board.ts'
 import { Game, MOVES_PER_LEVEL, movesForLevel } from '../src/game/game.ts'
+import { goalForLevel } from '../src/game/goals.ts'
 import { BOARD, makeGeom } from '../src/game/types.ts'
 import type { Geom } from '../src/game/types.ts'
 
@@ -252,14 +253,27 @@ console.log(`A cell under ${MIN_TOUCH}px is below the minimum comfortable touch 
 function runToEnd(seed: number, base: number, step: number, moveBonus: boolean): number {
   const game = new Game({}, seed, BOARD)
   const target = (level: number) => base + (level - 1) * step
-  game.target = target(1)
+
+  // The curve under test replaces the score goal and nothing else. Writing it
+  // into `target` is not enough — a level is finished when `goal.need` is met,
+  // and `target` has not decided that since levels grew goals of their own. It
+  // was still being set here, so every row of the table below played the
+  // shipping goals and reported the same number, which looks like a stable
+  // curve and is actually a sweep that stopped sweeping.
+  const applyCurve = (): void => {
+    if (game.goal.kind !== 'score') return
+    game.goal = { kind: 'score', need: target(game.level) }
+    game.target = game.goal.need
+  }
+
+  applyCurve()
   game.moves = MOVES_PER_LEVEL
 
   for (let guard = 0; guard < 400; guard++) {
     if (game.status === 'gameOver') break
     if (game.status === 'levelComplete') {
       game.nextLevel()
-      game.target = target(game.level)
+      applyCurve()
       game.moves = moveBonus ? movesForLevel(game.level) : MOVES_PER_LEVEL
       continue
     }
@@ -334,6 +348,93 @@ for (const [base, step, moveBonus] of [
       String(levels[Math.floor(levels.length * 0.1)] ?? 0).padStart(5),
       String(levels[Math.floor(levels.length * 0.9)] ?? 0).padStart(5),
       (wall >= 99 ? 'none' : String(wall)).padStart(10),
+    ].join(' '),
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Third question: are the goals that are not about score actually clearable?
+//
+// A score goal is measurable against points per move, which the first table
+// already reports. A colour goal and a power goal are not: how many gems of one
+// colour a board gives up, and how often a four or five forms, are properties
+// of the board that no amount of reasoning about the score curve reveals. They
+// were set from an argument about what felt reasonable, which is exactly the
+// kind of number this script exists to replace.
+//
+// Each level is played on its own, from a fresh board, with its own move
+// budget. That is a simplification — a level in a real run starts on a board
+// the previous level left behind — but it is the same one the first table
+// makes, and it is the comparison between goal kinds that matters here.
+// ---------------------------------------------------------------------------
+
+interface GoalProbe {
+  level: number
+  kind: string
+  need: number
+  /** Share of seeds that met the goal inside the level's move budget. */
+  cleared: number
+  /** Median share of the goal reached, whether or not it was met. */
+  medianReached: number
+  movesUsed: number
+}
+
+function probeGoal(level: number): GoalProbe {
+  const goal = goalForLevel(level, BOARD.kinds)
+  const budget = movesForLevel(level)
+  let clears = 0
+  let movesSum = 0
+  const reached: number[] = []
+
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const game = new Game({}, seed + level * 1000, BOARD)
+    // Drop the run straight onto the level under test: the goal, its budget,
+    // and a board that owes nothing to how the previous level ended.
+    game.goal = goal
+    game.goalDone = 0
+    game.levelStartScore = 0
+    game.moves = budget
+
+    let used = 0
+    for (let turn = 0; turn < budget && game.status === 'playing'; turn++) {
+      const move = bestMove(game)
+      if (!move) break
+      game.drag(move.a, move.b)
+      if (!settle(game)) break
+      used++
+    }
+    movesSum += used
+    const share = Math.min(1, game.progress / goal.need)
+    reached.push(share)
+    if (game.status === 'levelComplete' || game.progress >= goal.need) clears++
+  }
+
+  reached.sort((a, b) => a - b)
+  return {
+    level,
+    kind: goal.kind,
+    need: goal.need,
+    cleared: clears / SEEDS,
+    medianReached: reached[Math.floor(reached.length / 2)] ?? 0,
+    movesUsed: movesSum / SEEDS,
+  }
+}
+
+console.log()
+console.log('Each level played alone on a fresh board, with its own move budget.')
+console.log()
+console.log(' level  goal     need  cleared  median reached  moves used')
+console.log('------------------------------------------------------------')
+for (const level of [1, 2, 3, 4, 5, 6, 9, 11, 15]) {
+  const probe = probeGoal(level)
+  console.log(
+    [
+      String(probe.level).padStart(6),
+      probe.kind.padEnd(7),
+      String(probe.need).padStart(6),
+      `${(probe.cleared * 100).toFixed(0)}%`.padStart(8),
+      `${(probe.medianReached * 100).toFixed(0)}%`.padStart(15),
+      probe.movesUsed.toFixed(1).padStart(11),
     ].join(' '),
   )
 }

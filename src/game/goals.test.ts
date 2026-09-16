@@ -37,6 +37,26 @@ test('a colour goal never names a colour the board does not deal', () => {
   }
 })
 
+test('the goal counts are the measured ones, and they climb', () => {
+  // Pinned because they are tuning output, not arithmetic: `npm run tune`'s
+  // third table is what justifies them, and a change here should be a change
+  // that table backs up rather than one that slipped in.
+  const colour3 = goalForLevel(3, BOARD.kinds)
+  assert.equal(colour3.kind, 'colour')
+  assert.equal(colour3.need, 25)
+
+  const power5 = goalForLevel(5, BOARD.kinds)
+  assert.equal(power5.kind, 'power')
+  assert.equal(power5.need, 8)
+
+  for (const level of [3, 9, 15]) {
+    const goal = goalForLevel(level, BOARD.kinds)
+    const next = goalForLevel(level + 6, BOARD.kinds)
+    assert.equal(goal.kind, next.kind)
+    assert.ok(next.need > goal.need, `${goal.kind} should climb past level ${level}`)
+  }
+})
+
 test('goals get harder, and the score curve is unchanged', () => {
   assert.equal(scoreTargetForLevel(1), 1800)
   for (let level = 2; level <= 20; level++) {
