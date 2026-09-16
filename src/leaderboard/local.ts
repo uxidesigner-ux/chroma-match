@@ -26,7 +26,7 @@ export class LocalLeaderboard implements Leaderboard {
       if (!raw) return []
       const parsed: unknown = JSON.parse(raw)
       if (!Array.isArray(parsed)) return []
-      return parsed.filter(isEntry)
+      return parsed.filter(isEntry).map((entry) => ({ ...entry, run: entry.run ?? null }))
     } catch {
       // Corrupt or unavailable storage is not worth failing a page load over.
       return []
@@ -64,6 +64,8 @@ export class LocalLeaderboard implements Leaderboard {
       level: verdict.level,
       at: Date.now(),
       mine: true,
+      // Kept even locally so the same verification path runs offline as online.
+      run,
     }
 
     const all = [...this.read(), entry].sort((a, b) => b.score - a.score || a.at - b.at)

@@ -1,15 +1,26 @@
 import type { RunRecord } from '../game/replay.ts'
 
+/** What a viewer's own browser concluded about a row it is showing. */
+export type EntryCheck = 'unchecked' | 'ok' | 'failed'
+
 export interface LeaderboardEntry {
   id: string
   name: string
-  /** Always the replayed score, never what a client claimed. */
   score: number
   level: number
   /** Milliseconds since the epoch, stamped by whatever stored the row. */
   at: number
   /** True when this row belongs to the player looking at it. */
   mine: boolean
+  /**
+   * The run behind the score.
+   *
+   * Carried on the row rather than kept server-side, because without a Cloud
+   * Function nothing on the server can tell an earned score from a typed one.
+   * Shipping the seed and the move list means every viewer's browser can
+   * replay the row and decide for itself — see verify.ts.
+   */
+  run: RunRecord | null
 }
 
 export interface SubmitResult {

@@ -1,0 +1,100 @@
+rules_version = '2';
+
+// Security rules for the Chroma Match leaderboard.
+//
+// WHAT THESE RULES CAN AND CANNOT DO
+//
+// They enforce shape: signed in, the right fields, the right types, sane
+// bounds, a move list that could plausibly encode a run, and a row that can
+// never be edited once written. That stops malformed and abusive writes.
+//
+// They CANNOT decide whether a score was actually earned. Rules cannot replay a
+// match-3 game, so a determined person can post any number within the bounds
+// below. That check belongs in a Cloud Function, which needs the Blaze plan;
+// until then every client replays the entries it displays and drops the ones
+// that do not check out, so a forged row cannot sit at the top of anyone's
+// board. Each row already carries its seed and move list, so turning on
+// server-side verification later needs no schema change.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnRow() {
+      return request.resource.data.uid == request.auth.uid;
+    }
+
+    function hasExactFields() {
+      return request.resource.data.keys().hasOnly(
+        ['uid', 'name', 'score', 'level', 'seed', 'moves', 'board', 'at']
+      ) && request.resource.data.keys().hasAll(
+        ['uid', 'name', 'score', 'level', 'seed', 'moves', 'board', 'at']
+      );
+    }
+
+    function scoresAreSane() {
+      return request.resource.data.score is int
+          && request.resource.data.score >= 0
+          // Far above anything the tuning sweep produces, but finite: an
+          // unbounded score would sit at the top of the board forever.
+          && request.resource.data.score <= 10000000
+          && request.resource.data.level is int
+          && request.resource.data.level >= 1
+          && request.resource.data.level <= 999;
+    }
+
+    function runIsWellFormed() {
+      return request.resource.data.seed is int
+          && request.resource.data.seed >= 0
+          && request.resource.data.seed <= 4294967295
+          && request.resource.data.moves is string
+          // Two base36 characters per swap, so this caps a run at 4000 moves,
+          // matching MAX_MOVES in src/game/replay.ts.
+          && request.resource.data.moves.size() > 0
+          && request.resource.data.moves.size() <= 8000
+          && request.resource.data.moves.matches('^[0-9a-z]+$')
+          && request.resource.data.board.keys().hasOnly(['cols', 'rows', 'kinds'])
+          && request.resource.data.board.cols is int
+          && request.resource.data.board.rows is int
+          && request.resource.data.board.kinds is int;
+    }
+
+    function nameIsReasonable() {
+      return request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 16;
+    }
+
+    function stampedNow() {
+      // The server's clock, not the client's, so a row cannot be backdated to
+      // sort ahead of an equal score that was posted first.
+      return request.resource.data.at == request.time;
+    }
+
+    match /runs/{runId} {
+      // The board is public; anyone can read it, signed in or not.
+      allow read: if true;
+
+      allow create: if isSignedIn()
+                    && isOwnRow()
+                    && hasExactFields()
+                    && scoresAreSane()
+                    && runIsWellFormed()
+                    && nameIsReasonable()
+                    && stampedNow();
+
+      // A posted run is a historical record. Nothing edits or deletes it —
+      // including its author, so a score cannot be quietly revised upward.
+      allow update, delete: if false;
+    }
+
+    // Everything else stays closed. This is already the default; it is written
+    // out so that adding a collection is a deliberate act.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

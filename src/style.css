@@ -416,7 +416,7 @@ body {
 
 .rank {
   display: grid;
-  grid-template-columns: 24px 1fr auto;
+  grid-template-columns: 24px 1fr auto auto;
   align-items: baseline;
   gap: 10px;
   padding: 8px 10px;
@@ -445,6 +445,21 @@ body {
 .rank-score {
   font-variant-numeric: tabular-nums;
   font-weight: 650;
+}
+
+/*
+ * Empty until this viewer's own browser has replayed the run behind the row.
+ * Reserved width either way, so a row does not jump when its verdict lands.
+ */
+.rank-check {
+  width: 12px;
+  font-size: 11px;
+  text-align: center;
+  color: transparent;
+}
+
+.rank-check.is-ok {
+  color: #6ee7b7;
 }
 
 .rank-level {

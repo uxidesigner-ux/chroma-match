@@ -7,6 +7,7 @@ import { randomSeed } from './game/rng.ts'
 import { recordOf } from './game/replay.ts'
 import { BOARD } from './game/types.ts'
 import { attachInput } from './input.ts'
+import { openLeaderboard } from './leaderboard/index.ts'
 import { LocalLeaderboard } from './leaderboard/local.ts'
 import { cleanName } from './leaderboard/types.ts'
 import type { Leaderboard } from './leaderboard/types.ts'
@@ -40,12 +41,19 @@ const overlay = new Overlay()
 const screens = new Screens()
 
 /**
- * Scores live on this device until a backend is configured. Swapping this for a
- * shared board is the only change needed — everything above it talks to the
- * interface, and the run is verified by replay either way.
+ * The local board is used immediately so the launch screen has something to
+ * draw, then the shared one takes over if it connects. Nothing above the
+ * interface changes either way, and a run is verified by replay in both.
  */
-const leaderboard: Leaderboard = new LocalLeaderboard()
+let leaderboard: Leaderboard = new LocalLeaderboard()
 const home = new HomeScreen(leaderboard)
+
+void openLeaderboard().then((board) => {
+  if (board === leaderboard) return
+  leaderboard = board
+  home.setBoard(board)
+  void home.refresh()
+})
 
 // ---- persistence ----------------------------------------------------------
 
