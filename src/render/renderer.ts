@@ -130,7 +130,7 @@ export class Renderer {
     const board = activeSkin().board
     ctx.fillStyle = board.boardFill
     ctx.fill()
-    ctx.lineWidth = 1
+    ctx.lineWidth = board.lineWidth
     ctx.strokeStyle = board.boardStroke
     ctx.stroke()
     ctx.restore()
@@ -145,7 +145,7 @@ export class Renderer {
     ctx.fillStyle = board.cellFill
     if (board.cellStroke) {
       ctx.strokeStyle = board.cellStroke
-      ctx.lineWidth = 1
+      ctx.lineWidth = board.lineWidth
     }
     for (let r = 0; r < this.geom.rows; r++) {
       for (let c = 0; c < this.geom.cols; c++) {
@@ -255,27 +255,33 @@ export class Renderer {
   private drawPowerMark(gem: Gem, r: number): void {
     const ctx = this.ctx
     if (gem.power === 'none') return
+    // The badge colour comes from the skin: on a light board a white badge is
+    // invisible, and the badge is the only thing that says what a gem does.
+    const mark = activeSkin().board.mark
+    const alpha = ctx.globalAlpha
     ctx.save()
+    ctx.fillStyle = mark
+    ctx.strokeStyle = mark
     if (gem.power === 'rowClear' || gem.power === 'colClear') {
       if (gem.power === 'colClear') ctx.rotate(Math.PI / 2)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+      ctx.globalAlpha = alpha * 0.85
       for (const offset of [-r * 0.42, 0, r * 0.42]) {
         ctx.beginPath()
         ctx.roundRect(-r * 1.3, offset - r * 0.1, r * 2.6, r * 0.2, r * 0.1)
         ctx.fill()
       }
     } else if (gem.power === 'bomb') {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'
+      ctx.globalAlpha = alpha * 0.9
       ctx.lineWidth = r * 0.16
       ctx.beginPath()
       ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2)
       ctx.stroke()
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+      ctx.globalAlpha = alpha * 0.95
       ctx.beginPath()
       ctx.arc(0, 0, r * 0.14, 0, Math.PI * 2)
       ctx.fill()
     } else if (gem.power === 'rainbow') {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+      ctx.globalAlpha = alpha * 0.95
       ctx.beginPath()
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2

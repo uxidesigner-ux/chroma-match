@@ -144,10 +144,12 @@ Pushes to `main` typecheck, test, build, and deploy to GitHub Pages.
 
 The look is a swap-in layer. `src/render/skins/` holds one file per skin — its
 palette, the board furniture, the CSS custom properties it sets on `:root`, and
-three painting passes the renderer calls for every gem. Two ship: **Jewel**, the
-original cut stones, and **Glass**, translucent panes over a frosted, blurred
-interface. The launch screen has a toggle, `?skin=glass` selects one from a
-link, and the choice is remembered per device.
+three painting passes the renderer calls for every gem. Three ship: **Jewel**, the
+original cut stones; **Glass**, translucent panes over a frosted, blurred
+interface; and **Paper**, flat shapes cut from coloured stock on a cream sheet,
+with hard offset shadows and no gradient anywhere. The launch screen has a
+toggle, `?skin=paper` selects one from a link, and the choice is remembered per
+device.
 
 A skin owns colour, silhouette and finish. It cannot change the board's shape or
 how many kinds are in play: a leaderboard row carries the board it was played on

@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import { MAX_KINDS } from '../../game/types.ts'
 import { GLASS } from './glass.ts'
 import { JEWEL } from './jewel.ts'
+import { PAPER } from './paper.ts'
 import { SKIN_VARS } from './types.ts'
 import type { Skin } from './types.ts'
 
@@ -16,7 +17,7 @@ import type { Skin } from './types.ts'
  * Node. The skins themselves are pure data plus canvas calls, so they are
  * listed directly.
  */
-const SKINS: readonly Skin[] = [JEWEL, GLASS]
+const SKINS: readonly Skin[] = [JEWEL, GLASS, PAPER]
 
 for (const skin of SKINS) {
   test(`${skin.id}: carries a colour for every kind the board can deal`, () => {

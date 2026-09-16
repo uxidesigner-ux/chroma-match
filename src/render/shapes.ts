@@ -58,6 +58,22 @@ export function gemPath(ctx: CanvasRenderingContext2D, shape: Shape, r: number):
     case 'hexagon':
       roundedPolyPath(ctx, polygon(6, r * 1.0, -Math.PI / 2), r * 0.26)
       break
+    case 'rosette': {
+      // Sampled from a polar rosette rather than built from arcs: the petals
+      // of a six-lobed curve intersect, and solving those intersections buys
+      // nothing a dense enough polyline does not already give at gem size.
+      const steps = 72
+      for (let i = 0; i <= steps; i++) {
+        const a = (i / steps) * Math.PI * 2 - Math.PI / 2
+        const rad = r * (0.84 + 0.24 * Math.cos(a * 6 + Math.PI / 2))
+        const px = Math.cos(a) * rad
+        const py = Math.sin(a) * rad
+        if (i === 0) ctx.moveTo(px, py)
+        else ctx.lineTo(px, py)
+      }
+      ctx.closePath()
+      break
+    }
     case 'flower': {
       const petals = 6
       for (let i = 0; i < petals; i++) {

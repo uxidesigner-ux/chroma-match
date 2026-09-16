@@ -47,9 +47,12 @@ export const GLASS: Skin = {
     // The wells are outlined here: they show through the gems, so the grid is
     // part of the look rather than something hidden underneath it.
     cellStroke: 'rgba(255, 255, 255, 0.06)',
+    lineWidth: 1,
     selectRing: 'rgba(255, 255, 255, 0.95)',
     hintRing: 'rgba(255, 255, 255, 0.5)',
     flash: '#FFFFFF',
+    mark: '#FFFFFF',
+    luminance: 'dark',
   },
 
   css: {

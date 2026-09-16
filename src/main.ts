@@ -14,7 +14,7 @@ import type { Leaderboard } from './leaderboard/types.ts'
 import { Effects } from './render/particles.ts'
 import { Renderer } from './render/renderer.ts'
 import { activeSkin, initSkin, nextSkin, onSkinChange, setSkin } from './render/skins/index.ts'
-import { styleFor } from './render/theme.ts'
+import { contrastingShade, styleFor } from './render/theme.ts'
 import { HomeScreen } from './ui/home.ts'
 import { Hud } from './ui/hud.ts'
 import { Overlay } from './ui/overlay.ts'
@@ -128,7 +128,7 @@ const hooks: Partial<GameHooks> = {
       1 + Math.min(combo, 5) * 0.07,
     )
     if (combo > 1) {
-      effects.float(cx, cy - renderer.cellSize * 0.6, `${combo}× chain`, styleFor(kind).light, 0.78)
+      effects.float(cx, cy - renderer.cellSize * 0.6, `${combo}× chain`, contrastingShade(kind), 0.78)
     }
   },
   onPowerCreated() {

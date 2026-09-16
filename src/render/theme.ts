@@ -20,3 +20,15 @@ export function styleFor(kind: number): GemStyle {
 export function boardStyle(): BoardStyle {
   return activeSkin().board
 }
+
+/**
+ * The shade of a kind that will read against the board it is drawn on.
+ *
+ * For anything painted over the board rather than inside a gem — the combo
+ * text that floats off a match — the pale end of the palette disappears on a
+ * light board and the dark end disappears on a dark one.
+ */
+export function contrastingShade(kind: number): string {
+  const style = styleFor(kind)
+  return activeSkin().board.luminance === 'light' ? style.dark : style.light
+}
