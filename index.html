@@ -41,6 +41,16 @@
           >
         </p>
 
+        <!-- The wallet, and the door to the shop. Both on the launch screen,
+             because that is where a player decides what this session is for. -->
+        <button class="wallet" id="open-shop" type="button">
+          <span class="wallet-coins">
+            <span class="coin" aria-hidden="true"></span>
+            <strong class="wallet-value" id="home-coins">0</strong>
+          </span>
+          <span class="wallet-shop">Shop<span class="wallet-stash" id="home-stash"></span></span>
+        </button>
+
         <button class="btn btn-primary btn-play" id="start-game" type="button">Play</button>
 
         <section class="ranks" aria-labelledby="ranks-title">
@@ -69,6 +79,68 @@
       <!-- ---------------------------------------------------------------- -->
       <!-- Game screen                                                      -->
       <!-- ---------------------------------------------------------------- -->
+      <!-- ---------------------------------------------------------------- -->
+      <!-- Shop                                                             -->
+      <!-- ---------------------------------------------------------------- -->
+      <section class="screen shop" id="screen-shop" hidden>
+        <header class="shop-head">
+          <button class="btn btn-ghost" id="shop-back" type="button">Back</button>
+          <h2>Shop</h2>
+          <span class="wallet-coins">
+            <span class="coin" aria-hidden="true"></span>
+            <strong class="wallet-value" id="shop-coins">0</strong>
+          </span>
+        </header>
+
+        <p class="shop-note">
+          Coins come from finishing runs. Items bought here are yours to keep &mdash; you choose
+          which to carry in when you press Play.
+        </p>
+
+        <ul class="shop-list" id="shop-list">
+          <li class="shop-row" data-shop="hammer">
+            <span class="item-art item-hammer" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name">Hammer</strong>
+              <span class="shop-desc">Smash any one gem.</span>
+            </span>
+            <span class="shop-owned" data-owned="hammer">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="hammer" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="hammer">0</span>
+            </button>
+          </li>
+          <li class="shop-row" data-shop="rocket">
+            <span class="item-art item-rocket" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name">Rocket</strong>
+              <span class="shop-desc">Clear a whole row.</span>
+            </span>
+            <span class="shop-owned" data-owned="rocket">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="rocket" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="rocket">0</span>
+            </button>
+          </li>
+          <li class="shop-row" data-shop="bomb">
+            <span class="item-art item-bomb" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name">Bomb</strong>
+              <span class="shop-desc">Blow up the square around a gem.</span>
+            </span>
+            <span class="shop-owned" data-owned="bomb">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="bomb" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="bomb">0</span>
+            </button>
+          </li>
+        </ul>
+
+        <p class="shop-status" id="shop-status" role="status"></p>
+
+        <p class="shop-foot">
+          A run pays out for the score it reached and every level it cleared.
+          Items you carry in are spent whether the run uses them or not.
+        </p>
+      </section>
+
       <section class="screen game" id="screen-game" hidden>
         <section class="stats" aria-live="polite">
           <div class="stat stat-primary">
@@ -88,6 +160,15 @@
         <section class="goal">
           <div class="goal-row">
             <span class="goal-level" id="level">Level 1</span>
+            <!-- What this level asks for. It changes from level to level now,
+                 so it cannot be left implied by a bare pair of numbers. -->
+            <span class="goal-what" id="goal-what">
+              <!-- A colour goal names a colour the player has to recognise on
+                   the board; the name alone leaves them matching a word to a
+                   gem. Filled from the skin's palette when the goal needs it. -->
+              <span class="goal-gem" id="goal-gem" aria-hidden="true" hidden></span>
+              <span id="goal-text">Score</span>
+            </span>
             <span class="goal-numbers"
               ><span id="progress">0</span> / <span id="target">&mdash;</span></span
             >
@@ -182,6 +263,43 @@
         </ul>
       </section>
     </main>
+
+    <!--
+      Chosen before the board is dealt, the way a loadout is: once a run has
+      started, an item is something you spend, not something you bring.
+    -->
+    <div class="overlay" id="loadout" hidden>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="loadout-title">
+        <p class="card-kicker">Before you start</p>
+        <h2 id="loadout-title">Take anything in?</h2>
+        <p class="card-body" id="loadout-body">Pick up to two. They start in your tray.</p>
+
+        <div class="loadout-grid" id="loadout-grid">
+          <button class="loadout-pick" data-load="hammer" type="button" aria-pressed="false">
+            <span class="item-art item-hammer" aria-hidden="true"></span>
+            <span class="loadout-name">Hammer</span>
+            <span class="loadout-have" data-have="hammer">0</span>
+          </button>
+          <button class="loadout-pick" data-load="rocket" type="button" aria-pressed="false">
+            <span class="item-art item-rocket" aria-hidden="true"></span>
+            <span class="loadout-name">Rocket</span>
+            <span class="loadout-have" data-have="rocket">0</span>
+          </button>
+          <button class="loadout-pick" data-load="bomb" type="button" aria-pressed="false">
+            <span class="item-art item-bomb" aria-hidden="true"></span>
+            <span class="loadout-name">Bomb</span>
+            <span class="loadout-have" data-have="bomb">0</span>
+          </button>
+        </div>
+
+        <p class="loadout-empty" id="loadout-empty" hidden>
+          Nothing in the stash yet &mdash; finish a run to earn coins, then visit the shop.
+        </p>
+
+        <button class="btn btn-primary" id="loadout-start" type="button">Start run</button>
+        <button class="btn btn-ghost" id="loadout-cancel" type="button">Back</button>
+      </div>
+    </div>
 
     <div class="overlay" id="overlay" hidden>
       <div class="card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">

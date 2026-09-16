@@ -141,6 +141,47 @@ newer is required for that.
 
 Pushes to `main` typecheck, test, build, and deploy to GitHub Pages.
 
+### Levels
+
+A level used to ask one question — reach a score — with the number going up.
+That is a difficulty curve, not variety: the best way to play level twelve was
+the best way to play level one, only for longer. Levels now rotate through
+three goals, each rewarding a different read of the board:
+
+| Goal | What it rewards |
+| --- | --- |
+| **Score** | cascades — the biggest number comes from the deepest chain |
+| **Colour** | turning down a good match in the wrong colour |
+| **Power gems** | building fours and fives instead of taking every three |
+
+The cycle opens with two score levels so a new player learns the board first,
+and every goal is a pure function of the level number — a goal decided by a dice
+roll would have to be recorded and trusted, while one derived from the level is
+recomputed by anyone replaying the run.
+
+### Coins, the shop, and what you carry in
+
+A finished run pays coins for the score it reached and the levels it cleared.
+Coins buy items in the shop, and items bought there are kept between runs; when
+you press **Play** you choose up to two to carry in, and they start in the tray.
+
+This is the one place where something outside a run touches a run, so the seam
+is drawn explicitly:
+
+- **What a run earns stays inside it.** Items earned by clearing levels or
+  landing chains die with the run, as before.
+- **What you carry in is recorded, and capped at two.** A booster is bought
+  with coins on your own device, so no replay can confirm the purchase — the
+  record simply asserts it. What the verifier can do is bound the assertion:
+  at most two, only at the head of the record, never more than the inventory
+  cap. A forged record therefore claims exactly what a few runs' coins buy
+  legitimately, and nothing beyond it. Everything after those first two codes
+  is proved by replay as before.
+
+The coin balance and the stash live in `localStorage` and are not defended:
+editing your own balance only cheats a shop you own. The thing worth defending
+is the leaderboard, and that is defended by the replay.
+
 ### Items
 
 Three things a player holds and spends, as opposed to the power gems the board

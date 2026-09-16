@@ -58,6 +58,19 @@ export function boardOf(geom: Geom): RunBoard {
 }
 
 /**
+ * How many boosters a record may claim.
+ *
+ * This is the one number in the verifier that is a policy rather than a proof.
+ * A booster is bought with coins that live on the player's own device, so no
+ * replay can confirm the purchase — the record simply asserts it. What the
+ * verifier can do is bound the assertion: at most two, only at the very start,
+ * and never more than the inventory cap allows. A forged record therefore buys
+ * exactly what any honest player can buy with a few runs' coins, and nothing
+ * beyond it. Everything after those first two codes is proved as before.
+ */
+export const BOOSTER_LIMIT = 2
+
+/**
  * Where item codes start. Swaps occupy `cell * 4 + direction`, so the first
  * value past the last of those is free — on the shipping 6x9 board that is 216,
  * leaving the range up to 1295 for everything else two base36 characters can
@@ -69,8 +82,13 @@ function itemBase(geom: Geom): number {
   return geom.cells * 4
 }
 
-function packLimitFor(geom: Geom): number {
+/** Booster codes sit immediately above the item codes, one per item. */
+function boosterBase(geom: Geom): number {
   return itemBase(geom) + ITEMS.length * geom.cells
+}
+
+function packLimitFor(geom: Geom): number {
+  return boosterBase(geom) + ITEMS.length
 }
 
 /**
@@ -88,7 +106,11 @@ export function encodeMoves(geom: Geom, actions: readonly Action[]): string {
   let out = ''
   for (const action of actions) {
     let packed: number
-    if (action.kind === 'item') {
+    if (action.kind === 'booster') {
+      const index = ITEMS.indexOf(action.item)
+      if (index < 0) throw new Error(`unknown item ${action.item}`)
+      packed = boosterBase(geom) + index
+    } else if (action.kind === 'item') {
       const index = ITEMS.indexOf(action.item)
       if (index < 0) throw new Error(`unknown item ${action.item}`)
       if (action.cell < 0 || action.cell >= geom.cells) {
@@ -110,12 +132,21 @@ export function encodeMoves(geom: Geom, actions: readonly Action[]): string {
 export function decodeMoves(geom: Geom, encoded: string): Action[] {
   if (encoded.length % 2 !== 0) throw new Error('move list is truncated')
   const base = itemBase(geom)
+  const boosters = boosterBase(geom)
   const actions: Action[] = []
   for (let i = 0; i < encoded.length; i += 2) {
     const chunk = encoded.slice(i, i + 2)
     const n = i / 2 + 1
     if (!/^[0-9a-z]{2}$/.test(chunk)) throw new Error(`move ${n} is not valid base36`)
     const packed = Number.parseInt(chunk, 36)
+
+    if (packed >= boosters) {
+      const index = packed - boosters
+      const item = ITEMS[index]
+      if (!item) throw new Error(`move ${n} names an item this version does not have`)
+      actions.push({ kind: 'booster', item: item as Item })
+      continue
+    }
 
     if (packed >= base) {
       const offset = packed - base
@@ -201,6 +232,15 @@ export function verifyRun(record: RunRecord, geom: Geom): VerifyResult {
     if (game.status === 'gameOver') return fail(`move ${i + 1} comes after the run ended`)
 
     const action = actions[i] as Action
+    if (action.kind === 'booster') {
+      // Bounded, and only before the run starts. addBooster refuses once any
+      // other action has been taken, so a booster spliced into the middle of a
+      // record fails here rather than quietly arming the player mid-run.
+      if (!game.addBooster(action.item, BOOSTER_LIMIT)) {
+        return fail(`move ${i + 1} claims a booster the run may not have`)
+      }
+      continue
+    }
     if (action.kind === 'item') {
       // No inventory is carried alongside the record: this replay earned its
       // own items by finishing the same levels and hitting the same chains the

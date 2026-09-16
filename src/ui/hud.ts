@@ -1,4 +1,6 @@
 import type { Game } from '../game/game.ts'
+import { goalLabel } from '../game/goals.ts'
+import { styleFor } from '../render/theme.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -17,12 +19,23 @@ export class Hud {
   private movesStat = el('moves').closest('.stat') as HTMLElement
   private best = el('best')
   private level = el('level')
+  private what = el('goal-text')
+  private gem = el('goal-gem')
   private progress = el('progress')
   private target = el('target')
   private bar = el('bar')
   private seed = el('seed')
 
-  private last = { score: -1, moves: -1, best: -1, level: -1, progress: -1, target: -1, seed: '' }
+  private last = {
+    score: -1,
+    moves: -1,
+    best: -1,
+    level: -1,
+    progress: -1,
+    target: -1,
+    seed: '',
+    what: '',
+  }
 
   update(game: Game, best: number): void {
     const l = this.last
@@ -43,14 +56,27 @@ export class Hud {
       this.level.textContent = `Level ${game.level}`
       l.level = game.level
     }
-    if (game.target !== l.target) {
-      this.target.textContent = game.target.toLocaleString()
-      l.target = game.target
+    // Both read from the goal rather than from the score: a colour level is
+    // measured in gems, and a bar that filled with points on one would be
+    // reporting the wrong race.
+    if (game.need !== l.target) {
+      this.target.textContent = game.need.toLocaleString()
+      l.target = game.need
     }
-    const progress = Math.min(game.progress, game.target)
+    // The colour's name comes from the skin, so it matches the gems on screen —
+    // the same kind is "Mint" under Jewel and "Jade" under Glass.
+    const what = goalLabel(game.goal, (colour) => styleFor(colour).name)
+    if (what !== l.what) {
+      this.what.textContent = what
+      const colour = game.goal.kind === 'colour' ? styleFor(game.goal.colour).base : null
+      this.gem.hidden = colour === null
+      if (colour) this.gem.style.background = colour
+      l.what = what
+    }
+    const progress = Math.min(game.progress, game.need)
     if (progress !== l.progress) {
       this.progress.textContent = progress.toLocaleString()
-      this.bar.style.width = `${Math.min(100, (progress / game.target) * 100)}%`
+      this.bar.style.width = `${Math.min(100, (progress / game.need) * 100)}%`
       l.progress = progress
     }
     const seed = game.seed.toString(36).toUpperCase()
