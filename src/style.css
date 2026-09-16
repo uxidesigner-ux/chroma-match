@@ -35,7 +35,8 @@ body {
 }
 
 .app {
-  height: 100%;
+  height: 100vh; /* fallback for browsers without dynamic viewport units */
+  height: 100dvh;
   max-width: 620px;
   margin: 0 auto;
   padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
@@ -82,6 +83,7 @@ body {
   font: inherit;
   font-size: 12px;
   cursor: pointer;
+  touch-action: manipulation; /* no double-tap-to-zoom delay */
   transition: color 0.15s, border-color 0.15s;
 }
 
@@ -211,6 +213,7 @@ body {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
   transition: background 0.15s, transform 0.08s;
 }
 
@@ -322,6 +325,90 @@ body {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* Fingers need a bigger target than a cursor does. */
+@media (pointer: coarse) {
+  .btn,
+  .icon-btn {
+    min-height: 44px;
+  }
+}
+
+/*
+ * Landscape on a phone: a single column would squeeze the board down to almost
+ * nothing, so the readouts move into a side rail and the board takes the full
+ * height instead.
+ */
+@media (orientation: landscape) and (max-height: 620px) {
+  .app {
+    display: grid;
+    grid-template-columns: minmax(156px, 30%) 1fr;
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: 14px;
+    row-gap: 8px;
+    max-width: none;
+    padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+
+  .topbar {
+    grid-area: 1 / 1;
+  }
+
+  .stats {
+    grid-area: 2 / 1;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .stat {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 7px 12px;
+  }
+
+  .stat-value,
+  .stat-primary .stat-value {
+    font-size: 18px;
+  }
+
+  .goal {
+    grid-area: 3 / 1;
+  }
+
+  .footer {
+    grid-area: 4 / 1;
+    align-self: end;
+    flex-wrap: wrap;
+  }
+
+  .seed {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .brand h1 {
+    font-size: 14px;
+  }
+
+  /* The board and the rules compete for the same space; only one is useful at
+     a time, so opening the rules takes the board's place. */
+  .stage,
+  .help {
+    grid-area: 1 / 2 / -1 / 3;
+  }
+
+  .help {
+    align-self: center;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  .app:has(.help:not([hidden])) .stage {
+    display: none;
+  }
 }
 
 @media (max-width: 420px) {

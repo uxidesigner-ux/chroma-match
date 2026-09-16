@@ -1,0 +1,45 @@
+/**
+ * Short vibration patterns that back up the sound effects on a phone.
+ *
+ * iOS Safari does not implement `navigator.vibrate` at all, so this is inert
+ * there rather than degraded — the sound kit carries the feedback instead. It
+ * is also a no-op whenever the player has muted the game, since a buzz with no
+ * sound reads as a malfunction rather than a reward.
+ */
+export class Haptics {
+  enabled = true
+
+  private buzz(pattern: number | number[]): void {
+    if (!this.enabled) return
+    try {
+      navigator.vibrate?.(pattern)
+    } catch {
+      /* some platforms throw instead of returning false; nothing to recover */
+    }
+  }
+
+  swap(): void {
+    this.buzz(9)
+  }
+
+  reject(): void {
+    this.buzz([12, 40, 12])
+  }
+
+  /** Grows with the cascade, so a long chain is felt as well as heard. */
+  clear(combo: number): void {
+    this.buzz(Math.min(12 + combo * 5, 45))
+  }
+
+  power(): void {
+    this.buzz([10, 30, 22])
+  }
+
+  levelUp(): void {
+    this.buzz([18, 55, 18, 55, 45])
+  }
+
+  gameOver(): void {
+    this.buzz([40, 70, 90])
+  }
+}

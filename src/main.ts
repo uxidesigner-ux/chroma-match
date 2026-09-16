@@ -1,5 +1,6 @@
 import './style.css'
 import { Sfx } from './audio.ts'
+import { Haptics } from './haptics.ts'
 import { Game, MOVES_PER_LEVEL, targetForLevel } from './game/game.ts'
 import type { GameHooks } from './game/game.ts'
 import { randomSeed } from './game/rng.ts'
@@ -17,6 +18,7 @@ if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #board canv
 const renderer = new Renderer(canvas)
 const effects = new Effects()
 const sfx = new Sfx()
+const haptics = new Haptics()
 const hud = new Hud()
 
 /** The best score of any *finished* run, persisted between visits. */
@@ -49,6 +51,7 @@ function seedFromUrl(): number | null {
 const hooks: Partial<GameHooks> = {
   onClear(cells, kind, combo, points) {
     sfx.clear(combo)
+    haptics.clear(combo)
     let sx = 0
     let sy = 0
     const perGem = cells.length > 14 ? 5 : 9
@@ -68,18 +71,22 @@ const hooks: Partial<GameHooks> = {
   },
   onPowerCreated() {
     sfx.power()
+    haptics.power()
   },
   onSwapAccepted() {
     sfx.swap()
+    haptics.swap()
   },
   onInvalidSwap() {
     sfx.reject()
+    haptics.reject()
   },
   onShuffle() {
     sfx.shuffle()
   },
   onLevelComplete(level) {
     sfx.levelUp()
+    haptics.levelUp()
     hud.showOverlay({
       kicker: 'Cleared',
       title: `Level ${level} complete`,
@@ -92,6 +99,7 @@ const hooks: Partial<GameHooks> = {
   },
   onGameOver(score) {
     sfx.gameOver()
+    haptics.gameOver()
     const previous = record
     const isRecord = commitRecord()
     hud.showOverlay({
@@ -141,10 +149,20 @@ const soundToggle = document.getElementById('sound-toggle')
 soundToggle?.addEventListener('click', () => {
   sfx.unlock()
   sfx.enabled = !sfx.enabled
+  // One control for both: a buzz with no sound reads as a fault, not a reward.
+  haptics.enabled = sfx.enabled
   soundToggle.setAttribute('aria-pressed', String(sfx.enabled))
   const label = document.getElementById('sound-label')
   if (label) label.textContent = sfx.enabled ? 'Sound on' : 'Sound off'
 })
+
+// Offline play is a bonus, so a registration that is refused (private mode,
+// an insecure origin, a browser without service workers) must stay silent.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {})
+  })
+}
 
 const howTo = document.getElementById('how-to')
 const help = document.getElementById('help')

@@ -41,7 +41,7 @@ export function attachInput(
     const { x, y } = localPoint(e)
     const dx = x - startX
     const dy = y - startY
-    const threshold = renderer.cellSize * 0.42
+    const threshold = renderer.cellSize * 0.35
     if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return
 
     // Snap the gesture to whichever axis the player committed to.
