@@ -1,0 +1,341 @@
+:root {
+  --bg: #080b14;
+  --bg-glow: #1a2145;
+  --panel: rgba(255, 255, 255, 0.045);
+  --panel-strong: rgba(255, 255, 255, 0.08);
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #eef1ff;
+  --muted: #838cb4;
+  --accent: #8b8bff;
+  --accent-2: #38bdf8;
+  --radius: 16px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(120% 80% at 50% -10%, var(--bg-glow) 0%, transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.app {
+  height: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---- top bar ------------------------------------------------------------ */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.brand-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: conic-gradient(#ff4d6d, #ffb020, #34d399, #38bdf8, #818cf8, #e879f9, #ff4d6d);
+}
+
+.icon-btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+  border-color: var(--panel-strong);
+}
+
+/* ---- stats -------------------------------------------------------------- */
+
+.stats {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 8px;
+}
+
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.stat-primary .stat-value {
+  font-size: 28px;
+}
+
+/* A move counter this low is the last thing worth looking at on the screen. */
+.stat.urgent .stat-value {
+  color: #ff7a94;
+}
+
+/* ---- goal --------------------------------------------------------------- */
+
+.goal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.goal-level {
+  font-weight: 650;
+}
+
+.goal-numbers {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---- board -------------------------------------------------------------- */
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  /* Size containment gives the board a definite box to measure against.
+     Without it, sizing a square from the stage's own height is circular and
+     the board silently grows wider than the column. */
+  container-type: size;
+}
+
+.board-wrap {
+  aspect-ratio: 1 / 1;
+  max-width: 100%;
+  width: min(100cqw, 100cqh);
+}
+
+#board {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- footer ------------------------------------------------------------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 9px 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.08s;
+}
+
+.btn:hover {
+  background: var(--panel-strong);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  border-color: transparent;
+  color: #0a0d18;
+  padding: 11px 22px;
+  font-size: 14px;
+}
+
+.seed {
+  margin-left: auto;
+  font-size: 11px;
+  color: rgba(131, 140, 180, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- help --------------------------------------------------------------- */
+
+.help {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px 18px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.help b {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.help ul {
+  padding-left: 18px;
+}
+
+/* ---- overlay ------------------------------------------------------------ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 8, 18, 0.72);
+  backdrop-filter: blur(10px);
+  padding: 24px;
+  animation: fade 0.22s ease-out;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.card {
+  width: min(360px, 100%);
+  text-align: center;
+  background: #10162c;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 32px 28px;
+  animation: rise 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+
+.card-kicker {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.card h2 {
+  margin: 0 0 10px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.card-body {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (max-width: 420px) {
+  .stat-primary .stat-value {
+    font-size: 24px;
+  }
+  .help {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill,
+  .overlay,
+  .card {
+    transition: none;
+    animation: none;
+  }
+}

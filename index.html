@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#080B14" />
+    <meta
+      name="description"
+      content="Chroma Match — a match-3 puzzle drawn entirely from canvas primitives. No engine, no sprites."
+    />
+    <title>Chroma Match</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23080B14'/%3E%3Ccircle cx='11' cy='11' r='5' fill='%23FF4D6D'/%3E%3Ccircle cx='21' cy='21' r='5' fill='%2334D399'/%3E%3Crect x='17' y='6' width='10' height='10' rx='3' fill='%2338BDF8'/%3E%3Cpath d='M11 26l-5-9h10z' fill='%23FFB020'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <h1>Chroma Match</h1>
+        </div>
+        <button class="icon-btn" id="sound-toggle" type="button" aria-pressed="true">
+          <span id="sound-label">Sound on</span>
+        </button>
+      </header>
+
+      <section class="stats" aria-live="polite">
+        <div class="stat stat-primary">
+          <span class="stat-label">Score</span>
+          <strong class="stat-value" id="score">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Moves</span>
+          <strong class="stat-value" id="moves">25</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Best</span>
+          <strong class="stat-value" id="best">0</strong>
+        </div>
+      </section>
+
+      <section class="goal">
+        <div class="goal-row">
+          <span class="goal-level" id="level">Level 1</span>
+          <span class="goal-numbers"><span id="progress">0</span> / <span id="target">1200</span></span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="bar"></div></div>
+      </section>
+
+      <div class="stage">
+        <div class="board-wrap">
+          <canvas id="board" aria-label="Game board"></canvas>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <button class="btn" id="new-game" type="button">New game</button>
+        <button class="btn btn-ghost" id="how-to" type="button" aria-expanded="false">
+          How to play
+        </button>
+        <span class="seed" id="seed" title="Board seed — share it to replay the same board"></span>
+      </footer>
+
+      <section class="help" id="help" hidden>
+        <ul>
+          <li><b>Swap</b> two neighbouring gems to line up three or more of a colour.</li>
+          <li>Every colour has its own shape, so the board reads without relying on hue.</li>
+          <li><b>Four in a row</b> leaves a striped gem that clears its whole line.</li>
+          <li><b>An L or T</b> leaves a bomb that clears the surrounding 3&times;3.</li>
+          <li><b>Five in a line</b> leaves a prism — swap it onto any colour to wipe that colour off the board.</li>
+          <li>Cascades multiply your score, up to &times;8.</li>
+        </ul>
+      </section>
+    </main>
+
+    <div class="overlay" id="overlay" hidden>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+        <p class="card-kicker" id="overlay-kicker"></p>
+        <h2 id="overlay-title"></h2>
+        <p class="card-body" id="overlay-body"></p>
+        <button class="btn btn-primary" id="overlay-action" type="button"></button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
