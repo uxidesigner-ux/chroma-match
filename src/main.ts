@@ -13,6 +13,7 @@ import { cleanName } from './leaderboard/types.ts'
 import type { Leaderboard } from './leaderboard/types.ts'
 import { Effects } from './render/particles.ts'
 import { Renderer } from './render/renderer.ts'
+import { activeSkin, initSkin, nextSkin, onSkinChange, setSkin } from './render/skins/index.ts'
 import { styleFor } from './render/theme.ts'
 import { HomeScreen } from './ui/home.ts'
 import { Hud } from './ui/hud.ts'
@@ -22,6 +23,11 @@ import { Screens } from './ui/screens.ts'
 
 const BEST_KEY = 'chroma-match:best'
 const NAME_KEY = 'chroma-match:name'
+
+// Before anything is measured or drawn: the skin carries the corner radius and
+// the panel treatment, so applying it after layout would cost a reflow and a
+// visible flash of the default one.
+initSkin()
 
 const canvas = document.getElementById('board')
 if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #board canvas')
@@ -252,6 +258,23 @@ for (const button of soundButtons) {
     }
   })
 }
+
+const skinButtons = document.querySelectorAll<HTMLButtonElement>('[data-action="skin"]')
+function paintSkinButtons(): void {
+  for (const button of skinButtons) {
+    const label = button.querySelector('.skin-label')
+    if (label) label.textContent = activeSkin().name
+    button.title = `Switch to ${nextSkin().name}`
+  }
+}
+for (const button of skinButtons) {
+  button.addEventListener('click', () => setSkin(nextSkin()))
+}
+// Both footers carry the toggle, and the skin can also change from the URL, so
+// the labels are painted from the skin rather than from whichever button was
+// pressed.
+onSkinChange(paintSkinButtons)
+paintSkinButtons()
 
 const help = document.getElementById('help')
 const helpButtons = document.querySelectorAll<HTMLButtonElement>('[data-action="how-to"]')

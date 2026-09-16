@@ -1,4 +1,4 @@
-import type { Shape } from './theme.ts'
+import type { Shape } from './skins/types.ts'
 
 interface Pt {
   x: number
