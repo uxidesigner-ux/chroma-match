@@ -2,8 +2,16 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { findMatches, findMoves, makeGem } from './board.ts'
-import { Game, MOVES_PER_LEVEL } from './game.ts'
-import { at, CELLS, idx } from './types.ts'
+import { Game, MOVES_PER_LEVEL, movesForLevel } from './game.ts'
+import { at, BOARD, makeGeom } from './types.ts'
+import type { Geom } from './types.ts'
+
+/**
+ * The state-machine tests run on their own board for the same reason the rules
+ * tests do; a separate case below checks that the shipping board is playable.
+ */
+const G = makeGeom(8, 8, 6)
+const newGame = (seed: number, geom: Geom = G) => new Game({}, seed, geom)
 
 const FRAME = 1 / 60
 
@@ -18,7 +26,7 @@ function settle(game: Game, label = ''): void {
 
 /** Plays one legal move, chosen deterministically so failures reproduce. */
 function playBestAvailable(game: Game): boolean {
-  const moves = findMoves(game.grid)
+  const moves = findMoves(game.geom, game.grid)
   if (moves.length === 0) return false
   const move = moves[0]!
   game.drag(move.a, move.b)
@@ -28,7 +36,7 @@ function playBestAvailable(game: Game): boolean {
 
 test('a settled board is always whole, matchless and playable', () => {
   for (let seed = 1; seed <= 25; seed++) {
-    const game = new Game({}, seed)
+    const game = newGame(seed)
     let score = 0
 
     for (let turn = 0; turn < MOVES_PER_LEVEL && game.status === 'playing'; turn++) {
@@ -37,13 +45,13 @@ test('a settled board is always whole, matchless and playable', () => {
 
       assert.ok(!game.grid.includes(null), `seed ${seed} left a hole after turn ${turn}`)
       assert.equal(
-        findMatches(game.grid).length,
+        findMatches(game.geom, game.grid).length,
         0,
         `seed ${seed} settled with a free match after turn ${turn}`,
       )
       assert.equal(game.moves, movesBefore - 1, 'a legal swap costs exactly one move')
       assert.ok(game.score > score, 'a legal swap always scores')
-      assert.ok(findMoves(game.grid).length > 0, 'a settled board always offers a move')
+      assert.ok(findMoves(game.geom, game.grid).length > 0, 'a settled board always offers a move')
       score = game.score
     }
 
@@ -52,11 +60,11 @@ test('a settled board is always whole, matchless and playable', () => {
 })
 
 test('an illegal swap costs nothing and leaves the board untouched', () => {
-  const game = new Game({}, 7)
-  const legal = new Set(findMoves(game.grid).map((m) => `${m.a}:${m.b}`))
+  const game = newGame(7)
+  const legal = new Set(findMoves(game.geom, game.grid).map((m) => `${m.a}:${m.b}`))
 
   let tried = false
-  for (let i = 0; i < CELLS - 1 && !tried; i++) {
+  for (let i = 0; i < G.cells - 1 && !tried; i++) {
     const a = i
     const b = i + 1
     if (legal.has(`${a}:${b}`)) continue
@@ -70,7 +78,7 @@ test('an illegal swap costs nothing and leaves the board untouched', () => {
       before,
       'the gems must end up exactly where they started',
     )
-    assert.equal(game.moves, MOVES_PER_LEVEL, 'a rejected swap must not cost a move')
+    assert.equal(game.moves, movesForLevel(1), 'a rejected swap must not cost a move')
     assert.equal(game.score, 0)
     tried = true
   }
@@ -78,13 +86,13 @@ test('an illegal swap costs nothing and leaves the board untouched', () => {
 })
 
 test('a rainbow swapped onto a colour clears every gem of that colour', () => {
-  const game = new Game({}, 42)
+  const game = newGame(42)
   // Hand-place a rainbow next to a known colour rather than fishing for a
   // five-run: this exercises the detonation, not the way it is earned.
   const target = 3
-  for (let i = 0; i < CELLS; i++) game.grid[i] = makeGem(i % 5 === 0 ? target : (i % 5) - 1 + 1)
-  const rainbowAt = idx(4, 4)
-  const partnerAt = idx(5, 4)
+  for (let i = 0; i < G.cells; i++) game.grid[i] = makeGem(i % 5 === 0 ? target : (i % 5) - 1 + 1)
+  const rainbowAt = G.idx(4, 4)
+  const partnerAt = G.idx(5, 4)
   game.grid[rainbowAt] = makeGem(0, 'rainbow')
   game.grid[partnerAt] = makeGem(target)
 
@@ -102,7 +110,7 @@ test('a rainbow swapped onto a colour clears every gem of that colour', () => {
 })
 
 test('clearing the target advances the level and refills the move counter', () => {
-  const game = new Game({}, 5)
+  const game = newGame(5)
   game.score = game.target // stand in for a run of good luck
   game.moves = 3
   const level = game.level
@@ -113,14 +121,14 @@ test('clearing the target advances the level and refills the move counter', () =
 
   game.nextLevel()
   assert.equal(game.level, level + 1)
-  assert.equal(game.moves, MOVES_PER_LEVEL)
+  assert.equal(game.moves, movesForLevel(level + 1))
   assert.equal(game.status, 'playing')
   assert.equal(game.progress, 0, 'the new level starts measuring from zero')
   assert.ok(game.target > 0)
 })
 
 test('running out of moves ends the run', () => {
-  const game = new Game({}, 11)
+  const game = newGame(11)
   game.moves = 1
   assert.ok(playBestAvailable(game))
   assert.equal(game.moves, 0)
@@ -128,7 +136,7 @@ test('running out of moves ends the run', () => {
 })
 
 test('a press lights a gem up without committing to it', () => {
-  const game = new Game({}, 3)
+  const game = newGame(3)
 
   game.press(0)
   assert.equal(game.held, 0, 'the gem lights up on contact')
@@ -145,7 +153,7 @@ test('a press lights a gem up without committing to it', () => {
 })
 
 test('pressing a second gem leaves the first selection standing', () => {
-  const game = new Game({}, 3)
+  const game = newGame(3)
   game.tap(0)
   assert.equal(game.selected, 0)
 
@@ -159,8 +167,8 @@ test('pressing a second gem leaves the first selection standing', () => {
 })
 
 test('a drag lets go of the held gem, and a busy board ignores presses', () => {
-  const game = new Game({}, 3)
-  const move = findMoves(game.grid)[0]!
+  const game = newGame(3)
+  const move = findMoves(game.geom, game.grid)[0]!
 
   game.press(move.a)
   assert.equal(game.held, move.a)
@@ -170,4 +178,23 @@ test('a drag lets go of the held gem, and a busy board ignores presses', () => {
   assert.notEqual(game.phaseKind, 'idle')
   game.press(0)
   assert.equal(game.held, null, 'the board must not light up mid-animation')
+})
+
+test('the shipping board is playable, not just the one the tests pin', () => {
+  // Everything above runs on G. This is the case that would fail if the board
+  // were retuned into a shape that deadlocks or cannot be dealt cleanly.
+  for (let seed = 1; seed <= 40; seed++) {
+    const game = newGame(seed, BOARD)
+    assert.equal(game.grid.length, BOARD.cells)
+    assert.ok(!game.grid.includes(null), `BOARD seed ${seed} dealt a hole`)
+    assert.equal(findMatches(game.geom, game.grid).length, 0, `BOARD seed ${seed} dealt a match`)
+    assert.ok(findMoves(game.geom, game.grid).length > 0, `BOARD seed ${seed} dealt a deadlock`)
+
+    // And it survives a run without corrupting itself.
+    for (let turn = 0; turn < 12 && game.status === 'playing'; turn++) {
+      assert.ok(playBestAvailable(game), `BOARD seed ${seed} deadlocked on turn ${turn}`)
+      assert.ok(!game.grid.includes(null))
+      assert.equal(findMatches(game.geom, game.grid).length, 0)
+    }
+  }
 })

@@ -26,9 +26,6 @@
           <span class="brand-mark" aria-hidden="true"></span>
           <h1>Chroma Match</h1>
         </div>
-        <button class="icon-btn" id="sound-toggle" type="button" aria-pressed="true">
-          <span id="sound-label">Sound on</span>
-        </button>
       </header>
 
       <section class="stats" aria-live="polite">
@@ -54,6 +51,24 @@
         <div class="bar"><div class="bar-fill" id="bar"></div></div>
       </section>
 
+      <!--
+        A nine-row board cannot fit a phone on its side at a usable gem size —
+        the arithmetic does not work at any padding. Rather than silently
+        shipping a 37px tap target, short landscape viewports get asked to turn
+        back, with an escape for anyone who means it.
+      -->
+      <section class="rotate" id="rotate">
+        <div class="rotate-card">
+          <span class="rotate-icon" aria-hidden="true"></span>
+          <h2>Turn your phone upright</h2>
+          <p>
+            The board is nine rows tall. On a phone lying down there is no way to fit that
+            without shrinking the gems past a comfortable tap.
+          </p>
+          <button class="btn" id="rotate-dismiss" type="button">Play anyway</button>
+        </div>
+      </section>
+
       <div class="stage">
         <div class="board-wrap">
           <canvas id="board" aria-label="Game board"></canvas>
@@ -64,6 +79,9 @@
         <button class="btn" id="new-game" type="button">New game</button>
         <button class="btn btn-ghost" id="how-to" type="button" aria-expanded="false">
           How to play
+        </button>
+        <button class="btn btn-ghost" id="sound-toggle" type="button" aria-pressed="true">
+          <span id="sound-label">Sound on</span>
         </button>
         <span class="seed" id="seed" title="Board seed — share it to replay the same board"></span>
       </footer>

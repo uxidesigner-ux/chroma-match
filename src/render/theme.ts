@@ -18,8 +18,10 @@ export const PALETTE: readonly GemStyle[] = [
   { name: 'Amber', shape: 'triangle', base: '#FFB020', light: '#FFD782', dark: '#B06800' },
   { name: 'Mint', shape: 'square', base: '#34D399', light: '#8DF3C8', dark: '#0B7D57' },
   { name: 'Azure', shape: 'diamond', base: '#38BDF8', light: '#9BDFFF', dark: '#0B6E9E' },
-  { name: 'Indigo', shape: 'hexagon', base: '#818CF8', light: '#C2C8FF', dark: '#3B34B8' },
   { name: 'Orchid', shape: 'flower', base: '#E879F9', light: '#F7BEFF', dark: '#96189F' },
+  // Sixth and last: with five colours in play this one sits out, because a
+  // second blue next to Azure is the hardest pair to tell apart at a glance.
+  { name: 'Indigo', shape: 'hexagon', base: '#818CF8', light: '#C2C8FF', dark: '#3B34B8' },
 ]
 
 export const THEME = {

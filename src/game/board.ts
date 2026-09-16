@@ -1,6 +1,6 @@
 import type { Rng } from './rng.ts'
-import { at, CELLS, colOf, COLS, idx, inBounds, KINDS, ROWS, rowOf } from './types.ts'
-import type { Gem, Grid, Kind, Power } from './types.ts'
+import { at } from './types.ts'
+import type { Gem, Geom, Grid, Kind, Power } from './types.ts'
 
 let nextId = 1
 
@@ -28,7 +28,7 @@ interface Run {
   horizontal: boolean
 }
 
-function collectRuns(grid: Grid): Run[] {
+function collectRuns(geom: Geom, grid: Grid): Run[] {
   const runs: Run[] = []
 
   const scan = (
@@ -54,8 +54,8 @@ function collectRuns(grid: Grid): Run[] {
     }
   }
 
-  scan(COLS, ROWS, (c, r) => idx(c, r), true)
-  scan(ROWS, COLS, (r, c) => idx(c, r), false)
+  scan(geom.cols, geom.rows, (c, r) => geom.idx(c, r), true)
+  scan(geom.rows, geom.cols, (r, c) => geom.idx(c, r), false)
   return runs
 }
 
@@ -63,8 +63,8 @@ function collectRuns(grid: Grid): Run[] {
  * Finds every match on the board, merging runs that share a cell so an L or T
  * shape is reported as one group rather than two.
  */
-export function findMatches(grid: Grid): MatchGroup[] {
-  const runs = collectRuns(grid)
+export function findMatches(geom: Geom, grid: Grid): MatchGroup[] {
+  const runs = collectRuns(geom, grid)
   if (runs.length === 0) return []
 
   // Union-find over runs, joined whenever two runs share a cell.
@@ -140,26 +140,26 @@ export function powerFor(group: MatchGroup): Power {
 }
 
 /** Cells a power gem takes out when it goes off. */
-export function blastRadius(grid: Grid, i: number): number[] {
+export function blastRadius(geom: Geom, grid: Grid, i: number): number[] {
   const gem = at(grid, i)
   if (!gem) return []
-  const c = colOf(i)
-  const r = rowOf(i)
+  const c = geom.colOf(i)
+  const r = geom.rowOf(i)
   const out: number[] = []
   switch (gem.power) {
     case 'rowClear':
-      for (let x = 0; x < COLS; x++) out.push(idx(x, r))
+      for (let x = 0; x < geom.cols; x++) out.push(geom.idx(x, r))
       break
     case 'colClear':
-      for (let y = 0; y < ROWS; y++) out.push(idx(c, y))
+      for (let y = 0; y < geom.rows; y++) out.push(geom.idx(c, y))
       break
     case 'bomb':
       for (let y = r - 1; y <= r + 1; y++)
-        for (let x = c - 1; x <= c + 1; x++) if (inBounds(x, y)) out.push(idx(x, y))
+        for (let x = c - 1; x <= c + 1; x++) if (geom.inBounds(x, y)) out.push(geom.idx(x, y))
       break
     case 'rainbow': {
       // Caught in someone else's blast: takes its own colour with it.
-      for (let k = 0; k < CELLS; k++) {
+      for (let k = 0; k < geom.cells; k++) {
         const other = at(grid, k)
         if (other && other.kind === gem.kind) out.push(k)
       }
@@ -175,7 +175,7 @@ export function blastRadius(grid: Grid, i: number): number[] {
  * Expands a set of seed cells into everything that actually clears, chaining
  * through any power gems caught in the blast.
  */
-export function expandClears(grid: Grid, seeds: Iterable<number>): Set<number> {
+export function expandClears(geom: Geom, grid: Grid, seeds: Iterable<number>): Set<number> {
   const cleared = new Set<number>()
   const queue: number[] = []
   for (const seed of seeds) {
@@ -186,7 +186,7 @@ export function expandClears(grid: Grid, seeds: Iterable<number>): Set<number> {
   }
   while (queue.length > 0) {
     const i = queue.pop() as number
-    for (const hit of blastRadius(grid, i)) {
+    for (const hit of blastRadius(geom, grid, i)) {
       if (!cleared.has(hit) && at(grid, hit)) {
         cleared.add(hit)
         queue.push(hit)
@@ -205,7 +205,7 @@ export interface FallResult {
  * Drops every gem into the holes below it and tops each column up with new
  * gems, recording how far each one travelled so the renderer can animate it.
  */
-export function applyGravity(grid: Grid, rng: Rng): FallResult {
+export function applyGravity(geom: Geom, grid: Grid, rng: Rng): FallResult {
   for (const gem of grid) {
     if (gem) {
       gem.ox = 0
@@ -214,14 +214,14 @@ export function applyGravity(grid: Grid, rng: Rng): FallResult {
   }
 
   let maxDrop = 0
-  for (let c = 0; c < COLS; c++) {
-    let write = ROWS - 1
-    for (let r = ROWS - 1; r >= 0; r--) {
-      const gem = at(grid, idx(c, r))
+  for (let c = 0; c < geom.cols; c++) {
+    let write = geom.rows - 1
+    for (let r = geom.rows - 1; r >= 0; r--) {
+      const gem = at(grid, geom.idx(c, r))
       if (!gem) continue
       if (write !== r) {
-        grid[idx(c, write)] = gem
-        grid[idx(c, r)] = null
+        grid[geom.idx(c, write)] = gem
+        grid[geom.idx(c, r)] = null
         gem.oy = r - write // negative: it starts drawn above where it landed
         maxDrop = Math.max(maxDrop, write - r)
       }
@@ -232,9 +232,9 @@ export function applyGravity(grid: Grid, rng: Rng): FallResult {
     if (write >= 0) {
       const drop = write + 1
       for (let r = write; r >= 0; r--) {
-        const gem = makeGem(rng.int(KINDS))
+        const gem = makeGem(rng.int(geom.kinds))
         gem.oy = -drop
-        grid[idx(c, r)] = gem
+        grid[geom.idx(c, r)] = gem
       }
       maxDrop = Math.max(maxDrop, drop)
     }
@@ -243,14 +243,14 @@ export function applyGravity(grid: Grid, rng: Rng): FallResult {
 }
 
 /** True if swapping these two neighbours would produce at least one match. */
-function swapMakesMatch(grid: Grid, a: number, b: number): boolean {
+function swapMakesMatch(geom: Geom, grid: Grid, a: number, b: number): boolean {
   const ga = at(grid, a)
   const gb = at(grid, b)
   if (!ga || !gb) return false
   if (ga.power === 'rainbow' || gb.power === 'rainbow') return true
   grid[a] = gb
   grid[b] = ga
-  const matched = findMatches(grid).length > 0
+  const matched = findMatches(geom, grid).length > 0
   grid[a] = ga
   grid[b] = gb
   return matched
@@ -261,29 +261,29 @@ export interface Move {
   b: number
 }
 
-export function areNeighbours(a: number, b: number): boolean {
-  const dc = Math.abs(colOf(a) - colOf(b))
-  const dr = Math.abs(rowOf(a) - rowOf(b))
+export function areNeighbours(geom: Geom, a: number, b: number): boolean {
+  const dc = Math.abs(geom.colOf(a) - geom.colOf(b))
+  const dr = Math.abs(geom.rowOf(a) - geom.rowOf(b))
   return dc + dr === 1
 }
 
-export function isLegalSwap(grid: Grid, a: number, b: number): boolean {
-  return areNeighbours(a, b) && swapMakesMatch(grid, a, b)
+export function isLegalSwap(geom: Geom, grid: Grid, a: number, b: number): boolean {
+  return areNeighbours(geom, a, b) && swapMakesMatch(geom, grid, a, b)
 }
 
 /** Every swap currently available to the player. */
-export function findMoves(grid: Grid): Move[] {
+export function findMoves(geom: Geom, grid: Grid): Move[] {
   const moves: Move[] = []
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const a = idx(c, r)
-      if (c + 1 < COLS) {
-        const b = idx(c + 1, r)
-        if (swapMakesMatch(grid, a, b)) moves.push({ a, b })
+  for (let r = 0; r < geom.rows; r++) {
+    for (let c = 0; c < geom.cols; c++) {
+      const a = geom.idx(c, r)
+      if (c + 1 < geom.cols) {
+        const b = geom.idx(c + 1, r)
+        if (swapMakesMatch(geom, grid, a, b)) moves.push({ a, b })
       }
-      if (r + 1 < ROWS) {
-        const b = idx(c, r + 1)
-        if (swapMakesMatch(grid, a, b)) moves.push({ a, b })
+      if (r + 1 < geom.rows) {
+        const b = geom.idx(c, r + 1)
+        if (swapMakesMatch(geom, grid, a, b)) moves.push({ a, b })
       }
     }
   }
@@ -295,7 +295,7 @@ export function findMoves(grid: Grid): Move[] {
  * matches and at least one legal move. Gives up after a bounded number of
  * attempts and rebuilds the board from scratch instead of spinning.
  */
-export function shuffleBoard(grid: Grid, rng: Rng): void {
+export function shuffleBoard(geom: Geom, grid: Grid, rng: Rng): void {
   for (let attempt = 0; attempt < 200; attempt++) {
     for (let i = grid.length - 1; i > 0; i--) {
       const j = rng.int(i + 1)
@@ -303,9 +303,9 @@ export function shuffleBoard(grid: Grid, rng: Rng): void {
       grid[i] = grid[j] ?? null
       grid[j] = a
     }
-    if (findMatches(grid).length === 0 && findMoves(grid).length > 0) return
+    if (findMatches(geom, grid).length === 0 && findMoves(geom, grid).length > 0) return
   }
-  fillFresh(grid, rng)
+  fillFresh(geom, grid, rng)
 }
 
 /**
@@ -314,28 +314,28 @@ export function shuffleBoard(grid: Grid, rng: Rng): void {
  * board with no free matches in one pass; the retry loop only exists to reject
  * the rare layout that has no legal move.
  */
-export function fillFresh(grid: Grid, rng: Rng): void {
+export function fillFresh(geom: Geom, grid: Grid, rng: Rng): void {
   const choices: Kind[] = []
   for (let attempt = 0; attempt < 100; attempt++) {
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const left = c >= 2 ? at(grid, idx(c - 1, r)) : null
-        const left2 = c >= 2 ? at(grid, idx(c - 2, r)) : null
-        const up = r >= 2 ? at(grid, idx(c, r - 1)) : null
-        const up2 = r >= 2 ? at(grid, idx(c, r - 2)) : null
+    for (let r = 0; r < geom.rows; r++) {
+      for (let c = 0; c < geom.cols; c++) {
+        const left = c >= 2 ? at(grid, geom.idx(c - 1, r)) : null
+        const left2 = c >= 2 ? at(grid, geom.idx(c - 2, r)) : null
+        const up = r >= 2 ? at(grid, geom.idx(c, r - 1)) : null
+        const up2 = r >= 2 ? at(grid, geom.idx(c, r - 2)) : null
         const banH = left && left2 && left.kind === left2.kind ? left.kind : -1
         const banV = up && up2 && up.kind === up2.kind ? up.kind : -1
         choices.length = 0
-        for (let k = 0; k < KINDS; k++) if (k !== banH && k !== banV) choices.push(k)
-        grid[idx(c, r)] = makeGem(rng.pick(choices))
+        for (let k = 0; k < geom.kinds; k++) if (k !== banH && k !== banV) choices.push(k)
+        grid[geom.idx(c, r)] = makeGem(rng.pick(choices))
       }
     }
-    if (findMoves(grid).length > 0) return
+    if (findMoves(geom, grid).length > 0) return
   }
 }
 
-export function createBoard(rng: Rng): Grid {
-  const grid: Grid = new Array<Gem | null>(CELLS).fill(null)
-  fillFresh(grid, rng)
+export function createBoard(geom: Geom, rng: Rng): Grid {
+  const grid: Grid = new Array<Gem | null>(geom.cells).fill(null)
+  fillFresh(geom, grid, rng)
   return grid
 }

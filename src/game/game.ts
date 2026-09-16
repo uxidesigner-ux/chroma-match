@@ -11,12 +11,21 @@ import {
 } from './board.ts'
 import type { Move } from './board.ts'
 import { makeRng, randomSeed, type Rng } from './rng.ts'
-import { at, CELLS, colOf, rowOf } from './types.ts'
-import type { Grid, Kind, Power } from './types.ts'
+import { at, BOARD } from './types.ts'
+import type { Geom, Grid, Kind, Power } from './types.ts'
 
 export const MOVES_PER_LEVEL = 25
-const BASE_TARGET = 1200
-const TARGET_STEP = 900
+/**
+ * Targets climb every level while the move count stays put, so past some level
+ * the target exceeds what that many moves can possibly score and the run ends
+ * on arithmetic rather than on play. `npm run tune` puts that wall at level 4
+ * with the numbers this game shipped with. Handing out a couple of extra moves
+ * every few levels pushes it out past where difficulty ends a run anyway.
+ */
+const MOVES_BONUS_EVERY = 3
+const MOVES_BONUS = 2
+const BASE_TARGET = 1800
+const TARGET_STEP = 200
 /** Beyond this the multiplier stops growing, so a lucky cascade can't end a level alone. */
 const MAX_COMBO = 8
 const POINTS_PER_GEM = 10
@@ -73,7 +82,12 @@ export function targetForLevel(level: number): number {
   return BASE_TARGET + (level - 1) * TARGET_STEP
 }
 
+export function movesForLevel(level: number): number {
+  return MOVES_PER_LEVEL + Math.floor((level - 1) / MOVES_BONUS_EVERY) * MOVES_BONUS
+}
+
 export class Game {
+  readonly geom: Geom
   grid: Grid
   rng: Rng
   seed: number
@@ -82,7 +96,7 @@ export class Game {
   level = 1
   levelStartScore = 0
   target = targetForLevel(1)
-  moves = MOVES_PER_LEVEL
+  moves = movesForLevel(1)
   combo = 0
   bestCombo = 0
   status: Status = 'playing'
@@ -103,11 +117,16 @@ export class Game {
   private idleTime = 0
   private hooks: Partial<GameHooks>
 
-  constructor(hooks: Partial<GameHooks> = {}, seed: number = randomSeed()) {
+  constructor(
+    hooks: Partial<GameHooks> = {},
+    seed: number = randomSeed(),
+    geom: Geom = BOARD,
+  ) {
     this.hooks = hooks
     this.seed = seed
+    this.geom = geom
     this.rng = makeRng(seed)
-    this.grid = createBoard(this.rng)
+    this.grid = createBoard(geom, this.rng)
   }
 
   // ---- read-only view helpers used by the renderer -------------------------
@@ -179,7 +198,7 @@ export class Game {
       this.selected = null
       return
     }
-    if (areNeighbours(this.selected, cell)) {
+    if (areNeighbours(this.geom, this.selected, cell)) {
       this.attemptSwap(this.selected, cell)
       this.selected = null
       return
@@ -191,7 +210,7 @@ export class Game {
   drag(from: number, to: number): void {
     this.held = null
     if (this.busy) return
-    if (!areNeighbours(from, to)) return
+    if (!areNeighbours(this.geom, from, to)) return
     this.idleTime = 0
     this.hint = null
     this.selected = null
@@ -199,7 +218,7 @@ export class Game {
   }
 
   private attemptSwap(a: number, b: number): void {
-    const legal = isLegalSwap(this.grid, a, b)
+    const legal = isLegalSwap(this.geom, this.grid, a, b)
     this.swapCells(a, b)
     this.startPhase('swap', SWAP_TIME, { a, b, doomed: !legal })
     if (legal) {
@@ -226,11 +245,11 @@ export class Game {
   }
 
   private colDelta(from: number, to: number): number {
-    return colOf(from) - colOf(to)
+    return this.geom.colOf(from) - this.geom.colOf(to)
   }
 
   private rowDelta(from: number, to: number): number {
-    return rowOf(from) - rowOf(to)
+    return this.geom.rowOf(from) - this.geom.rowOf(to)
   }
 
   // ---- phase machine -------------------------------------------------------
@@ -257,7 +276,7 @@ export class Game {
       if (this.status === 'playing') {
         this.idleTime += dt
         if (this.idleTime > HINT_DELAY && this.hint === null) {
-          const moves = findMoves(this.grid)
+          const moves = findMoves(this.geom, this.grid)
           this.hint = moves.length > 0 ? (moves[this.rng.int(moves.length)] ?? null) : null
         }
       }
@@ -316,7 +335,7 @@ export class Game {
     let seeds: number[]
     if (aIsRainbow && bIsRainbow) {
       seeds = []
-      for (let i = 0; i < CELLS; i++) if (at(this.grid, i)) seeds.push(i)
+      for (let i = 0; i < this.geom.cells; i++) if (at(this.grid, i)) seeds.push(i)
     } else {
       const rainbow = aIsRainbow ? (ga as NonNullable<typeof ga>) : (gb as NonNullable<typeof gb>)
       const partner = aIsRainbow ? gb : ga
@@ -324,13 +343,13 @@ export class Game {
       if (partner) rainbow.kind = partner.kind
       seeds = [aIsRainbow ? a : b]
     }
-    this.commitClear(expandClears(this.grid, seeds), [], seeds[0] ?? 0)
+    this.commitClear(expandClears(this.geom, this.grid, seeds), [], seeds[0] ?? 0)
     return true
   }
 
   /** Finds matches, reserves power gems, and starts the clear animation. */
   private beginClear(): boolean {
-    const groups = findMatches(this.grid)
+    const groups = findMatches(this.geom, this.grid)
     if (groups.length === 0) return false
 
     this.combo = Math.min(MAX_COMBO, this.combo + 1)
@@ -354,7 +373,7 @@ export class Game {
     }
     for (const p of powers) seeds.delete(p.cell)
 
-    const cleared = expandClears(this.grid, seeds)
+    const cleared = expandClears(this.geom, this.grid, seeds)
     for (const p of powers) cleared.delete(p.cell)
 
     const first = groups[0]
@@ -397,7 +416,7 @@ export class Game {
     }
     this.pendingPowers = []
 
-    const { maxDrop } = applyGravity(this.grid, this.rng)
+    const { maxDrop } = applyGravity(this.geom, this.grid, this.rng)
     const d = Math.min(FALL_MAX, Math.max(FALL_MIN, maxDrop * FALL_PER_ROW))
     this.startPhase('fall', d)
   }
@@ -424,14 +443,14 @@ export class Game {
       this.hooks.onGameOver?.(this.score)
       return
     }
-    if (findMoves(this.grid).length === 0) {
+    if (findMoves(this.geom, this.grid).length === 0) {
       for (const gem of this.grid) {
         if (gem) {
           gem.ox = 0
           gem.oy = 0
         }
       }
-      shuffleBoard(this.grid, this.rng)
+      shuffleBoard(this.geom, this.grid, this.rng)
       this.hooks.onShuffle?.()
       this.startPhase('shuffle', SHUFFLE_TIME)
     }
@@ -443,7 +462,7 @@ export class Game {
     this.level += 1
     this.levelStartScore = this.score
     this.target = targetForLevel(this.level)
-    this.moves = MOVES_PER_LEVEL
+    this.moves = movesForLevel(this.level)
     this.status = 'playing'
     this.selected = null
     this.held = null
@@ -453,12 +472,12 @@ export class Game {
   restart(seed: number = randomSeed()): void {
     this.seed = seed
     this.rng = makeRng(seed)
-    this.grid = createBoard(this.rng)
+    this.grid = createBoard(this.geom, this.rng)
     this.score = 0
     this.level = 1
     this.levelStartScore = 0
     this.target = targetForLevel(1)
-    this.moves = MOVES_PER_LEVEL
+    this.moves = movesForLevel(1)
     this.combo = 0
     this.bestCombo = 0
     this.status = 'playing'

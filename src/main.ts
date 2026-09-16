@@ -1,9 +1,10 @@
 import './style.css'
 import { Sfx } from './audio.ts'
 import { Haptics } from './haptics.ts'
-import { Game, MOVES_PER_LEVEL, targetForLevel } from './game/game.ts'
+import { Game, movesForLevel, targetForLevel } from './game/game.ts'
 import type { GameHooks } from './game/game.ts'
 import { randomSeed } from './game/rng.ts'
+import { BOARD } from './game/types.ts'
 import { Effects } from './render/particles.ts'
 import { Renderer } from './render/renderer.ts'
 import { styleFor } from './render/theme.ts'
@@ -15,7 +16,13 @@ const BEST_KEY = 'chroma-match:best'
 const canvas = document.getElementById('board')
 if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #board canvas')
 
-const renderer = new Renderer(canvas)
+// The board's proportions live in one place. CSS sizes the square-or-not box
+// the canvas fills, so it is told the ratio rather than having it duplicated.
+const root = document.documentElement
+root.style.setProperty('--board-aspect', `${BOARD.cols} / ${BOARD.rows}`)
+root.style.setProperty('--board-ratio', String(BOARD.cols / BOARD.rows))
+
+const renderer = new Renderer(canvas, BOARD)
 const effects = new Effects()
 const sfx = new Sfx()
 const haptics = new Haptics()
@@ -92,7 +99,7 @@ const hooks: Partial<GameHooks> = {
       title: `Level ${level} complete`,
       body: `${game.score.toLocaleString()} points banked. Level ${level + 1} asks for ${targetForLevel(
         level + 1,
-      ).toLocaleString()} more in ${MOVES_PER_LEVEL} moves.`,
+      ).toLocaleString()} more in ${movesForLevel(level + 1)} moves.`,
       action: 'Next level',
       onAction: () => game.nextLevel(),
     })
@@ -171,6 +178,11 @@ howTo?.addEventListener('click', () => {
   const open = help.hidden
   help.hidden = !open
   howTo.setAttribute('aria-expanded', String(open))
+})
+
+document.getElementById('rotate-dismiss')?.addEventListener('click', () => {
+  document.querySelector('.app')?.classList.add('ignore-rotate')
+  renderer.resize()
 })
 
 const observer = new ResizeObserver(() => renderer.resize())

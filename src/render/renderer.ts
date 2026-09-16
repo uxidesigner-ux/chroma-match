@@ -1,27 +1,38 @@
 import type { Game } from '../game/game.ts'
-import { at, colOf, COLS, idx, ROWS, rowOf } from '../game/types.ts'
-import type { Gem } from '../game/types.ts'
+import { at } from '../game/types.ts'
+import type { Gem, Geom } from '../game/types.ts'
 import type { Effects } from './particles.ts'
 import { gemPath } from './shapes.ts'
 import { PALETTE, styleFor, THEME } from './theme.ts'
 
 interface Layout {
-  /** Board origin in CSS pixels, and the size of one cell. */
+  /** Board origin in CSS pixels, its drawn size, and the size of one cell. */
   x: number
   y: number
   cell: number
-  size: number
+  w: number
+  h: number
 }
 
-const BOARD_PAD = 10
+/**
+ * Margin between the board's edge and the plate drawn behind it. The board is
+ * width-bound on a phone, so this margin comes straight out of the cell size —
+ * it is kept tight for that reason.
+ */
+const BOARD_PAD = 8
+/** Below this a cell is too small to draw anything legible into. */
+const MIN_CELL = 6
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D
-  private layout: Layout = { x: 0, y: 0, cell: 1, size: 1 }
+  private layout: Layout = { x: 0, y: 0, cell: 1, w: 1, h: 1 }
   private width = 0
   private height = 0
 
-  constructor(private canvas: HTMLCanvasElement) {
+  constructor(
+    private canvas: HTMLCanvasElement,
+    private geom: Geom,
+  ) {
     const ctx = canvas.getContext('2d', { alpha: true })
     if (!ctx) throw new Error('This browser has no 2D canvas context.')
     this.ctx = ctx
@@ -40,29 +51,38 @@ export class Renderer {
     this.width = w
     this.height = h
 
-    // The stylesheet can land a frame after this module runs, so the element is
-    // briefly zero-sized. Clamping keeps the geometry (and roundRect) valid.
-    const size = Math.max(0, Math.min(w, h) - BOARD_PAD * 2)
-    this.layout = {
-      size,
-      cell: size / COLS,
-      x: (w - size) / 2,
-      y: (h - size) / 2,
-    }
+    // The board is not square, so the cell size is whichever of the two axes
+    // runs out first. The stylesheet can also land a frame after this module
+    // runs, leaving the element briefly zero-sized, so clamp at zero to keep
+    // the geometry (and roundRect) valid.
+    const cell = Math.max(
+      0,
+      Math.min(
+        (w - BOARD_PAD * 2) / this.geom.cols,
+        (h - BOARD_PAD * 2) / this.geom.rows,
+      ),
+    )
+    const bw = cell * this.geom.cols
+    const bh = cell * this.geom.rows
+    this.layout = { cell, w: bw, h: bh, x: (w - bw) / 2, y: (h - bh) / 2 }
   }
 
   /** Grid index under a point given in CSS pixels relative to the canvas. */
   cellAtPoint(px: number, py: number): number | null {
     const { x, y, cell } = this.layout
+    if (cell <= 0) return null
     const c = Math.floor((px - x) / cell)
     const r = Math.floor((py - y) / cell)
-    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return null
-    return idx(c, r)
+    if (!this.geom.inBounds(c, r)) return null
+    return this.geom.idx(c, r)
   }
 
   centreOf(cell: number): { x: number; y: number } {
     const { x, y, cell: size } = this.layout
-    return { x: x + (colOf(cell) + 0.5) * size, y: y + (rowOf(cell) + 0.5) * size }
+    return {
+      x: x + (this.geom.colOf(cell) + 0.5) * size,
+      y: y + (this.geom.rowOf(cell) + 0.5) * size,
+    }
   }
 
   get cellSize(): number {
@@ -72,7 +92,7 @@ export class Renderer {
   draw(game: Game, effects: Effects, time: number): void {
     const ctx = this.ctx
     ctx.clearRect(0, 0, this.width, this.height)
-    if (this.layout.size < COLS) return // too small to draw anything meaningful
+    if (this.layout.cell < MIN_CELL) return
 
     this.drawBoardPlate()
     this.drawWells()
@@ -94,17 +114,17 @@ export class Renderer {
   }
 
   private boardClip(): void {
-    const { x, y, size } = this.layout
+    const { x, y, w, h } = this.layout
     this.ctx.beginPath()
-    this.ctx.roundRect(x - 2, y - 2, size + 4, size + 4, 20)
+    this.ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 20)
   }
 
   private drawBoardPlate(): void {
     const ctx = this.ctx
-    const { x, y, size } = this.layout
+    const { x, y, w, h } = this.layout
     ctx.save()
     ctx.beginPath()
-    ctx.roundRect(x - BOARD_PAD, y - BOARD_PAD, size + BOARD_PAD * 2, size + BOARD_PAD * 2, 26)
+    ctx.roundRect(x - BOARD_PAD, y - BOARD_PAD, w + BOARD_PAD * 2, h + BOARD_PAD * 2, 26)
     ctx.fillStyle = THEME.boardFill
     ctx.fill()
     ctx.lineWidth = 1
@@ -119,8 +139,8 @@ export class Renderer {
     const inset = cell * 0.08
     ctx.save()
     ctx.fillStyle = THEME.cellFill
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < this.geom.rows; r++) {
+      for (let c = 0; c < this.geom.cols; c++) {
         ctx.beginPath()
         ctx.roundRect(
           x + c * cell + inset,
@@ -142,7 +162,7 @@ export class Renderer {
     const shuffleScale =
       game.phaseKind === 'shuffle' ? Math.abs(Math.cos(game.phaseProgress * Math.PI)) : 1
 
-    for (let i = 0; i < COLS * ROWS; i++) {
+    for (let i = 0; i < this.geom.cells; i++) {
       const gem = at(game.grid, i)
       if (!gem) continue
       const { x, y } = this.centreOf(i)
