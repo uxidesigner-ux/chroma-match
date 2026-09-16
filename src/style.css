@@ -188,6 +188,8 @@ body {
   display: block;
   width: 100%;
   height: 100%;
+  /* Holding a gem must not raise iOS's text-selection callout. */
+  -webkit-touch-callout: none;
 }
 
 /* ---- footer ------------------------------------------------------------- */

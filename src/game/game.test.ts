@@ -126,3 +126,48 @@ test('running out of moves ends the run', () => {
   assert.equal(game.moves, 0)
   assert.equal(game.status, 'gameOver')
 })
+
+test('a press lights a gem up without committing to it', () => {
+  const game = new Game({}, 3)
+
+  game.press(0)
+  assert.equal(game.held, 0, 'the gem lights up on contact')
+  assert.equal(game.selected, null, 'nothing is committed while the pointer is down')
+
+  game.cancelPress()
+  assert.equal(game.held, null)
+  assert.equal(game.selected, null, 'sliding off the board takes the press back')
+
+  game.press(0)
+  game.cancelPress()
+  game.tap(0)
+  assert.equal(game.selected, 0, 'releasing on the gem commits it')
+})
+
+test('pressing a second gem leaves the first selection standing', () => {
+  const game = new Game({}, 3)
+  game.tap(0)
+  assert.equal(game.selected, 0)
+
+  game.press(1)
+  assert.equal(game.held, 1)
+  assert.equal(game.selected, 0, 'the committed gem must survive a press elsewhere')
+
+  game.cancelPress()
+  game.tap(1)
+  assert.equal(game.selected, null, 'releasing on a neighbour spends the selection')
+})
+
+test('a drag lets go of the held gem, and a busy board ignores presses', () => {
+  const game = new Game({}, 3)
+  const move = findMoves(game.grid)[0]!
+
+  game.press(move.a)
+  assert.equal(game.held, move.a)
+  game.drag(move.a, move.b)
+  assert.equal(game.held, null, 'the ring must not ride along with a swapping gem')
+
+  assert.notEqual(game.phaseKind, 'idle')
+  game.press(0)
+  assert.equal(game.held, null, 'the board must not light up mid-animation')
+})

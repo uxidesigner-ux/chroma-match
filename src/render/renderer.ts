@@ -84,7 +84,11 @@ export class Renderer {
     this.drawGems(game, time)
     ctx.restore()
 
-    if (game.selected !== null) this.drawSelection(game.selected, time)
+    // A gem can be both committed and under the pointer; draw one ring for it.
+    if (game.selected !== null && game.selected !== game.held) {
+      this.drawSelection(game.selected, time, false)
+    }
+    if (game.held !== null) this.drawSelection(game.held, time, true)
 
     effects.draw(ctx)
   }
@@ -151,6 +155,10 @@ export class Renderer {
         const p = clearP
         scale *= p < 0.35 ? 1 + (p / 0.35) * 0.28 : Math.max(0, 1.28 * (1 - (p - 0.35) / 0.65))
         alpha = p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.55)
+      } else if (game.held === i) {
+        // A steady lift, not an animation: contact should register on the very
+        // frame the pointer goes down.
+        scale *= 1.1
       } else if (game.selected === i) {
         scale *= 1 + Math.sin(time * 9) * 0.05
       }
@@ -271,18 +279,29 @@ export class Renderer {
     ctx.restore()
   }
 
-  private drawSelection(cell: number, time: number): void {
+  /**
+   * The ring around a chosen gem. A held gem gets a solid, steady ring so it
+   * reads as direct contact; a committed selection pulses to say it is waiting
+   * for a partner.
+   */
+  private drawSelection(cell: number, time: number, held: boolean): void {
     const ctx = this.ctx
     const { x, y } = this.centreOf(cell)
     const s = this.layout.cell
-    const pulse = 0.5 + Math.sin(time * 6) * 0.5
     ctx.save()
     ctx.translate(x, y)
-    ctx.lineWidth = 2.5
     ctx.strokeStyle = THEME.selectRing
-    ctx.globalAlpha = 0.7 + pulse * 0.3
+    if (held) {
+      ctx.lineWidth = 3
+      ctx.globalAlpha = 1
+    } else {
+      const pulse = 0.5 + Math.sin(time * 6) * 0.5
+      ctx.lineWidth = 2.5
+      ctx.globalAlpha = 0.7 + pulse * 0.3
+    }
+    const r = s * (held ? 0.47 : 0.44)
     ctx.beginPath()
-    ctx.roundRect(-s * 0.44, -s * 0.44, s * 0.88, s * 0.88, s * 0.24)
+    ctx.roundRect(-r, -r, r * 2, r * 2, s * 0.24)
     ctx.stroke()
     ctx.restore()
   }

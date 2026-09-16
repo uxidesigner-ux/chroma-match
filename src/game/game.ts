@@ -87,7 +87,14 @@ export class Game {
   bestCombo = 0
   status: Status = 'playing'
 
+  /** The gem committed by a completed tap, waiting for a partner. */
   selected: number | null = null
+  /**
+   * The gem the pointer is currently down on. Separate from `selected` so the
+   * press reads back immediately, while a first tap's selection survives the
+   * player pressing a second gem to swap with.
+   */
+  held: number | null = null
   hint: Move | null = null
 
   private phase: Phase = { kind: 'idle', t: 0, d: 0, a: -1, b: -1, doomed: false }
@@ -138,6 +145,24 @@ export class Game {
 
   // ---- input ---------------------------------------------------------------
 
+  /**
+   * The pointer went down on a cell. This only lights the gem up — nothing is
+   * committed until the pointer is released or dragged, so a press can still be
+   * taken back by sliding off the board.
+   */
+  press(cell: number): void {
+    if (this.busy) return
+    if (!at(this.grid, cell)) return
+    this.held = cell
+    this.idleTime = 0
+    this.hint = null
+  }
+
+  /** The press ended without committing to anything. */
+  cancelPress(): void {
+    this.held = null
+  }
+
   /** Handles a tap on a cell: select it, deselect it, or attempt a swap. */
   tap(cell: number): void {
     if (this.busy) return
@@ -164,6 +189,7 @@ export class Game {
 
   /** Drag-to-swap: the player pulled `from` toward `to`. */
   drag(from: number, to: number): void {
+    this.held = null
     if (this.busy) return
     if (!areNeighbours(from, to)) return
     this.idleTime = 0
@@ -420,6 +446,7 @@ export class Game {
     this.moves = MOVES_PER_LEVEL
     this.status = 'playing'
     this.selected = null
+    this.held = null
     this.idleTime = 0
   }
 
@@ -436,6 +463,7 @@ export class Game {
     this.bestCombo = 0
     this.status = 'playing'
     this.selected = null
+    this.held = null
     this.hint = null
     this.clearing = []
     this.pendingPowers = []

@@ -29,7 +29,11 @@ export function attachInput(
     startX = x
     startY = y
     dragged = false
-    if (startCell !== null) canvas.setPointerCapture(e.pointerId)
+    if (startCell !== null) {
+      canvas.setPointerCapture(e.pointerId)
+      // Light the gem up on contact rather than waiting for the release.
+      game.press(startCell)
+    }
   })
 
   canvas.addEventListener('pointermove', (e) => {
@@ -45,11 +49,14 @@ export function attachInput(
       Math.abs(dx) > Math.abs(dy)
         ? renderer.cellAtPoint(startX + Math.sign(dx) * renderer.cellSize, startY)
         : renderer.cellAtPoint(startX, startY + Math.sign(dy) * renderer.cellSize)
+    // Dragging off the edge of the board drops the gem instead of swapping it.
     if (target !== null) game.drag(startCell, target)
+    else game.cancelPress()
     dragged = true
   })
 
   const end = (e: PointerEvent) => {
+    game.cancelPress()
     if (startCell !== null && !dragged) {
       const { x, y } = localPoint(e)
       const cell = renderer.cellAtPoint(x, y)
@@ -61,6 +68,7 @@ export function attachInput(
 
   canvas.addEventListener('pointerup', end)
   canvas.addEventListener('pointercancel', () => {
+    game.cancelPress()
     startCell = null
     dragged = false
   })
