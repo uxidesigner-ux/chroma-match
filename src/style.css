@@ -327,6 +327,16 @@ body {
   font-size: 14px;
 }
 
+/*
+ * `.btn:hover` outranks `.btn-primary` on specificity, so hovering a primary
+ * button was repainting it in the panel colour — Play, Post and Play again all
+ * lost their identity under the cursor. It brightens instead.
+ */
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  filter: brightness(1.08);
+}
+
 .seed {
   margin-left: auto;
   font-size: 11px;
@@ -1442,6 +1452,338 @@ body {
   }
 
   .item:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ---- wallet, shop, loadout ---------------------------------------------- */
+
+/*
+ * A coin, drawn rather than shipped — the same reasoning as the item art: three
+ * more PNGs would outweigh every byte of logic on this screen.
+ */
+.coin {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #ffe3a8, #e0a21c 68%, #a9720a);
+  flex: none;
+}
+
+/* The wallet doubles as the door to the shop, so it is a button, not a label. */
+.wallet {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s, transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.wallet:active {
+  transform: scale(0.98);
+  transition: transform 0.05s ease-out;
+}
+
+.wallet-coins {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wallet-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-shop {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+
+.wallet-stash {
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.shop-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shop-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 750;
+}
+
+.shop-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.shop-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shop-row {
+  display: grid;
+  grid-template-columns: 30px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+}
+
+.shop-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.shop-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.shop-desc {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.shop-owned {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Zero held is dimmed rather than hidden: the row still has to say what it is
+   you do not have. */
+.shop-owned.is-none {
+  opacity: 0.55;
+}
+
+.shop-buy {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-buy:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Anchored to the bottom so the screen ends somewhere deliberate rather than
+   trailing off, and carrying the one thing a player in a shop wants to know. */
+.shop-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+  text-align: center;
+}
+
+.shop-status {
+  margin: 0;
+  min-height: 1.3em;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.shop-status.is-ok {
+  color: #6ee7b7;
+}
+
+.shop-status.is-error {
+  color: #ff9bb0;
+}
+
+/* ---- loadout ------------------------------------------------------------ */
+
+.loadout-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 14px 0 4px;
+}
+
+.loadout-grid[hidden] {
+  display: none;
+}
+
+.loadout-pick {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s, border-color 0.15s,
+    transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.loadout-pick:active:not(:disabled) {
+  transform: scale(0.955);
+  transition: transform 0.05s ease-out;
+}
+
+.loadout-pick:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.loadout-pick.is-picked {
+  border-color: var(--accent-2);
+  background: var(--panel-strong);
+  box-shadow: 0 0 0 2px var(--accent-2) inset;
+}
+
+.loadout-name {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.loadout-pick.is-picked .loadout-name {
+  color: var(--text);
+}
+
+.loadout-have {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.loadout-empty {
+  margin: 14px 0 4px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.loadout-empty[hidden] {
+  display: none;
+}
+
+#loadout-start {
+  width: 100%;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: 16px;
+  margin-top: 14px;
+}
+
+#loadout-cancel {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ---- the goal readout --------------------------------------------------- */
+
+/*
+ * The goal's name sits between the level and the numbers. It only earns its
+ * place because the goal changes from level to level now — a board that always
+ * asked for points did not need to say so.
+ */
+.goal-what {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The colour being asked for, taken straight from the skin's palette. */
+.goal-gem {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.goal-gem[hidden] {
+  display: none;
+}
+
+[data-skin='paper'] .goal-gem {
+  border: 1.5px solid var(--line);
+}
+
+[data-skin='paper'] .wallet,
+[data-skin='paper'] .shop-row,
+[data-skin='paper'] .loadout-pick {
+  border-width: 2px;
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+[data-skin='paper'] .loadout-pick.is-picked {
+  border-color: var(--accent);
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet,
+  .loadout-pick {
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .wallet:active,
+  .loadout-pick:active:not(:disabled) {
     transform: none;
   }
 }

@@ -1,4 +1,4 @@
-export type ScreenName = 'home' | 'game'
+export type ScreenName = 'home' | 'shop' | 'game'
 
 /**
  * Shows one screen at a time. Kept deliberately dumb — it toggles `hidden` and
@@ -12,9 +12,10 @@ export class Screens {
 
   constructor() {
     const home = document.getElementById('screen-home')
+    const shop = document.getElementById('screen-shop')
     const game = document.getElementById('screen-game')
-    if (!home || !game) throw new Error('Missing a screen element')
-    this.nodes = { home, game }
+    if (!home || !shop || !game) throw new Error('Missing a screen element')
+    this.nodes = { home, shop, game }
   }
 
   get active(): ScreenName {

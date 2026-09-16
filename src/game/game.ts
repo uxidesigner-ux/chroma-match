@@ -10,6 +10,8 @@ import {
   shuffleBoard,
 } from './board.ts'
 import type { Move } from './board.ts'
+import { goalForLevel, scoreTargetForLevel } from './goals.ts'
+import type { Goal } from './goals.ts'
 import { CHAIN_REWARD_AT, MAX_HELD, blastCells, emptyInventory, itemForLevel } from './items.ts'
 import type { Inventory, Item } from './items.ts'
 import { makeRng, randomSeed, type Rng } from './rng.ts'
@@ -34,8 +36,6 @@ export const MOVES_PER_LEVEL = 25
  */
 const MOVES_BONUS_EVERY = 3
 const MOVES_BONUS = 2
-const BASE_TARGET = 1800
-const TARGET_STEP = 200
 /** Beyond this the multiplier stops growing, so a lucky cascade can't end a level alone. */
 const MAX_COMBO = 8
 const POINTS_PER_GEM = 10
@@ -77,7 +77,11 @@ interface Phase {
  * item changes the board and so has to replay in its place — a record that left
  * items out would not reproduce the run it came from.
  */
-export type Action = { kind: 'swap'; a: number; b: number } | { kind: 'item'; item: Item; cell: number }
+export type Action =
+  | { kind: 'swap'; a: number; b: number }
+  | { kind: 'item'; item: Item; cell: number }
+  /** A booster the run began holding. Only ever at the head of the record. */
+  | { kind: 'booster'; item: Item }
 
 export interface GameHooks {
   /** A group of gems just started clearing. `cells` are grid indices. */
@@ -101,8 +105,10 @@ interface PendingPower {
 
 const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3)
 
+/** The score a score-goal level asks for. Kept here so callers need not know
+ *  which module the curve lives in. */
 export function targetForLevel(level: number): number {
-  return BASE_TARGET + (level - 1) * TARGET_STEP
+  return scoreTargetForLevel(level)
 }
 
 export function movesForLevel(level: number): number {
@@ -130,14 +136,43 @@ export class Game {
   readonly log: Action[] = []
 
   /**
-   * Items in hand. Earned during the run and gone when it ends; see items.ts
-   * for why carrying them between runs would break the leaderboard.
+   * Items in hand: earned during the run, plus whatever boosters it started
+   * with. See items.ts for what earning them costs and why.
    */
   items: Inventory = emptyInventory()
+
+  /**
+   * The boosters this run began with.
+   *
+   * Read out of the log rather than stored beside it: they are part of the run
+   * record, and a second copy of the same fact is a second copy to keep in
+   * step. A booster is bought with coins the server cannot see, so the record
+   * carries the claim — which is why the verifier caps it: the cap is the
+   * security boundary, and it is the one every honest player plays under.
+   */
+  get boosters(): Item[] {
+    const out: Item[] = []
+    for (const action of this.log) {
+      if (action.kind !== 'booster') break
+      out.push(action.item)
+    }
+    return out
+  }
 
   score = 0
   level = 1
   levelStartScore = 0
+  /** What this level asks for, and how far along it is. */
+  goal: Goal
+  goalDone = 0
+  /**
+   * The score curve's value for this level.
+   *
+   * Not the same thing as `need`, and deliberately kept apart from it: `need`
+   * is whatever this level actually asks for, which on a colour level is a
+   * count of gems. This is the points figure the difficulty sweep reasons
+   * about, and what a score level happens to use as its goal.
+   */
   target = targetForLevel(1)
   moves = movesForLevel(1)
   combo = 0
@@ -170,6 +205,7 @@ export class Game {
     this.geom = geom
     this.rng = makeRng(seed)
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
+    this.goal = goalForLevel(1, geom.kinds)
     this.grid = createBoard(geom, this.rng)
   }
 
@@ -202,8 +238,18 @@ export class Game {
     return this.phase.kind !== 'idle' || this.status !== 'playing'
   }
 
+  /**
+   * How far into this level's goal the player is, in the goal's own units:
+   * points for a score level, gems for a colour level, gems made for a power
+   * level. The HUD reads this against `goal.need` without caring which it is.
+   */
   get progress(): number {
-    return this.score - this.levelStartScore
+    return this.goal.kind === 'score' ? this.score - this.levelStartScore : this.goalDone
+  }
+
+  /** What this level is asking for, in the same units as `progress`. */
+  get need(): number {
+    return this.goal.need
   }
 
   // ---- input ---------------------------------------------------------------
@@ -296,6 +342,21 @@ export class Game {
     // a blast goes off instead of being quietly deleted.
     const cleared = expandClears(this.geom, this.grid, seeds)
     this.commitClear(cleared, [], cell)
+    return true
+  }
+
+  /**
+   * Starts the run holding an item. Only legal before the first action, so a
+   * booster cannot be conjured mid-run by a record that puts one there.
+   */
+  addBooster(item: Item, limit: number): boolean {
+    // Only at the head of the record: anything else in the log means the run
+    // has started, and a booster arriving mid-run is a forged record.
+    if (this.log.some((action) => action.kind !== 'booster')) return false
+    if (this.boosters.length >= limit) return false
+    if (this.items[item] >= MAX_HELD) return false
+    this.log.push({ kind: 'booster', item })
+    this.items[item] += 1
     return true
   }
 
@@ -486,7 +547,11 @@ export class Game {
     const cells = [...cleared]
     for (const cell of cells) {
       const gem = at(this.grid, cell)
-      if (gem) gem.clearing = true
+      if (!gem) continue
+      gem.clearing = true
+      // Counted as they are marked, not as they are removed: a gem caught in a
+      // blast is cleared by this level whether or not it was part of a match.
+      if (this.goal.kind === 'colour' && gem.kind === this.goal.colour) this.goalDone += 1
     }
     this.clearing = cells
     this.pendingPowers = powers
@@ -505,6 +570,7 @@ export class Game {
       if (!gem) continue
       gem.power = power
       gem.flash = 0.45
+      if (this.goal.kind === 'power') this.goalDone += 1
       this.hooks.onPowerCreated?.(cell, power)
     }
     this.pendingPowers = []
@@ -526,7 +592,7 @@ export class Game {
     this.idleTime = 0
     this.hint = null
 
-    if (this.progress >= this.target) {
+    if (this.progress >= this.goal.need) {
       this.status = 'levelComplete'
       // Earned here rather than in nextLevel(), so the payout is part of
       // finishing the level and lands before the card that announces it.
@@ -557,6 +623,8 @@ export class Game {
   nextLevel(): void {
     this.level += 1
     this.levelStartScore = this.score
+    this.goal = goalForLevel(this.level, this.geom.kinds)
+    this.goalDone = 0
     this.target = targetForLevel(this.level)
     this.moves = movesForLevel(this.level)
     this.status = 'playing'
@@ -575,6 +643,8 @@ export class Game {
     this.score = 0
     this.level = 1
     this.levelStartScore = 0
+    this.goal = goalForLevel(1, this.geom.kinds)
+    this.goalDone = 0
     this.target = targetForLevel(1)
     this.moves = movesForLevel(1)
     this.combo = 0

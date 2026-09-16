@@ -132,10 +132,15 @@ function evaluate(geom: Geom, label: string): Report {
       seed,
       geom,
     )
-    // Without this the run stops the moment it crosses targetForLevel(1), so
-    // the board would be measured through the very curve the second table is
-    // meant to evaluate — and every score would be a truncated level opening
-    // rather than a full move budget.
+    // Without this the run stops the moment it crosses level 1's goal, so the
+    // board would be measured through the very curve the second table is meant
+    // to evaluate — and every score would be a truncated level opening rather
+    // than a full move budget.
+    //
+    // This sets the goal itself, not `target`: completion is decided by the
+    // goal now, and the two were quietly allowed to disagree while this script
+    // still moved only the old field.
+    game.goal = { kind: 'score', need: Number.POSITIVE_INFINITY }
     game.target = Number.POSITIVE_INFINITY
 
     for (let turn = 0; turn < MOVES_PER_LEVEL && game.status === 'playing'; turn++) {

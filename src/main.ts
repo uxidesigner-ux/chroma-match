@@ -1,10 +1,11 @@
 import './style.css'
 import { Sfx } from './audio.ts'
 import { Haptics } from './haptics.ts'
-import { Game, movesForLevel, targetForLevel } from './game/game.ts'
+import { Game, movesForLevel } from './game/game.ts'
 import type { GameHooks } from './game/game.ts'
 import { randomSeed } from './game/rng.ts'
 import { recordOf } from './game/replay.ts'
+import { goalForLevel } from './game/goals.ts'
 import { itemForLevel } from './game/items.ts'
 import type { Item } from './game/items.ts'
 import { BOARD } from './game/types.ts'
@@ -18,13 +19,29 @@ import { Effects } from './render/particles.ts'
 import { Renderer } from './render/renderer.ts'
 import { activeSkin, initSkin, nextSkin, onSkinChange, setSkin } from './render/skins/index.ts'
 import { contrastingShade, styleFor } from './render/theme.ts'
+import { BOOSTER_LIMIT, coins, payoutFor, setCoins, spendBoosters } from './meta.ts'
 import { ComboMeter } from './ui/combo.ts'
+import { Loadout } from './ui/loadout.ts'
+import { Shop } from './ui/shop.ts'
 import { ItemTray } from './ui/items.ts'
 import { HomeScreen } from './ui/home.ts'
 import { Hud } from './ui/hud.ts'
 import { Overlay } from './ui/overlay.ts'
 import type { OverlayContent } from './ui/overlay.ts'
 import { Screens } from './ui/screens.ts'
+
+/** What the next level wants, in one sentence for the level-complete card. */
+function nextLevelAsk(level: number): string {
+  const goal = goalForLevel(level, BOARD.kinds)
+  const moves = movesForLevel(level)
+  if (goal.kind === 'score') {
+    return `Level ${level} asks for ${goal.need.toLocaleString()} points in ${moves} moves.`
+  }
+  if (goal.kind === 'power') {
+    return `Level ${level} asks for ${goal.need} power gems in ${moves} moves.`
+  }
+  return `Level ${level} asks for ${goal.need} ${styleFor(goal.colour).name} gems in ${moves} moves.`
+}
 
 /** Only for the card that announces a payout; the tray labels itself. */
 const ITEM_LABELS: Record<Item, string> = { hammer: 'Hammer', rocket: 'Rocket', bomb: 'Bomb' }
@@ -54,6 +71,8 @@ const hud = new Hud()
 const overlay = new Overlay()
 const combo = new ComboMeter()
 const tray = new ItemTray()
+const shop = new Shop()
+const loadout = new Loadout()
 const screens = new Screens()
 
 /**
@@ -195,9 +214,7 @@ const hooks: Partial<GameHooks> = {
         caption: 'points banked',
         flair: `${ITEM_LABELS[earned]} earned`,
       },
-      body: `Level ${level + 1} asks for ${targetForLevel(level + 1).toLocaleString()} more in ${movesForLevel(
-        level + 1,
-      )} moves.`,
+      body: nextLevelAsk(level + 1),
       action: 'Next level',
       onAction: () => game.nextLevel(),
     })
@@ -205,9 +222,16 @@ const hooks: Partial<GameHooks> = {
   onGameOver(score) {
     sfx.gameOver()
     haptics.gameOver()
+    tray.arm(null)
     const previous = record
     const isRecord = commitRecord()
     const run = recordOf(game)
+
+    // Paid on the way out rather than as the run goes, so a player cannot bank
+    // a level's coins and then abandon the run to keep them.
+    const payout = payoutFor(score, game.level)
+    setCoins(coins() + payout)
+    shop.refresh()
 
     const content: OverlayContent = {
       kicker: 'Out of moves',
@@ -217,7 +241,7 @@ const hooks: Partial<GameHooks> = {
         caption: `points · level ${game.level}`,
         ...(isRecord ? { flair: 'New personal best' } : {}),
       },
-      body: isRecord ? '' : `Your best is still ${previous.toLocaleString()}.`,
+      body: `+${payout} coins${isRecord ? '' : ` · your best is still ${previous.toLocaleString()}`}`,
       action: 'Play again',
       onAction: () => startRun(),
       secondary: { label: 'Back to home', onAction: () => goHome() },
@@ -272,18 +296,30 @@ attachInput(
 
 // ---- navigation -----------------------------------------------------------
 
-function startRun(): void {
+function startRun(boosters: readonly Item[] = []): void {
   effects.clear()
   combo.hide()
   tray.arm(null)
   overlay.hide()
   game.restart(seedFromUrl() ?? randomSeed())
+
+  // Applied before anything else touches the board, because the record only
+  // accepts a booster at its head — and taken out of the stash here, so a run
+  // that is abandoned still costs what it carried.
+  const carried: Item[] = []
+  for (const item of boosters.slice(0, BOOSTER_LIMIT)) {
+    if (game.addBooster(item, BOOSTER_LIMIT)) carried.push(item)
+  }
+  spendBoosters(carried)
+  shop.refresh()
+
   screens.show('game')
   renderer.resize()
 }
 
 function goHome(): void {
   commitRecord()
+  shop.refresh()
   effects.clear()
   combo.hide()
   tray.arm(null)
@@ -300,7 +336,17 @@ screens.onChange((name) => {
 
 document.getElementById('start-game')?.addEventListener('click', () => {
   sfx.unlock()
-  startRun()
+  loadout.show((picked) => startRun(picked))
+})
+
+document.getElementById('open-shop')?.addEventListener('click', () => {
+  shop.reset()
+  screens.show('shop')
+})
+document.getElementById('shop-back')?.addEventListener('click', () => {
+  screens.show('home')
+  shop.refresh()
+  void home.refresh()
 })
 document.getElementById('quit-game')?.addEventListener('click', () => goHome())
 
@@ -415,5 +461,9 @@ function frame(now: number): void {
   requestAnimationFrame(frame)
 }
 
+// The wallet is on the launch screen, so it has to be painted before anyone
+// opens the shop — it was showing the markup's placeholder zero until the
+// first purchase or the first finished run.
+shop.refresh()
 void home.refresh()
 requestAnimationFrame(frame)
