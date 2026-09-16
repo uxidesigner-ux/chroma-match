@@ -154,6 +154,13 @@ three goals, each rewarding a different read of the board:
 | **Colour** | turning down a good match in the wrong colour |
 | **Power gems** | building fours and fives instead of taking every three |
 
+The counts are measured rather than argued. `npm run tune` plays every goal on
+its own move budget and reports what share of seeds clear it: the first guesses
+finished a colour level in 13 of its 25 moves and a power level in 8.5, against
+19 for the score level next to them — they were not variety, they were a rest
+stop that still paid out an item. Both curves now aim at about three quarters of
+the budget, which puts them at 83–90% cleared alongside the score levels' 78–95%.
+
 The cycle opens with two score levels so a new player learns the board first,
 and every goal is a pure function of the level number — a goal decided by a dice
 roll would have to be recorded and trusted, while one derived from the level is
