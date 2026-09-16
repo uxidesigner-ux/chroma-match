@@ -140,6 +140,19 @@ newer is required for that.
 
 Pushes to `main` typecheck, test, build, and deploy to GitHub Pages.
 
+### Firestore rules
+
+`firestore.rules` is deployed by its own workflow rather than pasted into the
+Firebase console, so the file in this repository is the live ruleset — a rule
+edited in the console is overwritten by the next push that touches it. Pull
+requests compile the rules without deploying them, because a broken rule is
+discovered by locking every player out of the board.
+
+The workflow needs one repository secret, `FIREBASE_SERVICE_ACCOUNT`: the JSON
+key of a service account in the `chroma-match-49906` project holding the
+Firebase Rules Admin role. Without that secret the job skips instead of
+failing, so a fork still gets a green CI.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

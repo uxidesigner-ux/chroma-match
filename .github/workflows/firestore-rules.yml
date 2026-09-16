@@ -1,0 +1,82 @@
+name: Firestore rules
+
+# The security rules are the only thing standing between the public internet and
+# the leaderboard, so they are deployed from the repository rather than pasted
+# into the console. A rule that is edited in the console and not here will be
+# overwritten by the next run, which is the point: this file is the source of
+# truth.
+#
+# Setup this needs once, outside the repository:
+#   1. A service account in the chroma-match-49906 project with the
+#      "Firebase Rules Admin" role (roles/firebaserules.admin).
+#   2. Its JSON key stored as the repository secret FIREBASE_SERVICE_ACCOUNT.
+# Until that secret exists the job skips rather than fails, so a fork or a
+# clone without credentials still gets a green CI.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+      - firebase.json
+      - .firebaserc
+      - .github/workflows/firestore-rules.yml
+  pull_request:
+    paths:
+      - firestore.rules
+      - firebase.json
+      - .firebaserc
+      - .github/workflows/firestore-rules.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firestore-rules-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rules:
+    name: Compile, and deploy from main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Check for credentials
+        id: creds
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::FIREBASE_SERVICE_ACCOUNT is not set; skipping." 
+          fi
+
+      - name: Install the Firebase CLI
+        if: steps.creds.outputs.present == 'true'
+        run: npm install --no-save firebase-tools@14
+
+      - name: Write the service account key
+        if: steps.creds.outputs.present == 'true'
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$KEY" > "$RUNNER_TEMP/service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/service-account.json" >> "$GITHUB_ENV"
+
+      # A pull request gets the rules compiled and nothing else: a dry run
+      # reports a syntax error or an unknown function before it can reach the
+      # live project, which is where a broken rule locks everyone out.
+      - name: Compile only (pull request)
+        if: steps.creds.outputs.present == 'true' && github.event_name == 'pull_request'
+        run: npx firebase deploy --only firestore:rules --dry-run --non-interactive
+
+      - name: Deploy (main)
+        if: steps.creds.outputs.present == 'true' && github.ref == 'refs/heads/main'
+        run: npx firebase deploy --only firestore:rules --non-interactive
