@@ -60,6 +60,12 @@ export interface BoardStyle {
    */
   mark: string
   /**
+   * What text drawn over the board is outlined in — the score that floats off a
+   * match. It has to be the opposite of the text it is behind, and only the
+   * skin knows which way round that is.
+   */
+  textHalo: string
+  /**
    * Whether the board is dark or light overall.
    *
    * Anything drawn on top of a gem rather than inside it — the combo text that

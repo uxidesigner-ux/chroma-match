@@ -192,6 +192,7 @@ body {
 }
 
 .board-wrap {
+  position: relative;
   /* Both custom properties are set from the board geometry at startup so the
      shape is defined once, in TypeScript, rather than twice. */
   aspect-ratio: var(--board-aspect, 1 / 1);
@@ -291,7 +292,12 @@ body {
   font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
-  transition: background 0.15s, transform 0.08s;
+  /*
+   * Down fast and linear, back slow and past the resting point. The asymmetry
+   * is the whole effect: contact should register on the frame the finger lands,
+   * and the recovery is what the hand reads as springiness.
+   */
+  transition: background 0.15s, transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .btn:hover {
@@ -299,12 +305,18 @@ body {
 }
 
 .btn:active {
-  transform: translateY(1px);
+  transform: scale(0.955);
+  transition: transform 0.05s ease-out;
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--muted);
+}
+
+.btn-play:active,
+.btn-primary:active {
+  transform: scale(0.975);
 }
 
 .btn-primary {
@@ -374,17 +386,41 @@ body {
   color: var(--muted);
 }
 
-.hero-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+/*
+ * Best and rank used to be two bordered panels, which put three heavy blocks
+ * (them and the Play button) above the board and left nothing as the obvious
+ * thing to press. They are a single line of text now: still the first thing
+ * read on the screen, no longer competing to be pressed.
+ */
+.hero-line {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.hero-stat-value {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-dot {
+  opacity: 0.5;
 }
 
 .btn-play {
   width: 100%;
-  padding: 16px;
-  font-size: 17px;
+  padding: 18px;
+  font-size: 18px;
+  font-weight: 700;
   border-radius: 16px;
+  /* The only heavy element above the board, and spaced so it reads that way. */
+  margin: 4px 0 2px;
 }
 
 /* The board takes whatever height is left, and scrolls inside itself. */
@@ -566,6 +602,100 @@ body {
   width: 100%;
 }
 
+/* ---- combo -------------------------------------------------------------- */
+
+/*
+ * The chain multiplier, parked over the top of the board.
+ *
+ * It sits inside the board rather than in the readouts because a chain is
+ * something happening on the board — and it is pinned high and centred, above
+ * where the eye is during a cascade, so it is read without being looked for.
+ */
+.combo {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: var(--combo-bg, var(--panel-strong));
+  border: 1px solid var(--combo-line, var(--line));
+  color: var(--combo-text, #fff);
+  /* Purely a readout. Taps belong to the board underneath it. */
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.combo[hidden] {
+  display: none;
+}
+
+.combo-x {
+  font-size: 19px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.combo-word {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/*
+ * Four rungs, not a ramp. A badge whose colour shifts slightly on every clear
+ * reads as flicker; one that changes at thresholds reads as climbing.
+ */
+.combo[data-heat='1'] {
+  --combo-bg: rgba(56, 189, 248, 0.22);
+  --combo-line: rgba(56, 189, 248, 0.55);
+}
+
+.combo[data-heat='2'] {
+  --combo-bg: rgba(255, 176, 32, 0.24);
+  --combo-line: rgba(255, 176, 32, 0.6);
+}
+
+.combo[data-heat='3'] {
+  --combo-bg: rgba(255, 77, 109, 0.26);
+  --combo-line: rgba(255, 77, 109, 0.66);
+  --combo-text: #fff;
+}
+
+/* Re-triggered from script on every clear, so the badge answers each hit. */
+.combo.is-bump {
+  animation: combo-bump 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes combo-bump {
+  from {
+    transform: translateX(-50%) scale(0.72);
+    opacity: 0;
+  }
+  55% {
+    transform: translateX(-50%) scale(1.12);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+[data-skin='paper'] .combo {
+  --combo-bg: #fffcf4;
+  --combo-line: #241e16;
+  --combo-text: #241e16;
+  border-width: 2px;
+  box-shadow: 3px 3px 0 #241e16;
+}
+
 /* ---- overlay ------------------------------------------------------------ */
 
 .overlay {
@@ -597,6 +727,95 @@ body {
   border-radius: 24px;
   padding: 32px 28px;
   animation: rise 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * The card's own primary button, sized like the launch screen's Play.
+ *
+ * It was a pill narrower than the name field above it, which put the heaviest
+ * element on the end-of-run card on posting a score rather than on starting the
+ * next run — the opposite of what the screen is for.
+ */
+#overlay-action {
+  width: 100%;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: 16px;
+  margin-top: 14px;
+}
+
+#overlay-home {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* An empty status line was holding a gap open under the form. */
+.post-status:empty {
+  display: none;
+}
+
+.post-run {
+  margin-top: 16px;
+}
+
+/*
+ * The end-of-run number.
+ *
+ * This is the screen a player sees after every single run, and the number on it
+ * is the only reason the run happened. It was a clause in a sentence; it is the
+ * first thing on the card now, and the Play button under it is the heaviest.
+ */
+.card-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 10px 0 4px;
+}
+
+.card-hero[hidden] {
+  display: none;
+}
+
+.card-hero-value {
+  font-size: 46px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-hero-caption {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.card-flair {
+  margin-top: 8px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #0a0d18;
+}
+
+.card-flair[hidden] {
+  display: none;
+}
+
+[data-skin='paper'] .card-flair {
+  background: var(--accent);
+  color: #fff7e6;
+  border: 2px solid var(--line);
+}
+
+.card-body[hidden] {
+  display: none;
 }
 
 @keyframes rise {
@@ -836,6 +1055,20 @@ body {
   .card {
     transition: none;
     animation: none;
+  }
+
+  /* The badge still appears and still climbs; it just stops jumping to do it.
+     The board's own shake is skipped in the renderer for the same reason. */
+  .combo.is-bump {
+    animation: none;
+  }
+
+  .btn {
+    transition: background 0.15s;
+  }
+
+  .btn:active {
+    transform: none;
   }
 }
 

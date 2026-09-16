@@ -15,6 +15,7 @@ import { Effects } from './render/particles.ts'
 import { Renderer } from './render/renderer.ts'
 import { activeSkin, initSkin, nextSkin, onSkinChange, setSkin } from './render/skins/index.ts'
 import { contrastingShade, styleFor } from './render/theme.ts'
+import { ComboMeter } from './ui/combo.ts'
 import { HomeScreen } from './ui/home.ts'
 import { Hud } from './ui/hud.ts'
 import { Overlay } from './ui/overlay.ts'
@@ -44,6 +45,7 @@ const sfx = new Sfx()
 const haptics = new Haptics()
 const hud = new Hud()
 const overlay = new Overlay()
+const combo = new ComboMeter()
 const screens = new Screens()
 
 /**
@@ -105,9 +107,17 @@ function seedFromUrl(): number | null {
 // ---- game -----------------------------------------------------------------
 
 const hooks: Partial<GameHooks> = {
-  onClear(cells, kind, combo, points) {
-    sfx.clear(combo)
-    haptics.clear(combo)
+  onClear(cells, kind, chain, points) {
+    sfx.clear(chain)
+    haptics.clear(chain)
+    combo.report(chain)
+    // What the hit is worth: how much of the board went at once, and how deep
+    // into a chain it landed. A three-gem match at the top of a chain is not an
+    // event, and should not be felt as one.
+    const bulk = Math.min(1, (cells.length - 3) / 7)
+    const depth = Math.min(1, (chain - 1) / 4)
+    const force = Math.max(bulk * 0.55, depth * 0.85)
+    if (force > 0.12) renderer.hit(force)
     let sx = 0
     let sy = 0
     const perGem = cells.length > 14 ? 5 : 9
@@ -120,20 +130,21 @@ const hooks: Partial<GameHooks> = {
     }
     const cx = sx / cells.length
     const cy = sy / cells.length
+    // A chained score takes the colour of the gems that earned it — it says
+    // which colour is paying, and it comes from the skin, so it still reads on
+    // a light board where the old flat gold did not.
     effects.float(
       cx,
       cy,
       `+${points}`,
-      combo > 1 ? '#FFD782' : '#FFFFFF',
-      1 + Math.min(combo, 5) * 0.07,
+      chain > 1 ? contrastingShade(kind) : '#FFFFFF',
+      1 + Math.min(chain, 5) * 0.07,
     )
-    if (combo > 1) {
-      effects.float(cx, cy - renderer.cellSize * 0.6, `${combo}× chain`, contrastingShade(kind), 0.78)
-    }
   },
   onPowerCreated() {
     sfx.power()
     haptics.power()
+    renderer.hit(0.5)
   },
   onSwapAccepted() {
     sfx.swap()
@@ -169,9 +180,12 @@ const hooks: Partial<GameHooks> = {
     const content: OverlayContent = {
       kicker: 'Out of moves',
       title: 'Run over',
-      body: isRecord
-        ? `${score.toLocaleString()} points, level ${game.level} — a new personal best.`
-        : `${score.toLocaleString()} points, level ${game.level}. Your best is still ${previous.toLocaleString()}.`,
+      hero: {
+        value: score.toLocaleString(),
+        caption: `points · level ${game.level}`,
+        ...(isRecord ? { flair: 'New personal best' } : {}),
+      },
+      body: isRecord ? '' : `Your best is still ${previous.toLocaleString()}.`,
       action: 'Play again',
       onAction: () => startRun(),
       secondary: { label: 'Back to home', onAction: () => goHome() },
@@ -211,6 +225,7 @@ attachInput(canvas, game, renderer, () => sfx.unlock())
 
 function startRun(): void {
   effects.clear()
+  combo.hide()
   overlay.hide()
   game.restart(randomSeed())
   screens.show('game')
@@ -220,6 +235,7 @@ function startRun(): void {
 function goHome(): void {
   commitRecord()
   effects.clear()
+  combo.hide()
   overlay.hide()
   screens.show('home')
   void home.refresh()
@@ -334,6 +350,8 @@ function frame(now: number): void {
     time += dt
     game.update(dt)
     effects.update(dt)
+    combo.update(dt)
+    renderer.settle(dt)
     renderer.draw(game, effects, time)
     hud.update(game, displayBest())
   }

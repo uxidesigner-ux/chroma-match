@@ -21,7 +21,18 @@ export interface FloatingText {
   scale: number
 }
 
+import { boardStyle } from './theme.ts'
+
 const GRAVITY = 900
+/**
+ * Air resistance, per second.
+ *
+ * Confetti thrown at a constant velocity until gravity catches it reads as
+ * pixels being moved. Real debris loses most of its speed in the first few
+ * frames and then falls, which is what makes the first frame after a match feel
+ * like a hit rather than an animation starting.
+ */
+const DRAG = 2.6
 
 /** A tiny, allocation-light pool for the confetti that a match throws off. */
 export class Effects {
@@ -31,7 +42,7 @@ export class Effects {
   burst(x: number, y: number, color: string, count = 10): void {
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2
-      const speed = 90 + Math.random() * 190
+      const speed = 210 + Math.random() * 330
       this.particles.push({
         x,
         y,
@@ -59,7 +70,9 @@ export class Effects {
         this.particles.splice(i, 1)
         continue
       }
-      p.vy += GRAVITY * dt
+      const slow = Math.max(0, 1 - DRAG * dt)
+      p.vx *= slow
+      p.vy = p.vy * slow + GRAVITY * dt
       p.x += p.vx * dt
       p.y += p.vy * dt
       p.rot += p.spin * dt
@@ -74,16 +87,20 @@ export class Effects {
 
   draw(ctx: CanvasRenderingContext2D): void {
     for (const p of this.particles) {
-      const alpha = Math.min(1, p.life / (p.maxLife * 0.6))
+      const left = Math.min(1, p.life / (p.maxLife * 0.6))
       ctx.save()
-      ctx.globalAlpha = alpha
+      ctx.globalAlpha = left
       ctx.translate(p.x, p.y)
       ctx.rotate(p.rot)
       ctx.fillStyle = p.color
-      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.6)
+      // Shrinking on the way out, not only fading: a chip that disappears at
+      // full size reads as a frame being dropped.
+      const size = p.size * (0.35 + left * 0.65)
+      ctx.fillRect(-size / 2, -size / 2, size, size * 1.6)
       ctx.restore()
     }
 
+    const halo = boardStyle().textHalo
     for (const t of this.texts) {
       const k = 1 - t.life / t.maxLife
       const alpha = Math.min(1, (1 - k) * 2.2)
@@ -96,7 +113,7 @@ export class Effects {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.lineWidth = 5
-      ctx.strokeStyle = 'rgba(6, 8, 18, 0.65)'
+      ctx.strokeStyle = halo
       ctx.strokeText(t.text, 0, 0)
       ctx.fillStyle = t.color
       ctx.fillText(t.text, 0, 0)

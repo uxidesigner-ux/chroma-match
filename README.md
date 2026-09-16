@@ -140,6 +140,24 @@ newer is required for that.
 
 Pushes to `main` typecheck, test, build, and deploy to GitHub Pages.
 
+### Feedback
+
+Three things carry the feel of a run, and all three are deliberately placed:
+
+- **The chain badge** sits above the board, not in the readouts, and climbs
+  through four colour rungs. A cascade used to be reported only by a number
+  that faded in under a second — by the time the player looked, the chain had
+  ended.
+- **The board takes a hit** in proportion to what landed: how much of it went
+  at once, and how deep into a chain it was. The travel is capped at a few
+  pixels, because a shake big enough to read as movement costs the player track
+  of their own board.
+- **The end-of-run card leads with the score,** and the heaviest thing on it is
+  the button that starts the next run.
+
+A player who has asked their platform for reduced motion keeps all of it except
+the camera and the badge's pop.
+
 ### Skins
 
 The look is a swap-in layer. `src/render/skins/` holds one file per skin — its

@@ -52,6 +52,7 @@ export const GLASS: Skin = {
     hintRing: 'rgba(255, 255, 255, 0.5)',
     flash: '#FFFFFF',
     mark: '#FFFFFF',
+    textHalo: 'rgba(6, 8, 18, 0.65)',
     luminance: 'dark',
   },
 

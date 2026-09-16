@@ -1,6 +1,14 @@
 export interface OverlayContent {
   kicker: string
   title: string
+  /**
+   * The one number the card is about, shown at the size it deserves.
+   *
+   * A run's score used to be a clause in a sentence. On the screen a player
+   * sees at the end of every run, the score is the whole point of the run, and
+   * a sentence is where it goes to be ignored.
+   */
+  hero?: { value: string; caption: string; flair?: string }
   body: string
   /** The primary button. */
   action: string
@@ -26,6 +34,10 @@ export class Overlay {
   private kicker = el('overlay-kicker')
   private title = el('overlay-title')
   private body = el('overlay-body')
+  private heroBox = el('overlay-hero')
+  private heroValue = el('overlay-hero-value')
+  private heroCaption = el('overlay-hero-caption')
+  private flair = el('overlay-flair')
   private action = el<HTMLButtonElement>('overlay-action')
   private home = el<HTMLButtonElement>('overlay-home')
   private form = el<HTMLFormElement>('post-run')
@@ -93,7 +105,17 @@ export class Overlay {
   show(content: OverlayContent): void {
     this.kicker.textContent = content.kicker
     this.title.textContent = content.title
+
+    this.heroBox.hidden = !content.hero
+    if (content.hero) {
+      this.heroValue.textContent = content.hero.value
+      this.heroCaption.textContent = content.hero.caption
+      this.flair.hidden = !content.hero.flair
+      if (content.hero.flair) this.flair.textContent = content.hero.flair
+    }
+
     this.body.textContent = content.body
+    this.body.hidden = content.body.length === 0
     this.action.textContent = content.action
     this.onAction = content.onAction
 
