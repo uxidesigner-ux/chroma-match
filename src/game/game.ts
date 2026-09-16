@@ -90,7 +90,20 @@ export class Game {
   readonly geom: Geom
   grid: Grid
   rng: Rng
+  /**
+   * Hints fire on wall-clock idle time, so drawing one from the gameplay RNG
+   * would make the refilled board depend on how long the player spent thinking
+   * — two people playing the same seed with the same moves would diverge. A
+   * separate stream keeps a run reproducible from (seed, moves) alone, which is
+   * what makes server-side replay verification possible at all.
+   */
+  private hintRng: Rng
   seed: number
+  /**
+   * Every swap the board accepted, in order. Together with the seed this is a
+   * complete, replayable record of the run.
+   */
+  readonly log: Move[] = []
 
   score = 0
   level = 1
@@ -126,6 +139,7 @@ export class Game {
     this.seed = seed
     this.geom = geom
     this.rng = makeRng(seed)
+    this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
     this.grid = createBoard(geom, this.rng)
   }
 
@@ -223,6 +237,7 @@ export class Game {
     this.startPhase('swap', SWAP_TIME, { a, b, doomed: !legal })
     if (legal) {
       this.moves = Math.max(0, this.moves - 1)
+      this.log.push({ a, b })
       this.hooks.onSwapAccepted?.()
     } else {
       this.hooks.onInvalidSwap?.(a, b)
@@ -277,7 +292,7 @@ export class Game {
         this.idleTime += dt
         if (this.idleTime > HINT_DELAY && this.hint === null) {
           const moves = findMoves(this.geom, this.grid)
-          this.hint = moves.length > 0 ? (moves[this.rng.int(moves.length)] ?? null) : null
+          this.hint = moves.length > 0 ? (moves[this.hintRng.int(moves.length)] ?? null) : null
         }
       }
       return
@@ -472,6 +487,8 @@ export class Game {
   restart(seed: number = randomSeed()): void {
     this.seed = seed
     this.rng = makeRng(seed)
+    this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
+    this.log.length = 0
     this.grid = createBoard(this.geom, this.rng)
     this.score = 0
     this.level = 1
