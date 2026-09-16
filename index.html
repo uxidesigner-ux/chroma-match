@@ -21,70 +21,111 @@
   </head>
   <body>
     <main class="app">
-      <header class="topbar">
-        <div class="brand">
-          <span class="brand-mark" aria-hidden="true"></span>
+      <!-- ---------------------------------------------------------------- -->
+      <!-- Launch screen                                                    -->
+      <!-- ---------------------------------------------------------------- -->
+      <section class="screen home" id="screen-home">
+        <div class="hero">
+          <span class="brand-mark brand-mark-lg" aria-hidden="true"></span>
           <h1>Chroma Match</h1>
+          <p class="tagline">Six across, nine down. Line up three.</p>
         </div>
-      </header>
 
-      <section class="stats" aria-live="polite">
-        <div class="stat stat-primary">
-          <span class="stat-label">Score</span>
-          <strong class="stat-value" id="score">0</strong>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-label">Your best</span>
+            <strong class="stat-value" id="home-best">0</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Your rank</span>
+            <strong class="stat-value" id="home-rank">&mdash;</strong>
+          </div>
         </div>
-        <div class="stat">
-          <span class="stat-label">Moves</span>
-          <strong class="stat-value" id="moves">25</strong>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Best</span>
-          <strong class="stat-value" id="best">0</strong>
-        </div>
+
+        <button class="btn btn-primary btn-play" id="start-game" type="button">Play</button>
+
+        <section class="ranks" aria-labelledby="ranks-title">
+          <header class="ranks-head">
+            <h2 id="ranks-title">Leaderboard</h2>
+            <span class="ranks-note" id="ranks-note">Loading&hellip;</span>
+          </header>
+          <ol class="ranks-list" id="ranks-list"></ol>
+        </section>
+
+        <footer class="home-foot">
+          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false">
+            How to play
+          </button>
+          <button class="btn btn-ghost" data-action="sound" type="button" aria-pressed="true">
+            <span class="sound-label">Sound on</span>
+          </button>
+        </footer>
       </section>
 
-      <section class="goal">
-        <div class="goal-row">
-          <span class="goal-level" id="level">Level 1</span>
-          <span class="goal-numbers"><span id="progress">0</span> / <span id="target">&mdash;</span></span>
+      <!-- ---------------------------------------------------------------- -->
+      <!-- Game screen                                                      -->
+      <!-- ---------------------------------------------------------------- -->
+      <section class="screen game" id="screen-game" hidden>
+        <section class="stats" aria-live="polite">
+          <div class="stat stat-primary">
+            <span class="stat-label">Score</span>
+            <strong class="stat-value" id="score">0</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Moves</span>
+            <strong class="stat-value" id="moves">25</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Best</span>
+            <strong class="stat-value" id="best">0</strong>
+          </div>
+        </section>
+
+        <section class="goal">
+          <div class="goal-row">
+            <span class="goal-level" id="level">Level 1</span>
+            <span class="goal-numbers"
+              ><span id="progress">0</span> / <span id="target">&mdash;</span></span
+            >
+          </div>
+          <div class="bar"><div class="bar-fill" id="bar"></div></div>
+        </section>
+
+        <!--
+          A nine-row board cannot fit a phone on its side at a usable gem size —
+          the arithmetic does not work at any padding. Rather than silently
+          shipping a 37px tap target, short landscape viewports get asked to turn
+          back, with an escape for anyone who means it.
+        -->
+        <section class="rotate" id="rotate" role="alert" aria-live="assertive">
+          <div class="rotate-card">
+            <span class="rotate-icon" aria-hidden="true"></span>
+            <h2>Turn your phone upright</h2>
+            <p>
+              The board is nine rows tall. On a phone lying down there is no way to fit that
+              without shrinking the gems past a comfortable tap.
+            </p>
+            <button class="btn" id="rotate-dismiss" type="button">Play anyway</button>
+          </div>
+        </section>
+
+        <div class="stage">
+          <div class="board-wrap">
+            <canvas id="board" aria-label="Game board"></canvas>
+          </div>
         </div>
-        <div class="bar"><div class="bar-fill" id="bar"></div></div>
+
+        <footer class="footer">
+          <button class="btn" id="quit-game" type="button">Home</button>
+          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false">
+            How to play
+          </button>
+          <button class="btn btn-ghost" data-action="sound" type="button" aria-pressed="true">
+            <span class="sound-label">Sound on</span>
+          </button>
+          <span class="seed" id="seed" title="Board seed — share it to replay the same board"></span>
+        </footer>
       </section>
-
-      <!--
-        A nine-row board cannot fit a phone on its side at a usable gem size —
-        the arithmetic does not work at any padding. Rather than silently
-        shipping a 37px tap target, short landscape viewports get asked to turn
-        back, with an escape for anyone who means it.
-      -->
-      <section class="rotate" id="rotate" role="alert" aria-live="assertive">
-        <div class="rotate-card">
-          <span class="rotate-icon" aria-hidden="true"></span>
-          <h2>Turn your phone upright</h2>
-          <p>
-            The board is nine rows tall. On a phone lying down there is no way to fit that
-            without shrinking the gems past a comfortable tap.
-          </p>
-          <button class="btn" id="rotate-dismiss" type="button">Play anyway</button>
-        </div>
-      </section>
-
-      <div class="stage">
-        <div class="board-wrap">
-          <canvas id="board" aria-label="Game board"></canvas>
-        </div>
-      </div>
-
-      <footer class="footer">
-        <button class="btn" id="new-game" type="button">New game</button>
-        <button class="btn btn-ghost" id="how-to" type="button" aria-expanded="false">
-          How to play
-        </button>
-        <button class="btn btn-ghost" id="sound-toggle" type="button" aria-pressed="true">
-          <span id="sound-label">Sound on</span>
-        </button>
-        <span class="seed" id="seed" title="Board seed — share it to replay the same board"></span>
-      </footer>
 
       <section class="help" id="help" hidden>
         <ul>
@@ -92,7 +133,10 @@
           <li>Every colour has its own shape, so the board reads without relying on hue.</li>
           <li><b>Four in a row</b> leaves a striped gem that clears its whole line.</li>
           <li><b>An L or T</b> leaves a bomb that clears the surrounding 3&times;3.</li>
-          <li><b>Five in a line</b> leaves a prism — swap it onto any colour to wipe that colour off the board.</li>
+          <li>
+            <b>Five in a line</b> leaves a prism — swap it onto any colour to wipe that colour off
+            the board.
+          </li>
           <li>Cascades multiply your score, up to &times;8.</li>
         </ul>
       </section>
@@ -103,7 +147,27 @@
         <p class="card-kicker" id="overlay-kicker"></p>
         <h2 id="overlay-title"></h2>
         <p class="card-body" id="overlay-body"></p>
+
+        <!-- Only shown when a finished run can be posted to the board. -->
+        <form class="post-run" id="post-run" hidden>
+          <label class="post-label" for="post-name">Post this run</label>
+          <div class="post-row">
+            <input
+              class="post-input"
+              id="post-name"
+              type="text"
+              maxlength="16"
+              autocomplete="nickname"
+              placeholder="Your name"
+              enterkeyhint="send"
+            />
+            <button class="btn btn-primary" id="post-submit" type="submit">Post</button>
+          </div>
+          <p class="post-status" id="post-status" role="status"></p>
+        </form>
+
         <button class="btn btn-primary" id="overlay-action" type="button"></button>
+        <button class="btn btn-ghost" id="overlay-home" type="button" hidden>Back to home</button>
       </div>
     </div>
 

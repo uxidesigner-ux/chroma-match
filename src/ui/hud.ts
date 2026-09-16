@@ -6,17 +6,10 @@ function el<T extends HTMLElement>(id: string): T {
   return node as T
 }
 
-export interface OverlayContent {
-  kicker: string
-  title: string
-  body: string
-  action: string
-  onAction: () => void
-}
-
 /**
- * Owns every DOM node outside the canvas. Values are diffed before they are
- * written so the HUD does not touch the document on frames where nothing moved.
+ * The readouts above the board. Values are diffed before they are written so
+ * the HUD does not touch the document on frames where nothing moved. The
+ * end-of-level dialog is a separate concern and lives in overlay.ts.
  */
 export class Hud {
   private score = el('score')
@@ -29,22 +22,7 @@ export class Hud {
   private bar = el('bar')
   private seed = el('seed')
 
-  private overlay = el('overlay')
-  private overlayKicker = el('overlay-kicker')
-  private overlayTitle = el('overlay-title')
-  private overlayBody = el('overlay-body')
-  private overlayAction = el<HTMLButtonElement>('overlay-action')
-  private pendingAction: (() => void) | null = null
-
   private last = { score: -1, moves: -1, best: -1, level: -1, progress: -1, target: -1, seed: '' }
-
-  constructor() {
-    this.overlayAction.addEventListener('click', () => {
-      const run = this.pendingAction
-      this.hideOverlay()
-      run?.()
-    })
-  }
 
   update(game: Game, best: number): void {
     const l = this.last
@@ -80,20 +58,5 @@ export class Hud {
       this.seed.textContent = `seed ${seed}`
       l.seed = seed
     }
-  }
-
-  showOverlay(content: OverlayContent): void {
-    this.overlayKicker.textContent = content.kicker
-    this.overlayTitle.textContent = content.title
-    this.overlayBody.textContent = content.body
-    this.overlayAction.textContent = content.action
-    this.pendingAction = content.onAction
-    this.overlay.hidden = false
-    this.overlayAction.focus()
-  }
-
-  hideOverlay(): void {
-    this.overlay.hidden = true
-    this.pendingAction = null
   }
 }
