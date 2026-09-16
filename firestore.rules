@@ -51,8 +51,11 @@ service cloud.firestore {
           && request.resource.data.seed >= 0
           && request.resource.data.seed <= 4294967295
           && request.resource.data.moves is string
-          // Two base36 characters per swap, so this caps a run at 4000 moves,
-          // matching MAX_MOVES in src/game/replay.ts.
+          // Two base36 characters per action — a swap, or an item spent on a
+          // cell — so this caps a run at 4000 actions, matching MAX_MOVES in
+          // src/game/replay.ts. Items were added inside the existing encoding
+          // rather than beside it, so this bound did not have to move: a run
+          // that used items is the same shape as one that did not.
           && request.resource.data.moves.size() > 0
           && request.resource.data.moves.size() <= 8000
           && request.resource.data.moves.matches('^[0-9a-z]+$')

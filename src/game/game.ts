@@ -10,6 +10,8 @@ import {
   shuffleBoard,
 } from './board.ts'
 import type { Move } from './board.ts'
+import { CHAIN_REWARD_AT, MAX_HELD, blastCells, emptyInventory, itemForLevel } from './items.ts'
+import type { Inventory, Item } from './items.ts'
 import { makeRng, randomSeed, type Rng } from './rng.ts'
 import { at, BOARD } from './types.ts'
 import type { Geom, Grid, Kind, Power } from './types.ts'
@@ -68,6 +70,15 @@ interface Phase {
   doomed: boolean
 }
 
+/**
+ * One thing the player did, in the order they did it.
+ *
+ * The run record is a list of these rather than a list of swaps, because an
+ * item changes the board and so has to replay in its place — a record that left
+ * items out would not reproduce the run it came from.
+ */
+export type Action = { kind: 'swap'; a: number; b: number } | { kind: 'item'; item: Item; cell: number }
+
 export interface GameHooks {
   /** A group of gems just started clearing. `cells` are grid indices. */
   onClear(cells: number[], kind: Kind, combo: number, points: number): void
@@ -77,6 +88,10 @@ export interface GameHooks {
   onShuffle(): void
   onLevelComplete(level: number): void
   onGameOver(score: number): void
+  /** An item was earned. `reason` is what paid for it. */
+  onItemEarned(item: Item, reason: 'level' | 'chain'): void
+  /** An item was spent on a cell. */
+  onItemUsed(item: Item, cell: number): void
 }
 
 interface PendingPower {
@@ -108,10 +123,17 @@ export class Game {
   private hintRng: Rng
   seed: number
   /**
-   * Every swap the board accepted, in order. Together with the seed this is a
-   * complete, replayable record of the run.
+   * Everything the board accepted, in order: swaps, and items spent. Together
+   * with the seed this is a complete, replayable record of the run — which is
+   * why an item use has to be in here rather than beside it.
    */
-  readonly log: Move[] = []
+  readonly log: Action[] = []
+
+  /**
+   * Items in hand. Earned during the run and gone when it ends; see items.ts
+   * for why carrying them between runs would break the leaderboard.
+   */
+  items: Inventory = emptyInventory()
 
   score = 0
   level = 1
@@ -239,13 +261,58 @@ export class Game {
     this.attemptSwap(from, to)
   }
 
+  /**
+   * Spends an item on a cell.
+   *
+   * Returns false rather than throwing when the move is not allowed, because
+   * the replay verifier calls this with submitted data: a run claiming an item
+   * it never earned has to fail the same way a swap that makes no match does,
+   * and the inventory the verifier checks against is the one this class rebuilt
+   * from the run's own history.
+   *
+   * An item costs no move. That is what makes it worth holding — and it is
+   * bounded anyway, because the only way to get another is to earn it.
+   */
+  useItem(item: Item, cell: number): boolean {
+    if (this.status !== 'playing' || this.busy) return false
+    if ((this.items[item] ?? 0) <= 0) return false
+    if (cell < 0 || cell >= this.geom.cells) return false
+    if (!at(this.grid, cell)) return false
+
+    this.items[item] -= 1
+    this.log.push({ kind: 'item', item, cell })
+    this.selected = null
+    this.held = null
+    this.hint = null
+    this.idleTime = 0
+    this.hooks.onItemUsed?.(item, cell)
+
+    // The blast is the first link of a chain, not a free-standing event: the
+    // cascade it sets off multiplies from here exactly as a match would.
+    this.combo = 1
+    this.bestCombo = Math.max(this.bestCombo, this.combo)
+    const seeds = blastCells(item, cell, this.geom)
+    // Routed through the same expansion a match uses, so a power gem caught in
+    // a blast goes off instead of being quietly deleted.
+    const cleared = expandClears(this.geom, this.grid, seeds)
+    this.commitClear(cleared, [], cell)
+    return true
+  }
+
+  /** Adds to the inventory, capped. A payout over the cap is simply lost. */
+  private earn(item: Item, reason: 'level' | 'chain'): void {
+    if ((this.items[item] ?? 0) >= MAX_HELD) return
+    this.items[item] += 1
+    this.hooks.onItemEarned?.(item, reason)
+  }
+
   private attemptSwap(a: number, b: number): void {
     const legal = isLegalSwap(this.geom, this.grid, a, b)
     this.swapCells(a, b)
     this.startPhase('swap', SWAP_TIME, { a, b, doomed: !legal })
     if (legal) {
       this.moves = Math.max(0, this.moves - 1)
-      this.log.push({ a, b })
+      this.log.push({ kind: 'swap', a, b })
       this.hooks.onSwapAccepted?.()
     } else {
       this.hooks.onInvalidSwap?.(a, b)
@@ -377,6 +444,9 @@ export class Game {
 
     this.combo = Math.min(MAX_COMBO, this.combo + 1)
     this.bestCombo = Math.max(this.bestCombo, this.combo)
+    // Paid once per chain, on the clear that reaches the rung — not on every
+    // clear past it, or a long cascade would mint a whole inventory.
+    if (this.combo === CHAIN_REWARD_AT) this.earn('bomb', 'chain')
 
     const seeds = new Set<number>()
     const powers: PendingPower[] = []
@@ -458,6 +528,9 @@ export class Game {
 
     if (this.progress >= this.target) {
       this.status = 'levelComplete'
+      // Earned here rather than in nextLevel(), so the payout is part of
+      // finishing the level and lands before the card that announces it.
+      this.earn(itemForLevel(this.level), 'level')
       this.hooks.onLevelComplete?.(this.level)
       return
     }
@@ -497,6 +570,7 @@ export class Game {
     this.rng = makeRng(seed)
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
     this.log.length = 0
+    this.items = emptyInventory()
     this.grid = createBoard(this.geom, this.rng)
     this.score = 0
     this.level = 1

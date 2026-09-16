@@ -5,7 +5,10 @@ import { Game, movesForLevel, targetForLevel } from './game/game.ts'
 import type { GameHooks } from './game/game.ts'
 import { randomSeed } from './game/rng.ts'
 import { recordOf } from './game/replay.ts'
+import { itemForLevel } from './game/items.ts'
+import type { Item } from './game/items.ts'
 import { BOARD } from './game/types.ts'
+import { findMoves } from './game/board.ts'
 import { attachInput } from './input.ts'
 import { openLeaderboard } from './leaderboard/index.ts'
 import { LocalLeaderboard } from './leaderboard/local.ts'
@@ -16,11 +19,15 @@ import { Renderer } from './render/renderer.ts'
 import { activeSkin, initSkin, nextSkin, onSkinChange, setSkin } from './render/skins/index.ts'
 import { contrastingShade, styleFor } from './render/theme.ts'
 import { ComboMeter } from './ui/combo.ts'
+import { ItemTray } from './ui/items.ts'
 import { HomeScreen } from './ui/home.ts'
 import { Hud } from './ui/hud.ts'
 import { Overlay } from './ui/overlay.ts'
 import type { OverlayContent } from './ui/overlay.ts'
 import { Screens } from './ui/screens.ts'
+
+/** Only for the card that announces a payout; the tray labels itself. */
+const ITEM_LABELS: Record<Item, string> = { hammer: 'Hammer', rocket: 'Rocket', bomb: 'Bomb' }
 
 const BEST_KEY = 'chroma-match:best'
 const NAME_KEY = 'chroma-match:name'
@@ -46,6 +53,7 @@ const haptics = new Haptics()
 const hud = new Hud()
 const overlay = new Overlay()
 const combo = new ComboMeter()
+const tray = new ItemTray()
 const screens = new Screens()
 
 /**
@@ -96,7 +104,15 @@ function displayBest(): number {
   return Math.max(record, game.score)
 }
 
-/** A `?seed=` in the URL replays an exact board, which makes bugs reproducible. */
+/**
+ * A `?seed=` in the URL replays an exact board, which makes bugs reproducible
+ * and lets two people race the same deal.
+ *
+ * It pins every run in the tab, not just the first. It used to be read once at
+ * startup and then thrown away by the first press of Play, which restarted on a
+ * random seed — so the documented way to reproduce a board did not survive
+ * reaching the board.
+ */
 function seedFromUrl(): number | null {
   const raw = new URLSearchParams(location.search).get('seed')
   if (!raw) return null
@@ -130,16 +146,25 @@ const hooks: Partial<GameHooks> = {
     }
     const cx = sx / cells.length
     const cy = sy / cells.length
-    // A chained score takes the colour of the gems that earned it — it says
-    // which colour is paying, and it comes from the skin, so it still reads on
-    // a light board where the old flat gold did not.
-    effects.float(
-      cx,
-      cy,
-      `+${points}`,
-      chain > 1 ? contrastingShade(kind) : '#FFFFFF',
-      1 + Math.min(chain, 5) * 0.07,
-    )
+    // The score takes the colour of the gems that earned it, always — the flat
+    // white this used to fall back to for an unchained clear was invisible on
+    // the Paper skin's cream board, where the halo behind it is cream too.
+    // Depth is carried by the size and by the chain badge, not by a second
+    // colour that only works on half the skins.
+    effects.float(cx, cy, `+${points}`, contrastingShade(kind), 1 + Math.min(chain, 5) * 0.07)
+  },
+  onItemEarned(item) {
+    sfx.power()
+    haptics.power()
+    tray.flash(item)
+  },
+  onItemUsed(item, cell) {
+    sfx.power()
+    haptics.power()
+    // A bomb is felt harder than a hammer, because it does more.
+    renderer.hit(item === 'bomb' ? 0.85 : item === 'rocket' ? 0.7 : 0.4)
+    const { x, y } = renderer.centreOf(cell)
+    effects.burst(x, y, '#FFFFFF', 14)
   },
   onPowerCreated() {
     sfx.power()
@@ -160,12 +185,19 @@ const hooks: Partial<GameHooks> = {
   onLevelComplete(level) {
     sfx.levelUp()
     haptics.levelUp()
+    tray.arm(null)
+    const earned = itemForLevel(level)
     overlay.show({
       kicker: 'Cleared',
       title: `Level ${level} complete`,
-      body: `${game.score.toLocaleString()} points banked. Level ${level + 1} asks for ${targetForLevel(
+      hero: {
+        value: game.score.toLocaleString(),
+        caption: 'points banked',
+        flair: `${ITEM_LABELS[earned]} earned`,
+      },
+      body: `Level ${level + 1} asks for ${targetForLevel(level + 1).toLocaleString()} more in ${movesForLevel(
         level + 1,
-      ).toLocaleString()} more in ${movesForLevel(level + 1)} moves.`,
+      )} moves.`,
       action: 'Next level',
       onAction: () => game.nextLevel(),
     })
@@ -219,15 +251,33 @@ const hooks: Partial<GameHooks> = {
 
 const game = new Game(hooks, seedFromUrl() ?? randomSeed())
 
-attachInput(canvas, game, renderer, () => sfx.unlock())
+attachInput(
+  canvas,
+  game,
+  renderer,
+  () => sfx.unlock(),
+  (cell) => {
+    const item = tray.armed
+    if (!item) return false
+    // A refused item still swallows the tap: the player aimed deliberately, and
+    // silently turning that into a gem selection is not what they asked for.
+    if (!game.useItem(item, cell)) {
+      sfx.reject()
+      return true
+    }
+    tray.arm(null)
+    return true
+  },
+)
 
 // ---- navigation -----------------------------------------------------------
 
 function startRun(): void {
   effects.clear()
   combo.hide()
+  tray.arm(null)
   overlay.hide()
-  game.restart(randomSeed())
+  game.restart(seedFromUrl() ?? randomSeed())
   screens.show('game')
   renderer.resize()
 }
@@ -236,6 +286,7 @@ function goHome(): void {
   commitRecord()
   effects.clear()
   combo.hide()
+  tray.arm(null)
   overlay.hide()
   screens.show('home')
   void home.refresh()
@@ -313,11 +364,15 @@ window.addEventListener('pagehide', () => commitRecord())
 
 if (import.meta.env.DEV) {
   // Handy from the console while tuning: `chroma.game.grid`, `chroma.game.hint`.
+  // `moves()` lists every legal swap on the board right now — the hint only
+  // appears after the player has been idle a while, which makes it useless for
+  // driving the game quickly.
   // `leaderboard` is reassigned once the shared board connects, so it is
   // exposed through a getter — an object literal would freeze the local one.
   Object.assign(window, {
     chroma: {
       game,
+      moves: () => findMoves(game.geom, game.grid),
       renderer,
       effects,
       sfx,
@@ -354,6 +409,7 @@ function frame(now: number): void {
     renderer.settle(dt)
     renderer.draw(game, effects, time)
     hud.update(game, displayBest())
+    tray.update(game.items)
   }
 
   requestAnimationFrame(frame)

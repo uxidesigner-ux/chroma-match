@@ -125,6 +125,30 @@
           </div>
         </div>
 
+        <!--
+          The tray sits under the board and above the footer: it is part of
+          playing, not part of the chrome, and a thumb reaching the board can
+          reach it without crossing anything else.
+        -->
+        <div class="items" id="items" role="group" aria-label="Items">
+          <button class="item" data-item="hammer" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-hammer" aria-hidden="true"></span>
+            <span class="item-name">Hammer</span>
+            <span class="item-count" data-count="hammer">0</span>
+          </button>
+          <button class="item" data-item="rocket" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-rocket" aria-hidden="true"></span>
+            <span class="item-name">Rocket</span>
+            <span class="item-count" data-count="rocket">0</span>
+          </button>
+          <button class="item" data-item="bomb" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-bomb" aria-hidden="true"></span>
+            <span class="item-name">Bomb</span>
+            <span class="item-count" data-count="bomb">0</span>
+          </button>
+        </div>
+        <p class="items-hint" id="items-hint" role="status" hidden></p>
+
         <footer class="footer">
           <button class="btn" id="quit-game" type="button">Home</button>
           <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false">
@@ -150,6 +174,11 @@
             the board.
           </li>
           <li>Cascades multiply your score, up to &times;8.</li>
+          <li>
+            <b>Finish a level</b> to earn an item, and land a &times;5 chain for a bomb. Items
+            cost no move &mdash; and they are earned fresh every run, so the board is the same
+            climb for everyone.
+          </li>
         </ul>
       </section>
     </main>
