@@ -14,8 +14,10 @@
  * before sending it and see the same verdict the server will reach.
  */
 import { areNeighbours, isLegalSwap } from './board.ts'
-import type { Move } from './board.ts'
 import { Game } from './game.ts'
+import type { Action } from './game.ts'
+import { ITEMS } from './items.ts'
+import type { Item } from './items.ts'
 import type { Geom } from './types.ts'
 
 const FRAME = 1 / 60
@@ -23,7 +25,7 @@ const FRAME = 1 / 60
 const SETTLE_LIMIT = 4000
 /** Past this a submission is not a run, it is an invitation to burn server CPU. */
 export const MAX_MOVES = 4000
-/** Two base36 characters carry one move, so `cell * 4 + direction` must fit. */
+/** Two base36 characters carry one action, so everything below has to fit. */
 const PACK_LIMIT = 36 * 36
 
 /** Neighbour offsets, in the order their index is encoded. */
@@ -56,44 +58,85 @@ export function boardOf(geom: Geom): RunBoard {
 }
 
 /**
- * Packs the move list into a string.
- *
- * Firestore cannot store an array of arrays, and a run of a few hundred moves as
- * JSON objects is bulky for something this regular. Each swap is one cell index
- * plus the direction of its partner, which fits in two base36 characters.
+ * Where item codes start. Swaps occupy `cell * 4 + direction`, so the first
+ * value past the last of those is free — on the shipping 6x9 board that is 216,
+ * leaving the range up to 1295 for everything else two base36 characters can
+ * hold. Items cost nothing in the record format because of it: a run with items
+ * is the same length, the same alphabet, and passes the same security rules as
+ * one without.
  */
-export function encodeMoves(geom: Geom, moves: readonly Move[]): string {
-  if (geom.cells * 4 > PACK_LIMIT) {
-    throw new Error(`a ${geom.cols}x${geom.rows} board does not fit the two-character move encoding`)
+function itemBase(geom: Geom): number {
+  return geom.cells * 4
+}
+
+function packLimitFor(geom: Geom): number {
+  return itemBase(geom) + ITEMS.length * geom.cells
+}
+
+/**
+ * Packs the action list into a string.
+ *
+ * Firestore cannot store an array of arrays, and a run of a few hundred actions
+ * as JSON objects is bulky for something this regular. A swap is one cell index
+ * plus the direction of its partner; an item is its index and the cell it was
+ * aimed at. Both fit in two base36 characters.
+ */
+export function encodeMoves(geom: Geom, actions: readonly Action[]): string {
+  if (packLimitFor(geom) > PACK_LIMIT) {
+    throw new Error(`a ${geom.cols}x${geom.rows} board does not fit the two-character action encoding`)
   }
   let out = ''
-  for (const { a, b } of moves) {
-    const dc = geom.colOf(b) - geom.colOf(a)
-    const dr = geom.rowOf(b) - geom.rowOf(a)
-    const dir = DIRECTIONS.findIndex(([x, y]) => x === dc && y === dr)
-    if (dir < 0) throw new Error(`swap ${a}->${b} is not between neighbours`)
-    out += (a * 4 + dir).toString(36).padStart(2, '0')
+  for (const action of actions) {
+    let packed: number
+    if (action.kind === 'item') {
+      const index = ITEMS.indexOf(action.item)
+      if (index < 0) throw new Error(`unknown item ${action.item}`)
+      if (action.cell < 0 || action.cell >= geom.cells) {
+        throw new Error(`item aimed off the board at ${action.cell}`)
+      }
+      packed = itemBase(geom) + index * geom.cells + action.cell
+    } else {
+      const dc = geom.colOf(action.b) - geom.colOf(action.a)
+      const dr = geom.rowOf(action.b) - geom.rowOf(action.a)
+      const dir = DIRECTIONS.findIndex(([x, y]) => x === dc && y === dr)
+      if (dir < 0) throw new Error(`swap ${action.a}->${action.b} is not between neighbours`)
+      packed = action.a * 4 + dir
+    }
+    out += packed.toString(36).padStart(2, '0')
   }
   return out
 }
 
-export function decodeMoves(geom: Geom, encoded: string): Move[] {
+export function decodeMoves(geom: Geom, encoded: string): Action[] {
   if (encoded.length % 2 !== 0) throw new Error('move list is truncated')
-  const moves: Move[] = []
+  const base = itemBase(geom)
+  const actions: Action[] = []
   for (let i = 0; i < encoded.length; i += 2) {
     const chunk = encoded.slice(i, i + 2)
-    if (!/^[0-9a-z]{2}$/.test(chunk)) throw new Error(`move ${i / 2 + 1} is not valid base36`)
+    const n = i / 2 + 1
+    if (!/^[0-9a-z]{2}$/.test(chunk)) throw new Error(`move ${n} is not valid base36`)
     const packed = Number.parseInt(chunk, 36)
+
+    if (packed >= base) {
+      const offset = packed - base
+      const index = Math.floor(offset / geom.cells)
+      const cell = offset % geom.cells
+      const item = ITEMS[index]
+      if (!item) throw new Error(`move ${n} names an item this version does not have`)
+      actions.push({ kind: 'item', item: item as Item, cell })
+      continue
+    }
+
     const a = Math.floor(packed / 4)
     const step = DIRECTIONS[packed % 4] as readonly [number, number]
     const c = geom.colOf(a) + step[0]
     const r = geom.rowOf(a) + step[1]
     if (a >= geom.cells || !geom.inBounds(c, r)) {
-      throw new Error(`move ${i / 2 + 1} points off the board`)
+      throw new Error(`move ${n} points off the board`)
     }
-    moves.push({ a, b: geom.idx(c, r) })
+    actions.push({ kind: 'swap', a, b: geom.idx(c, r) })
   }
-  return moves
+  return actions
 }
 
 /** Runs the clock until the board stops animating. */
@@ -143,29 +186,40 @@ export function verifyRun(record: RunRecord, geom: Geom): VerifyResult {
     return fail('run was played on a different board than this leaderboard accepts')
   }
 
-  let moves: Move[]
+  let actions: Action[]
   try {
-    moves = decodeMoves(geom, record.moves)
+    actions = decodeMoves(geom, record.moves)
   } catch (error) {
     return fail(error instanceof Error ? error.message : 'move list could not be decoded')
   }
-  if (moves.length > MAX_MOVES) return fail('move list is longer than any real run')
+  if (actions.length > MAX_MOVES) return fail('move list is longer than any real run')
 
   const game = new Game({}, record.seed, geom)
-  for (let i = 0; i < moves.length; i++) {
+  for (let i = 0; i < actions.length; i++) {
     // The player can only have kept playing past a cleared level by continuing.
     if (game.status === 'levelComplete') game.nextLevel()
     if (game.status === 'gameOver') return fail(`move ${i + 1} comes after the run ended`)
 
-    const move = moves[i] as Move
-    if (!areNeighbours(geom, move.a, move.b)) return fail(`move ${i + 1} is not between neighbours`)
-    // This is the load-bearing check: a fabricated move list cannot score,
-    // because every swap in it has to be one the board would actually have taken.
-    if (!isLegalSwap(geom, game.grid, move.a, move.b)) {
-      return fail(`move ${i + 1} does not make a match`)
+    const action = actions[i] as Action
+    if (action.kind === 'item') {
+      // No inventory is carried alongside the record: this replay earned its
+      // own items by finishing the same levels and hitting the same chains the
+      // run did, so a submission claiming an item it never earned fails here.
+      // There is nothing to forge, because there is nothing to declare.
+      if (!game.useItem(action.item, action.cell)) {
+        return fail(`move ${i + 1} spends a ${action.item} the run never had`)
+      }
+    } else {
+      if (!areNeighbours(geom, action.a, action.b)) {
+        return fail(`move ${i + 1} is not between neighbours`)
+      }
+      // This is the load-bearing check: a fabricated move list cannot score,
+      // because every swap in it has to be one the board would actually have taken.
+      if (!isLegalSwap(geom, game.grid, action.a, action.b)) {
+        return fail(`move ${i + 1} does not make a match`)
+      }
+      game.drag(action.a, action.b)
     }
-
-    game.drag(move.a, move.b)
     if (!settle(game)) return fail(`move ${i + 1} never settled`)
   }
 
@@ -174,7 +228,7 @@ export function verifyRun(record: RunRecord, geom: Geom): VerifyResult {
     reason: null,
     score: game.score,
     level: game.level,
-    moves: moves.length,
+    moves: actions.length,
     claimMatches: game.score === record.score && game.level === record.level,
   }
 }

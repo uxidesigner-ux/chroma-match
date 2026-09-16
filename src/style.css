@@ -1206,3 +1206,242 @@ body {
   background: #fffcf4;
   box-shadow: 6px 6px 0 var(--line);
 }
+
+/* ---- items -------------------------------------------------------------- */
+
+/*
+ * The tray. Three buttons under the board, each carrying a count.
+ *
+ * The art is drawn with borders and gradients rather than shipped as images:
+ * the whole game is built that way, and three PNGs at three densities would be
+ * more bytes than everything else on this screen put together.
+ */
+.items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.item {
+  position: relative;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 6px 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s, border-color 0.15s,
+    transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.item:active:not(:disabled) {
+  transform: scale(0.955);
+  transition: transform 0.05s ease-out;
+}
+
+/*
+ * An empty item is dimmed rather than removed. A tray that changes shape as
+ * items come and go moves the buttons under the player's thumb, and it hides
+ * the thing worth knowing: what there is to earn.
+ */
+.item.is-empty {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* The armed item is the loudest thing in the tray, because it has changed what
+   the next tap on the board will do. */
+.item.is-armed {
+  border-color: var(--accent-2);
+  background: var(--panel-strong);
+  box-shadow: 0 0 0 2px var(--accent-2) inset;
+}
+
+.item-name {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.item.is-armed .item-name {
+  color: var(--text);
+}
+
+.item-count {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  min-width: 19px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #0a0d18;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.item-art {
+  width: 26px;
+  height: 26px;
+  display: block;
+  position: relative;
+}
+
+/* A hammer: a head, and a handle across it. */
+.item-hammer::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 2px;
+  width: 22px;
+  height: 9px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #d7dcf5, #8e97c4);
+}
+
+.item-hammer::after {
+  content: '';
+  position: absolute;
+  top: 11px;
+  left: 11px;
+  width: 5px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #c98d4e, #8a5a2b);
+}
+
+/*
+ * A rocket, pointing along the row it clears.
+ *
+ * One clipped shape rather than a body plus a separate nose: at 26px the seam
+ * between two elements is wider than the nose itself, and the first attempt
+ * read as a brown lump rather than as anything aimed.
+ */
+.item-rocket::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 5px;
+  width: 21px;
+  height: 14px;
+  clip-path: polygon(0 18%, 52% 18%, 100% 50%, 52% 82%, 0 82%);
+  background: linear-gradient(180deg, #ffd9a0, #ef8b2c);
+}
+
+/* The exhaust, so the direction reads even at a glance. */
+.item-rocket::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+  background: linear-gradient(90deg, #ff5c5c, #ffb020);
+}
+
+/* A bomb: a body and a lit fuse. */
+.item-bomb::before {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  left: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #6b7399, #23283f 70%);
+}
+
+.item-bomb::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffd782, #ff7a5c);
+}
+
+/* Fires when an item is earned, so a payout is noticed without a dialog. */
+.item.is-earned {
+  animation: item-earned 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes item-earned {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.16);
+    border-color: var(--accent-2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.items-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--accent-2);
+}
+
+.items-hint[hidden] {
+  display: none;
+}
+
+/*
+ * While an item is armed the board is a target, not a puzzle: the cursor says
+ * so on a pointer device, and the gems stop inviting a drag.
+ */
+.is-aiming #board {
+  cursor: crosshair;
+}
+
+[data-skin='paper'] .item {
+  border-width: 2px;
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+[data-skin='paper'] .item:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+[data-skin='paper'] .item.is-armed {
+  box-shadow: 3px 3px 0 var(--line);
+  border-color: var(--accent);
+  background: var(--panel-strong);
+}
+
+[data-skin='paper'] .item-count {
+  background: var(--accent);
+  color: #fff7e6;
+  border: 2px solid var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item,
+  .item.is-earned {
+    animation: none;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .item:active:not(:disabled) {
+    transform: none;
+  }
+}

@@ -110,7 +110,10 @@ test('junk submissions are rejected rather than replayed', () => {
   const cases: Array<[string, RunRecord, RegExp]> = [
     ['a truncated move list', { ...base, moves: `${base.moves}a` }, /truncated/],
     ['non-base36 characters', { ...base, moves: '!!' }, /base36/],
-    ['a move off the board', { ...base, moves: 'zz' }, /off the board/],
+    // 212 is a swap from the last cell pointing off the right edge; zz (1295)
+    // is past every code the encoding defines, and lands in the item range.
+    ['a swap off the board', { ...base, moves: (212).toString(36) }, /off the board/],
+    ['a code this version has no action for', { ...base, moves: 'zz' }, /does not have/],
     ['a negative seed', { ...base, seed: -1 }, /seed/],
     [
       'a different board',
@@ -141,7 +144,7 @@ test('moves appended after the run ended are rejected', () => {
   assert.ok(afterwards.length > 0, 'the final board should still offer moves')
 
   const record = recordOf(game)
-  const extra = encodeMoves(game.geom, [afterwards[0]!])
+  const extra = encodeMoves(game.geom, [{ kind: 'swap', ...afterwards[0]! }])
   const verdict = verifyRun({ ...record, moves: record.moves + extra }, BOARD)
   assert.equal(verdict.ok, false)
   assert.match(verdict.reason ?? '', /after the run ended/)
@@ -149,6 +152,6 @@ test('moves appended after the run ended are rejected', () => {
 
 test('the encoding refuses a board it cannot represent', () => {
   const huge = makeGeom(40, 40, 5) // 1600 cells x 4 directions overflows two base36 chars
-  assert.throws(() => encodeMoves(huge, [{ a: 0, b: 1 }]), /does not fit/)
+  assert.throws(() => encodeMoves(huge, [{ kind: 'swap', a: 0, b: 1 }]), /does not fit/)
   assert.deepEqual(boardOf(BOARD), { cols: BOARD.cols, rows: BOARD.rows, kinds: BOARD.kinds })
 })

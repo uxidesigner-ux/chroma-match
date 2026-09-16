@@ -11,6 +11,12 @@ export function attachInput(
   game: Game,
   renderer: Renderer,
   onFirstInput: () => void,
+  /**
+   * What an armed item does with a tapped cell. Returning true means the tap
+   * was spent on the item, so the board must not also treat it as a selection —
+   * arming is a mode, and a tap belongs to one handler or the other.
+   */
+  onAim: (cell: number) => boolean = () => false,
 ): void {
   let startCell: number | null = null
   let startX = 0
@@ -29,6 +35,13 @@ export function attachInput(
     startX = x
     startY = y
     dragged = false
+    if (startCell !== null && onAim(startCell)) {
+      // Fired on contact rather than on release: an item is aimed, not dragged,
+      // and waiting for the release would make the most decisive action in the
+      // game the slowest one.
+      startCell = null
+      return
+    }
     if (startCell !== null) {
       canvas.setPointerCapture(e.pointerId)
       // Light the gem up on contact rather than waiting for the release.

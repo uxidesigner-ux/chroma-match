@@ -62,7 +62,8 @@ and p90 of whole runs; the only line it calls a wall is one a p90 run still
 falls short of. The retune survived the correction — the old curve was steep
 rather than impossible — but the reasoning that justified it did not.
 
-**Boards are seeded and reproducible.** The URL takes a `?seed=` parameter, and
+**Boards are seeded and reproducible.** The URL takes a `?seed=` parameter that
+pins every run in the tab, and
 the current seed is printed under the board. `?seed=1A2B` always deals the same
 opening position, so a bug report can name the board it happened on.
 
@@ -139,6 +140,30 @@ stripping, so there is no separate test build to keep in sync. Node 22.18 or
 newer is required for that.
 
 Pushes to `main` typecheck, test, build, and deploy to GitHub Pages.
+
+### Items
+
+Three things a player holds and spends, as opposed to the power gems the board
+hands them: a **hammer** takes one gem, a **rocket** takes a row, a **bomb**
+takes the square around a cell. They are aimed anywhere and cost no move, which
+is the whole appeal — so the supply is earned, not bought:
+
+- finishing a level pays one, on a fixed rotation a player can plan around;
+- landing a &times;5 chain pays a bomb.
+
+**They are earned inside a run and die with it**, and that is a requirement
+rather than a scope cut. A posted run is verified by replaying its seed and its
+actions, so everything a run depends on has to be inside that record — an
+inventory carried between sessions would make two players with the same seed
+and the same moves score differently, and the top of the board would belong to
+whoever hoarded longest.
+
+An item use is written into the run record in the same two base36 characters a
+swap uses: swaps occupy `cell * 4 + direction`, which leaves the rest of the
+range free. So a run that spent items is the same length, the same alphabet and
+the same security rules as one that did not. The verifier keeps no inventory of
+its own — it earns items by replaying the same levels and chains the run did, so
+a submission that spends a bomb it never earned fails on that action.
 
 ### Feedback
 
