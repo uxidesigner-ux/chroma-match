@@ -31,16 +31,15 @@
           <p class="tagline">Six across, nine down. Line up three.</p>
         </div>
 
-        <div class="hero-stats">
-          <div class="stat">
-            <span class="stat-label">Your best</span>
-            <strong class="stat-value" id="home-best">0</strong>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Your rank</span>
-            <strong class="stat-value" id="home-rank">&mdash;</strong>
-          </div>
-        </div>
+        <p class="hero-line">
+          <span class="hero-stat"
+            >Best <strong class="hero-stat-value" id="home-best">0</strong></span
+          >
+          <span class="hero-dot" aria-hidden="true">&middot;</span>
+          <span class="hero-stat"
+            >Rank <strong class="hero-stat-value" id="home-rank">&mdash;</strong></span
+          >
+        </p>
 
         <button class="btn btn-primary btn-play" id="start-game" type="button">Play</button>
 
@@ -117,6 +116,12 @@
         <div class="stage">
           <div class="board-wrap">
             <canvas id="board" aria-label="Game board"></canvas>
+            <!-- Announced politely: a chain is feedback, not something a
+                 screen-reader user needs interrupting their move. -->
+            <div class="combo" id="combo" aria-live="polite" hidden>
+              <span class="combo-x" id="combo-x">&times;2</span>
+              <span class="combo-word">chain</span>
+            </div>
           </div>
         </div>
 
@@ -153,6 +158,11 @@
       <div class="card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
         <p class="card-kicker" id="overlay-kicker"></p>
         <h2 id="overlay-title"></h2>
+        <div class="card-hero" id="overlay-hero" hidden>
+          <strong class="card-hero-value" id="overlay-hero-value"></strong>
+          <span class="card-hero-caption" id="overlay-hero-caption"></span>
+          <span class="card-flair" id="overlay-flair" hidden></span>
+        </div>
         <p class="card-body" id="overlay-body"></p>
 
         <!-- Only shown when a finished run can be posted to the board. -->

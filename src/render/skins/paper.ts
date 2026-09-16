@@ -52,6 +52,7 @@ export const PAPER: Skin = {
     // everything else here.
     flash: INK,
     mark: '#FFF7E6',
+    textHalo: 'rgba(255, 252, 244, 0.9)',
     luminance: 'light',
   },
 

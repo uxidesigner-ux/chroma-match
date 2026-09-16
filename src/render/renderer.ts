@@ -23,11 +23,30 @@ const BOARD_PAD = 8
 /** Below this a cell is too small to draw anything legible into. */
 const MIN_CELL = 6
 
+/**
+ * How hard the board is allowed to be hit, in CSS pixels of travel.
+ *
+ * Kept small on purpose. A shake that moves the board far enough to notice as
+ * movement is a shake that costs the player track of where their gems are; the
+ * job here is to make a big clear land in the body, not to animate the screen.
+ */
+const SHAKE_MAX = 7
+/** Shakes are short — past this the hit reads as a wobble rather than an impact. */
+const SHAKE_TIME = 0.26
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D
   private layout: Layout = { x: 0, y: 0, cell: 1, w: 1, h: 1 }
   private width = 0
   private height = 0
+  private shake = 0
+  private shakeSeed = 0
+  /**
+   * A player who has asked the platform for less motion gets the flash and the
+   * confetti, but never the camera. Read once: this is not a setting people
+   * change mid-run, and matchMedia in the draw path is a needless cost.
+   */
+  private readonly allowShake = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -91,10 +110,42 @@ export class Renderer {
     return this.layout.cell
   }
 
+  /**
+   * Hits the board. `force` runs 0..1; callers pass what the moment was worth,
+   * and the strongest hit in flight wins rather than the most recent one, so a
+   * chain's opening clear is not what the player feels at the end of it.
+   */
+  hit(force: number): void {
+    if (!this.allowShake) return
+    const next = Math.max(0, Math.min(1, force))
+    if (next <= this.shake) return
+    this.shake = next
+    this.shakeSeed = Math.random() * Math.PI * 2
+  }
+
+  /** Decays the hit. Called with the frame's delta, not with the clock. */
+  settle(dt: number): void {
+    if (this.shake <= 0) return
+    this.shake = Math.max(0, this.shake - dt / SHAKE_TIME)
+  }
+
   draw(game: Game, effects: Effects, time: number): void {
     const ctx = this.ctx
     ctx.clearRect(0, 0, this.width, this.height)
     if (this.layout.cell < MIN_CELL) return
+
+    // Everything below moves together — plate, gems and confetti — because a
+    // board whose contents shake independently of it reads as a rendering bug.
+    const shaking = this.shake > 0
+    if (shaking) {
+      const decay = this.shake * this.shake
+      const amp = SHAKE_MAX * decay
+      // Two frequencies rather than one so successive hits do not land on the
+      // same path and start to look like a loop.
+      const t = time * 46 + this.shakeSeed
+      ctx.save()
+      ctx.translate(Math.sin(t) * amp, Math.cos(t * 1.37) * amp * 0.7)
+    }
 
     this.drawBoardPlate()
     this.drawWells()
@@ -113,6 +164,8 @@ export class Renderer {
     if (game.held !== null) this.drawSelection(game.held, time, true)
 
     effects.draw(ctx)
+
+    if (shaking) ctx.restore()
   }
 
   private boardClip(): void {
