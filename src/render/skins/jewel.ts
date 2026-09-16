@@ -29,9 +29,12 @@ export const JEWEL: Skin = {
     boardStroke: 'rgba(255, 255, 255, 0.08)',
     cellFill: 'rgba(255, 255, 255, 0.028)',
     cellStroke: null,
+    lineWidth: 1,
     selectRing: 'rgba(255, 255, 255, 0.92)',
     hintRing: 'rgba(255, 255, 255, 0.42)',
     flash: '#FFFFFF',
+    mark: '#FFFFFF',
+    luminance: 'dark',
   },
 
   css: {

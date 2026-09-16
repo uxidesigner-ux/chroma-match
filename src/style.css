@@ -892,3 +892,84 @@ body {
     background: rgba(28, 33, 64, 0.9);
   }
 }
+
+/* ---- paper skin --------------------------------------------------------- */
+
+/*
+ * The first light skin, so this block is longer than the Glass one: the
+ * stylesheet was written for a dark interface, and every colour it hard-coded
+ * rather than took from a custom property has to be answered here. They are
+ * listed in the order they appear above.
+ */
+
+[data-skin='paper'] {
+  color-scheme: light;
+}
+
+/* Panels are sheets: an ink border with weight, and a hard offset shadow. */
+[data-skin='paper'] .stat,
+[data-skin='paper'] .ranks,
+[data-skin='paper'] .help,
+[data-skin='paper'] .btn,
+[data-skin='paper'] .post-input,
+[data-skin='paper'] .card {
+  border-width: 2px;
+}
+
+[data-skin='paper'] .btn {
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+/* A pressed sheet drops onto the page rather than sliding down it. */
+[data-skin='paper'] .btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+[data-skin='paper'] .btn-ghost {
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+/* Ink on a colour, not dark text on a light gradient. */
+[data-skin='paper'] .btn-primary {
+  background: var(--accent);
+  border-color: var(--line);
+  color: #fff7e6;
+  box-shadow: 4px 4px 0 var(--line);
+}
+
+[data-skin='paper'] .brand-mark {
+  background: conic-gradient(#e8453c, #f2a81c, #2fa36b, #2d6be4, #6b4bc9, #c43e9e, #e8453c);
+  border: 2px solid var(--line);
+}
+
+/* Was a low-move warning in pink against a near-black panel. */
+[data-skin='paper'] .stat.urgent .stat-value {
+  color: #c1231b;
+}
+
+/* Was white at 7%, which on cream is nothing at all. */
+[data-skin='paper'] .bar {
+  background: rgba(36, 30, 22, 0.12);
+  border: 1px solid var(--line);
+}
+
+[data-skin='paper'] .seed {
+  color: var(--muted);
+}
+
+[data-skin='paper'] .post-input {
+  background: #fffcf4;
+}
+
+/* The overlay was a dark wash over a dark screen; here it is ink over paper. */
+[data-skin='paper'] .overlay {
+  background: rgba(36, 30, 22, 0.35);
+}
+
+[data-skin='paper'] .card {
+  background: #fffcf4;
+  box-shadow: 6px 6px 0 var(--line);
+}

@@ -9,7 +9,20 @@
  * paint by construction, not by good intentions.
  */
 
-export type Shape = 'circle' | 'triangle' | 'square' | 'diamond' | 'hexagon' | 'flower'
+export type Shape =
+  | 'circle'
+  | 'triangle'
+  | 'square'
+  | 'diamond'
+  | 'hexagon'
+  | 'flower'
+  /**
+   * The same six-lobed idea as `flower`, but as one continuous outline rather
+   * than overlapping circles. `flower` traces every petal's full circle, which
+   * a hairline stroke reads as facets and a heavy one reads as a scribble — so
+   * a skin that outlines its gems in ink wants this instead.
+   */
+  | 'rosette'
 
 export interface GemStyle {
   name: string
@@ -33,10 +46,27 @@ export interface BoardStyle {
   cellFill: string
   /** An outline on each well, or null where the fill alone is the whole look. */
   cellStroke: string | null
+  /** Stroke weight for the plate and the wells, in CSS pixels. */
+  lineWidth: number
   selectRing: string
   hintRing: string
   /** The ring thrown off when a gem is about to clear. */
   flash: string
+  /**
+   * The badge drawn on a power gem — the stripes, the bomb, the prism's star.
+   * It was white until a skin put light-coloured gems on the board, where a
+   * white badge is invisible and the player loses the only signal that says
+   * what a gem will do.
+   */
+  mark: string
+  /**
+   * Whether the board is dark or light overall.
+   *
+   * Anything drawn on top of a gem rather than inside it — the combo text that
+   * floats off a match — has to pick the end of the palette that will read
+   * against the board, and only the skin knows which end that is.
+   */
+  luminance: 'dark' | 'light'
 }
 
 /** Everything a skin needs to paint one gem, in the gem's own coordinates. */
