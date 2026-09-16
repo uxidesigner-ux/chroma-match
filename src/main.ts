@@ -274,7 +274,21 @@ window.addEventListener('pagehide', () => commitRecord())
 
 if (import.meta.env.DEV) {
   // Handy from the console while tuning: `chroma.game.grid`, `chroma.game.hint`.
-  Object.assign(window, { chroma: { game, renderer, effects, sfx, screens, leaderboard } })
+  // `leaderboard` is reassigned once the shared board connects, so it is
+  // exposed through a getter — an object literal would freeze the local one.
+  Object.assign(window, {
+    chroma: {
+      game,
+      renderer,
+      effects,
+      sfx,
+      screens,
+      home,
+      get leaderboard() {
+        return leaderboard
+      },
+    },
+  })
 }
 
 // Offline play is a bonus, so a registration that is refused (private mode,
