@@ -1,38 +1,22 @@
-export type Shape = 'circle' | 'triangle' | 'square' | 'diamond' | 'hexagon' | 'flower'
+import { activeSkin } from './skins/index.ts'
+import type { BoardStyle, GemStyle } from './skins/types.ts'
 
-export interface GemStyle {
-  name: string
-  /**
-   * Every colour also gets its own silhouette. Colour alone is not a reliable
-   * signal — roughly one player in twelve cannot separate the red and the green
-   * at a glance — so the shape carries the same information independently.
-   */
-  shape: Shape
-  base: string
-  light: string
-  dark: string
+export type { GemStyle, Shape } from './skins/types.ts'
+
+/**
+ * Where colour comes from.
+ *
+ * This used to be the palette itself. It is now a view onto whichever skin is
+ * active, kept as its own module so that callers outside the renderer — the
+ * confetti, the floating combo text — ask for "the colour of this kind" without
+ * having to know that skins exist at all.
+ */
+export function styleFor(kind: number): GemStyle {
+  const palette = activeSkin().palette
+  return palette[kind % palette.length] as GemStyle
 }
 
-export const PALETTE: readonly GemStyle[] = [
-  { name: 'Ruby', shape: 'circle', base: '#FF4D6D', light: '#FF9BB0', dark: '#B01235' },
-  { name: 'Amber', shape: 'triangle', base: '#FFB020', light: '#FFD782', dark: '#B06800' },
-  { name: 'Mint', shape: 'square', base: '#34D399', light: '#8DF3C8', dark: '#0B7D57' },
-  { name: 'Azure', shape: 'diamond', base: '#38BDF8', light: '#9BDFFF', dark: '#0B6E9E' },
-  { name: 'Orchid', shape: 'flower', base: '#E879F9', light: '#F7BEFF', dark: '#96189F' },
-  // Sixth and last: with five colours in play this one sits out, because a
-  // second blue next to Azure is the hardest pair to tell apart at a glance.
-  { name: 'Indigo', shape: 'hexagon', base: '#818CF8', light: '#C2C8FF', dark: '#3B34B8' },
-]
-
-export const THEME = {
-  boardFill: 'rgba(255, 255, 255, 0.035)',
-  boardStroke: 'rgba(255, 255, 255, 0.08)',
-  cellFill: 'rgba(255, 255, 255, 0.028)',
-  selectRing: 'rgba(255, 255, 255, 0.92)',
-  hintRing: 'rgba(255, 255, 255, 0.42)',
-  text: '#F4F6FF',
-} as const
-
-export function styleFor(kind: number): GemStyle {
-  return PALETTE[kind % PALETTE.length] as GemStyle
+/** The plate, the wells and the rings, for the active skin. */
+export function boardStyle(): BoardStyle {
+  return activeSkin().board
 }

@@ -3,7 +3,7 @@ import { at } from '../game/types.ts'
 import type { Gem, Geom } from '../game/types.ts'
 import type { Effects } from './particles.ts'
 import { gemPath } from './shapes.ts'
-import { PALETTE, styleFor, THEME } from './theme.ts'
+import { activeSkin } from './skins/index.ts'
 
 interface Layout {
   /** Board origin in CSS pixels, its drawn size, and the size of one cell. */
@@ -127,10 +127,11 @@ export class Renderer {
     ctx.save()
     ctx.beginPath()
     ctx.roundRect(x - BOARD_PAD, y - BOARD_PAD, w + BOARD_PAD * 2, h + BOARD_PAD * 2, 26)
-    ctx.fillStyle = THEME.boardFill
+    const board = activeSkin().board
+    ctx.fillStyle = board.boardFill
     ctx.fill()
     ctx.lineWidth = 1
-    ctx.strokeStyle = THEME.boardStroke
+    ctx.strokeStyle = board.boardStroke
     ctx.stroke()
     ctx.restore()
   }
@@ -139,8 +140,13 @@ export class Renderer {
     const ctx = this.ctx
     const { x, y, cell } = this.layout
     const inset = cell * 0.08
+    const board = activeSkin().board
     ctx.save()
-    ctx.fillStyle = THEME.cellFill
+    ctx.fillStyle = board.cellFill
+    if (board.cellStroke) {
+      ctx.strokeStyle = board.cellStroke
+      ctx.lineWidth = 1
+    }
     for (let r = 0; r < this.geom.rows; r++) {
       for (let c = 0; c < this.geom.cols; c++) {
         ctx.beginPath()
@@ -152,6 +158,7 @@ export class Renderer {
           cell * 0.22,
         )
         ctx.fill()
+        if (board.cellStroke) ctx.stroke()
       }
     }
     ctx.restore()
@@ -200,60 +207,43 @@ export class Renderer {
   ): void {
     if (scale <= 0.01 || alpha <= 0.01) return
     const ctx = this.ctx
-    const style = styleFor(gem.kind)
+    const skin = activeSkin()
+    const style = skin.palette[gem.kind % skin.palette.length]
+    if (!style) return
     const r = this.layout.cell * 0.37
+    const paint = {
+      style,
+      r,
+      alpha,
+      time,
+      rainbow: gem.power === 'rainbow',
+      palette: skin.palette,
+    }
 
     ctx.save()
     ctx.globalAlpha = alpha
     ctx.translate(cx, cy)
     ctx.scale(scale, scale)
 
-    // Body, lifted off the board with a soft shadow.
-    ctx.save()
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)'
-    ctx.shadowBlur = r * 0.5
-    ctx.shadowOffsetY = r * 0.18
-    gemPath(ctx, style.shape, r)
-    if (gem.power === 'rainbow') {
-      const cg = ctx.createConicGradient(time * 1.2, 0, 0)
-      PALETTE.forEach((p, i) => cg.addColorStop(i / PALETTE.length, p.base))
-      cg.addColorStop(1, PALETTE[0]?.base ?? style.base)
-      ctx.fillStyle = cg
-    } else {
-      const g = ctx.createLinearGradient(-r, -r, r * 0.6, r)
-      g.addColorStop(0, style.light)
-      g.addColorStop(0.52, style.base)
-      g.addColorStop(1, style.dark)
-      ctx.fillStyle = g
-    }
-    ctx.fill()
-    ctx.restore()
+    // How a gem is finished belongs to the skin; what is drawn and in what
+    // order belongs here, so every skin gets the same three passes and the
+    // power badge always lands inside the silhouette.
+    skin.paintBody(ctx, paint)
 
-    // Everything below sits inside the silhouette.
     ctx.save()
     gemPath(ctx, style.shape, r)
     ctx.clip()
-
-    ctx.globalAlpha = alpha * 0.32
-    ctx.fillStyle = '#FFFFFF'
-    ctx.beginPath()
-    ctx.ellipse(-r * 0.3, -r * 0.42, r * 0.42, r * 0.24, -0.5, 0, Math.PI * 2)
-    ctx.fill()
+    skin.paintInterior(ctx, paint)
     ctx.globalAlpha = alpha
-
     this.drawPowerMark(gem, r)
     ctx.restore()
 
-    // Rim light, drawn last so it reads on top of the marks.
-    gemPath(ctx, style.shape, r)
-    ctx.lineWidth = Math.max(1, r * 0.08)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)'
-    ctx.stroke()
+    skin.paintEdge(ctx, paint)
 
     if (gem.flash > 0) {
       ctx.globalAlpha = alpha * gem.flash * 1.8
       ctx.lineWidth = r * 0.18
-      ctx.strokeStyle = '#FFFFFF'
+      ctx.strokeStyle = skin.board.flash
       gemPath(ctx, style.shape, r * 1.12)
       ctx.stroke()
     }
@@ -312,7 +302,7 @@ export class Renderer {
     const s = this.layout.cell
     ctx.save()
     ctx.translate(x, y)
-    ctx.strokeStyle = THEME.selectRing
+    ctx.strokeStyle = activeSkin().board.selectRing
     if (held) {
       ctx.lineWidth = 3
       ctx.globalAlpha = 1
@@ -334,7 +324,7 @@ export class Renderer {
     const s = this.layout.cell
     ctx.save()
     ctx.globalAlpha = pulse
-    ctx.strokeStyle = THEME.hintRing
+    ctx.strokeStyle = activeSkin().board.hintRing
     ctx.lineWidth = 2
     ctx.setLineDash([s * 0.12, s * 0.1])
     for (const cell of [a, b]) {

@@ -1,8 +1,17 @@
 :root {
+  /*
+   * These are the Jewel skin's values, written out so the first paint is
+   * correct before any script runs. src/render/skins/ owns them from then on:
+   * a skin sets every one of these properties on :root when it is applied.
+   */
   --bg: #080b14;
   --bg-glow: #1a2145;
+  --bg-glow-2: transparent;
   --panel: rgba(255, 255, 255, 0.045);
   --panel-strong: rgba(255, 255, 255, 0.08);
+  /* Frosted panels are a skin's call; Jewel wants flat ones. */
+  --panel-blur: none;
+  --panel-shadow: none;
   --line: rgba(255, 255, 255, 0.1);
   --text: #eef1ff;
   --muted: #838cb4;
@@ -25,6 +34,7 @@ body {
   margin: 0;
   background:
     radial-gradient(120% 80% at 50% -10%, var(--bg-glow) 0%, transparent 60%),
+    radial-gradient(90% 60% at 12% 105%, var(--bg-glow-2) 0%, transparent 65%),
     var(--bg);
   color: var(--text);
   font-family: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -102,6 +112,9 @@ body {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+  box-shadow: var(--panel-shadow);
   padding: 10px 14px;
   display: flex;
   flex-direction: column;
@@ -270,6 +283,8 @@ body {
   background: var(--panel);
   color: var(--text);
   border-radius: 12px;
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
   padding: 9px 16px;
   font: inherit;
   font-size: 13px;
@@ -313,6 +328,8 @@ body {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
   padding: 4px 18px;
   font-size: 13px;
   line-height: 1.65;
@@ -379,6 +396,9 @@ body {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+  box-shadow: var(--panel-shadow);
   overflow: hidden;
 }
 
@@ -816,5 +836,59 @@ body {
   .card {
     transition: none;
     animation: none;
+  }
+}
+
+/* ---- glass skin --------------------------------------------------------- */
+
+/*
+ * Most of a skin arrives as custom properties, so what is left here is the
+ * handful of rules that need more than a colour: the surfaces that were solid
+ * by construction, and the mark that hard-codes the Jewel palette.
+ *
+ * Every rule is scoped to [data-skin='glass'], which src/render/skins/ sets on
+ * the document root, so the Jewel skin renders from exactly the same stylesheet
+ * it did before.
+ */
+
+[data-skin='glass'] .brand-mark {
+  background: conic-gradient(#ff6b8a, #ffc24d, #4be0af, #57cdff, #93a1ff, #f08cff, #ff6b8a);
+}
+
+/* The modal was a solid panel; under glass it is another pane over the board. */
+[data-skin='glass'] .card {
+  background: rgba(22, 27, 56, 0.72);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+  box-shadow: var(--panel-shadow);
+}
+
+[data-skin='glass'] .overlay {
+  background: rgba(6, 8, 24, 0.55);
+}
+
+/* A hairline of light along the top edge, the way a real pane catches it. */
+[data-skin='glass'] .stat,
+[data-skin='glass'] .ranks,
+[data-skin='glass'] .help,
+[data-skin='glass'] .card {
+  border-top-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-skin='glass'] .bar {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/*
+ * Backdrop blur is expensive, and a browser without it falls back to a flat
+ * translucent panel that reads as washed out rather than frosted. Where it is
+ * missing, the panels are made more opaque instead.
+ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-skin='glass'] .stat,
+  [data-skin='glass'] .ranks,
+  [data-skin='glass'] .help,
+  [data-skin='glass'] .btn {
+    background: rgba(28, 33, 64, 0.9);
   }
 }

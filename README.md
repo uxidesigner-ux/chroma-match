@@ -140,6 +140,23 @@ newer is required for that.
 
 Pushes to `main` typecheck, test, build, and deploy to GitHub Pages.
 
+### Skins
+
+The look is a swap-in layer. `src/render/skins/` holds one file per skin — its
+palette, the board furniture, the CSS custom properties it sets on `:root`, and
+three painting passes the renderer calls for every gem. Two ship: **Jewel**, the
+original cut stones, and **Glass**, translucent panes over a frosted, blurred
+interface. The launch screen has a toggle, `?skin=glass` selects one from a
+link, and the choice is remembered per device.
+
+A skin owns colour, silhouette and finish. It cannot change the board's shape or
+how many kinds are in play: a leaderboard row carries the board it was played on
+and every client replays that run before believing the score, so moving those
+numbers would invalidate every record posted under the previous skin. The tests
+in `src/render/skins/skins.test.ts` pin what a new skin must not break —
+including that every kind keeps its own silhouette, which is what makes the
+board readable without relying on hue.
+
 ### Firestore rules
 
 `firestore.rules` is deployed by its own workflow rather than pasted into the
