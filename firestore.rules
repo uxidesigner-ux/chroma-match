@@ -35,6 +35,50 @@ service cloud.firestore {
       );
     }
 
+    function profileIsWellFormed() {
+      return (!('name' in request.resource.data.keys())
+              || (request.resource.data.name is string
+                  && request.resource.data.name.size() > 0
+                  && request.resource.data.name.size() <= 16))
+          && (!('code' in request.resource.data.keys())
+              || (request.resource.data.code is string
+                  && request.resource.data.code.size() == 7))
+          && (!('photo' in request.resource.data.keys())
+              || (request.resource.data.photo is string
+                  && request.resource.data.photo.size() <= 300))
+          // Bounded because the friends board reads them with an `in` query,
+          // which Firestore caps at 30 values. A list longer than the cap
+          // would be a list whose tail silently never appears on the board.
+          && (!('friends' in request.resource.data.keys())
+              || (request.resource.data.friends is list
+                  && request.resource.data.friends.size() <= 24))
+          && (!('best' in request.resource.data.keys()) || bestIsWellFormed());
+    }
+
+    // The player's best run, stored so a friends board can be read in one
+    // query. Same shape as a /runs row and bounded the same way — and, like a
+    // /runs row, these rules cannot tell whether it was earned. The viewer
+    // replays it before it reaches the board; this only stops it being junk.
+    function bestIsWellFormed() {
+      return request.resource.data.best.keys().hasOnly(
+               ['seed', 'moves', 'score', 'level', 'board', 'at']
+             )
+          && request.resource.data.best.score is int
+          && request.resource.data.best.score >= 0
+          && request.resource.data.best.score <= 10000000
+          && request.resource.data.best.level is int
+          && request.resource.data.best.level >= 1
+          && request.resource.data.best.level <= 999
+          && request.resource.data.best.seed is int
+          && request.resource.data.best.seed >= 0
+          && request.resource.data.best.seed <= 4294967295
+          && request.resource.data.best.moves is string
+          && request.resource.data.best.moves.size() > 0
+          && request.resource.data.best.moves.size() <= 8000
+          && request.resource.data.best.moves.matches('^[0-9a-z]+$')
+          && request.resource.data.best.board.keys().hasOnly(['cols', 'rows', 'kinds']);
+    }
+
     function scoresAreSane() {
       return request.resource.data.score is int
           && request.resource.data.score >= 0
@@ -92,6 +136,35 @@ service cloud.firestore {
       // A posted run is a historical record. Nothing edits or deletes it —
       // including its author, so a score cannot be quietly revised upward.
       allow update, delete: if false;
+    }
+
+    // ---- players -------------------------------------------------------
+    //
+    // Identity only: a name, a friend code, a picture, and the uids this
+    // player follows. Deliberately no scores. A friends board is built by
+    // reading the same /runs rows the public board reads and replaying them,
+    // so a friend's number is checked exactly the way a stranger's is; a
+    // `best` field cached here would be the one score on the screen that
+    // nobody verified.
+    match /players/{playerId} {
+      // Readable by anyone signed in, because adding a friend means looking a
+      // code up, and following one means reading their profile. Not public:
+      // unlike a leaderboard row, this is a directory of accounts.
+      allow read: if isSignedIn();
+
+      // Written only by its owner, and only ever to their own path — which is
+      // what makes a one-directional friends list expressible as a rule. A
+      // mutual graph would need each side to write the other's document, and
+      // no rule can tell a friend request from a stranger editing your list.
+      allow create, update: if isSignedIn()
+                            && request.auth.uid == playerId
+                            && request.resource.data.uid == playerId
+                            && request.resource.data.keys().hasOnly(
+                                 ['uid', 'name', 'code', 'photo', 'friends', 'best']
+                               )
+                            && profileIsWellFormed();
+
+      allow delete: if isSignedIn() && request.auth.uid == playerId;
     }
 
     // Everything else stays closed. This is already the default; it is written

@@ -3,6 +3,8 @@ import type { EntryCheck, Leaderboard, LeaderboardEntry } from '../leaderboard/t
 
 const SHOWN = 20
 
+export type BoardMode = 'everyone' | 'friends'
+
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
   if (!node) throw new Error(`Missing element #${id}`)
@@ -20,7 +22,43 @@ export class HomeScreen {
   /** Bumped on every refresh so a slow verification pass can tell it is stale. */
   private generation = 0
 
-  constructor(private board: Leaderboard) {}
+  /** Which of the two boards is showing. */
+  private mode: BoardMode = 'everyone'
+  /** Supplies the friends board. Left null until the social panel is built. */
+  private friends: (() => Promise<{ entries: LeaderboardEntry[]; label: string }>) | null = null
+  private onMode: ((mode: BoardMode) => void) | null = null
+
+  constructor(private board: Leaderboard) {
+    for (const tab of document.querySelectorAll<HTMLButtonElement>('[data-board]')) {
+      tab.addEventListener('click', () => {
+        const next = tab.dataset.board === 'friends' ? 'friends' : 'everyone'
+        if (next === this.mode) return
+        this.setMode(next)
+        void this.refresh()
+      })
+    }
+  }
+
+  /** Where the friends tab gets its rows. */
+  setFriends(source: () => Promise<{ entries: LeaderboardEntry[]; label: string }>): void {
+    this.friends = source
+  }
+
+  /** Told on every tab change, so the friends tools can show and hide. */
+  onModeChange(listener: (mode: BoardMode) => void): void {
+    this.onMode = listener
+    listener(this.mode)
+  }
+
+  setMode(mode: BoardMode): void {
+    this.mode = mode
+    for (const tab of document.querySelectorAll<HTMLButtonElement>('[data-board]')) {
+      const on = (tab.dataset.board ?? 'everyone') === mode
+      tab.classList.toggle('is-on', on)
+      tab.setAttribute('aria-selected', String(on))
+    }
+    this.onMode?.(mode)
+  }
 
   /** Swaps in a different backend, e.g. once the shared board has connected. */
   setBoard(board: Leaderboard): void {
@@ -29,12 +67,23 @@ export class HomeScreen {
 
   async refresh(): Promise<void> {
     const generation = ++this.generation
-    this.note.textContent = this.board.label
+    this.note.textContent = this.mode === 'friends' ? 'Loading…' : this.board.label
 
     let entries: LeaderboardEntry[]
     let mine: LeaderboardEntry | null
     try {
-      ;[entries, mine] = await Promise.all([this.board.top(SHOWN), this.board.best()])
+      if (this.mode === 'friends') {
+        // The friends board is already the player's own rows plus their
+        // friends', so "mine" comes out of it rather than from a second query.
+        const friends = (await this.friends?.()) ?? { entries: [], label: 'Friends unavailable' }
+        if (generation !== this.generation) return
+        entries = friends.entries
+        mine = entries.find((entry) => entry.mine) ?? null
+        this.note.textContent = friends.label
+      } else {
+        ;[entries, mine] = await Promise.all([this.board.top(SHOWN), this.board.best()])
+        this.note.textContent = this.board.label
+      }
     } catch {
       // A board that will not load must not block the Play button.
       this.note.textContent = 'Leaderboard unavailable'
@@ -95,7 +144,12 @@ export class HomeScreen {
   private renderEmpty(): void {
     const empty = document.createElement('li')
     empty.className = 'ranks-empty'
-    empty.textContent = 'No runs yet. Play one and it lands here.'
+    // The two tabs are empty for completely different reasons, and one piece of
+    // copy for both would tell the player to do the wrong thing on one of them.
+    empty.textContent =
+      this.mode === 'friends'
+        ? 'Nobody here yet. Share your code, or add a friend’s.'
+        : 'No runs yet. Play one and it lands here.'
     this.list.replaceChildren(empty)
   }
 

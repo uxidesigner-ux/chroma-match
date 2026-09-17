@@ -2016,3 +2016,481 @@ body {
     transform: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Account, daily, missions, friends, packs
+ *
+ * Everything below is launch-screen furniture, and all of it has the same job:
+ * say what is on offer without pushing the Play button off the first screen.
+ * That constraint is why the daily reward and the missions share one panel and
+ * why the friends tools are a strip rather than a page — the board is what the
+ * launch screen is for, and none of this is allowed to outrank it.
+ * ------------------------------------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- account ------------------------------------------------------------ */
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+}
+
+.account-face {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.account-face.is-on {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #fff;
+}
+
+.account-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.account-name {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+/* The sub-line carries sign-in errors as well as the friend code, so it wraps
+   rather than truncating: a reason a player cannot read is not a reason. */
+.account-sub {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.account-act {
+  flex: none;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* ---- today: daily reward and missions ----------------------------------- */
+
+.today {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.today-title {
+  margin: 2px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.daily {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+}
+
+/* An unclaimed reward is the one thing on this screen allowed to glow. Once it
+   is taken the row goes quiet rather than disappearing, because the streak it
+   shows is the reason to come back. */
+.daily.is-ready {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.daily:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.daily-gift {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  position: relative;
+}
+
+.daily-gift::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* A vertical ribbon and a lid band, not a full cross: two equal bars read as
+     a window pane rather than as a wrapped box. */
+  background:
+    linear-gradient(#fff, #fff) center / 4px 100% no-repeat,
+    linear-gradient(#fff, #fff) left 0 top 7px / 100% 4px no-repeat;
+  opacity: 0.9;
+}
+
+.daily-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.daily-name {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.daily-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.daily-take {
+  flex: none;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  background: var(--panel-strong);
+  color: var(--muted);
+}
+
+.daily.is-ready .daily-take {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #fff;
+}
+
+.missions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mission {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.mission.is-claimed {
+  opacity: 0.5;
+}
+
+.mission.is-done {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.mission-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+}
+
+.mission-ask {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mission-count {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mission-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--panel-strong);
+  overflow: hidden;
+}
+
+.mission-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  transition: width 240ms ease-out;
+}
+
+.mission-claim:disabled,
+.friend-add .btn:disabled {
+  /* The reward is still legible while it is out of reach — it is what the
+     player is deciding whether to go after — but it must not look pressable. */
+  filter: grayscale(0.85);
+  opacity: 0.45;
+}
+
+.mission-claim {
+  flex: none;
+  min-width: 52px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- leaderboard tabs and the friends strip ----------------------------- */
+
+.ranks-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--panel-strong);
+}
+
+.ranks-tab {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ranks-tab.is-on {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #fff;
+}
+
+.friends-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 8px;
+}
+
+/* `display` on a component outranks the user agent's [hidden] rule, so every
+   hideable block in this file restates it. Without this the friends tools sat
+   on the Everyone tab too. */
+.friends-tools[hidden] {
+  display: none;
+}
+
+.code-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.code-chip:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.code-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Monospaced and spaced out, because this is read off one screen and typed
+   into another — the two failure modes are a dropped character and a misread
+   one, and tracking fixes both. */
+.code-value {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+}
+
+.friend-add {
+  display: flex;
+  flex: 1;
+  min-width: 160px;
+  gap: 6px;
+}
+
+.friend-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-strong);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.friend-input::placeholder {
+  color: var(--muted);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.friend-add .btn {
+  flex: none;
+  padding: 7px 14px;
+  font-size: 12px;
+}
+
+.friend-status {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 14px;
+}
+
+.friend-status.is-ok {
+  color: var(--accent-2);
+}
+
+.friend-status.is-error {
+  color: #ff6b81;
+}
+
+/* ---- coin packs --------------------------------------------------------- */
+
+.shop-sub {
+  margin: 18px 0 4px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.shop-note-demo {
+  margin-top: 0;
+}
+
+.packs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pack {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.pack.is-best {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.pack-flag {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #fff;
+}
+
+/* Three stacked discs: the pile is the only thing distinguishing one pack row
+   from the next at a glance, so it grows with the pack. */
+.pack-art {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffd98a, #e0a23a 60%, #b97c1d);
+  box-shadow:
+    4px 4px 0 -1px #c78a26,
+    8px 8px 0 -2px #a86f18;
+}
+
+.pack-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pack-amount {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.pack-note {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.pack-buy {
+  flex: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}

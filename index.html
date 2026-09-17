@@ -41,6 +41,20 @@
           >
         </p>
 
+        <!--
+          Who is playing. A guest is a complete player here — they can post a
+          score and earn coins without ever seeing this row do anything — so it
+          says what signing in buys rather than demanding it.
+        -->
+        <section class="account" id="account">
+          <span class="account-face" id="account-face" aria-hidden="true"></span>
+          <span class="account-text">
+            <strong class="account-name" id="account-name">Playing as a guest</strong>
+            <span class="account-sub" id="account-sub">Sign in to keep your runs across devices</span>
+          </span>
+          <button class="btn btn-ghost account-act" id="account-action" type="button">Sign in</button>
+        </section>
+
         <!-- The wallet, and the door to the shop. Both on the launch screen,
              because that is where a player decides what this session is for. -->
         <button class="wallet" id="open-shop" type="button">
@@ -50,6 +64,26 @@
           </span>
           <span class="wallet-shop">Shop<span class="wallet-stash" id="home-stash"></span></span>
         </button>
+
+        <!--
+          Everything that pays out for showing up, in one place. The daily
+          reward is the reason to open the game; the missions are the reason to
+          play it a particular way once it is open.
+        -->
+        <section class="today" aria-labelledby="today-title">
+          <h2 class="today-title" id="today-title">Today</h2>
+
+          <button class="daily" id="daily-claim" type="button">
+            <span class="daily-gift" aria-hidden="true"></span>
+            <span class="daily-text">
+              <strong class="daily-name" id="daily-name">Daily reward</strong>
+              <span class="daily-sub" id="daily-sub">&nbsp;</span>
+            </span>
+            <span class="daily-take" id="daily-take">Claim</span>
+          </button>
+
+          <ul class="missions" id="missions"></ul>
+        </section>
 
         <!--
           A kept run is the first thing offered, because a player who left one
@@ -63,9 +97,59 @@
 
         <section class="ranks" aria-labelledby="ranks-title">
           <header class="ranks-head">
-            <h2 id="ranks-title">Leaderboard</h2>
+            <h2 class="sr-only" id="ranks-title">Leaderboard</h2>
+            <!--
+              Two boards, not two screens. A friends board on its own page is a
+              page nobody opens; next to the global one it is a comparison, which
+              is the entire point of having friends on a leaderboard.
+            -->
+            <div class="ranks-tabs" role="tablist" aria-labelledby="ranks-title">
+              <button
+                class="ranks-tab is-on"
+                data-board="everyone"
+                type="button"
+                role="tab"
+                aria-selected="true"
+              >
+                Everyone
+              </button>
+              <button
+                class="ranks-tab"
+                data-board="friends"
+                type="button"
+                role="tab"
+                aria-selected="false"
+              >
+                Friends
+              </button>
+            </div>
             <span class="ranks-note" id="ranks-note">Loading&hellip;</span>
           </header>
+
+          <!-- Only on the friends tab: your code to hand out, and a box to
+               take one in. -->
+          <div class="friends-tools" id="friends-tools" hidden>
+            <button class="code-chip" id="my-code" type="button" title="Copy your friend code">
+              <span class="code-label">Your code</span>
+              <strong class="code-value" id="my-code-value">&mdash;&mdash;&mdash;</strong>
+            </button>
+            <form class="friend-add" id="friend-add">
+              <input
+                class="friend-input"
+                id="friend-code"
+                type="text"
+                maxlength="9"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="Friend code"
+                enterkeyhint="done"
+              />
+              <button class="btn btn-primary" id="friend-submit" type="submit">Add</button>
+            </form>
+            <p class="friend-status" id="friend-status" role="status"></p>
+          </div>
+
           <ol class="ranks-list" id="ranks-list"></ol>
         </section>
 
@@ -140,6 +224,18 @@
             </button>
           </li>
         </ul>
+
+        <h3 class="shop-sub">Coin packs</h3>
+        <!--
+          Nothing here charges anybody — see src/packs.ts. The note says so out
+          loud rather than in a tooltip, because a storefront that looks real
+          and is not is the one thing on this screen that could mislead.
+        -->
+        <p class="shop-note shop-note-demo">
+          Prototype checkout. No payment is taken and nothing is charged &mdash; Buy adds the
+          coins so the price ladder can be judged.
+        </p>
+        <ul class="packs" id="packs"></ul>
 
         <p class="shop-status" id="shop-status" role="status"></p>
 
