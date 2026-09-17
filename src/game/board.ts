@@ -172,11 +172,43 @@ export function blastRadius(geom: Geom, grid: Grid, i: number): number[] {
 }
 
 /**
- * Expands a set of seed cells into everything that actually clears, chaining
- * through any power gems caught in the blast.
+ * What a detonation looks like, for the renderer to telegraph.
+ *
+ * The rules already know which gem went off and what shape it threw; without
+ * this they knew it privately, and the board simply stopped containing a row.
+ * A player who cannot see the shot leave the gun has no reason to feel they
+ * fired it.
  */
-export function expandClears(geom: Geom, grid: Grid, seeds: Iterable<number>): Set<number> {
+export type BlastKind = 'row' | 'col' | 'square' | 'colour' | 'point'
+
+export interface Blast {
+  /** Where it went off. */
+  cell: number
+  kind: BlastKind
+  /** For a prism: the colour it is taking with it. */
+  colour?: Kind
+}
+
+export interface ClearExpansion {
+  cleared: Set<number>
+  /** Every power gem that fired, in the order it went off. */
+  blasts: Blast[]
+}
+
+const BLAST_KINDS: Partial<Record<Power, BlastKind>> = {
+  rowClear: 'row',
+  colClear: 'col',
+  bomb: 'square',
+  rainbow: 'colour',
+}
+
+/**
+ * Expands a set of seed cells into everything that actually clears, chaining
+ * through any power gems caught in the blast, and reports which ones fired.
+ */
+export function expandClears(geom: Geom, grid: Grid, seeds: Iterable<number>): ClearExpansion {
   const cleared = new Set<number>()
+  const blasts: Blast[] = []
   const queue: number[] = []
   for (const seed of seeds) {
     if (at(grid, seed) && !cleared.has(seed)) {
@@ -186,6 +218,11 @@ export function expandClears(geom: Geom, grid: Grid, seeds: Iterable<number>): S
   }
   while (queue.length > 0) {
     const i = queue.pop() as number
+    const gem = at(grid, i)
+    const kind = gem ? BLAST_KINDS[gem.power] : undefined
+    if (gem && kind) {
+      blasts.push(kind === 'colour' ? { cell: i, kind, colour: gem.kind } : { cell: i, kind })
+    }
     for (const hit of blastRadius(geom, grid, i)) {
       if (!cleared.has(hit) && at(grid, hit)) {
         cleared.add(hit)
@@ -193,7 +230,7 @@ export function expandClears(geom: Geom, grid: Grid, seeds: Iterable<number>): S
       }
     }
   }
-  return cleared
+  return { cleared, blasts }
 }
 
 export interface FallResult {

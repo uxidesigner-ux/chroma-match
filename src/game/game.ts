@@ -9,7 +9,7 @@ import {
   powerFor,
   shuffleBoard,
 } from './board.ts'
-import type { Move } from './board.ts'
+import type { Blast, Move } from './board.ts'
 import { goalForLevel, scoreTargetForLevel } from './goals.ts'
 import type { Goal } from './goals.ts'
 import { CHAIN_REWARD_AT, MAX_HELD, blastCells, emptyInventory, itemForLevel } from './items.ts'
@@ -48,6 +48,19 @@ const POWER_BONUS: Record<Power, number> = {
 }
 
 const SWAP_TIME = 0.16
+/**
+ * How long a detonation is telegraphed before anything is removed.
+ *
+ * A power gem used to take its row with it on the same frame it went off, which
+ * reads as the board losing a row rather than as the player firing something.
+ * The strike is the shot leaving the gun: short enough that a chain of them
+ * does not become a cutscene, long enough to be seen as a cause.
+ *
+ * Only detonations get one. A plain three already pops well, and a wind-up on
+ * every match would slow the whole game down to dress up its most ordinary
+ * event.
+ */
+const STRIKE_TIME = 0.15
 const CLEAR_TIME = 0.26
 const FALL_PER_ROW = 0.055
 const FALL_MIN = 0.18
@@ -56,7 +69,7 @@ const SHUFFLE_TIME = 0.5
 /** Seconds of inactivity before the board points out a move. */
 const HINT_DELAY = 4
 
-export type PhaseKind = 'idle' | 'swap' | 'revert' | 'clear' | 'fall' | 'shuffle'
+export type PhaseKind = 'idle' | 'swap' | 'revert' | 'strike' | 'clear' | 'fall' | 'shuffle'
 export type Status = 'playing' | 'levelComplete' | 'gameOver'
 
 interface Phase {
@@ -87,6 +100,8 @@ export interface GameHooks {
   /** A group of gems just started clearing. `cells` are grid indices. */
   onClear(cells: number[], kind: Kind, combo: number, points: number): void
   onPowerCreated(cell: number, power: Power): void
+  /** Power gems have gone off and are about to take the board with them. */
+  onStrike(blasts: readonly Blast[]): void
   onInvalidSwap(a: number, b: number): void
   onSwapAccepted(): void
   onShuffle(): void
@@ -192,6 +207,14 @@ export class Game {
   private phase: Phase = { kind: 'idle', t: 0, d: 0, a: -1, b: -1, doomed: false }
   private clearing: number[] = []
   private pendingPowers: PendingPower[] = []
+  /**
+   * The clear that a strike is currently being played for. Held rather than
+   * applied so the gems are still on the board while the beam crosses them —
+   * shrinking them first would throw the shot at an empty row.
+   */
+  private pendingClear: { cells: number[]; kind: Kind; points: number } | null = null
+  /** What is firing right now, for the renderer. Empty outside a strike. */
+  strikes: readonly Blast[] = []
   private idleTime = 0
   private hooks: Partial<GameHooks>
 
@@ -340,8 +363,11 @@ export class Game {
     const seeds = blastCells(item, cell, this.geom)
     // Routed through the same expansion a match uses, so a power gem caught in
     // a blast goes off instead of being quietly deleted.
-    const cleared = expandClears(this.geom, this.grid, seeds)
-    this.commitClear(cleared, [], cell)
+    const { cleared, blasts } = expandClears(this.geom, this.grid, seeds)
+    // An item is aimed by hand, so it is the most deliberate thing a player
+    // does on this board and the one that most deserves to be seen leaving.
+    const shape = item === 'rocket' ? 'row' : item === 'bomb' ? 'square' : 'point'
+    this.commitClear(cleared, [], cell, [{ cell, kind: shape }, ...blasts])
     return true
   }
 
@@ -463,6 +489,9 @@ export class Game {
         this.startPhase('idle', 0)
         this.idleTime = 0
         break
+      case 'strike':
+        this.beginClearPhase()
+        break
       case 'clear':
         this.finishClear()
         break
@@ -512,7 +541,17 @@ export class Game {
       if (partner) rainbow.kind = partner.kind
       seeds = [aIsRainbow ? a : b]
     }
-    this.commitClear(expandClears(this.geom, this.grid, seeds), [], seeds[0] ?? 0)
+    const origin = seeds[0] ?? 0
+    const { cleared, blasts } = expandClears(this.geom, this.grid, seeds)
+    // The prism that was swapped is the origin of the sweep. Its own blast is
+    // reported by the expansion only when it is caught in someone else's, so
+    // firing it by hand has to say so here.
+    const colour = at(this.grid, origin)?.kind
+    const opening: Blast =
+      colour === undefined
+        ? { cell: origin, kind: 'colour' }
+        : { cell: origin, kind: 'colour', colour }
+    this.commitClear(cleared, [], origin, [opening, ...blasts])
     return true
   }
 
@@ -545,15 +584,20 @@ export class Game {
     }
     for (const p of powers) seeds.delete(p.cell)
 
-    const cleared = expandClears(this.geom, this.grid, seeds)
+    const { cleared, blasts } = expandClears(this.geom, this.grid, seeds)
     for (const p of powers) cleared.delete(p.cell)
 
     const first = groups[0]
-    this.commitClear(cleared, powers, first?.cells[0] ?? 0)
+    this.commitClear(cleared, powers, first?.cells[0] ?? 0, blasts)
     return true
   }
 
-  private commitClear(cleared: Set<number>, powers: PendingPower[], originCell: number): void {
+  private commitClear(
+    cleared: Set<number>,
+    powers: PendingPower[],
+    originCell: number,
+    blasts: readonly Blast[] = [],
+  ): void {
     if (cleared.size === 0) {
       this.settle()
       return
@@ -562,8 +606,35 @@ export class Game {
     for (const p of powers) points += POWER_BONUS[p.power]
     this.score += points
 
-    const cells = [...cleared]
-    for (const cell of cells) {
+    this.pendingPowers = powers
+    this.pendingClear = {
+      cells: [...cleared],
+      kind: at(this.grid, originCell)?.kind ?? 0,
+      points,
+    }
+
+    if (blasts.length === 0) {
+      this.beginClearPhase()
+      return
+    }
+    // Something fired. The board is left exactly as it is for the length of the
+    // strike so the beam has gems to cross, and only then do they go.
+    this.strikes = blasts
+    this.hooks.onStrike?.(blasts)
+    this.startPhase('strike', STRIKE_TIME)
+  }
+
+  /** Marks the pending clear on the board and starts the pop. */
+  private beginClearPhase(): void {
+    const pending = this.pendingClear
+    this.pendingClear = null
+    this.strikes = []
+    if (!pending) {
+      this.settle()
+      return
+    }
+
+    for (const cell of pending.cells) {
       const gem = at(this.grid, cell)
       if (!gem) continue
       gem.clearing = true
@@ -571,11 +642,9 @@ export class Game {
       // blast is cleared by this level whether or not it was part of a match.
       if (this.goal.kind === 'colour' && gem.kind === this.goal.colour) this.goalDone += 1
     }
-    this.clearing = cells
-    this.pendingPowers = powers
+    this.clearing = pending.cells
 
-    const kind = at(this.grid, originCell)?.kind ?? 0
-    this.hooks.onClear?.(cells, kind, this.combo, points)
+    this.hooks.onClear?.(pending.cells, pending.kind, this.combo, pending.points)
     this.startPhase('clear', CLEAR_TIME)
   }
 

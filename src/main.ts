@@ -210,6 +210,31 @@ const hooks: Partial<GameHooks> = {
     const { x, y } = renderer.centreOf(cell)
     effects.burst(x, y, '#FFFFFF', 14)
   },
+  /**
+   * Something fired. The board is untouched for the length of the strike, so
+   * everything here is the wind-up: the sound, the hit, and sparks thrown
+   * along the path the beam is about to take.
+   */
+  onStrike(blasts) {
+    // Sized by what is going off, so a prism sweeping the board does not feel
+    // the same as a hammer on one gem.
+    const weight = blasts.reduce(
+      (most, blast) =>
+        Math.max(most, blast.kind === 'colour' ? 1 : blast.kind === 'square' ? 0.7 : blast.kind === 'point' ? 0.25 : 0.55),
+      0,
+    )
+    sfx.strike(weight)
+    haptics.strike(weight)
+    renderer.hit(0.3 + weight * 0.5)
+
+    for (const blast of blasts) {
+      const { x, y } = renderer.centreOf(blast.cell)
+      const colour = styleFor(game.grid[blast.cell]?.kind ?? 0).base
+      // Thrown from the muzzle, not from where the gems will land: these are
+      // the shot being fired, and the confetti from the pop follows it.
+      effects.burst(x, y, colour, blast.kind === 'point' ? 5 : 9)
+    }
+  },
   onPowerCreated() {
     sfx.power()
     haptics.power()

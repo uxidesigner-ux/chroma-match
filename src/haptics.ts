@@ -31,6 +31,17 @@ export class Haptics {
     this.buzz(Math.min(12 + combo * 5, 45))
   }
 
+  /**
+   * A detonation, felt as it is fired rather than after it lands.
+   *
+   * Two short taps rather than one long buzz: a buzz reads as a notification,
+   * and what this is describing is a hit.
+   */
+  strike(weight: number): void {
+    const size = Math.min(1, Math.max(0, weight))
+    this.buzz([8 + Math.round(size * 10), 24, 14 + Math.round(size * 22)])
+  }
+
   power(): void {
     this.buzz([10, 30, 22])
   }
