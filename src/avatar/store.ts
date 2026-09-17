@@ -1,6 +1,7 @@
 import { DEFAULT_SPEC, decodeSpec, encodeSpec, randomSpec } from './spec.ts'
 import type { AvatarSpec } from './spec.ts'
 import { drawAvatar } from './draw.ts'
+import { renderAvatar } from './gl.ts'
 
 /**
  * The player's own avatar, and a way to paint anyone's.
@@ -63,9 +64,13 @@ export { DEFAULT_SPEC }
 /**
  * Paints a spec into a canvas element at its CSS size.
  *
- * Every surface that shows a face goes through here so none of them has to
- * think about device pixel ratio: a canvas sized in CSS pixels and drawn in
- * CSS pixels is a blurry avatar on every phone made in the last decade.
+ * Every surface that shows a face goes through here, so none of them has to
+ * think about device pixel ratio — a canvas sized in CSS pixels and drawn in
+ * CSS pixels is a blurry avatar on every phone made in the last decade — and
+ * none of them has to know which renderer drew it either. The ray marcher is
+ * tried first; the drawn version stays as the fallback for a browser or a
+ * driver that will not give us a context, because a face that is flatter than
+ * intended beats a blank square.
  */
 export function paintAvatar(
   canvas: HTMLCanvasElement,
@@ -82,7 +87,7 @@ export function paintAvatar(
   if (!ctx) return
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
   ctx.clearRect(0, 0, size, size)
-  drawAvatar(ctx, spec, size, options)
+  if (!renderAvatar(ctx, spec, size, ratio)) drawAvatar(ctx, spec, size, options)
 }
 
 /** A canvas already painted, for code that is building a row from scratch. */
