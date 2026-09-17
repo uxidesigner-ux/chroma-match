@@ -10,8 +10,8 @@
  *
  * Run with: npm run tune
  */
-import { findMatches, findMoves, powerFor } from '../src/game/board.ts'
-import type { Move } from '../src/game/board.ts'
+import { findMoves } from '../src/game/board.ts'
+import { bestMove } from '../src/game/autoplay.ts'
 import { Game, MOVES_PER_LEVEL, movesForLevel } from '../src/game/game.ts'
 import { goalForLevel } from '../src/game/goals.ts'
 import { BOARD, makeGeom } from '../src/game/types.ts'
@@ -47,47 +47,6 @@ function settle(game: Game): boolean {
     game.update(FRAME)
   }
   return false
-}
-
-/**
- * Stands in for a player who is paying attention but not solving the board:
- * takes the swap with the largest immediate clear, preferring one that leaves a
- * power gem. It does not look ahead to cascades, which no casual player does.
- */
-function bestMove(game: Game): Move | null {
-  const moves = findMoves(game.geom, game.grid)
-  if (moves.length === 0) return null
-  let best = moves[0] as Move
-  let bestScore = -1
-  for (const move of moves) {
-    const a = game.grid[move.a] ?? null
-    const b = game.grid[move.b] ?? null
-    if (!a || !b) continue
-    game.grid[move.a] = b
-    game.grid[move.b] = a
-    let score = 0
-    // Swapping a rainbow forms no line, so findMatches reports nothing for it.
-    // Scoring that as zero would leave the simulated player never firing the
-    // strongest move in the game, and understate what the board can produce.
-    if (a.power === 'rainbow' || b.power === 'rainbow') {
-      const colour = a.power === 'rainbow' ? b.kind : a.kind
-      score = game.grid.filter((g) => g && g.kind === colour).length + 4
-    }
-    for (const group of findMatches(game.geom, game.grid)) {
-      score += group.cells.length
-      const power = powerFor(group)
-      if (power === 'rainbow') score += 8
-      else if (power === 'bomb') score += 5
-      else if (power !== 'none') score += 3
-    }
-    game.grid[move.a] = a
-    game.grid[move.b] = b
-    if (score > bestScore) {
-      bestScore = score
-      best = move
-    }
-  }
-  return best
 }
 
 interface Report {

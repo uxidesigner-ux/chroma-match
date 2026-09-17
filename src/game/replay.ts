@@ -273,6 +273,81 @@ export function verifyRun(record: RunRecord, geom: Geom): VerifyResult {
   }
 }
 
+/**
+ * Replays a record into a live game, so a suspended run can be picked up.
+ *
+ * A run is entirely determined by its seed and its actions, which means a
+ * saved run needs no snapshot of the board, the score, the level, the move
+ * count or the inventory — replaying the log rebuilds every one of them, and
+ * rebuilds them *consistently*, which a hand-written snapshot of nine fields
+ * would not stay for long. It is the same machinery the verifier uses, pointed
+ * at the player's own game instead of a submission.
+ *
+ * Returns false if the record will not replay — a save from an older version of
+ * the rules, or one that has been edited. A player losing a suspended run is
+ * bad; a player resuming into a board that is not the one they left is worse.
+ *
+ * Everything that can be checked without playing is checked first, so the
+ * common failures — a truncated string, a code this version has no action for,
+ * a seed no board was dealt from — leave the game exactly as they found it. A
+ * failure that only shows up mid-replay cannot be undone that cheaply, so it
+ * leaves the game restarted on the record's seed; either way the caller has a
+ * false and must not put that board in front of anyone.
+ */
+export function restoreRun(game: Game, record: RunRecord): boolean {
+  const geom = game.geom
+  if (!Number.isInteger(record.seed) || record.seed < 0 || record.seed > 0xffffffff) return false
+  if (
+    record.board.cols !== geom.cols ||
+    record.board.rows !== geom.rows ||
+    record.board.kinds !== geom.kinds
+  ) {
+    return false
+  }
+
+  let actions: Action[]
+  try {
+    actions = decodeMoves(geom, record.moves)
+  } catch {
+    return false
+  }
+  if (actions.length > MAX_MOVES) return false
+
+  game.restart(record.seed)
+  for (const action of actions) {
+    if (game.status === 'levelComplete') game.nextLevel()
+    if (game.status !== 'playing') {
+      game.restart(record.seed)
+      return false
+    }
+
+    if (action.kind === 'booster') {
+      if (!game.addBooster(action.item, BOOSTER_LIMIT)) {
+        game.restart(record.seed)
+        return false
+      }
+      continue
+    }
+    if (action.kind === 'item') {
+      if (!game.useItem(action.item, action.cell)) {
+        game.restart(record.seed)
+        return false
+      }
+    } else {
+      if (!isLegalSwap(geom, game.grid, action.a, action.b)) {
+        game.restart(record.seed)
+        return false
+      }
+      game.drag(action.a, action.b)
+    }
+    if (!settle(game)) {
+      game.restart(record.seed)
+      return false
+    }
+  }
+  return true
+}
+
 /** Builds the submission for a finished run. */
 export function recordOf(game: Game): RunRecord {
   return {

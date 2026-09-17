@@ -51,6 +51,14 @@
           <span class="wallet-shop">Shop<span class="wallet-stash" id="home-stash"></span></span>
         </button>
 
+        <!--
+          A kept run is the first thing offered, because a player who left one
+          behind came back for it. Starting fresh is still one tap, and says
+          what it costs.
+        -->
+        <button class="btn btn-primary btn-play" id="continue-run" type="button" hidden>
+          Continue<span class="btn-sub" id="continue-sub"></span>
+        </button>
         <button class="btn btn-primary btn-play" id="start-game" type="button">Play</button>
 
         <section class="ranks" aria-labelledby="ranks-title">
@@ -155,6 +163,14 @@
             <span class="stat-label">Best</span>
             <strong class="stat-value" id="best">0</strong>
           </div>
+          <!--
+            The only chrome left on the board. Everything the footer used to
+            carry — leaving, the rules, sound, the seed — is behind it, because
+            none of it belongs on screen while a gem is being dragged.
+          -->
+          <button class="pause" id="pause" type="button" aria-label="Pause">
+            <span class="pause-bars" aria-hidden="true"></span>
+          </button>
         </section>
 
         <section class="goal">
@@ -230,18 +246,6 @@
         </div>
         <p class="items-hint" id="items-hint" role="status" hidden></p>
 
-        <footer class="footer">
-          <button class="btn" id="quit-game" type="button">Home</button>
-          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false">
-            How to play
-          </button>
-          <button class="btn btn-ghost" data-action="sound" type="button" aria-pressed="true">
-            <span class="sound-label">Sound on</span>
-          </button>
-          <!-- Same look, different coat of paint. The label names the skin that
-               is on, not the one the tap would switch to. -->
-          <span class="seed" id="seed" title="Board seed — share it to replay the same board"></span>
-        </footer>
       </section>
 
       <section class="help" id="help" hidden>
@@ -268,6 +272,33 @@
       Chosen before the board is dealt, the way a loadout is: once a run has
       started, an item is something you spend, not something you bring.
     -->
+    <div class="overlay" id="paused" hidden>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="paused-title">
+        <p class="card-kicker">Paused</p>
+        <h2 id="paused-title">Level 1</h2>
+        <p class="card-body" id="paused-body"></p>
+
+        <button class="btn btn-primary" id="paused-resume" type="button">Resume</button>
+        <!--
+          Two ways out, and they are genuinely different. Keeping puts the run
+          down where it stands; ending it banks the score and pays the run out,
+          which is what leaving used to do silently and badly.
+        -->
+        <button class="btn" id="paused-keep" type="button">Keep for later</button>
+        <button class="btn" id="paused-end" type="button">End run now</button>
+
+        <div class="paused-tools">
+          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false">
+            How to play
+          </button>
+          <button class="btn btn-ghost" data-action="sound" type="button" aria-pressed="true">
+            <span class="sound-label">Sound on</span>
+          </button>
+        </div>
+        <p class="seed" id="seed" title="Board seed — share it to replay the same board"></p>
+      </div>
+    </div>
+
     <div class="overlay" id="loadout" hidden>
       <div class="card" role="dialog" aria-modal="true" aria-labelledby="loadout-title">
         <p class="card-kicker">Before you start</p>

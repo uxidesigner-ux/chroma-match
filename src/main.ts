@@ -4,12 +4,13 @@ import { Haptics } from './haptics.ts'
 import { Game, movesForLevel } from './game/game.ts'
 import type { GameHooks } from './game/game.ts'
 import { randomSeed } from './game/rng.ts'
-import { recordOf } from './game/replay.ts'
+import { recordOf, restoreRun } from './game/replay.ts'
 import { goalForLevel } from './game/goals.ts'
 import { itemForLevel } from './game/items.ts'
 import type { Item } from './game/items.ts'
 import { BOARD } from './game/types.ts'
 import { findMoves } from './game/board.ts'
+import { bestMove } from './game/autoplay.ts'
 import { attachInput } from './input.ts'
 import { openLeaderboard } from './leaderboard/index.ts'
 import { LocalLeaderboard } from './leaderboard/local.ts'
@@ -29,8 +30,10 @@ import {
   setCoins,
   spendBoosters,
 } from './meta.ts'
+import { clearSuspended, suspendRun, suspendedRun } from './suspend.ts'
 import { ComboMeter } from './ui/combo.ts'
 import { Loadout } from './ui/loadout.ts'
+import { PauseSheet } from './ui/pause.ts'
 import { Shop } from './ui/shop.ts'
 import { ItemTray } from './ui/items.ts'
 import { HomeScreen } from './ui/home.ts'
@@ -88,6 +91,7 @@ const tray = new ItemTray()
 let itemUsed = hasUsedItem()
 const shop = new Shop()
 const loadout = new Loadout()
+const pause = new PauseSheet()
 const screens = new Screens()
 
 /**
@@ -244,6 +248,8 @@ const hooks: Partial<GameHooks> = {
     sfx.gameOver()
     haptics.gameOver()
     tray.arm(null)
+    // The run is over, so there is nothing left to come back to.
+    clearSuspended()
     const previous = record
     const isRecord = commitRecord()
     const run = recordOf(game)
@@ -318,6 +324,7 @@ attachInput(
 // ---- navigation -----------------------------------------------------------
 
 function startRun(boosters: readonly Item[] = []): void {
+  clearSuspended()
   effects.clear()
   combo.hide()
   tray.arm(null)
@@ -345,8 +352,69 @@ function goHome(): void {
   combo.hide()
   tray.arm(null)
   overlay.hide()
+  pause.hide()
   screens.show('home')
+  paintContinue()
   void home.refresh()
+}
+
+/** True while there is a run on the board that has not finished. */
+function runInProgress(): boolean {
+  return screens.active === 'game' && game.status !== 'gameOver' && game.log.length > 0
+}
+
+/**
+ * Puts the run down. The record is the save: replaying it rebuilds the board,
+ * the score, the level, the moves left and the tray, all in step with each
+ * other, which a snapshot of those fields would not stay for long.
+ */
+function keepRun(): void {
+  suspendRun(recordOf(game))
+  goHome()
+}
+
+/**
+ * Resumes a kept run by replaying it. Returns false when the save will not
+ * replay — an older version of the rules, or an edited one — in which case the
+ * player is told rather than dropped onto a board that is not theirs.
+ */
+function continueRun(): boolean {
+  const kept = suspendedRun()
+  if (!kept) return false
+
+  effects.clear()
+  combo.hide()
+  tray.arm(null)
+  overlay.hide()
+  if (!restoreRun(game, kept.record)) {
+    clearSuspended()
+    paintContinue()
+    overlay.show({
+      kicker: 'Sorry',
+      title: 'That run could not be resumed',
+      body: 'The saved run no longer replays on this version of the board, so it has been cleared.',
+      action: 'Start a new one',
+      onAction: () => loadout.show((picked) => startRun(picked)),
+    })
+    return false
+  }
+
+  clearSuspended()
+  screens.show('game')
+  renderer.resize()
+  return true
+}
+
+/** Shows or hides the launch screen's Continue button. */
+function paintContinue(): void {
+  const kept = suspendedRun()
+  const button = document.getElementById('continue-run')
+  const sub = document.getElementById('continue-sub')
+  if (!button) return
+  button.hidden = kept === null
+  if (kept && sub) {
+    sub.textContent = `Level ${kept.level} · ${kept.score.toLocaleString()}`
+  }
 }
 
 screens.onChange((name) => {
@@ -355,9 +423,45 @@ screens.onChange((name) => {
   if (name === 'game') renderer.resize()
 })
 
+document.getElementById('continue-run')?.addEventListener('click', (event) => {
+  sfx.unlock()
+  // Restoring is a replay, and a replay of a long run is not instant — roughly
+  // six milliseconds an action, so a couple of hundred moves is over a second
+  // of a synchronous loop. Say so and give the browser a frame to paint it,
+  // because a button that does nothing for a second has been pressed twice.
+  const button = event.currentTarget as HTMLButtonElement
+  const label = button.innerHTML
+  button.disabled = true
+  button.textContent = 'Restoring…'
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      continueRun()
+      button.disabled = false
+      button.innerHTML = label
+    })
+  })
+})
+
 document.getElementById('start-game')?.addEventListener('click', () => {
   sfx.unlock()
-  loadout.show((picked) => startRun(picked))
+  const kept = suspendedRun()
+  if (!kept) {
+    loadout.show((picked) => startRun(picked))
+    return
+  }
+  // A new run overwrites the kept one, so it is asked for rather than assumed.
+  overlay.show({
+    kicker: 'You have a run waiting',
+    title: `Level ${kept.level}`,
+    body: `${kept.score.toLocaleString()} points. Starting a new run discards it.`,
+    action: 'Start a new run',
+    onAction: () => {
+      clearSuspended()
+      paintContinue()
+      loadout.show((picked) => startRun(picked))
+    },
+    secondary: { label: 'Continue that one', onAction: () => continueRun() },
+  })
 })
 
 document.getElementById('open-shop')?.addEventListener('click', () => {
@@ -369,7 +473,19 @@ document.getElementById('shop-back')?.addEventListener('click', () => {
   shop.refresh()
   void home.refresh()
 })
-document.getElementById('quit-game')?.addEventListener('click', () => goHome())
+document.getElementById('pause')?.addEventListener('click', () => {
+  // Deliberately not gated on the board being still. A pause that only opens
+  // between cascades is a pause that refuses exactly when someone is trying to
+  // put their phone down; the sheet is a modal over a board that keeps
+  // settling behind it, and every action on it is safe mid-animation.
+  pause.show(game.level, game.score, {
+    resume: () => {},
+    keep: () => keepRun(),
+    // Ending banks the score and pays the run out, which is what leaving used
+    // to skip: a level-24 run abandoned from the old footer earned nothing.
+    end: () => game.endRun(),
+  })
+})
 
 document.getElementById('rotate-dismiss')?.addEventListener('click', () => {
   document.querySelector('.app')?.classList.add('ignore-rotate')
@@ -427,19 +543,27 @@ for (const button of helpButtons) {
 const observer = new ResizeObserver(() => renderer.resize())
 observer.observe(canvas)
 window.addEventListener('orientationchange', () => renderer.resize())
-window.addEventListener('pagehide', () => commitRecord())
+window.addEventListener('pagehide', () => {
+  commitRecord()
+  // Phones evict backgrounded tabs without warning, and a run is the one thing
+  // here that cannot be rebuilt from anything else. Keeping it costs a string.
+  if (runInProgress()) suspendRun(recordOf(game))
+})
 
 if (import.meta.env.DEV) {
   // Handy from the console while tuning: `chroma.game.grid`, `chroma.game.hint`.
   // `moves()` lists every legal swap on the board right now — the hint only
   // appears after the player has been idle a while, which makes it useless for
-  // driving the game quickly.
+  // driving the game quickly. `best()` is the same simulated player the tuning
+  // sweep measures with, so a board driven here behaves like the one the
+  // numbers came from.
   // `leaderboard` is reassigned once the shared board connects, so it is
   // exposed through a getter — an object literal would freeze the local one.
   Object.assign(window, {
     chroma: {
       game,
       moves: () => findMoves(game.geom, game.grid),
+      best: () => bestMove(game),
       renderer,
       effects,
       sfx,
@@ -492,6 +616,7 @@ function frame(now: number): void {
  */
 const granted = grantStarterKit()
 shop.refresh()
+paintContinue()
 void home.refresh()
 
 if (granted) {
