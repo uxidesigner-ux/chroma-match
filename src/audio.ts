@@ -67,6 +67,21 @@ export class Sfx {
     this.tone(root * 2, 0.12, { type: 'sine', gain: 0.18, delay: 0.02 })
   }
 
+  /**
+   * The charge and release of a detonation, played while the beam travels.
+   *
+   * A rising sweep under a short burst of noise: the sweep is the wind-up the
+   * eye is already watching, and it lands where the gems go rather than after
+   * them, so the two read as one event. A bigger blast gets a lower, longer
+   * sweep — weight, not volume.
+   */
+  strike(weight: number): void {
+    const size = Math.min(1, Math.max(0, weight))
+    const from = 300 - size * 120
+    this.tone(from, 0.15, { type: 'sawtooth', gain: 0.18 + size * 0.1, to: from * 4.5 })
+    this.tone(from * 2.5, 0.12, { type: 'square', gain: 0.08, to: from * 6, delay: 0.03 })
+  }
+
   power(): void {
     this.tone(880, 0.18, { type: 'square', gain: 0.16, to: 1760 })
     this.tone(1320, 0.14, { type: 'sine', gain: 0.14, delay: 0.05 })

@@ -136,9 +136,12 @@ test('a clear chains through any power gem it catches', () => {
   // Put a row clearer in the middle of the board and detonate its cell.
   const seed = G.idx(3, 3)
   at(g, seed)!.power = 'rowClear'
-  const cleared = expandClears(G, g, [seed])
+  const { cleared, blasts } = expandClears(G, g, [seed])
   assert.equal(cleared.size, G.cols, 'a row clearer should take the whole row')
   for (let c = 0; c < G.cols; c++) assert.ok(cleared.has(G.idx(c, 3)))
+  // The expansion also reports what fired, so the renderer can show the shot
+  // leaving rather than the row simply ceasing to exist.
+  assert.deepEqual(blasts, [{ cell: seed, kind: 'row' }])
 })
 
 test('gravity closes holes, preserves column order, and refills the top', () => {

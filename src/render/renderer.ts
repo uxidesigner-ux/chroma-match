@@ -4,6 +4,7 @@ import type { Gem, Geom } from '../game/types.ts'
 import type { Effects } from './particles.ts'
 import { gemPath } from './shapes.ts'
 import { activeSkin } from './skins/index.ts'
+import { drawStrikes } from './strikes.ts'
 
 interface Layout {
   /** Board origin in CSS pixels, its drawn size, and the size of one cell. */
@@ -155,6 +156,23 @@ export class Renderer {
     ctx.clip()
     if (game.hint) this.drawHint(game.hint.a, game.hint.b, time)
     this.drawGems(game, time)
+    // Over the gems and inside the board's clip: the shot crosses what it is
+    // about to take, which is the whole reason it is drawn before the pop.
+    if (game.phaseKind === 'strike') {
+      const skin = activeSkin()
+      drawStrikes(
+        ctx,
+        game.strikes,
+        game.phaseProgress,
+        this.geom,
+        this.layout,
+        skin.board,
+        (cell) => {
+          const gem = at(game.grid, cell)
+          return gem ? (skin.palette[gem.kind % skin.palette.length] ?? null) : null
+        },
+      )
+    }
     ctx.restore()
 
     // A gem can be both committed and under the pointer; draw one ring for it.
