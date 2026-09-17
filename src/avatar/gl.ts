@@ -73,6 +73,9 @@ const HAIR_INDEX: Record<string, number> = {
   bob: 5,
   long: 6,
   wave: 7,
+  afro: 8,
+  volume: 9,
+  twin: 10,
 }
 
 /**
@@ -122,7 +125,7 @@ const EXTRA_INDEX: Record<string, number> = {
 }
 
 /** Hair long enough to hide an ear, which the shader is told rather than told to work out. */
-const COVERS_EARS = new Set(['bob', 'long', 'wave'])
+const COVERS_EARS = new Set(['bob', 'long', 'wave', 'afro', 'volume', 'twin'])
 
 function compile(gl: WebGL2RenderingContext, kind: number, source: string): WebGLShader | null {
   const shader = gl.createShader(kind)

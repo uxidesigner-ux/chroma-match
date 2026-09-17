@@ -53,7 +53,18 @@ export interface ColourPart extends Part {
   colour: string
 }
 
-export type HairStyle = 'none' | 'buzz' | 'crop' | 'curls' | 'bun' | 'bob' | 'long' | 'wave'
+export type HairStyle =
+  | 'none'
+  | 'buzz'
+  | 'crop'
+  | 'curls'
+  | 'bun'
+  | 'bob'
+  | 'long'
+  | 'wave'
+  | 'afro'
+  | 'volume'
+  | 'twin'
 export type BuildStyle = 'slim' | 'average' | 'broad'
 export type BottomStyle = 'trousers' | 'shorts' | 'wide' | 'skirt'
 export type OuterStyle = 'none' | 'jacket' | 'hoodie' | 'coat'
@@ -128,6 +139,9 @@ export const HAIRS: readonly HairPart[] = [
   { id: 'long', code: 'he', name: 'Long', style: 'long', lock: 'free' },
   { id: 'wave', code: 'hf', name: 'Waves', style: 'wave', lock: 'free' },
   { id: 'bun', code: 'hg', name: 'Bun', style: 'bun', lock: 'free' },
+  { id: 'afro', code: 'hi', name: 'Afro', style: 'afro', lock: 'free' },
+  { id: 'volume', code: 'hj', name: 'Full length', style: 'volume', lock: 'free' },
+  { id: 'twin', code: 'hk', name: 'Twin tails', style: 'twin', lock: 'free' },
   { id: 'none', code: 'hh', name: 'None', style: 'none', lock: 'free' },
 ]
 
