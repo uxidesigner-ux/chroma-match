@@ -117,6 +117,7 @@ const home = new HomeScreen(leaderboard)
 // The friends tab is a second source for the same list, not a second screen:
 // one board, two questions about it.
 home.setFriends(() => friends.board())
+home.setPersonalBest(() => record)
 home.onModeChange((mode) => friends.setVisible(mode === 'friends'))
 friends.onChange(() => void home.refresh())
 // Signing in or out changes whose rows the friends tab is about, so the board
