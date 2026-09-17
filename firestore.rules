@@ -52,7 +52,16 @@ service cloud.firestore {
           && (!('friends' in request.resource.data.keys())
               || (request.resource.data.friends is list
                   && request.resource.data.friends.size() <= 24))
-          && (!('best' in request.resource.data.keys()) || bestIsWellFormed());
+          && (!('best' in request.resource.data.keys()) || bestIsWellFormed())
+          // The avatar is a list of part names, not an upload: no bytes to
+          // scan, nothing to serve, and a bound short enough that it cannot be
+          // used as storage. An unknown part decodes to a real one on the way
+          // in, so the only thing worth enforcing here is the shape.
+          && (!('avatar' in request.resource.data.keys())
+              || (request.resource.data.avatar is string
+                  && request.resource.data.avatar.size() > 0
+                  && request.resource.data.avatar.size() <= 80
+                  && request.resource.data.avatar.matches('^[a-zA-Z0-9-]+$')));
     }
 
     // The player's best run, stored so a friends board can be read in one
@@ -160,7 +169,7 @@ service cloud.firestore {
                             && request.auth.uid == playerId
                             && request.resource.data.uid == playerId
                             && request.resource.data.keys().hasOnly(
-                                 ['uid', 'name', 'code', 'photo', 'friends', 'best']
+                                 ['uid', 'name', 'code', 'photo', 'friends', 'best', 'avatar']
                                )
                             && profileIsWellFormed();
 

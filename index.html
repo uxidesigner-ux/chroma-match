@@ -31,40 +31,36 @@
           <p class="tagline">Six across, nine down. Line up three.</p>
         </div>
 
-        <p class="hero-line">
-          <span class="hero-stat"
-            >Best <strong class="hero-stat-value" id="home-best">0</strong></span
-          >
-          <span class="hero-dot" aria-hidden="true">&middot;</span>
-          <span class="hero-stat"
-            >Rank <strong class="hero-stat-value" id="home-rank">&mdash;</strong></span
-          >
-        </p>
-
         <!--
-          Who is playing, collapsed to one row. A guest is a complete player
-          here — they can post a score and earn coins without ever opening
-          this — so the row states it rather than nagging, and the sheet
-          behind it is where signing in actually happens.
+          The one thing on this screen that is about the player rather than
+          about the game: a face, a name, and the three numbers worth carrying
+          between sessions. Everything it cannot fit — the customiser, the name
+          field, signing in — is behind it in a sheet, because a launch screen
+          that opens on an identity form is one nobody plays from.
         -->
-        <button class="summary-row" id="account-row" type="button">
-          <span class="account-face" id="account-face" aria-hidden="true"></span>
-          <span class="summary-text">
-            <strong class="summary-title" id="account-name">Playing as a guest</strong>
-          </span>
-          <span class="summary-chevron" aria-hidden="true"></span>
-        </button>
-
-        <!-- The wallet, and the door to the shop. Both on the launch screen,
-             because that is where a player decides what this session is for. -->
-        <button class="wallet" id="open-shop" type="button">
-          <span class="wallet-coins">
-            <span class="coin" aria-hidden="true"></span>
-            <strong class="wallet-value" id="home-coins">0</strong>
-          </span>
-          <span class="wallet-shop">Shop<span class="wallet-stash" id="home-stash"></span></span>
-        </button>
-
+        <section class="profile" aria-labelledby="profile-name">
+          <button class="profile-face" id="profile-face" type="button" aria-label="Your profile">
+            <canvas class="avatar" id="profile-avatar" aria-hidden="true"></canvas>
+            <span class="profile-pen" aria-hidden="true"></span>
+          </button>
+          <div class="profile-body">
+            <strong class="profile-name" id="profile-name">Player</strong>
+            <div class="profile-stats">
+              <span class="pstat">
+                <span class="pstat-label">Best</span>
+                <strong class="pstat-value" id="home-best">0</strong>
+              </span>
+              <span class="pstat">
+                <span class="pstat-label">Rank</span>
+                <strong class="pstat-value" id="home-rank">&mdash;</strong>
+              </span>
+              <span class="pstat">
+                <span class="pstat-label">Level</span>
+                <strong class="pstat-value" id="home-level">1</strong>
+              </span>
+            </div>
+          </div>
+        </section>
 
         <!--
           A kept run is the first thing offered, because a player who left one
@@ -77,78 +73,30 @@
         <button class="btn btn-primary btn-play" id="start-game" type="button">Play</button>
 
         <!--
-          Everything that pays out for showing up, collapsed to one row. What
-          it says changes with what is behind it — a reward waiting is a
-          different sentence than three missions in progress — so the row is
-          repainted from the same state the sheet reads, never a fixed label.
+          Everything that is not Play, at the weight it deserves. Each one is a
+          door rather than a panel: the leaderboard, the day's rewards and the
+          shop all open over this screen instead of living on it, which is what
+          let the screen go from nine stacked blocks to four.
         -->
-        <button class="summary-row" id="today-row" type="button">
-          <span class="daily-gift" id="today-gift" aria-hidden="true"></span>
-          <span class="summary-text">
-            <strong class="summary-title">Today</strong>
-            <span class="summary-sub" id="today-summary-sub">&nbsp;</span>
-          </span>
-          <span class="summary-badge" id="today-summary-badge" hidden>0</span>
-          <span class="summary-chevron" aria-hidden="true"></span>
-        </button>
-
-        <section class="ranks" aria-labelledby="ranks-title">
-          <header class="ranks-head">
-            <h2 class="sr-only" id="ranks-title">Leaderboard</h2>
-            <!--
-              Two boards, not two screens. A friends board on its own page is a
-              page nobody opens; next to the global one it is a comparison, which
-              is the entire point of having friends on a leaderboard.
-            -->
-            <div class="ranks-tabs" role="tablist" aria-labelledby="ranks-title">
-              <button
-                class="ranks-tab is-on"
-                data-board="everyone"
-                type="button"
-                role="tab"
-                aria-selected="true"
-              >
-                Everyone
-              </button>
-              <button
-                class="ranks-tab"
-                data-board="friends"
-                type="button"
-                role="tab"
-                aria-selected="false"
-              >
-                Friends
-              </button>
-            </div>
-            <span class="ranks-note" id="ranks-note">Loading&hellip;</span>
-          </header>
-
-          <!-- Only on the friends tab: your code to hand out, and a box to
-               take one in. -->
-          <div class="friends-tools" id="friends-tools" hidden>
-            <button class="code-chip" id="my-code" type="button" title="Copy your friend code">
-              <span class="code-label">Your code</span>
-              <strong class="code-value" id="my-code-value">&mdash;&mdash;&mdash;</strong>
-            </button>
-            <form class="friend-add" id="friend-add">
-              <input
-                class="friend-input"
-                id="friend-code"
-                type="text"
-                maxlength="9"
-                autocomplete="off"
-                autocapitalize="characters"
-                spellcheck="false"
-                placeholder="Friend code"
-                enterkeyhint="done"
-              />
-              <button class="btn btn-primary" id="friend-submit" type="submit">Add</button>
-            </form>
-            <p class="friend-status" id="friend-status" role="status"></p>
-          </div>
-
-          <ol class="ranks-list" id="ranks-list"></ol>
-        </section>
+        <nav class="quick" aria-label="More">
+          <button class="quick-btn" id="open-ranks" type="button">
+            <span class="quick-icon quick-ranks" aria-hidden="true"></span>
+            <span class="quick-label">Ranks</span>
+          </button>
+          <button class="quick-btn" id="today-row" type="button">
+            <span class="quick-icon quick-today" aria-hidden="true"></span>
+            <span class="quick-label">Today</span>
+            <span class="quick-badge" id="today-summary-badge" hidden>0</span>
+          </button>
+          <button class="quick-btn" id="open-shop" type="button">
+            <span class="quick-icon quick-shop" aria-hidden="true"></span>
+            <span class="quick-label">Shop</span>
+            <span class="quick-sub"
+              ><span class="coin" aria-hidden="true"></span
+              ><span class="wallet-value" id="home-coins">0</span></span
+            >
+          </button>
+        </nav>
 
         <footer class="home-foot">
           <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false">
@@ -362,17 +310,113 @@
     </main>
 
     <!--
-      The account row's sheet: the sentence the row had no space for, and the
-      one button that actually does something.
+      Who the player is: the face they play as, the name that posts, and the
+      account it all hangs off. One sheet, because they are one subject — an
+      avatar editor on its own page and a sign-in row somewhere else is two
+      places to go to answer the same question.
     -->
-    <div class="overlay sheet" id="sheet-account" hidden>
-      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-account-title">
+    <div class="overlay sheet" id="sheet-profile" hidden>
+      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-profile-title">
         <span class="sheet-handle" aria-hidden="true"></span>
-        <h2 class="sr-only" id="sheet-account-title">Account</h2>
+        <h2 class="sheet-title" id="sheet-profile-title">Your profile</h2>
+
+        <div class="editor">
+          <canvas class="editor-preview" id="profile-preview" aria-hidden="true"></canvas>
+          <label class="editor-name">
+            <span class="sr-only">Display name</span>
+            <input
+              class="post-input"
+              id="profile-name-input"
+              type="text"
+              maxlength="16"
+              autocomplete="nickname"
+              placeholder="Your name"
+              enterkeyhint="done"
+            />
+          </label>
+        </div>
+
+        <!-- Filled from the part catalogue, so adding a hairstyle is a data
+             edit rather than a markup one. -->
+        <div class="profile-tabs" id="profile-tabs" role="tablist" aria-label="What to change"></div>
+        <div class="profile-options" id="profile-options"></div>
+
         <p class="sheet-sub" id="account-sub">Sign in to keep your runs across devices</p>
-        <button class="btn btn-primary sheet-cta" id="account-action" type="button">Sign in</button>
+        <p class="profile-code" id="profile-code" hidden></p>
+        <button class="btn btn-primary sheet-cta" id="account-action" type="button">
+          Sign in with Google
+        </button>
       </div>
     </div>
+
+    <!--
+      The board, over the launch screen rather than on it. It was the tallest
+      thing on that screen and the one a player looks at least often.
+    -->
+    <div class="overlay sheet" id="sheet-ranks" hidden>
+      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="ranks-title">
+        <span class="sheet-handle" aria-hidden="true"></span>
+        <section class="ranks">
+
+          <header class="ranks-head">
+            <h2 class="sr-only" id="ranks-title">Leaderboard</h2>
+            <!--
+              Two boards, not two screens. A friends board on its own page is a
+              page nobody opens; next to the global one it is a comparison, which
+              is the entire point of having friends on a leaderboard.
+            -->
+            <div class="ranks-tabs" role="tablist" aria-labelledby="ranks-title">
+              <button
+                class="ranks-tab is-on"
+                data-board="everyone"
+                type="button"
+                role="tab"
+                aria-selected="true"
+              >
+                Everyone
+              </button>
+              <button
+                class="ranks-tab"
+                data-board="friends"
+                type="button"
+                role="tab"
+                aria-selected="false"
+              >
+                Friends
+              </button>
+            </div>
+            <span class="ranks-note" id="ranks-note">Loading&hellip;</span>
+          </header>
+
+          <!-- Only on the friends tab: your code to hand out, and a box to
+               take one in. -->
+          <div class="friends-tools" id="friends-tools" hidden>
+            <button class="code-chip" id="my-code" type="button" title="Copy your friend code">
+              <span class="code-label">Your code</span>
+              <strong class="code-value" id="my-code-value">&mdash;&mdash;&mdash;</strong>
+            </button>
+            <form class="friend-add" id="friend-add">
+              <input
+                class="friend-input"
+                id="friend-code"
+                type="text"
+                maxlength="9"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="Friend code"
+                enterkeyhint="done"
+              />
+              <button class="btn btn-primary" id="friend-submit" type="submit">Add</button>
+            </form>
+            <p class="friend-status" id="friend-status" role="status"></p>
+          </div>
+
+          <ol class="ranks-list" id="ranks-list"></ol>
+        </section>
+      </div>
+    </div>
+
 
     <!--
       The today row's sheet: the daily reward and the three missions, moved

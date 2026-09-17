@@ -3,6 +3,8 @@ import { cleanName } from '../leaderboard/types.ts'
 import type { LeaderboardEntry } from '../leaderboard/types.ts'
 import type { RunRecord } from '../game/replay.ts'
 import { codeFor, normaliseCode } from './code.ts'
+import { SPEC_MAX, decodeSpec } from '../avatar/spec.ts'
+import type { AvatarSpec } from '../avatar/spec.ts'
 
 /**
  * Who a player is to their friends, who their friends are, and their best run.
@@ -35,6 +37,8 @@ export interface Player {
   name: string
   code: string
   photo: string
+  /** The face they play as, already resolved to parts that exist. */
+  avatar: AvatarSpec
   /** Their best posted run, still in its verifiable form. */
   best: RunRecord | null
   /** When that run was recorded, for breaking ties the way the board does. */
@@ -76,19 +80,29 @@ function toPlayer(data: Record<string, unknown>): Player | null {
     // the account, so a stored one that disagrees is a stale or edited field.
     code: codeFor(uid),
     photo: typeof data.photo === 'string' ? data.photo : '',
+    // Decoded here rather than at the point of drawing, because decoding is
+    // what makes an unknown or edited part harmless: every slot resolves to
+    // something real, so a row always has a face.
+    avatar: decodeSpec(typeof data.avatar === 'string' ? data.avatar : ''),
     best: record,
     bestAt: typeof best?.at === 'number' ? best.at : 0,
   }
 }
 
 /** Writes the player's own profile, creating it the first time. */
-export async function publishProfile(name: string, photo: string): Promise<void> {
+export async function publishProfile(name: string, photo: string, avatar = ''): Promise<void> {
   const { db } = await session()
   const uid = await currentUid()
   const { doc, setDoc } = await import('firebase/firestore')
   await setDoc(
     doc(db, 'players', uid),
-    { uid, name: cleanName(name) || 'Anonymous', code: codeFor(uid), photo: photo.slice(0, 300) },
+    {
+      uid,
+      name: cleanName(name) || 'Anonymous',
+      code: codeFor(uid),
+      photo: photo.slice(0, 300),
+      ...(avatar ? { avatar: avatar.slice(0, SPEC_MAX) } : {}),
+    },
     { merge: true },
   )
 }
@@ -225,6 +239,7 @@ export function boardFrom(players: readonly Player[], me: string): LeaderboardEn
       level: player.best.level,
       at: player.bestAt,
       mine: player.uid === me,
+      avatar: player.avatar,
       run: player.best,
     }))
     .sort((a, b) => b.score - a.score || a.at - b.at)

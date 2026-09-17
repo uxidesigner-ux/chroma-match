@@ -2039,111 +2039,401 @@ body {
   border: 0;
 }
 
-/* ---- summary rows and their sheets --------------------------------------
+/* ---- the profile card ----------------------------------------------------
  *
- * The account row and the today row are the same shape for the same reason:
- * each used to be a block on the launch screen, and each is now a button that
- * says the one sentence worth knowing without opening it. What was in the
- * block did not shrink — it moved into a sheet that slides up on tap, which
- * is the only way to remove a row without removing what it did.
+ * The launch screen's centre of gravity. Everything else on it is a verb —
+ * play, shop, look at the board — and this is the only noun: who is playing,
+ * how well they have played, and how far they have got.
  * ------------------------------------------------------------------------- */
 
-.summary-row {
+/*
+ * Laid out down the screen rather than across it, with the face at the size it
+ * deserves. Two things pushed it this way: the launch screen had a tall empty
+ * half once the panels came off it, and the avatar is the one piece of art in
+ * the whole game that belongs to the player. A 76px thumbnail in the corner of
+ * a row sells neither.
+ */
+.profile {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
+  gap: 12px;
+  padding: 18px 16px 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
   -webkit-backdrop-filter: var(--panel-blur);
   backdrop-filter: var(--panel-blur);
+  box-shadow: var(--panel-shadow);
 }
 
-.account-face {
+.profile-face {
+  position: relative;
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+  cursor: pointer;
   border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--panel-strong);
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 700;
 }
 
-.account-face.is-on {
-  border-color: transparent;
+.avatar {
+  display: block;
+  border-radius: 50%;
+}
+
+/* A pencil badge, so the face reads as something you can change rather than as
+   a picture of you. Without it nobody taps it. */
+.profile-pen {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
   background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #fff;
 }
 
-.summary-text {
-  flex: 1;
+.profile-pen::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  background: #fff;
+  clip-path: polygon(0 100%, 26% 74%, 74% 26%, 100% 0, 100% 22%, 22% 100%);
+}
+
+.profile-body {
+  width: 100%;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 12px;
 }
 
-.summary-title {
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.summary-sub {
-  font-size: 11px;
-  color: var(--muted);
+.profile-name {
+  font-size: 19px;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* `display: grid` on the badge outranks the user agent's `[hidden]` rule at
-   equal specificity — author styles beat UA styles regardless — which is the
-   same trap `.friends-tools` fell into: restated here so hiding the badge
-   actually hides it. */
-.summary-badge[hidden] {
-  display: none;
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 
-.summary-badge {
-  flex: none;
+.pstat {
+  align-items: center;
+}
+
+.pstat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pstat-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.pstat-value {
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- the quick row -------------------------------------------------------
+ *
+ * Three doors at a weight that says "later". Each used to be a panel on this
+ * screen; between them they were most of its height and none of its purpose.
+ * ------------------------------------------------------------------------- */
+
+.quick {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.quick-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 16px 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+}
+
+.quick-btn.is-ready {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.quick-label {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.quick-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.quick-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
   display: grid;
   place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--accent-2), var(--accent));
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
-.summary-chevron {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid var(--muted);
-  border-bottom: 2px solid var(--muted);
-  transform: rotate(-45deg);
-  margin: 0 2px 0 -2px;
+/* `display: grid` beats the user agent's `[hidden]` rule — author styles win
+   over UA styles at any specificity — so hiding it has to be restated. */
+.quick-badge[hidden] {
+  display: none;
 }
 
-/* The today row glows the same way the daily card inside it used to: an
-   unclaimed reward is the one thing on the closed screen allowed to draw the
-   eye, because it is coins sitting on the table. */
-.summary-row.is-ready {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+/* Icons, built from stacked background layers rather than a clip path.
+ *
+ * A CSS `polygon()` is one polygon: listing a second shape's points after the
+ * first does not draw two shapes, it draws one shape that visits all of them,
+ * which is how the first attempt at these turned a podium into a mountain.
+ * Layered gradients have no such problem — each layer is its own rectangle —
+ * and it is the same trick the daily reward's gift box already uses.
+ */
+.quick-icon {
+  width: 26px;
+  height: 26px;
+  position: relative;
+  --ink: var(--muted);
+}
+
+/* Three bars of different heights: a podium. */
+.quick-ranks {
+  background:
+    linear-gradient(var(--ink), var(--ink)) left 2px bottom 1px / 6px 13px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center bottom 1px / 6px 21px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) right 2px bottom 1px / 6px 9px no-repeat;
+}
+
+/* A lid band and a ribbon: a wrapped box. */
+.quick-today {
+  background:
+    linear-gradient(var(--ink), var(--ink)) center top 4px / 24px 5px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center bottom 2px / 20px 15px no-repeat,
+    linear-gradient(var(--bg), var(--bg)) center bottom 2px / 3px 15px no-repeat;
+}
+
+/* A bag: a body, and an arch above it for the handle. */
+.quick-shop {
+  background: linear-gradient(var(--ink), var(--ink)) center bottom 2px / 21px 15px no-repeat;
+  border-radius: 0 0 4px 4px;
+}
+
+.quick-shop::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 12px;
+  height: 10px;
+  transform: translateX(-50%);
+  border: 2px solid var(--ink);
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+}
+
+/* ---- the profile sheet: name, face and the customiser ------------------- */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.editor-preview {
+  display: block;
+  border-radius: 50%;
+}
+
+.editor-name {
+  width: min(240px, 100%);
+  display: block;
+}
+
+.editor-name .post-input {
+  width: 100%;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  margin: 0 -20px;
+  padding: 0 20px 8px;
+  scrollbar-width: none;
+}
+
+.profile-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-tab {
+  flex: none;
+  padding: 6px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-tab.is-on {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #fff;
+}
+
+/* Capped so switching tabs cannot resize the sheet under the thumb that just
+   tapped it, and scrollable so a long catalogue still fits. */
+.profile-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 8px;
+  max-height: 212px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 10px 2px;
+  margin-bottom: 6px;
+}
+
+.profile-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 2px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.profile-option.is-on {
+  border-color: var(--accent);
+  background: var(--panel);
+}
+
+.profile-option.is-locked {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.option-chip {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+}
+
+.option-name {
+  font-size: 9px;
+  color: var(--muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-code {
+  margin: -10px 0 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.08em;
+}
+
+.profile-code[hidden] {
+  display: none;
+}
+
+/* ---- the board, now that it lives in a sheet ---------------------------- */
+
+/* There is no leftover column height to take in here, and the panel is already
+   capped and scrollable, so the board sizes to its own content. */
+.sheet .ranks {
+  flex: none;
+  min-height: 0;
+  max-height: 60vh;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  margin: 0 -6px;
+}
+
+/* An empty board must not collapse the sheet to a sliver: the sheet is the
+   whole of what the tap produced, and a two-line one reads as a failure. */
+.sheet .ranks-list {
+  min-height: 180px;
+}
+
+.sheet .ranks-head,
+.sheet .friends-tools {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+/* A row with a face needs one more column than a row without one. */
+.rank.has-face {
+  grid-template-columns: 18px 26px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
 }
 
 /* ---- the sheet itself ----------------------------------------------------
@@ -2625,10 +2915,14 @@ body {
   flex: none;
 }
 
-/* Still takes the slack when there is any, but never gives up its own rows. */
-.ranks {
-  flex: 1 0 auto;
-  min-height: 232px;
+/* Only the footer moves. Centring the block as a unit was tried first and is
+   worse: four blocks do not fill a phone, and a small group floating in the
+   middle of a tall empty screen reads as a page that failed to load, where the
+   same group sitting under the title reads as a screen with room to spare. The
+   blocks are sized generously for the same reason — the space is better spent
+   on the things that are there than left above them. */
+.home-foot {
+  margin-top: auto;
 }
 
 /* A deliberate second line rather than a wrap, so it is laid out as one and

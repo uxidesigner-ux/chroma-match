@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import { boardFrom } from './players.ts'
 import type { Player } from './players.ts'
 import { BOARD } from '../game/types.ts'
+import { DEFAULT_SPEC } from '../avatar/spec.ts'
 
 function player(uid: string, score: number | null, at = 0): Player {
   return {
@@ -10,6 +11,7 @@ function player(uid: string, score: number | null, at = 0): Player {
     name: uid,
     code: 'XXXXXXX',
     photo: '',
+    avatar: DEFAULT_SPEC,
     best:
       score === null
         ? null

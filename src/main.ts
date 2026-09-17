@@ -36,7 +36,9 @@ import { Loadout } from './ui/loadout.ts'
 import { PauseSheet } from './ui/pause.ts'
 import { Shop } from './ui/shop.ts'
 import { ItemTray } from './ui/items.ts'
-import { AccountBar } from './ui/account.ts'
+import { ProfileCard } from './ui/profile.ts'
+import { Sheet } from './ui/sheet.ts'
+import { myAvatarCode } from './avatar/store.ts'
 import { FriendsPanel } from './ui/friends.ts'
 import { PackShelf } from './ui/packs.ts'
 import { TodayPanel } from './ui/today.ts'
@@ -71,6 +73,7 @@ function nextLevelAsk(level: number): string {
 const ITEM_LABELS: Record<Item, string> = { hammer: 'Hammer', rocket: 'Rocket', bomb: 'Bomb' }
 
 const BEST_KEY = 'chroma-match:best'
+const LEVEL_KEY = 'chroma-match:best-level'
 const NAME_KEY = 'chroma-match:name'
 
 // Before anything is measured or drawn: the skin carries the corner radius and
@@ -104,7 +107,11 @@ const screens = new Screens()
 const packs = new PackShelf()
 const today = new TodayPanel()
 const friends = new FriendsPanel()
-const accountBar = new AccountBar(() => readStored(NAME_KEY))
+const ranksSheet = new Sheet('sheet-ranks')
+const profile = new ProfileCard(
+  () => readStored(NAME_KEY),
+  (name) => writeStored(NAME_KEY, name),
+)
 
 /**
  * The local board is used immediately so the launch screen has something to
@@ -120,9 +127,10 @@ home.setFriends(() => friends.board())
 home.setPersonalBest(() => record)
 home.onModeChange((mode) => friends.setVisible(mode === 'friends'))
 friends.onChange(() => void home.refresh())
-// Signing in or out changes whose rows the friends tab is about, so the board
-// is re-read rather than left showing the previous account's.
-accountBar.onChange(() => {
+// Signing in or out changes whose rows the friends tab is about, and a new
+// avatar changes what every row of it looks like, so the board is re-read
+// rather than left showing the previous account's.
+profile.onChange(() => {
   if (screens.active === 'home') void home.refresh()
 })
 
@@ -157,11 +165,34 @@ function writeStored(key: string, value: string): void {
 /** The best score of any *finished* run, kept between visits. */
 let record = Number(readStored(BEST_KEY)) || 0
 
+/**
+ * The furthest level any run has reached.
+ *
+ * A separate number from the best score rather than the level that scored it:
+ * a run can die early on a lucky board or grind a long way on a poor one, and
+ * "how far have I got" is the question the profile card is answering. It is
+ * also the only stat on that card that is not about a single run.
+ */
+let furthest = Math.max(1, Number(readStored(LEVEL_KEY)) || 1)
+
 function commitRecord(): boolean {
+  if (game.level > furthest) {
+    furthest = game.level
+    writeStored(LEVEL_KEY, String(furthest))
+    paintLevel()
+  }
   if (game.score <= record) return false
   record = game.score
   writeStored(BEST_KEY, String(record))
   return true
+}
+
+/** The card's level reads the run in progress while there is one. */
+function paintLevel(): void {
+  const node = document.getElementById('home-level')
+  if (!node) return
+  const live = screens.active === 'game' && game.status !== 'gameOver' ? game.level : 0
+  node.textContent = String(Math.max(furthest, live))
 }
 
 /** A run already ahead of the record shows its own score, never a stale one. */
@@ -353,7 +384,9 @@ const hooks: Partial<GameHooks> = {
           // Failures are swallowed — the run is already on the leaderboard, and
           // a friends row that is one run stale is not worth an error card.
           if (account()?.kind === 'google') {
-            void publishProfile(clean, account()?.photo ?? '').catch(() => {})
+            // The avatar goes with the name: a friends board is a row of faces,
+            // and a face that is one run out of date is the wrong face.
+            void publishProfile(clean, account()?.photo ?? '', myAvatarCode()).catch(() => {})
             void publishBest(run).catch(() => {})
           }
           if (!result.accepted) {
@@ -430,6 +463,8 @@ function goHome(): void {
   screens.show('home')
   paintContinue()
   today.refresh()
+  paintLevel()
+  profile.paintCard()
   void home.refresh()
 }
 
@@ -537,6 +572,13 @@ document.getElementById('start-game')?.addEventListener('click', () => {
     },
     secondary: { label: 'Continue that one', onAction: () => continueRun() },
   })
+})
+
+document.getElementById('open-ranks')?.addEventListener('click', () => {
+  ranksSheet.show()
+  // Refreshed on the way in rather than on a timer: the board is only worth a
+  // network round trip at the moment somebody asks to look at it.
+  void home.refresh()
 })
 
 document.getElementById('open-shop')?.addEventListener('click', () => {
@@ -719,6 +761,7 @@ const granted = grantStarterKit()
 shop.refresh()
 today.refresh()
 paintContinue()
+paintLevel()
 void home.refresh()
 
 if (granted) {

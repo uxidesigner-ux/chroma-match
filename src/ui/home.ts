@@ -1,5 +1,6 @@
 import { checkEntries } from '../leaderboard/verify.ts'
 import type { EntryCheck, Leaderboard, LeaderboardEntry } from '../leaderboard/types.ts'
+import { avatarCanvas, myAvatar } from '../avatar/store.ts'
 
 const SHOWN = 20
 
@@ -184,6 +185,12 @@ export class HomeScreen {
       pos.className = 'rank-pos'
       pos.textContent = String(index + 1)
 
+      // A face where one is known: from the profile document on the friends
+      // board, and from this device for the viewer's own row. Everyone else on
+      // the public board gets the space back rather than a grey placeholder,
+      // which would read as a player who has not set one up.
+      const face = entry.avatar ?? (entry.mine ? myAvatar() : null)
+
       // textContent throughout: names come from other people.
       const name = document.createElement('span')
       name.className = 'rank-name'
@@ -200,7 +207,10 @@ export class HomeScreen {
       level.textContent = `L${entry.level}`
       score.append(level)
 
-      row.append(pos, name, check, score)
+      row.append(pos)
+      if (face) row.append(avatarCanvas(face, 26, { round: true }))
+      row.append(name, check, score)
+      row.classList.toggle('has-face', face !== null)
       this.list.append(row)
       this.rows.set(entry.id, row)
     })
