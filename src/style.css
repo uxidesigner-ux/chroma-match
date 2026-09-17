@@ -1122,7 +1122,9 @@ body {
 [data-skin='glass'] .stat,
 [data-skin='glass'] .ranks,
 [data-skin='glass'] .help,
-[data-skin='glass'] .card {
+[data-skin='glass'] .card,
+[data-skin='glass'] .profile,
+[data-skin='glass'] .quick-btn {
   border-top-color: rgba(255, 255, 255, 0.3);
 }
 
@@ -1163,8 +1165,36 @@ body {
 [data-skin='paper'] .help,
 [data-skin='paper'] .btn,
 [data-skin='paper'] .post-input,
-[data-skin='paper'] .card {
+[data-skin='paper'] .card,
+[data-skin='paper'] .profile,
+[data-skin='paper'] .quick-btn,
+[data-skin='paper'] .profile-tab {
   border-width: 2px;
+}
+
+/*
+ * The quick tiles carry the same weight as a button because they are one: on
+ * this skin every surface is a piece of pressed card sitting above the page,
+ * and a tile with no edge to it was the only flat thing left on the screen.
+ */
+[data-skin='paper'] .quick-btn {
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+[data-skin='paper'] .quick-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+/* Ink around the portrait, like everything else this skin frames. */
+[data-skin='paper'] .profile-face .avatar,
+[data-skin='paper'] .editor-preview {
+  border: 2px solid var(--line);
+}
+
+[data-skin='paper'] .profile-pen {
+  border-color: var(--line);
+  box-shadow: 2px 2px 0 var(--line);
 }
 
 [data-skin='paper'] .btn {
@@ -2909,6 +2939,19 @@ body {
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  /*
+   * Room for the shadow, inside the scroll box.
+   *
+   * `overflow-y: auto` makes `overflow-x` compute to `auto` too — the pair
+   * cannot be split — so this element clips horizontally whether it was asked
+   * to or not. The Paper skin hangs a hard offset shadow off the right and
+   * bottom of every panel and button, and that shadow was being sliced off at
+   * the edge of the scroll box. The padding gives it somewhere to live; the
+   * negative margin gives the width straight back, so nothing on the screen
+   * moved or narrowed.
+   */
+  padding-inline: 8px;
+  margin-inline: -8px;
 }
 
 .home > * {
