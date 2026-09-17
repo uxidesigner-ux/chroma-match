@@ -38,6 +38,9 @@ const EN_PARTS = {
   'hair.wave': 'Waves',
   'hair.bun': 'Bun',
   'hair.none': 'None',
+  'hair.afro': 'Afro',
+  'hair.volume': 'Full length',
+  'hair.twin': 'Twin tails',
 
   'hairColour.ink': 'Ink',
   'hairColour.cocoa': 'Cocoa',
@@ -119,6 +122,9 @@ const KO_PARTS: PartNames = {
   'hair.wave': '웨이브 롱',
   'hair.bun': '묶은 머리',
   'hair.none': '없음',
+  'hair.afro': '풍성한 곱슬',
+  'hair.volume': '볼륨 롱',
+  'hair.twin': '양갈래',
 
   'hairColour.ink': '블랙',
   'hairColour.cocoa': '다크 브라운',
@@ -197,6 +203,9 @@ const JA_PARTS: PartNames = {
   'hair.wave': 'ウェーブロング',
   'hair.bun': 'まとめ髪',
   'hair.none': 'なし',
+  'hair.afro': 'アフロ',
+  'hair.volume': 'ボリュームロング',
+  'hair.twin': 'ツインテール',
 
   'hairColour.ink': 'ブラック',
   'hairColour.cocoa': 'ダークブラウン',
@@ -275,6 +284,9 @@ const ZH_PARTS: PartNames = {
   'hair.wave': '长卷发',
   'hair.bun': '丸子头',
   'hair.none': '无',
+  'hair.afro': '爆炸头',
+  'hair.volume': '蓬松长发',
+  'hair.twin': '双马尾',
 
   'hairColour.ink': '黑色',
   'hairColour.cocoa': '深棕',

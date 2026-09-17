@@ -284,20 +284,26 @@ float legsField(vec3 p) {
  * hem. A coat differs at the knee. Nothing here differs at the collar.
  */
 
-/** The shell every garment is built from: the torso, inflated and cut. */
-float garment(vec3 p, float thick, float hem) {
-  return max(torsoField(p) - thick, hem - p.y);
+/**
+ * Every garment is the body part it covers, offset outwards and cut to length.
+ *
+ * Not a shape fitted over that body. A fitted shape gapes, and on a phone a
+ * gape is skin coming through a sleeve. The sleeve used to be its own tapered
+ * capsule built from the same numbers as the arm plus a thickness, which
+ * sounds equivalent and is not: the arm is smoothed into the hand and the
+ * chest is smoothed into the pelvis, and a smooth minimum *bulges* at the
+ * join. The garment, rebuilt from the unsmoothed parts, had no such bulge — so
+ * the body came through it at exactly the two places the eye goes, the
+ * shoulder and the hip.
+ *
+ * A surface offset from a field by a constant is outside that field
+ * everywhere, by that constant. There is nothing left to tune wrong.
+ */
+float garment(float part, vec3 p, float thick, float hem) {
+  return max(part - thick, hem - p.y);
 }
 
-/** A sleeve down the arm to a given cuff, thick enough to clear the arm. */
-float sleeveField(vec3 p, float thick, float cuff) {
-  float w = shoulderHalf();
-  vec3 q = vec3(abs(p.x), p.y, p.z);
-  float r = 0.072 * limbScale() + thick;
-  return sdTaperCapsule(q, vec3(w - 0.01, -0.30, 0.0), vec3(w + 0.11, cuff, 0.005), r, r * 0.92);
-}
-
-float topField(vec3 p) {
+float topField(vec3 p, float torso, float arms) {
   if (uOutfit == 6) return 1e5;                          // a vest: no top drawn
   // A sweatshirt is a long sleeve with bulk, and bulk is the only thing that
   // tells them apart at this size. Fabric weight is a silhouette, not a
@@ -308,10 +314,10 @@ float topField(vec3 p) {
   // At the waist rather than over the hips. A top that covers the hip leaves
   // the figure in two colours — garment and legs — and a waist is what turns
   // that into a person wearing two things.
-  float d = garment(p, thick, HIP_Y + 0.02);
+  float d = garment(torso, p, thick, HIP_Y + 0.02);
   // Where the sleeve ends is the read that survives the full-length framing.
   float cuff = uOutfit == 0 || uOutfit == 3 ? -0.46 : -0.94;
-  d = smin(d, sleeveField(p, thick, cuff), 0.035);
+  d = smin(d, garment(arms, p, thick, cuff), 0.035);
 
   // And these two are the read that survives the *portrait* framing, which is
   // where a profile card and a leaderboard row actually see a top. A collar and
@@ -336,25 +342,30 @@ float topField(vec3 p) {
 }
 
 /** Trousers, shorts or a skirt, over the hips and down the legs. */
-float bottomField(vec3 p) {
-  float thick = 0.030;
-  float gap = hipHalf() * 0.48;
-  vec3 q = vec3(abs(p.x), p.y, p.z);
+float bottomField(vec3 p, float torso, float legs) {
+  float thick = 0.034;
 
   if (uBottom == 3) {                                     // a skirt: one flare
     float skirt = sdTaperCapsule(p, vec3(0.0, HIP_Y + 0.16, 0.0), vec3(0.0, HIP_Y - 0.38, 0.0),
                                  hipHalf() * 0.95, hipHalf() * 1.45);
+    // Hung on the pelvis rather than standing beside it, so the hip cannot
+    // come through the waistband.
+    skirt = smin(skirt, garment(torso, p, thick, HIP_Y - 0.10), 0.06);
     return max(skirt, HIP_Y - 0.38 - p.y);
   }
 
-  float r = 0.092 * limbScale() + thick;
   float cut = uBottom == 1 ? HIP_Y - 0.34 : FOOT_Y + 0.15;
-  float flare = uBottom == 2 ? 1.62 : 0.88;               // wide leg, or tapered
-  float leg = sdTaperCapsule(q, vec3(gap, HIP_Y + 0.14, 0.0), vec3(gap, cut, 0.0),
-                             r * 1.04, r * flare);
-  float seat = sdRoundBox(p - vec3(0.0, HIP_Y + 0.11, 0.0),
-                          vec3(hipHalf() - 0.19, 0.08, 0.015), 0.19);
-  return max(smin(leg, seat, 0.06), cut - p.y);
+  // The seat is the pelvis offset outwards and the legs are the legs offset
+  // outwards. Wide-leg trousers add flare on top of that rather than replacing
+  // it, so the garment is never narrower than what is inside it.
+  float d = smin(garment(torso, p, thick, HIP_Y - 0.14), legs - thick, 0.05);
+  if (uBottom == 2) {
+    vec3 q = vec3(abs(p.x), p.y, p.z);
+    float gap = hipHalf() * 0.48;
+    float r = 0.092 * limbScale() + thick;
+    d = min(d, sdTaperCapsule(q, vec3(gap, HIP_Y, 0.0), vec3(gap, cut, 0.0), r, r * 1.70));
+  }
+  return max(d, cut - p.y);
 }
 
 /**
@@ -364,12 +375,12 @@ float bottomField(vec3 p) {
  * wide enough to be an opening — at three pixels it reads as a dark stripe
  * painted on a jacket rather than as the shirt showing through one.
  */
-float outerField(vec3 p) {
+float outerField(vec3 p, float torso, float arms) {
   if (uOuter == 0) return 1e5;
   float thick = 0.068;
   float hem = uOuter == 3 ? HIP_Y - 0.34 : HIP_Y - 0.02;  // a long coat
-  float d = garment(p, thick, hem);
-  d = smin(d, sleeveField(p, thick, -0.80), 0.04);
+  float d = garment(torso, p, thick, hem);
+  d = smin(d, garment(arms, p, thick, -0.86), 0.04);
   // The front, carved away so the top shows down the middle of the figure.
   // A V from the neck to the hem, not a rectangle in the middle of the chest.
   // A carve that starts and stops in open cloth reads as a pocket with
@@ -392,20 +403,18 @@ float outerField(vec3 p) {
 }
 
 /** Shoes. A block of colour at the foot, taller for a boot. */
-float shoeField(vec3 p) {
+float shoeField(vec3 p, float legs) {
   if (uShoes == 0) return 1e5;
-  float gap = hipHalf() * 0.48;
-  vec3 q = vec3(abs(p.x), p.y, p.z);
-  float r = 0.092 * limbScale();
-  float shoe = sdRoundBox(q - vec3(gap, FOOT_Y + 0.045, 0.06),
-                          vec3(0.018, 0.010, 0.062), r * 0.80);
-  // A boot's shaft has to be wider than the trouser cuff it comes up over.
-  // At the same width the trousers simply win the depth test and the boot is a
-  // trainer with extra geometry nobody can see.
-  float top = uShoes == 2 ? FOOT_Y + 0.44 : FOOT_Y + 0.11;
-  float ankle = sdTaperCapsule(q, vec3(gap, FOOT_Y + 0.04, 0.0), vec3(gap, top, 0.0),
-                               r * 0.98, uShoes == 2 ? r * 1.24 : r * 0.88);
-  return smin(shoe, ankle, 0.04);
+  // The foot offset outwards and cut off at the ankle, so a toe cannot come
+  // through a trainer either. A boot is the same shell cut higher and made
+  // thicker, which is also what lets it come up over a trouser cuff rather
+  // than disappear under one.
+  // Comfortably outside the trouser shell, which is the body offset by 0.034.
+  // At 0.036 a trainer cleared it by two thousandths, and two thousandths is
+  // the width of the band where two surfaces fight over a pixel.
+  float thick = uShoes == 2 ? 0.072 : 0.050;
+  float top = uShoes == 2 ? FOOT_Y + 0.44 : FOOT_Y + 0.13;
+  return max(legs - thick, p.y - top);
 }
 
 /**
@@ -522,6 +531,69 @@ float hairField(vec3 p) {
     d = smin(d, sdEllipsoid(q - vec3(0.0, 0.30, -0.16), vec3(0.20, 0.14, 0.17)), 0.09);
     d = smin(d, sdEllipsoid(q - vec3(0.0, 0.47, -0.21), vec3(0.155, 0.145, 0.135)), 0.05);
     d = partedBy(d, q, 0.0, 0.012);
+  } else if (uStyle == 8) {   // afro — one big mass, and the mass is the point
+    // Not a cap with lumps on it. The volume styles exist because every style
+    // before them sat within a couple of centimetres of the skull, so the
+    // whole catalogue had one silhouette and eight names for it. This one is a
+    // head-and-a-half wide and the face is a hole cut in the front of it.
+    d = capField(q, 0.01, 0.5);
+    // Centred on the head, not above it. Sat high, with the front cut away by
+    // the hairline, the mass came out as a beret balanced on the crown — an
+    // afro surrounds the skull, so it has to be concentric with it and come
+    // down past the ear.
+    // Sitting behind the face, not around it. The face front is at z = 0.29;
+    // a ball deep enough to be round in profile reaches past that, and then
+    // subtracting the face leaves a tunnel with a head at the bottom — which
+    // is a hood. Flattened front to back and set back, the face stands proud
+    // of the hair and the hair is a halo behind it.
+    float ball = sdEllipsoid(q - vec3(0.0, 0.075, -0.115), vec3(0.480, 0.460, 0.360));
+    // Broken up, or it is a helmet again: a perfect ellipsoid this size reads
+    // as motorcycle safety equipment rather than as hair.
+    ball = smin(ball, sdSphere(q - vec3(-0.32, 0.25, -0.06), 0.180), 0.12);
+    ball = smin(ball, sdSphere(q - vec3(0.33, 0.21, -0.12), 0.175), 0.12);
+    ball = smin(ball, sdSphere(q - vec3(0.04, 0.40, -0.16), 0.185), 0.12);
+    ball = smin(ball, sdSphere(q - vec3(-0.19, -0.11, -0.13), 0.160), 0.12);
+    ball = smin(ball, sdSphere(q - vec3(0.21, -0.13, -0.12), 0.155), 0.12);
+    // The face is subtracted from it rather than the hairline cutting it.
+    //
+    // A hairline is a brow line: it runs across the front and slopes down to
+    // the back, which is exactly right for hair combed onto the skull and
+    // exactly wrong for a mass that surrounds it. Applied here it took the
+    // bottom off the whole ball and left a beret balanced on the crown. What
+    // an afro actually is, is hair everywhere except where the face is — so
+    // the face is what gets removed.
+    d = smin(d, ball, 0.06);
+    // Just enough off the front to clear the brow, since the mass no longer
+    // reaches the face on its own.
+    d = max(d, -sdEllipsoid(q - vec3(0.0, -0.06, 0.30), vec3(0.225, 0.250, 0.230)));
+  } else if (uStyle == 9) {   // volume — long, and full rather than flat
+    d = capField(q, -0.02, 1.25);
+    // A crown that stands up off the skull, which is what separates hair with
+    // body from hair that has been combed down onto it.
+    d = smin(d, sdEllipsoid(q - vec3(0.0, 0.28, -0.03), vec3(0.345, 0.255, 0.335)), 0.11);
+    vec3 s = vec3(abs(q.x) - 0.315, q.y, q.z);
+    // Wide at the shoulder rather than at the ear: hair falls away from the
+    // head as it goes down, and a length of constant width is a curtain.
+    float side = sdTaperCapsule(s, vec3(-0.075, 0.24, -0.05), vec3(0.105, -0.92, -0.06),
+                                0.115, 0.215);
+    side = smin(side, sdEllipsoid(s - vec3(0.085, -0.66, -0.02), vec3(0.185, 0.235, 0.165)), 0.10);
+    d = smin(d, sdEllipsoid(q - vec3(0.0, -0.05, -0.19), vec3(0.345, 0.345, 0.285)), 0.07);
+    d = smin(d, side, 0.07);
+    d = partedBy(d, q, 0.07, 0.016);
+  } else if (uStyle == 10) {  // twin tails — the volume is out to the sides
+    d = capField(q, -0.01, 0.95);
+    vec3 s = vec3(abs(q.x), q.y, q.z);
+    // Gathered at the temple and falling outboard, so the silhouette is wide
+    // where every other style here is narrow.
+    // Hanging, not sticking out. Run from the temple almost horizontally and
+    // the pair reads as wings on a cap; the tie is a small gathered knot and
+    // everything below it falls.
+    float tie = sdEllipsoid(s - vec3(0.300, 0.17, -0.05), vec3(0.095, 0.090, 0.090));
+    float tail = sdTaperCapsule(s, vec3(0.305, 0.11, -0.05), vec3(0.365, -0.74, -0.06),
+                                0.105, 0.165);
+    tail = smin(tail, sdEllipsoid(s - vec3(0.375, -0.82, -0.03), vec3(0.140, 0.155, 0.130)), 0.09);
+    d = smin(d, smin(tie, tail, 0.06), 0.05);
+    d = partedBy(d, q, 0.0, 0.020);
   } else {                    // bob, long, wave — lengths down the sides
     float drop = uStyle == 5 ? -0.44 : (uStyle == 6 ? -0.95 : -0.90);
     // How far the ends swing out from the head. A bob is cut to turn back in
@@ -605,8 +677,20 @@ float extraField(vec3 p) {
  * is exactly what a sphere-tracing march needs; returning a large constant
  * instead would let the ray step straight through a leg.
  */
-vec2 map(vec3 p) {
-  vec2 res = vec2(p.z + 0.72, float(MAT_BACK));
+/**
+ * Everything except the wall behind it.
+ *
+ * Split out because the wall must not cast a shadow, and it was. A shadow ray
+ * leaves a point on the backdrop travelling towards the light, and the
+ * backdrop's own field is a long stretch of nearly-zero distance right where
+ * that ray starts: the march crawls along it, spends its twenty-four steps at
+ * a slightly different place for every pixel, and returns whatever it had
+ * reached. That is the rippled, stair-stepped shadow on the wall. A wall is
+ * not an occluder, so leaving it out is both correct and cheaper.
+ */
+vec2 mapFigure(vec3 p) {
+  vec2 res = vec2(1e5, float(MAT_BACK));
+
 
   // Head, hair, eyes and glasses: everything above the collarbone.
   float headBound = boundOf(p, vec3(0.0, 0.30, 0.0), vec3(0.62, 0.52, 0.52));
@@ -625,10 +709,13 @@ vec2 map(vec3 p) {
   if (chestBound > 0.05) {
     res = closer(res, vec2(chestBound, float(MAT_CLOTH)));
   } else {
-    res = closer(res, vec2(torsoField(p), float(MAT_SKIN)));
-    res = closer(res, vec2(armsField(p), float(MAT_SKIN)));
-    res = closer(res, vec2(topField(p), float(MAT_CLOTH)));
-    res = closer(res, vec2(outerField(p), float(MAT_OUTER)));
+    // Worked out once and handed to the garments, which are built from them.
+    float torso = torsoField(p);
+    float arms = armsField(p);
+    res = closer(res, vec2(torso, float(MAT_SKIN)));
+    res = closer(res, vec2(arms, float(MAT_SKIN)));
+    res = closer(res, vec2(topField(p, torso, arms), float(MAT_CLOTH)));
+    res = closer(res, vec2(outerField(p, torso, arms), float(MAT_OUTER)));
   }
 
   // Legs, trousers and shoes. Only ever reached in the full-body framing, but
@@ -638,11 +725,20 @@ vec2 map(vec3 p) {
   if (legBound > 0.05) {
     res = closer(res, vec2(legBound, float(MAT_SKIN)));
   } else {
-    res = closer(res, vec2(legsField(p), float(MAT_SKIN)));
-    res = closer(res, vec2(bottomField(p), float(MAT_BOTTOM)));
-    res = closer(res, vec2(shoeField(p), float(MAT_SHOE)));
+    float legs = legsField(p);
+    res = closer(res, vec2(legs, float(MAT_SKIN)));
+    // Recomputed rather than hoisted above both groups. Hoisting looks like
+    // the saving and measures like the opposite: it makes every ray that the
+    // bounding boxes would have rejected — most of them — pay for a torso it
+    // never needed.
+    res = closer(res, vec2(bottomField(p, torsoField(p), legs), float(MAT_BOTTOM)));
+    res = closer(res, vec2(shoeField(p, legs), float(MAT_SHOE)));
   }
   return res;
+}
+
+vec2 map(vec3 p) {
+  return closer(vec2(p.z + 0.72, float(MAT_BACK)), mapFigure(p));
 }
 
 vec3 normalAt(vec3 p) {
@@ -663,14 +759,14 @@ vec3 normalAt(vec3 p) {
 float shadow(vec3 origin, vec3 dir) {
   float res = 1.0;
   float t = 0.04;
-  // Twenty-four steps and a floor of 0.02, stopping at 2.2. The figure is
-  // barely two units across, so a ray still travelling past that has left the
-  // scene and every further step is spent confirming it.
+  // Twenty-four steps and a floor of 0.02. The figure is under three units
+  // tall, so a ray still travelling past that has left the scene and every
+  // further step is spent confirming it.
   for (int i = 0; i < 24; i++) {
-    float h = map(origin + dir * t).x;
+    float h = mapFigure(origin + dir * t).x;
     res = min(res, 10.0 * h / t);
     t += clamp(h, 0.02, 0.24);
-    if (res < 0.004 || t > 2.2) break;
+    if (res < 0.004 || t > 3.0) break;
   }
   return clamp(res, 0.0, 1.0);
 }
