@@ -108,6 +108,10 @@ const OUTER_INDEX: Record<string, number> = {
   jacket: 1,
   hoodie: 2,
   coat: 3,
+  cardigan: 4,
+  puffer: 5,
+  blazer: 6,
+  gilet: 7,
 }
 
 const SHOE_INDEX: Record<string, number> = {
