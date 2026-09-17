@@ -190,6 +190,31 @@
         </p>
       </section>
 
+      <!-- ---------------------------------------------------------------- -->
+      <!-- Character creator                                                -->
+      <!-- ---------------------------------------------------------------- -->
+      <!--
+        A screen rather than a sheet. The wardrobe outgrew the panel it was in
+        the moment it had legs: a sheet gives a customiser about a third of the
+        display, and a third of a phone is not enough to show a figure and the
+        thing you are choosing for it at the same time. Getting here is still
+        one tap from the launch screen, and getting out is one more.
+      -->
+      <section class="screen creator" id="screen-creator" hidden>
+        <header class="creator-head">
+          <button class="btn btn-ghost" id="creator-back" type="button" data-i18n="back">Back</button>
+          <h2 class="creator-title" data-i18n="editAvatar">Edit character</h2>
+          <span class="creator-saved" id="creator-saved" role="status"></span>
+        </header>
+
+        <div class="creator-stage" id="creator-stage">
+          <canvas class="creator-figure" id="creator-figure" aria-hidden="true"></canvas>
+        </div>
+
+        <nav class="creator-tabs" id="creator-tabs" role="tablist" aria-label="What to change" data-i18n-attr="aria-label:whatToChange"></nav>
+        <div class="creator-options" id="creator-options"></div>
+      </section>
+
       <section class="screen game" id="screen-game" hidden>
         <section class="stats" aria-live="polite">
           <div class="stat stat-primary">
@@ -336,10 +361,9 @@
           </label>
         </div>
 
-        <!-- Filled from the part catalogue, so adding a hairstyle is a data
-             edit rather than a markup one. -->
-        <div class="profile-tabs" id="profile-tabs" role="tablist" aria-label="What to change" data-i18n-attr="aria-label:whatToChange"></div>
-        <div class="profile-options" id="profile-options"></div>
+        <button class="btn btn-primary profile-edit" id="profile-edit" type="button" data-i18n="editAvatar">
+          Edit character
+        </button>
 
         <p class="sheet-sub" id="account-sub">Sign in to keep your runs across devices</p>
         <p class="profile-code" id="profile-code" hidden></p>

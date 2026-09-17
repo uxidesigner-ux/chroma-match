@@ -3,14 +3,9 @@ import type { Account } from '../leaderboard/session.ts'
 import { cleanName } from '../leaderboard/types.ts'
 import { codeFor } from '../social/code.ts'
 import { publishProfile } from '../social/players.ts'
-import { avatarCanvas, myAvatar, paintAvatar, setMyAvatar } from '../avatar/store.ts'
-import { catalogueFor } from '../avatar/spec.ts'
-import type { AvatarSpec, Slot } from '../avatar/spec.ts'
-import type { ColourPart, Part } from '../avatar/parts.ts'
+import { myAvatar, paintAvatar } from '../avatar/store.ts'
 import { Sheet } from './sheet.ts'
 import { onLanguageChange, t } from '../i18n/index.ts'
-import { partName } from '../i18n/parts.ts'
-import type { StringKey } from '../i18n/index.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -18,20 +13,8 @@ function el<T extends HTMLElement>(id: string): T {
   return node as T
 }
 
-/** What each slot is called on the tab, and whether it is picked by colour. */
-const TABS: ReadonlyArray<{ slot: Slot; label: StringKey; colour: boolean }> = [
-  { slot: 'hair', label: 'tabHair', colour: false },
-  { slot: 'hairColour', label: 'tabHairColour', colour: true },
-  { slot: 'skin', label: 'tabSkin', colour: true },
-  { slot: 'outfit', label: 'tabOutfit', colour: false },
-  { slot: 'outfitColour', label: 'tabOutfitColour', colour: true },
-  { slot: 'accessory', label: 'tabAccessory', colour: false },
-  { slot: 'backdrop', label: 'tabBackdrop', colour: true },
-]
-
 const CARD_SIZE = 124
 const PREVIEW_SIZE = 116
-const SWATCH_SIZE = 44
 
 /**
  * The player, on the launch screen and behind it.
@@ -53,21 +36,18 @@ export class ProfileCard {
 
   private sheet = new Sheet('sheet-profile')
   private preview = el<HTMLCanvasElement>('profile-preview')
-  private tabStrip = el('profile-tabs')
-  private options = el('profile-options')
   private nameInput = el<HTMLInputElement>('profile-name-input')
   private codeLine = el('profile-code')
   private sub = el('account-sub')
   private action = el<HTMLButtonElement>('account-action')
 
-  private draft: AvatarSpec = myAvatar()
-  private slot: Slot = 'hair'
   private listeners: Array<() => void> = []
   private busy = false
 
   constructor(
     private storedName: () => string,
     private saveName: (name: string) => void,
+    private openCreator: () => void,
   ) {
     this.face.addEventListener('click', () => this.open())
     this.action.addEventListener('click', () => void this.toggleAccount())
@@ -84,24 +64,18 @@ export class ProfileCard {
       }
     })
 
-    for (const tab of TABS) {
-      const button = document.createElement('button')
-      button.type = 'button'
-      button.className = 'profile-tab'
-      button.dataset.slot = tab.slot
-      button.dataset.i18n = tab.label
-      button.addEventListener('click', () => this.show(tab.slot))
-      this.tabStrip.append(button)
-    }
+    // The wardrobe is a screen of its own now; this sheet keeps the things
+    // that are about the account rather than about the character.
+    el('profile-edit').addEventListener('click', () => {
+      this.sheet.hide()
+      this.openCreator()
+    })
 
     onAccount((current) => this.paintAccount(current))
     // The tab labels are filled by the static pass, but everything else here
     // is painted from script: the account sentence, the name fallback, and the
     // part names under the swatches.
-    onLanguageChange(() => {
-      this.paintAccount(account())
-      if (!this.sheet.hidden) this.paintOptions()
-    })
+    onLanguageChange(() => this.paintAccount(account()))
     this.paintCard()
   }
 
@@ -111,10 +85,15 @@ export class ProfileCard {
   }
 
   open(): void {
-    this.draft = myAvatar()
     this.nameInput.value = this.storedName()
-    this.show(this.slot)
+    this.refresh()
     this.sheet.show()
+  }
+
+  /** Repaints the face this sheet shows, after the creator changed it. */
+  refresh(): void {
+    paintAvatar(this.preview, myAvatar(), PREVIEW_SIZE, { round: true })
+    this.paintCard()
   }
 
   /** Repaints the card's face, name and the three numbers' owner. */
@@ -183,84 +162,4 @@ export class ProfileCard {
     for (const listener of this.listeners) listener()
   }
 
-  /* ---- the customiser --------------------------------------------------- */
-
-  private show(slot: Slot): void {
-    this.slot = slot
-    for (const tab of this.tabStrip.querySelectorAll<HTMLButtonElement>('.profile-tab')) {
-      tab.classList.toggle('is-on', tab.dataset.slot === slot)
-    }
-    this.paintOptions()
-    paintAvatar(this.preview, this.draft, PREVIEW_SIZE, { round: true })
-  }
-
-  private paintOptions(): void {
-    const byColour = TABS.find((tab) => tab.slot === this.slot)?.colour ?? false
-    this.options.replaceChildren()
-
-    for (const part of catalogueFor(this.slot)) {
-      const button = document.createElement('button')
-      button.type = 'button'
-      button.className = 'profile-option'
-      const shown = partName(this.slot, part.id, part.name)
-      button.title = shown
-      if (this.draft[this.slot] === part.id) button.classList.add('is-on')
-
-      if (byColour) {
-        const chip = document.createElement('span')
-        chip.className = 'option-chip'
-        chip.style.background = (part as ColourPart).colour
-        button.append(chip)
-      } else {
-        // A style is shown by wearing it. A list of words — "Bob", "Waves" —
-        // makes the player try each one to find out what it is, which is the
-        // customiser doing none of its job.
-        button.append(avatarCanvas({ ...this.draft, [this.slot]: part.id }, SWATCH_SIZE, {
-          round: true,
-        }))
-      }
-
-      const label = document.createElement('span')
-      label.className = 'option-name'
-      label.textContent = shown
-      button.append(label)
-
-      // Nothing is locked yet, and the editor is already built to say so: a
-      // part that is earned or bought arrives as a catalogue edit, not as new
-      // code here.
-      if (part.lock !== 'free') {
-        button.classList.add('is-locked')
-        button.disabled = true
-        button.title = t('lockedSuffix', { name: shown, how: lockWord(part) })
-      }
-
-      button.addEventListener('click', () => this.choose(part))
-      this.options.append(button)
-    }
-  }
-
-  private choose(part: Part): void {
-    if (part.lock !== 'free') return
-    this.draft = { ...this.draft, [this.slot]: part.id }
-    // Saved on the tap rather than behind a Save button. The preview is the
-    // confirmation, and a customiser that can be left half-applied is one more
-    // state to get wrong for no benefit.
-    setMyAvatar(this.draft)
-    this.paintOptions()
-    paintAvatar(this.preview, this.draft, PREVIEW_SIZE, { round: true })
-    this.paintCard()
-    if (account()?.kind === 'google') {
-      void publishProfile(
-        cleanName(this.storedName()) || t('anonymous'),
-        account()?.photo ?? '',
-      ).catch(() => {})
-    }
-    for (const listener of this.listeners) listener()
-  }
-}
-
-function lockWord(part: Part): string {
-  if (part.lock === 'paid') return t('lockedShop')
-  if (part.lock === 'quest') return t('lockedQuest')
-  return t('lockedEvent')
 }

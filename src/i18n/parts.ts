@@ -48,12 +48,8 @@ const EN_PARTS = {
   'hairColour.rosewood': 'Rosewood',
   'hairColour.violet': 'Violet',
 
-  'outfit.crew': 'Crew neck',
   'outfit.collar': 'Shirt',
-  'outfit.tie': 'Shirt and tie',
-  'outfit.blazer': 'Blazer',
   'outfit.turtle': 'Turtleneck',
-  'outfit.hoodie': 'Hoodie',
 
   'outfitColour.chalk': 'Chalk',
   'outfitColour.charcoal': 'Charcoal',
@@ -69,6 +65,30 @@ const EN_PARTS = {
   'accessory.round': 'Round frames',
   'accessory.studs': 'Studs',
   'accessory.roundStuds': 'Frames and studs',
+
+  'build.slim': 'Slim',
+  'build.average': 'Average',
+  'build.broad': 'Broad',
+
+  'bottom.trousers': 'Trousers',
+  'bottom.wide': 'Wide leg',
+  'bottom.shorts': 'Shorts',
+  'bottom.skirt': 'Skirt',
+
+  'outer.none': 'None',
+  'outer.jacket': 'Jacket',
+  'outer.hoodie': 'Hoodie',
+  'outer.coat': 'Coat',
+
+  'shoes.sneaker': 'Trainers',
+  'shoes.boot': 'Boots',
+  'shoes.bare': 'Barefoot',
+
+  'outfit.crew': 'Tee',
+  'outfit.blazer': 'Long sleeve',
+  'outfit.tie': 'Polo',
+  'outfit.hoodie': 'Sweatshirt',
+
 } as const
 
 type PartKey = keyof typeof EN_PARTS
@@ -109,12 +129,8 @@ const KO_PARTS: PartNames = {
   'hairColour.rosewood': '로즈',
   'hairColour.violet': '바이올렛',
 
-  'outfit.crew': '라운드넥',
   'outfit.collar': '셔츠',
-  'outfit.tie': '셔츠와 넥타이',
-  'outfit.blazer': '재킷',
   'outfit.turtle': '터틀넥',
-  'outfit.hoodie': '후디',
 
   'outfitColour.chalk': '화이트',
   'outfitColour.charcoal': '차콜',
@@ -130,6 +146,30 @@ const KO_PARTS: PartNames = {
   'accessory.round': '동그란 안경',
   'accessory.studs': '귀걸이',
   'accessory.roundStuds': '안경과 귀걸이',
+
+  'build.slim': '마른 체형',
+  'build.average': '보통 체형',
+  'build.broad': '다부진 체형',
+
+  'bottom.trousers': '일자 바지',
+  'bottom.wide': '와이드 팬츠',
+  'bottom.shorts': '반바지',
+  'bottom.skirt': '스커트',
+
+  'outer.none': '없음',
+  'outer.jacket': '재킷',
+  'outer.hoodie': '후드집업',
+  'outer.coat': '코트',
+
+  'shoes.sneaker': '운동화',
+  'shoes.boot': '부츠',
+  'shoes.bare': '맨발',
+
+  'outfit.crew': '반팔 티셔츠',
+  'outfit.blazer': '긴팔 티셔츠',
+  'outfit.tie': '카라 티셔츠',
+  'outfit.hoodie': '맨투맨',
+
 }
 
 const JA_PARTS: PartNames = {
@@ -167,12 +207,8 @@ const JA_PARTS: PartNames = {
   'hairColour.rosewood': 'ローズ',
   'hairColour.violet': 'バイオレット',
 
-  'outfit.crew': 'クルーネック',
   'outfit.collar': 'シャツ',
-  'outfit.tie': 'シャツとネクタイ',
-  'outfit.blazer': 'ジャケット',
   'outfit.turtle': 'タートルネック',
-  'outfit.hoodie': 'パーカー',
 
   'outfitColour.chalk': 'ホワイト',
   'outfitColour.charcoal': 'チャコール',
@@ -188,6 +224,30 @@ const JA_PARTS: PartNames = {
   'accessory.round': '丸眼鏡',
   'accessory.studs': 'ピアス',
   'accessory.roundStuds': '眼鏡とピアス',
+
+  'build.slim': '細め',
+  'build.average': 'ふつう',
+  'build.broad': 'がっしり',
+
+  'bottom.trousers': 'パンツ',
+  'bottom.wide': 'ワイドパンツ',
+  'bottom.shorts': 'ショートパンツ',
+  'bottom.skirt': 'スカート',
+
+  'outer.none': 'なし',
+  'outer.jacket': 'ジャケット',
+  'outer.hoodie': 'パーカー',
+  'outer.coat': 'コート',
+
+  'shoes.sneaker': 'スニーカー',
+  'shoes.boot': 'ブーツ',
+  'shoes.bare': 'はだし',
+
+  'outfit.crew': '半袖Tシャツ',
+  'outfit.blazer': '長袖Tシャツ',
+  'outfit.tie': 'ポロシャツ',
+  'outfit.hoodie': 'トレーナー',
+
 }
 
 const ZH_PARTS: PartNames = {
@@ -225,12 +285,8 @@ const ZH_PARTS: PartNames = {
   'hairColour.rosewood': '玫瑰色',
   'hairColour.violet': '紫罗兰',
 
-  'outfit.crew': '圆领',
   'outfit.collar': '衬衫',
-  'outfit.tie': '衬衫配领带',
-  'outfit.blazer': '西装外套',
   'outfit.turtle': '高领',
-  'outfit.hoodie': '连帽衫',
 
   'outfitColour.chalk': '白色',
   'outfitColour.charcoal': '炭灰',
@@ -246,6 +302,30 @@ const ZH_PARTS: PartNames = {
   'accessory.round': '圆框眼镜',
   'accessory.studs': '耳钉',
   'accessory.roundStuds': '眼镜配耳钉',
+
+  'build.slim': '偏瘦',
+  'build.average': '标准',
+  'build.broad': '健壮',
+
+  'bottom.trousers': '直筒裤',
+  'bottom.wide': '阔腿裤',
+  'bottom.shorts': '短裤',
+  'bottom.skirt': '半身裙',
+
+  'outer.none': '无',
+  'outer.jacket': '夹克',
+  'outer.hoodie': '连帽外套',
+  'outer.coat': '大衣',
+
+  'shoes.sneaker': '运动鞋',
+  'shoes.boot': '靴子',
+  'shoes.bare': '赤脚',
+
+  'outfit.crew': '短袖T恤',
+  'outfit.blazer': '长袖T恤',
+  'outfit.tie': 'POLO衫',
+  'outfit.hoodie': '卫衣',
+
 }
 
 const TABLES: Record<LanguageId, PartNames> = {
