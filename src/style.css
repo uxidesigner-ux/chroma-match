@@ -2039,16 +2039,28 @@ body {
   border: 0;
 }
 
-/* ---- account ------------------------------------------------------------ */
+/* ---- summary rows and their sheets --------------------------------------
+ *
+ * The account row and the today row are the same shape for the same reason:
+ * each used to be a block on the launch screen, and each is now a button that
+ * says the one sentence worth knowing without opening it. What was in the
+ * block did not shrink — it moved into a sheet that slides up on tap, which
+ * is the only way to remove a row without removing what it did.
+ * ------------------------------------------------------------------------- */
 
-.account {
+.summary-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   -webkit-backdrop-filter: var(--panel-blur);
   backdrop-filter: var(--panel-blur);
 }
@@ -2073,7 +2085,7 @@ body {
   color: #fff;
 }
 
-.account-text {
+.summary-text {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -2081,39 +2093,133 @@ body {
   gap: 1px;
 }
 
-.account-name {
+.summary-title {
   font-size: 13px;
   font-weight: 650;
 }
 
-/* The sub-line carries sign-in errors as well as the friend code, so it wraps
-   rather than truncating: a reason a player cannot read is not a reason. */
-.account-sub {
+.summary-sub {
   font-size: 11px;
   color: var(--muted);
-  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.account-act {
+/* `display: grid` on the badge outranks the user agent's `[hidden]` rule at
+   equal specificity — author styles beat UA styles regardless — which is the
+   same trap `.friends-tools` fell into: restated here so hiding the badge
+   actually hides it. */
+.summary-badge[hidden] {
+  display: none;
+}
+
+.summary-badge {
   flex: none;
-  padding: 6px 12px;
-  font-size: 12px;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
 }
 
-/* ---- today: daily reward and missions ----------------------------------- */
+.summary-chevron {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  margin: 0 2px 0 -2px;
+}
 
-.today {
+/* The today row glows the same way the daily card inside it used to: an
+   unclaimed reward is the one thing on the closed screen allowed to draw the
+   eye, because it is coins sitting on the table. */
+.summary-row.is-ready {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* ---- the sheet itself ----------------------------------------------------
+ *
+ * Reuses `.overlay` for the dimmed, blurred backdrop — same fixed full-screen
+ * layer every other modal on this page already sits on — and overrides only
+ * how its content is placed. `[hidden]` is restated at equal specificity to
+ * `.overlay`'s own base rule and a class selector: without it, whichever rule
+ * happens to come later in the file wins, which is how the friends tab's
+ * tools once stayed visible on the Everyone tab too.
+ * ------------------------------------------------------------------------- */
+
+.overlay.sheet {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
 }
 
-.today-title {
-  margin: 2px 0 0;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.overlay.sheet[hidden] {
+  display: none;
+}
+
+/*
+ * Carries the `.card` class for its background, border and shadow, so every
+ * skin's dialog treatment applies here too rather than a fourth hardcoded
+ * colour needing its own three overrides. Everything below is what actually
+ * makes a card a sheet: full width, flush against the bottom edge and its own
+ * side edges, and sliding rather than fading in.
+ */
+.sheet-panel {
+  width: min(620px, 100%);
+  max-height: 82vh;
+  overflow-y: auto;
+  text-align: left;
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 10px 20px max(18px, env(safe-area-inset-bottom));
+  margin: 0;
+  transform: translateY(100%);
+  transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+  /* The rise-in used for a centred card reads as arriving from nowhere on a
+     panel already pinned to an edge; the slide itself is the entrance. */
+  animation: none;
+}
+
+.overlay.sheet.is-open .sheet-panel {
+  transform: translateY(0);
+}
+
+.sheet-handle {
+  display: block;
+  width: 36px;
+  height: 4px;
+  margin: 6px auto 12px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.sheet-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sheet-sub {
+  margin: 4px 0 18px;
+  font-size: 13px;
   color: var(--muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.sheet-cta {
+  width: 100%;
 }
 
 .daily {

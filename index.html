@@ -42,18 +42,18 @@
         </p>
 
         <!--
-          Who is playing. A guest is a complete player here — they can post a
-          score and earn coins without ever seeing this row do anything — so it
-          says what signing in buys rather than demanding it.
+          Who is playing, collapsed to one row. A guest is a complete player
+          here — they can post a score and earn coins without ever opening
+          this — so the row states it rather than nagging, and the sheet
+          behind it is where signing in actually happens.
         -->
-        <section class="account" id="account">
+        <button class="summary-row" id="account-row" type="button">
           <span class="account-face" id="account-face" aria-hidden="true"></span>
-          <span class="account-text">
-            <strong class="account-name" id="account-name">Playing as a guest</strong>
-            <span class="account-sub" id="account-sub">Sign in to keep your runs across devices</span>
+          <span class="summary-text">
+            <strong class="summary-title" id="account-name">Playing as a guest</strong>
           </span>
-          <button class="btn btn-ghost account-act" id="account-action" type="button">Sign in</button>
-        </section>
+          <span class="summary-chevron" aria-hidden="true"></span>
+        </button>
 
         <!-- The wallet, and the door to the shop. Both on the launch screen,
              because that is where a player decides what this session is for. -->
@@ -77,24 +77,20 @@
         <button class="btn btn-primary btn-play" id="start-game" type="button">Play</button>
 
         <!--
-          Everything that pays out for showing up, in one place. The daily
-          reward is the reason to open the game; the missions are the reason to
-          play it a particular way once it is open.
+          Everything that pays out for showing up, collapsed to one row. What
+          it says changes with what is behind it — a reward waiting is a
+          different sentence than three missions in progress — so the row is
+          repainted from the same state the sheet reads, never a fixed label.
         -->
-        <section class="today" aria-labelledby="today-title">
-          <h2 class="today-title" id="today-title">Today</h2>
-
-          <button class="daily" id="daily-claim" type="button">
-            <span class="daily-gift" aria-hidden="true"></span>
-            <span class="daily-text">
-              <strong class="daily-name" id="daily-name">Daily reward</strong>
-              <span class="daily-sub" id="daily-sub">&nbsp;</span>
-            </span>
-            <span class="daily-take" id="daily-take">Claim</span>
-          </button>
-
-          <ul class="missions" id="missions"></ul>
-        </section>
+        <button class="summary-row" id="today-row" type="button">
+          <span class="daily-gift" id="today-gift" aria-hidden="true"></span>
+          <span class="summary-text">
+            <strong class="summary-title">Today</strong>
+            <span class="summary-sub" id="today-summary-sub">&nbsp;</span>
+          </span>
+          <span class="summary-badge" id="today-summary-badge" hidden>0</span>
+          <span class="summary-chevron" aria-hidden="true"></span>
+        </button>
 
         <section class="ranks" aria-labelledby="ranks-title">
           <header class="ranks-head">
@@ -364,6 +360,42 @@
         </ul>
       </section>
     </main>
+
+    <!--
+      The account row's sheet: the sentence the row had no space for, and the
+      one button that actually does something.
+    -->
+    <div class="overlay sheet" id="sheet-account" hidden>
+      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-account-title">
+        <span class="sheet-handle" aria-hidden="true"></span>
+        <h2 class="sr-only" id="sheet-account-title">Account</h2>
+        <p class="sheet-sub" id="account-sub">Sign in to keep your runs across devices</p>
+        <button class="btn btn-primary sheet-cta" id="account-action" type="button">Sign in</button>
+      </div>
+    </div>
+
+    <!--
+      The today row's sheet: the daily reward and the three missions, moved
+      here wholesale from the launch screen. Nothing about how they work
+      changed — only where a player has to go to see them.
+    -->
+    <div class="overlay sheet" id="sheet-today" hidden>
+      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-today-title">
+        <span class="sheet-handle" aria-hidden="true"></span>
+        <h2 class="sheet-title" id="sheet-today-title">Today</h2>
+
+        <button class="daily" id="daily-claim" type="button">
+          <span class="daily-gift" aria-hidden="true"></span>
+          <span class="daily-text">
+            <strong class="daily-name" id="daily-name">Daily reward</strong>
+            <span class="daily-sub" id="daily-sub">&nbsp;</span>
+          </span>
+          <span class="daily-take" id="daily-take">Claim</span>
+        </button>
+
+        <ul class="missions" id="missions"></ul>
+      </div>
+    </div>
 
     <!--
       Chosen before the board is dealt, the way a loadout is: once a run has

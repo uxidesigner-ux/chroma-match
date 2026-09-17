@@ -3,6 +3,7 @@ import type { Account } from '../leaderboard/session.ts'
 import { codeFor } from '../social/code.ts'
 import { publishProfile } from '../social/players.ts'
 import { cleanName } from '../leaderboard/types.ts'
+import { Sheet } from './sheet.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -20,14 +21,17 @@ function el<T extends HTMLElement>(id: string): T {
  * withheld to make the offer look better.
  */
 export class AccountBar {
+  private row = el<HTMLButtonElement>('account-row')
   private face = el('account-face')
   private name = el('account-name')
   private sub = el('account-sub')
   private action = el<HTMLButtonElement>('account-action')
+  private sheet = new Sheet('sheet-account')
   private listeners: Array<(account: Account | null) => void> = []
   private busy = false
 
   constructor(private storedName: () => string) {
+    this.row.addEventListener('click', () => this.sheet.show())
     this.action.addEventListener('click', () => void this.toggle())
     onAccount((current) => {
       this.paint(current)
