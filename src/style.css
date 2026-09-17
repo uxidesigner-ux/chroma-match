@@ -104,7 +104,8 @@ body {
 
 .stats {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
+  /* Three readouts and the one control left on this screen. */
+  grid-template-columns: 1.4fr 1fr 1fr auto;
   gap: 8px;
 }
 
@@ -185,6 +186,13 @@ body {
   min-height: 0;
   display: grid;
   place-items: center;
+  /*
+   * A strip reserved for the chain badge, which sits just above the board.
+   * Removing the game footer gave the board that height back, and it promptly
+   * grew into the badge's space and under the progress bar. The board still
+   * nets a gain; the badge keeps somewhere to be.
+   */
+  padding-top: 26px;
   /* Size containment gives the board a definite box to measure against.
      Without it, sizing a square from the stage's own height is circular and
      the board silently grows wider than the column. */
@@ -1851,5 +1859,160 @@ body {
 
   .item.is-nudged:not(.is-empty) {
     border-color: var(--accent-2);
+  }
+}
+
+/* ---- pause --------------------------------------------------------------- */
+
+/*
+ * The board's only chrome.
+ *
+ * The game screen used to end in a footer carrying four controls — leave, the
+ * rules, sound, the seed — under the item tray, all competing for the same
+ * thumb as the board itself. None of them are needed while a gem is being
+ * dragged, and one of them, leaving, was actively dangerous: it walked away
+ * from the run without banking it. They are all behind this now.
+ */
+.pause {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+  box-shadow: var(--panel-shadow);
+  color: var(--text);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s, transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pause:active {
+  transform: scale(0.94);
+  transition: transform 0.05s ease-out;
+}
+
+/* Two bars, drawn rather than shipped, like every other mark in this game. */
+.pause-bars {
+  position: relative;
+  width: 14px;
+  height: 16px;
+}
+
+.pause-bars::before,
+.pause-bars::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.pause-bars::before {
+  left: 1px;
+}
+
+.pause-bars::after {
+  right: 1px;
+}
+
+[data-skin='paper'] .pause {
+  border-width: 2px;
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+[data-skin='paper'] .pause:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+#paused-resume {
+  width: 100%;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: 16px;
+  margin-top: 14px;
+}
+
+#paused-keep,
+#paused-end {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Sound and the rules are settings, not decisions about the run: they sit
+   apart from the three buttons that are. */
+.paused-tools {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.paused-tools .btn {
+  flex: 1;
+}
+
+.card .seed {
+  display: block;
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 11px;
+}
+
+/* ---- continue ------------------------------------------------------------ */
+
+/*
+ * A kept run is offered before a new one. The sub-line carries the level and
+ * score, because "Continue" alone does not say what is being continued — and a
+ * player who left a good run behind came back for that number specifically.
+ */
+#continue-run {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+#continue-run[hidden] {
+  display: none;
+}
+
+.btn-sub {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
+/* With a kept run on offer, starting fresh is the quieter of the two. */
+#continue-run:not([hidden]) ~ #start-game {
+  background: var(--panel);
+  border-color: var(--line);
+  color: var(--text);
+  font-size: 15px;
+  padding: 13px;
+}
+
+#continue-run:not([hidden]) ~ #start-game:hover {
+  background: var(--panel-strong);
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pause {
+    transition: background 0.15s;
+  }
+
+  .pause:active {
+    transform: none;
   }
 }

@@ -166,6 +166,32 @@ and every goal is a pure function of the level number — a goal decided by a di
 roll would have to be recorded and trusted, while one derived from the level is
 recomputed by anyone replaying the run.
 
+### Putting a run down and picking it back up
+
+A run can be paused from the one control left on the board, and paused offers
+two genuinely different ways out. **Keep for later** puts the run down where it
+stands; **End run now** finishes it, which banks the score, pays the coins and
+lets it be posted. The old footer's "Home" did neither — it walked away from the
+board, and a long run left that way earned nothing at all.
+
+Keeping costs almost nothing to store, because a run is already fully described
+by its seed and its actions: a level-3 run 38 moves deep saves as 76 characters,
+and resuming is replaying them. Nothing else is written down — not the board,
+the score, the level, the moves left or the tray — so nothing else can drift out
+of step with the rest. It is the same record the leaderboard verifies, so a
+resumed run is still a postable one.
+
+Replaying is not instant at length: roughly six milliseconds an action, so a
+couple of hundred moves is over a second of work. The Continue button says it is
+restoring and gives the browser a frame to paint that before it starts. A run is
+also kept automatically when the tab goes away, because phones evict
+backgrounded pages without warning and a run is the one thing here that cannot
+be rebuilt from anything else.
+
+A save that will not replay — one written by an older version of the rules, or
+edited — is refused rather than half-applied, and says so. Losing a kept run is
+bad; being dropped onto a board that is not the one you left is worse.
+
 ### The first session
 
 A new player used to meet every part of the meta as an absence: three greyed-out

@@ -360,6 +360,24 @@ export class Game {
     return true
   }
 
+  /**
+   * Ends the run where it stands, as though the moves had run out.
+   *
+   * A player leaving mid-run used to simply walk away from the board: the score
+   * was never banked, no coins were paid and nothing could be posted. Stopping
+   * deliberately should settle up exactly as running out of moves does, so it
+   * goes through the same hook and the same status rather than a second path
+   * that would drift from it.
+   */
+  endRun(): void {
+    if (this.status === 'gameOver') return
+    this.status = 'gameOver'
+    this.selected = null
+    this.held = null
+    this.hint = null
+    this.hooks.onGameOver?.(this.score)
+  }
+
   /** Adds to the inventory, capped. A payout over the cap is simply lost. */
   private earn(item: Item, reason: 'level' | 'chain'): void {
     if ((this.items[item] ?? 0) >= MAX_HELD) return
