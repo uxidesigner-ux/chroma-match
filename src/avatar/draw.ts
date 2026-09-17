@@ -112,6 +112,30 @@ function ellipse(
 }
 
 /**
+ * The warm glow of light coming back out of thin flesh.
+ *
+ * Subsurface scattering is the one thing on this list a 2D canvas cannot
+ * actually do — there is no volume for light to travel through. What it can do
+ * is put the warmth where a renderer would have produced it: the outer rim of
+ * an ear, the underside of a jaw. It is a cheat, and at this scale it is
+ * indistinguishable from the real thing.
+ */
+function warmth(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+): void {
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry))
+  glow.addColorStop(0, 'rgba(226, 104, 74, 0.2)')
+  glow.addColorStop(0.6, 'rgba(226, 104, 74, 0.08)')
+  glow.addColorStop(1, 'rgba(226, 104, 74, 0)')
+  ctx.fillStyle = glow
+  ellipse(ctx, cx, cy, rx, ry)
+}
+
+/**
  * A pool of shade sitting in the crease where two forms meet.
  *
  * The cast shadows put the forms at different depths; this is the other half —
@@ -222,6 +246,13 @@ function drawHead(
     ellipse(ctx, 27.8, 46.5, 5.2, 6.6)
     ctx.fillStyle = clay(ctx, 66, 38, 12, 16, shade(skin, -0.14), 0.1, 0.22)
     ellipse(ctx, 72.2, 46.5, 5.2, 6.6)
+    noCast(ctx)
+    // Light passing through thin flesh. A renderer gets this for free from
+    // subsurface scattering, which is why ears glow in one and simply go dark
+    // in a drawing; approximating it is a warm wash on the outer edge, and it
+    // is most of what separates skin from painted plastic.
+    warmth(ctx, 26.6, 47.5, 4.4, 5.6)
+    warmth(ctx, 73.4, 47.5, 4.4, 5.6)
   }
 
   // The skull is a heavy rounded brick: straight-ish temples, all the curvature
@@ -253,6 +284,8 @@ function drawHead(
   under.addColorStop(1, 'rgba(38, 26, 20, 0.2)')
   ctx.fillStyle = under
   ctx.fillRect(28, 15, 44, 54)
+  // The jaw warms as it turns away, for the same reason the ears do.
+  warmth(ctx, 50, 66, 21, 9)
   ctx.restore()
 }
 
@@ -432,6 +465,109 @@ function neckline(ctx: CanvasRenderingContext2D, cloth: string, depth: number): 
 /** The styles that put anything behind the head at all. */
 const BEHIND = new Set(['bob', 'long', 'wave', 'bun'])
 
+/**
+ * One lump of hair.
+ *
+ * This is the whole difference between hair and a hat. A reference render
+ * builds a head of hair out of several overlapping volumes, each catching the
+ * light at its own angle and dropping a shadow on the one behind it; a single
+ * silhouette with a single gradient across it is a shape the colour of hair. So
+ * every style below is a base mass that guarantees the scalp is covered, and
+ * then a handful of these on top of it — each one lit and shaded on its own,
+ * each one casting onto what it overlaps.
+ */
+function lobe(
+  ctx: CanvasRenderingContext2D,
+  depth: Depth,
+  colour: string,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  rot = 0,
+  tone = 0,
+): void {
+  // A lighter touch than a form that stands on its own: inside a clip these
+  // only have to separate one volume from the next, and a full-strength cast
+  // in a narrow strand fills it corner to corner and reads as a black bar.
+  cast(ctx, depth, 2.6, 1.7, 0.24)
+  ctx.fillStyle = clay(ctx, cx - rx, cy - ry, rx * 2, ry * 2, shade(colour, tone), 0.3, 0.14)
+  ctx.beginPath()
+  ctx.ellipse(cx, cy, rx, ry, rot, 0, Math.PI * 2)
+  ctx.fill()
+  noCast(ctx)
+}
+
+/** The lumps that make up each style, in back-to-front order. */
+type Lobes = ReadonlyArray<readonly [number, number, number, number, number, number]>
+
+/**
+ * Which styles let their lumps break the silhouette.
+ *
+ * Only the curly one. Everywhere else the lumps are clipped to the base mass,
+ * so they divide the surface into volumes without changing its outline — which
+ * is what form shading does on a real head of swept hair. The first attempt let
+ * every style's lumps stand proud of the outline and turned all eight of them,
+ * buzz cuts included, into the same bubbly perm.
+ */
+const BUBBLY = new Set(['curls'])
+
+const FRONT_LOBES: Record<string, Lobes> = {
+  // Swept across and back, heavier on the left. Wide and shallow, so they read
+  // as a comb through the mass rather than as balls sitting on it.
+  crop: [
+    [36, 26, 19, 11, -0.34, -0.07],
+    [56, 19, 22, 10.5, -0.14, 0.07],
+    [70, 27, 14, 9, 0.3, -0.05],
+  ],
+  // Cropped close, so the volume is barely there: a crown, and the temples
+  // turning away from it.
+  buzz: [
+    [50, 20, 21, 8, 0, 0.06],
+    [31, 30, 10, 9, -0.3, -0.07],
+    [69, 30, 10, 9, 0.3, -0.05],
+  ],
+  // Curls are lumps by definition. Seven of them, each casting on the last.
+  curls: [
+    [31, 25, 10, 9.4, 0, -0.06],
+    [41, 15, 11, 10.2, 0, 0.04],
+    [53, 12.5, 11.5, 10.6, 0, 0.08],
+    [65, 18, 10.5, 9.8, 0, -0.02],
+    [70, 29, 9, 8.6, 0, -0.08],
+    [48, 24, 12, 10.5, 0, 0.02],
+    [36, 33, 8, 7.4, 0, -0.05],
+  ],
+  bun: [
+    [50, 18, 22, 9, 0, 0.07],
+    [31, 29, 10, 9, -0.3, -0.07],
+    [69, 29, 10, 9, 0.3, -0.05],
+  ],
+  // A centre-ish part: two crown volumes meeting, then the lengths that fall
+  // past the ear on each side.
+  // A part down the middle: two crown volumes meeting, then the lengths.
+  bob: [
+    [39, 21, 17, 12, -0.2, 0.06],
+    [63, 21, 17, 12, 0.2, -0.03],
+    [31, 40, 8, 16, -0.1, -0.02],
+    [69, 40, 8, 16, 0.1, -0.05],
+  ],
+  long: [
+    [39, 20, 17, 12, -0.2, 0.06],
+    [63, 20, 17, 12, 0.2, -0.03],
+    [29, 46, 8, 24, -0.05, -0.02],
+    [71, 46, 8, 24, 0.05, -0.05],
+  ],
+  // The same, plus the kink partway down that makes it read as a wave.
+  wave: [
+    [38, 20, 18, 12.5, -0.24, 0.06],
+    [64, 20, 18, 12.5, 0.24, -0.03],
+    [28, 38, 9, 16, -0.14, -0.02],
+    [72, 38, 9, 16, 0.14, -0.05],
+    [26, 62, 9, 15, 0.16, -0.04],
+    [74, 62, 9, 15, -0.16, -0.07],
+  ],
+}
+
 /** Whatever falls behind the head and the shoulders. */
 function drawHairBack(
   ctx: CanvasRenderingContext2D,
@@ -439,22 +575,19 @@ function drawHairBack(
   style: string,
   colour: string,
 ): void {
-  // Only the styles with something behind the head to draw.
   if (!BEHIND.has(style)) return
-  cast(ctx, depth, 5, 3, 0.24)
+  cast(ctx, depth, 6, 3.5, 0.26)
+  ctx.fillStyle = clay(ctx, 20, 14, 60, 86, shade(colour, -0.16), 0.14, 0.2)
 
   if (style === 'bob') {
-    ctx.fillStyle = clay(ctx, 22, 14, 56, 62, shade(colour, -0.14), 0.16, 0.2)
     ctx.beginPath()
     ctx.roundRect(23, 14, 54, 62, [27, 27, 18, 18])
     ctx.fill()
   } else if (style === 'long') {
-    ctx.fillStyle = clay(ctx, 20, 14, 60, 86, shade(colour, -0.14), 0.16, 0.2)
     ctx.beginPath()
     ctx.roundRect(21, 14, 58, 86, [29, 29, 13, 13])
     ctx.fill()
   } else if (style === 'wave') {
-    ctx.fillStyle = clay(ctx, 18, 13, 64, 87, shade(colour, -0.14), 0.16, 0.2)
     ctx.beginPath()
     ctx.moveTo(20, UNIT)
     ctx.bezierCurveTo(13, 62, 18, 28, 33, 18)
@@ -462,11 +595,19 @@ function drawHairBack(
     ctx.bezierCurveTo(82, 28, 87, 62, 80, UNIT)
     ctx.closePath()
     ctx.fill()
-  } else if (style === 'bun') {
-    ctx.fillStyle = clay(ctx, 37, 0, 26, 26, shade(colour, -0.1), 0.2, 0.18)
-    ellipse(ctx, 50, 12, 12, 11)
+  } else {
+    ctx.beginPath()
+    ctx.ellipse(50, 12, 12, 11, 0, 0, Math.PI * 2)
+    ctx.fill()
   }
   noCast(ctx)
+
+  // The bun is a volume of its own rather than a disc, so it gets the same
+  // treatment as everything else: a second lump wrapped around the first.
+  if (style === 'bun') {
+    lobe(ctx, depth, colour, 47, 10, 9, 8, -0.2, 0.08)
+    lobe(ctx, depth, colour, 55, 15, 7.5, 6.5, 0.3, -0.06)
+  }
 }
 
 /** The part that covers the skull, drawn over the face. */
@@ -477,71 +618,59 @@ function drawHairFront(
   colour: string,
 ): void {
   if (style === 'none') return
-  // Onto the forehead. A hairline with no shadow under it is a wig painted on.
-  cast(ctx, depth, 4, 2.5, 0.3)
-  ctx.fillStyle = clay(ctx, 26, 10, 48, 34, colour, 0.24, 0.16)
 
-  if (style === 'buzz') {
-    // Follows the skull to the temple instead of stopping in a straight line
-    // across it, which is what made this read as a swim cap.
+  // The base mass. Its only job is that no scalp shows through the gaps
+  // between the lumps — the lumps are what the eye actually reads.
+  const base = (): void => {
     ctx.beginPath()
-    ctx.moveTo(28.5, 42)
-    ctx.bezierCurveTo(27.5, 20, 37, 13.5, 50, 13.5)
-    ctx.bezierCurveTo(63, 13.5, 72.5, 20, 71.5, 42)
-    ctx.lineTo(67.5, 42)
-    ctx.bezierCurveTo(67, 27, 60, 23, 50, 23)
-    ctx.bezierCurveTo(40, 23, 33, 27, 32.5, 42)
-    ctx.closePath()
-    ctx.fill()
-  } else if (style === 'curls') {
-    // Seven overlapping discs rather than one mass: curls are lumps, and a
-    // lumpy outline is the entire read at any size. Each one casts, so the pile
-    // has depth inside itself rather than being one silhouette.
-    for (const [x, y, r] of [
-      [31, 24, 10],
-      [41, 15, 11],
-      [53, 12.5, 11.5],
-      [65, 18, 10.5],
-      [70, 28, 9],
-      [50, 23, 13],
-      [36, 32, 8],
-    ] as const) {
-      ellipse(ctx, x, y, r, r * 0.92)
+    if (style === 'buzz') {
+      ctx.moveTo(29, 40)
+      ctx.bezierCurveTo(28, 20, 37.5, 13.5, 50, 13.5)
+      ctx.bezierCurveTo(62.5, 13.5, 72, 20, 71, 40)
+      ctx.lineTo(67, 40)
+      ctx.bezierCurveTo(66.5, 27, 60, 23, 50, 23)
+      ctx.bezierCurveTo(40, 23, 33.5, 27, 33, 40)
+      ctx.closePath()
+    } else if (style === 'curls') {
+      ctx.ellipse(50, 22, 21, 14, 0, 0, Math.PI * 2)
+    } else if (style === 'crop' || style === 'bun') {
+      ctx.moveTo(27, 42)
+      ctx.bezierCurveTo(25, 18, 36, 10, 50, 10)
+      ctx.bezierCurveTo(64, 10, 74, 18, 73, 40)
+      ctx.bezierCurveTo(69, 28, 62, 24, 50, 24)
+      ctx.bezierCurveTo(38, 24, 31, 30, 29, 42)
+      ctx.closePath()
+    } else {
+      const drop = style === 'bob' ? 50 : 58
+      ctx.moveTo(25, drop)
+      ctx.bezierCurveTo(23, 20, 35, 10, 50, 10)
+      ctx.bezierCurveTo(65, 10, 77, 20, 75, drop)
+      ctx.lineTo(68, drop)
+      ctx.bezierCurveTo(69, 33, 62, 25.5, 50, 25.5)
+      ctx.bezierCurveTo(38, 25.5, 31, 33, 32, drop)
+      ctx.closePath()
     }
-  } else if (style === 'bun') {
-    ctx.beginPath()
-    ctx.moveTo(28, 40)
-    ctx.bezierCurveTo(27, 18, 37, 11, 50, 11)
-    ctx.bezierCurveTo(63, 11, 73, 18, 72, 40)
-    ctx.bezierCurveTo(67, 27, 58, 22.5, 50, 22.5)
-    ctx.bezierCurveTo(42, 22.5, 33, 27, 28, 40)
-    ctx.closePath()
-    ctx.fill()
-  } else if (style === 'crop') {
-    // A side part with a fringe that drops further on the heavy side.
-    ctx.beginPath()
-    ctx.moveTo(27, 44)
-    ctx.bezierCurveTo(25, 18, 36, 10, 50, 10)
-    ctx.bezierCurveTo(64, 10, 74, 18, 73, 40)
-    ctx.bezierCurveTo(69, 29, 62, 24.5, 54, 26.5)
-    ctx.bezierCurveTo(46, 28.5, 37, 33, 33, 44)
-    ctx.closePath()
-    ctx.fill()
-  } else {
-    // bob, long and wave share a crown; the difference is what the back layer
-    // did and how far the front strands come down past the ear.
-    const drop = style === 'bob' ? 50 : 58
-    ctx.beginPath()
-    ctx.moveTo(25, drop)
-    ctx.bezierCurveTo(23, 20, 35, 10, 50, 10)
-    ctx.bezierCurveTo(65, 10, 77, 20, 75, drop)
-    ctx.lineTo(68, drop)
-    ctx.bezierCurveTo(69, 33, 62, 25.5, 50, 25.5)
-    ctx.bezierCurveTo(38, 25.5, 31, 33, 32, drop)
-    ctx.closePath()
-    ctx.fill()
   }
+
+  cast(ctx, depth, 4.5, 3, 0.32)
+  ctx.fillStyle = clay(ctx, 26, 10, 48, 34, shade(colour, -0.12), 0.16, 0.14)
+  base()
+  ctx.fill()
   noCast(ctx)
+
+  const lumps = FRONT_LOBES[style] ?? []
+  const bubbly = BUBBLY.has(style)
+  if (!bubbly) {
+    // Re-tracing the base path as a clip. The lumps still cast onto each other
+    // inside it — that is the form — they just cannot escape the outline.
+    ctx.save()
+    base()
+    ctx.clip()
+  }
+  for (const [cx, cy, rx, ry, rot, tone] of lumps) {
+    lobe(ctx, depth, colour, cx, cy, rx, ry, rot, tone)
+  }
+  if (!bubbly) ctx.restore()
 }
 
 /* ---- accessories -------------------------------------------------------- */
