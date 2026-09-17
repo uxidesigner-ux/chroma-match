@@ -2494,3 +2494,40 @@ body {
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------------------------------------------------------------------------
+ * The launch screen scrolls
+ *
+ * It used to be a fixed-height flex column that happened to fit, and the daily
+ * reward and the missions ended that. What a too-tall flex column does is not
+ * overflow — it shrinks its children. So the leaderboard, which took the
+ * remainder with `flex: 1`, collapsed to nothing and vanished off the screen,
+ * and the Continue button's second line spilled out through its own border
+ * because the box had been squeezed to one line's height. Neither looked like
+ * a height problem, which is why both had to be found on a phone.
+ *
+ * Nothing on this screen may shrink now; the screen scrolls instead.
+ * ------------------------------------------------------------------------- */
+
+.home {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home > * {
+  flex: none;
+}
+
+/* Still takes the slack when there is any, but never gives up its own rows. */
+.ranks {
+  flex: 1 0 auto;
+  min-height: 232px;
+}
+
+/* A deliberate second line rather than a wrap, so it is laid out as one and
+   cannot be mistaken for overflow when space gets tight. */
+.btn-sub {
+  display: block;
+  margin-top: 2px;
+}

@@ -65,6 +65,17 @@
           <span class="wallet-shop">Shop<span class="wallet-stash" id="home-stash"></span></span>
         </button>
 
+
+        <!--
+          A kept run is the first thing offered, because a player who left one
+          behind came back for it. Starting fresh is still one tap, and says
+          what it costs.
+        -->
+        <button class="btn btn-primary btn-play" id="continue-run" type="button" hidden>
+          Continue<span class="btn-sub" id="continue-sub"></span>
+        </button>
+        <button class="btn btn-primary btn-play" id="start-game" type="button">Play</button>
+
         <!--
           Everything that pays out for showing up, in one place. The daily
           reward is the reason to open the game; the missions are the reason to
@@ -84,16 +95,6 @@
 
           <ul class="missions" id="missions"></ul>
         </section>
-
-        <!--
-          A kept run is the first thing offered, because a player who left one
-          behind came back for it. Starting fresh is still one tap, and says
-          what it costs.
-        -->
-        <button class="btn btn-primary btn-play" id="continue-run" type="button" hidden>
-          Continue<span class="btn-sub" id="continue-sub"></span>
-        </button>
-        <button class="btn btn-primary btn-play" id="start-game" type="button">Play</button>
 
         <section class="ranks" aria-labelledby="ranks-title">
           <header class="ranks-head">

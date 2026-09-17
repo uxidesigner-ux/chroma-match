@@ -27,6 +27,8 @@ export class HomeScreen {
   /** Supplies the friends board. Left null until the social panel is built. */
   private friends: (() => Promise<{ entries: LeaderboardEntry[]; label: string }>) | null = null
   private onMode: ((mode: BoardMode) => void) | null = null
+  /** The best run this device has finished, posted or not. */
+  private personalBest: () => number = () => 0
 
   constructor(private board: Leaderboard) {
     for (const tab of document.querySelectorAll<HTMLButtonElement>('[data-board]')) {
@@ -37,6 +39,19 @@ export class HomeScreen {
         void this.refresh()
       })
     }
+  }
+
+  /**
+   * Where "Best" comes from when the board has nothing.
+   *
+   * It used to be the player's best *posted* row, which reads as 0 for anybody
+   * who has never pressed Post — including somebody sitting on a kept level-22
+   * run, whose own game screen has been showing them that number all along.
+   * A number the player has already been shown cannot become 0 on the next
+   * screen.
+   */
+  setPersonalBest(source: () => number): void {
+    this.personalBest = source
   }
 
   /** Where the friends tab gets its rows. */
@@ -93,7 +108,7 @@ export class HomeScreen {
     if (generation !== this.generation) return
 
     this.renderList(entries)
-    this.best.textContent = mine ? mine.score.toLocaleString() : '0'
+    this.best.textContent = Math.max(mine?.score ?? 0, this.personalBest()).toLocaleString()
     const position = mine ? entries.findIndex((e) => e.id === mine.id) + 1 : 0
     this.rank.textContent = position > 0 ? `#${position}` : '—'
 
