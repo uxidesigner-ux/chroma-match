@@ -118,8 +118,17 @@ vec2 closer(vec2 a, vec2 b) { return a.x < b.x ? a : b; }
  */
 
 const float HEAD_Y = 0.26;
-const vec3 HEAD_BOX = vec3(0.13, 0.17, 0.12);
-const float HEAD_R = 0.17;      // so half extents are (0.30, 0.34, 0.29)
+// A rounded box is a box with the corners filed off, and how much of it reads
+// as a box rather than as a ball is the ratio of these two. At a radius of 0.17
+// against half extents of 0.30 the flat faces were more than half the height of
+// the skull, so the head had flat temples, a flat crown and visible corners —
+// square, which is not what these characters are. Almost all of the size is in
+// the radius now and the box is just enough to keep the skull taller than it is
+// wide. The half extents are unchanged at (0.30, 0.34, 0.29), which is what
+// every other feature is measured against: the eyes, the nose, the ears, the
+// glasses and the hair all sit where they sat.
+const vec3 HEAD_BOX = vec3(0.055, 0.095, 0.045);
+const float HEAD_R = 0.245;     // so half extents are (0.30, 0.34, 0.29)
 const float FACE_Z = 0.29;      // the front of the face
 
 float headField(vec3 p) {
