@@ -2,6 +2,7 @@ import { DAILY_REWARDS, claimDaily, dailyState } from '../daily.ts'
 import type { DailyState } from '../daily.ts'
 import { claimMission, todayMissions } from '../missions.ts'
 import type { MissionKind, MissionState } from '../missions.ts'
+import { Sheet } from './sheet.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -28,6 +29,10 @@ const ASK: Record<MissionKind, (need: number) => string> = {
  * copy is how that stops being true.
  */
 export class TodayPanel {
+  private row = el<HTMLButtonElement>('today-row')
+  private summarySub = el('today-summary-sub')
+  private summaryBadge = el('today-summary-badge')
+  private sheet = new Sheet('sheet-today')
   private daily = el<HTMLButtonElement>('daily-claim')
   private dailyName = el('daily-name')
   private dailySub = el('daily-sub')
@@ -39,6 +44,7 @@ export class TodayPanel {
   private announce: ((state: DailyState) => void) | null = null
 
   constructor() {
+    this.row.addEventListener('click', () => this.sheet.show())
     this.daily.addEventListener('click', () => {
       const claimed = claimDaily()
       this.refresh()
@@ -59,8 +65,35 @@ export class TodayPanel {
   }
 
   refresh(): void {
-    this.paintDaily(dailyState())
-    this.paintMissions(todayMissions())
+    const daily = dailyState()
+    const missions = todayMissions()
+    this.paintDaily(daily)
+    this.paintMissions(missions)
+    this.paintSummary(daily, missions)
+  }
+
+  /**
+   * What the closed row says, since the row is all a player sees until they
+   * open it.
+   *
+   * Ready-to-claim outranks everything else — it is coins sitting on the
+   * table — so the badge and the subtitle both lead with that count whenever
+   * it is not zero. With nothing waiting, the row falls back to the streak,
+   * which is the one number here that is worth seeing without opening
+   * anything.
+   */
+  private paintSummary(daily: DailyState, missions: readonly MissionState[]): void {
+    const ready = (daily.available ? 1 : 0) + missions.filter((m) => m.done && !m.claimed).length
+
+    if (ready > 0) {
+      this.summarySub.textContent = `${ready} reward${ready === 1 ? '' : 's'} ready to claim`
+      this.summaryBadge.textContent = String(ready)
+    } else {
+      const done = missions.filter((m) => m.claimed).length
+      this.summarySub.textContent = `Day ${daily.day} claimed · ${done}/${missions.length} missions done`
+    }
+    this.summaryBadge.hidden = ready === 0
+    this.row.classList.toggle('is-ready', ready > 0)
   }
 
   private paintDaily(state: DailyState): void {
