@@ -77,6 +77,17 @@ float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {
   return length(pa - ba * h) - r;
 }
 
+/* The same, with the radius running from one end to the other. Hair that ends
+   on its full thickness is a rope with a ball on it; a real length comes to a
+   point, and a plane cut cannot produce that — it takes a taper along the
+   length itself. A bound rather than an exact distance where the taper is
+   steep, which the march's safety factor already covers. */
+float sdTaperCapsule(vec3 p, vec3 a, vec3 b, float ra, float rb) {
+  vec3 pa = p - a, ba = b - a;
+  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+  return length(pa - ba * h) - mix(ra, rb, h);
+}
+
 float sdTorus(vec3 p, vec2 t) {
   return length(vec2(length(p.xz) - t.x, p.y)) - t.y;
 }
@@ -184,6 +195,8 @@ float liningField(vec3 p) {
  * So the cut is tilted. Through (z = 0.29, y = 0.16) at the brow — comfortably
  * above the eyes at y = 0.045 — and (z = -0.29, y = -0.15) at the back, which
  * is a slope of 0.534 and an intercept of 0.005.
+ *
+ * Positive means below the line, on the skin side, where hair is cut away.
  */
 float hairline(vec3 q, float lift) {
   // Curved across the brow, not ruled. A flat plane cut leaves a horizontal
@@ -202,59 +215,123 @@ float hairline(vec3 q, float lift) {
   return (0.075 + lift) + 0.534 * q.z - 1.25 * q.x * q.x - q.y;
 }
 
+/**
+ * The cap: a shell over the skull whose thickness varies with position.
+ *
+ * A shell of one constant thickness is a beanie, and that is exactly what
+ * every style read as. Hair is not uniformly thick — it has bulk on the crown
+ * and at the back, it thins to nothing at the temple, and above all it thins
+ * to nothing *at its own edge*, because hair ends in a taper and not in a
+ * three-millimetre wall. A constant-thickness cap cut by a plane produces that
+ * wall all the way round the head, and a hard edge of even thickness running
+ * from the brow past the ear is the single strongest hat cue there is.
+ *
+ * So thickness here falls off towards the hairline, and the profile carries
+ * the volume where a head of hair actually carries it: up and back.
+ */
+float capField(vec3 q, float lift, float bulk) {
+  float hl = hairline(q, lift);
+  // 1 well inside the hair, falling to 0 at the cut. Squared, so the taper is
+  // concave — a blade edge rather than a chamfer.
+  float edge = clamp(-hl / 0.14, 0.0, 1.0);
+  float thick =
+      0.022
+    + 0.055 * smoothstep(-0.04, 0.26, q.y)      // bulk on the crown
+    + 0.030 * smoothstep(0.12, -0.22, q.z);     // and at the back of the head
+  thick *= bulk * mix(0.18, 1.0, edge * edge);
+  return max(sdRoundBox(q, HEAD_BOX, HEAD_R + thick), hl);
+}
+
+/**
+ * A parting, pressed in with a soft subtraction.
+ *
+ * This is most of what separates a hairstyle from a helmet. Every style here
+ * was perfectly symmetrical and perfectly smooth over the crown, and a head of
+ * hair is neither: it is divided somewhere and it falls away from that line.
+ * One crease running back from the brow, off centre, and the whole thing stops
+ * reading as a moulded shape and starts reading as hair that was combed.
+ */
+float partedBy(float d, vec3 q, float x, float depth) {
+  // A trough lying along z, so the crease runs front to back over the crown and
+  // fades out before the back of the head. Wide and shallow: the first attempt
+  // was a thin deep groove and it read as damage rather than as a parting —
+  // hair falls away from the line over a centimetre or so on each side, it is
+  // not slit with a blade.
+  float groove = sdTaperCapsule(q, vec3(x, 0.435, 0.24), vec3(x * 0.4, 0.425, -0.18),
+                                0.024, 0.040);
+  // Soft subtraction: -smin(-a, b) is a max with the same rounded join smin
+  // gives a min, so the crease has walls instead of a cut.
+  return -smin(-d, groove - depth, 0.075);
+}
+
 float hairField(vec3 p) {
   if (uStyle == 0) return 1e5;
   vec3 q = p - vec3(0.0, HEAD_Y, 0.0);
-  // The cap is the skull's own field inflated by a constant, plus a volume on
-  // top of it.
-  //
-  // Inflating the shape hair actually sits on is the only construction that
-  // cannot leave scalp showing: a shell of uniform thickness follows every
-  // curve of the head by definition. Two attempts at fitting an ellipsoid over
-  // it failed the same way — tuned to cover the crown it exposed the temple,
-  // tuned to cover the temple it swallowed the brow — because an ellipsoid and
-  // a rounded box simply are not the same shape, and the gap between them
-  // moves as you resize either one.
-  //
-  // The crown on top is where the bulk is. Hair has thickness and most of it
-  // is above the head, which is what the first version, a shell 0.04 proud all
-  // round, read as a swimming cap for missing.
-  float scalp = sdRoundBox(q, HEAD_BOX, HEAD_R + 0.07);
-  float crown = sdEllipsoid(q - vec3(0.0, 0.13, -0.02), vec3(0.335, 0.355, 0.325));
-  float cap = smin(scalp, crown, 0.09);
   float d;
 
   if (uStyle == 1) {          // buzz — close to the skull, cut at the brow
-    d = max(sdRoundBox(q, HEAD_BOX, HEAD_R + 0.028), hairline(q, -0.06));
+    d = capField(q, -0.06, 0.42);
   } else if (uStyle == 2) {   // crop — swept across, heavier on one side
-    d = max(cap, hairline(q, -0.02));
-    d = smin(d, sdEllipsoid(q - vec3(-0.09, 0.23, 0.08), vec3(0.23, 0.12, 0.22)), 0.13);
-    d = smin(d, sdEllipsoid(q - vec3(0.14, 0.18, 0.12), vec3(0.17, 0.10, 0.17)), 0.13);
+    d = capField(q, -0.02, 1.0);
+    // The sweep: one mass carried over from the parting, and a shorter one
+    // falling the other way. Set proud of the cap, not buried in it, or they
+    // are bumps under a hat rather than hair going somewhere.
+    d = smin(d, sdEllipsoid(q - vec3(-0.11, 0.26, 0.10), vec3(0.21, 0.105, 0.20)), 0.10);
+    d = smin(d, sdEllipsoid(q - vec3(0.16, 0.20, 0.13), vec3(0.145, 0.085, 0.155)), 0.10);
+    d = partedBy(d, q, 0.085, 0.018);
   } else if (uStyle == 3) {   // curls — lumps, which is the entire read
-    d = max(cap, hairline(q, 0.02));
-    d = smin(d, sdSphere(q - vec3(-0.20, 0.28, 0.05), 0.15), 0.045);
-    d = smin(d, sdSphere(q - vec3(0.02, 0.38, 0.01), 0.16), 0.045);
-    d = smin(d, sdSphere(q - vec3(0.22, 0.27, 0.06), 0.145), 0.045);
-    d = smin(d, sdSphere(q - vec3(-0.28, 0.11, -0.02), 0.13), 0.045);
-    d = smin(d, sdSphere(q - vec3(0.29, 0.10, -0.01), 0.125), 0.045);
-    d = smin(d, sdSphere(q - vec3(0.0, 0.23, -0.26), 0.16), 0.045);
+    d = capField(q, 0.02, 0.85);
+    // Standing clear of the cap. The previous radii sat inside it and smoothed
+    // away to nothing, which is how a head of curls came out as a smooth dome.
+    d = smin(d, sdSphere(q - vec3(-0.21, 0.30, 0.06), 0.145), 0.030);
+    d = smin(d, sdSphere(q - vec3(0.03, 0.40, 0.02), 0.150), 0.030);
+    d = smin(d, sdSphere(q - vec3(0.24, 0.29, 0.07), 0.140), 0.030);
+    d = smin(d, sdSphere(q - vec3(-0.31, 0.12, -0.01), 0.130), 0.030);
+    d = smin(d, sdSphere(q - vec3(0.32, 0.11, 0.00), 0.125), 0.030);
+    d = smin(d, sdSphere(q - vec3(-0.13, 0.22, 0.22), 0.115), 0.030);
+    d = smin(d, sdSphere(q - vec3(0.17, 0.40, -0.14), 0.130), 0.030);
+    d = smin(d, sdSphere(q - vec3(0.0, 0.22, -0.28), 0.150), 0.030);
   } else if (uStyle == 4) {   // bun — tied up and back
-    d = max(cap, hairline(q, 0.0));
-    d = smin(d, sdEllipsoid(q - vec3(0.0, 0.46, -0.18), vec3(0.16, 0.15, 0.14)), 0.055);
+    d = capField(q, 0.0, 0.80);
+    // Gathered: the hair is pulled back to the knot, so there is a mass on the
+    // way to it, not a ball stuck on an otherwise flat head.
+    d = smin(d, sdEllipsoid(q - vec3(0.0, 0.30, -0.16), vec3(0.20, 0.14, 0.17)), 0.09);
+    d = smin(d, sdEllipsoid(q - vec3(0.0, 0.47, -0.21), vec3(0.155, 0.145, 0.135)), 0.05);
+    d = partedBy(d, q, 0.0, 0.012);
   } else {                    // bob, long, wave — lengths down the sides
-    float drop = uStyle == 5 ? -0.40 : (uStyle == 6 ? -0.95 : -0.90);
-    d = max(cap, hairline(q, -0.03));
-    vec3 s = vec3(abs(q.x) - 0.285, q.y, q.z);
-    float side = sdCapsule(s, vec3(0.0, 0.14, -0.05), vec3(0.0, drop, -0.05), 0.132);
+    float drop = uStyle == 5 ? -0.44 : (uStyle == 6 ? -0.95 : -0.90);
+    // How far the ends swing out from the head. A bob is cut to turn back in
+    // under the jaw; the lengths hang and the waves flick out. Everything swung
+    // out equally before, which is why the bob came out as two earflaps.
+    float flare = uStyle == 5 ? -0.030 : (uStyle == 6 ? 0.045 : 0.075);
+    d = capField(q, -0.03, 1.0);
+    // Falling outside the jaw, not clamped to the cheek. At 0.285 the lengths
+    // pressed against the face and squeezed it narrow; hair hangs clear of the
+    // jaw and swings out as it goes down, which is what the tilt is for.
+    vec3 s = vec3(abs(q.x) - 0.300, q.y, q.z);
+    // Anchored up under the cap and swinging outwards on the way down: hair
+    // leaves the head at the crown, not at the cheek, and it hangs clear of
+    // the jaw. Pinned to the cheek at 0.285 it squeezed the face narrow.
+    float side = sdTaperCapsule(s, vec3(-0.055, 0.26, -0.05),
+                                   vec3(flare, drop, -0.07), 0.115, 0.072);
     if (uStyle == 7) {
-      side = smin(side, sdEllipsoid(s - vec3(0.03, drop * 0.45, -0.03),
-                                    vec3(0.13, 0.17, 0.13)), 0.09);
-      side = smin(side, sdEllipsoid(s - vec3(-0.02, drop * 0.82, -0.02),
-                                    vec3(0.115, 0.15, 0.115)), 0.09);
+      side = smin(side, sdEllipsoid(s - vec3(0.05, drop * 0.42, -0.02),
+                                    vec3(0.125, 0.165, 0.125)), 0.085);
+      side = smin(side, sdEllipsoid(s - vec3(-0.01, drop * 0.78, -0.02),
+                                    vec3(0.105, 0.14, 0.105)), 0.085);
     }
     // The back of the head, so the lengths are one mass rather than two ropes.
-    d = smin(d, sdEllipsoid(q - vec3(0.0, -0.03, -0.16), vec3(0.325, 0.325, 0.27)), 0.07);
+    d = smin(d, sdEllipsoid(q - vec3(0.0, -0.03, -0.17), vec3(0.325, 0.325, 0.27)), 0.07);
     d = smin(d, side, 0.06);
+    // A fringe on the bob, swept off the parting. Without it the bob is a cap
+    // with two curtains and nothing joining them. It has to lie along the brow
+    // rather than stand on it: the first version was an upright ellipsoid and
+    // it put a flat plate across the forehead with a hard top edge.
+    if (uStyle == 5) {
+      d = smin(d, sdEllipsoid(q - vec3(-0.06, 0.175, 0.145),
+                              vec3(0.235, 0.075, 0.185)), 0.12);
+    }
+    d = partedBy(d, q, 0.075, 0.016);
   }
   return d;
 }
@@ -390,6 +467,17 @@ void main() {
   float wrap = mat == MAT_SKIN ? 0.45 : 0.22;
   float lambert = max(0.0, (dot(n, key) + wrap) / (1.0 + wrap));
   vec3 lit = albedo * lambert * sh * 1.08;
+
+  // The one place a highlight belongs. Everything here is unfired clay and a
+  // specular lobe would read as glaze — but hair is the exception even in clay
+  // renders, because a head of it is thousands of near-parallel fibres and
+  // they catch the key as one broad band across the crown. Tinted with the
+  // hair's own colour rather than white, and spread over a wide exponent, so
+  // it stays a sheen and never becomes a hotspot.
+  if (mat == MAT_HAIR) {
+    vec3 hv = normalize(key + normalize(eye - p));
+    lit += uHair * pow(max(0.0, dot(n, hv)), 5.0) * 0.30 * sh * ao;
+  }
 
   // Warmth bleeding through the thin parts. On an ear lit from behind this is
   // most of what separates flesh from painted plastic.
