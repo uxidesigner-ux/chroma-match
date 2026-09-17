@@ -3,6 +3,7 @@ import type { RunRecord } from '../game/replay.ts'
 import { BOARD } from '../game/types.ts'
 import { cleanName } from './types.ts'
 import type { Leaderboard, LeaderboardEntry, SubmitResult } from './types.ts'
+import { t } from '../i18n/index.ts'
 
 const KEY = 'chroma-match:board'
 const KEEP = 50
@@ -18,7 +19,9 @@ const KEEP = 50
  */
 export class LocalLeaderboard implements Leaderboard {
   readonly isShared = false
-  readonly label = 'On this device only'
+  get label(): string {
+    return t('boardLocal')
+  }
 
   private read(): LeaderboardEntry[] {
     try {
@@ -54,7 +57,7 @@ export class LocalLeaderboard implements Leaderboard {
   async submit(run: RunRecord, name: string): Promise<SubmitResult> {
     const verdict = verifyRun(run, BOARD)
     if (!verdict.ok) {
-      return { accepted: false, reason: 'That run could not be replayed.', rank: null, score: 0 }
+      return { accepted: false, reason: t('replayFailed'), rank: null, score: 0 }
     }
 
     const entry: LeaderboardEntry = {

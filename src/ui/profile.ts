@@ -8,6 +8,9 @@ import { catalogueFor } from '../avatar/spec.ts'
 import type { AvatarSpec, Slot } from '../avatar/spec.ts'
 import type { ColourPart, Part } from '../avatar/parts.ts'
 import { Sheet } from './sheet.ts'
+import { onLanguageChange, t } from '../i18n/index.ts'
+import { partName } from '../i18n/parts.ts'
+import type { StringKey } from '../i18n/index.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -16,14 +19,14 @@ function el<T extends HTMLElement>(id: string): T {
 }
 
 /** What each slot is called on the tab, and whether it is picked by colour. */
-const TABS: ReadonlyArray<{ slot: Slot; label: string; colour: boolean }> = [
-  { slot: 'hair', label: 'Hair', colour: false },
-  { slot: 'hairColour', label: 'Shade', colour: true },
-  { slot: 'skin', label: 'Skin', colour: true },
-  { slot: 'outfit', label: 'Outfit', colour: false },
-  { slot: 'outfitColour', label: 'Colour', colour: true },
-  { slot: 'accessory', label: 'Extras', colour: false },
-  { slot: 'backdrop', label: 'Backdrop', colour: true },
+const TABS: ReadonlyArray<{ slot: Slot; label: StringKey; colour: boolean }> = [
+  { slot: 'hair', label: 'tabHair', colour: false },
+  { slot: 'hairColour', label: 'tabHairColour', colour: true },
+  { slot: 'skin', label: 'tabSkin', colour: true },
+  { slot: 'outfit', label: 'tabOutfit', colour: false },
+  { slot: 'outfitColour', label: 'tabOutfitColour', colour: true },
+  { slot: 'accessory', label: 'tabAccessory', colour: false },
+  { slot: 'backdrop', label: 'tabBackdrop', colour: true },
 ]
 
 const CARD_SIZE = 124
@@ -85,13 +88,20 @@ export class ProfileCard {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = 'profile-tab'
-      button.textContent = tab.label
       button.dataset.slot = tab.slot
+      button.dataset.i18n = tab.label
       button.addEventListener('click', () => this.show(tab.slot))
       this.tabStrip.append(button)
     }
 
     onAccount((current) => this.paintAccount(current))
+    // The tab labels are filled by the static pass, but everything else here
+    // is painted from script: the account sentence, the name fallback, and the
+    // part names under the swatches.
+    onLanguageChange(() => {
+      this.paintAccount(account())
+      if (!this.sheet.hidden) this.paintOptions()
+    })
     this.paintCard()
   }
 
@@ -114,18 +124,18 @@ export class ProfileCard {
     this.cardName.textContent =
       cleanName(this.storedName()) ||
       (signed?.kind === 'google' ? cleanName(signed.name) : '') ||
-      'Player'
+      t('defaultName')
   }
 
   private paintAccount(current: Account | null): void {
     const signedIn = current?.kind === 'google'
-    this.action.textContent = signedIn ? 'Sign out' : 'Sign in with Google'
+    this.action.textContent = signedIn ? t('accountSignOut') : t('accountSignIn')
     this.sub.textContent = signedIn
-      ? 'Signed in. Your runs follow you to any device.'
+      ? t('accountOnline')
       : current
-        ? 'Sign in to keep your runs and add friends.'
-        : 'Offline — scores are staying on this device.'
-    this.codeLine.textContent = signedIn ? `Friend code ${codeFor(current.uid)}` : ''
+        ? t('accountOffline')
+        : t('accountLocal')
+    this.codeLine.textContent = signedIn ? t('friendCode', { code: codeFor(current.uid) }) : ''
     this.codeLine.hidden = !signedIn
     this.paintCard()
   }
@@ -135,7 +145,8 @@ export class ProfileCard {
     this.busy = true
     const current = account()
     this.action.disabled = true
-    this.action.textContent = current?.kind === 'google' ? 'Signing out…' : 'Signing in…'
+    this.action.textContent =
+      current?.kind === 'google' ? t('accountSigningOut') : t('accountSigningIn')
 
     try {
       if (current?.kind === 'google') {
@@ -145,11 +156,11 @@ export class ProfileCard {
         if (result.ok) {
           const signed = account()
           await publishProfile(
-            cleanName(this.storedName()) || cleanName(signed?.name ?? '') || 'Anonymous',
+            cleanName(this.storedName()) || cleanName(signed?.name ?? '') || t('anonymous'),
             signed?.photo ?? '',
           )
           if (result.switched) {
-            this.sub.textContent = 'Signed in. This device’s guest runs stayed with the guest.'
+            this.sub.textContent = t('accountSwitched')
             this.action.disabled = false
             this.busy = false
             for (const listener of this.listeners) listener()
@@ -158,13 +169,13 @@ export class ProfileCard {
         } else if (result.reason) {
           this.sub.textContent = result.reason
           this.action.disabled = false
-          this.action.textContent = 'Sign in with Google'
+          this.action.textContent = t('accountSignIn')
           this.busy = false
           return
         }
       }
     } catch {
-      this.sub.textContent = 'That did not go through. Try again in a moment.'
+      this.sub.textContent = t('accountFailed')
     }
     this.busy = false
     this.action.disabled = false
@@ -191,7 +202,8 @@ export class ProfileCard {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = 'profile-option'
-      button.title = part.name
+      const shown = partName(this.slot, part.id, part.name)
+      button.title = shown
       if (this.draft[this.slot] === part.id) button.classList.add('is-on')
 
       if (byColour) {
@@ -210,7 +222,7 @@ export class ProfileCard {
 
       const label = document.createElement('span')
       label.className = 'option-name'
-      label.textContent = part.name
+      label.textContent = shown
       button.append(label)
 
       // Nothing is locked yet, and the editor is already built to say so: a
@@ -219,7 +231,7 @@ export class ProfileCard {
       if (part.lock !== 'free') {
         button.classList.add('is-locked')
         button.disabled = true
-        button.title = `${part.name} — ${lockWord(part)}`
+        button.title = t('lockedSuffix', { name: shown, how: lockWord(part) })
       }
 
       button.addEventListener('click', () => this.choose(part))
@@ -239,7 +251,7 @@ export class ProfileCard {
     this.paintCard()
     if (account()?.kind === 'google') {
       void publishProfile(
-        cleanName(this.storedName()) || 'Anonymous',
+        cleanName(this.storedName()) || t('anonymous'),
         account()?.photo ?? '',
       ).catch(() => {})
     }
@@ -248,7 +260,7 @@ export class ProfileCard {
 }
 
 function lockWord(part: Part): string {
-  if (part.lock === 'paid') return 'in the shop'
-  if (part.lock === 'quest') return 'earned by playing'
-  return 'from an event'
+  if (part.lock === 'paid') return t('lockedShop')
+  if (part.lock === 'quest') return t('lockedQuest')
+  return t('lockedEvent')
 }

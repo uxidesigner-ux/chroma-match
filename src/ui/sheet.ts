@@ -41,6 +41,11 @@ export class Sheet {
     })
   }
 
+  /** Whether the sheet is closed, for callers that repaint only what is up. */
+  get hidden(): boolean {
+    return this.root.hidden
+  }
+
   show(): void {
     this.root.hidden = false
     // `hidden` and the transition's starting class have to land in different

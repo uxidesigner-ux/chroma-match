@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.ts'
+
 export interface OverlayContent {
   kicker: string
   title: string
@@ -71,14 +73,14 @@ export class Overlay {
     if (!handler) return
     const name = this.name.value.trim()
     if (name.length === 0) {
-      this.setStatus('Pick a name first.', 'is-error')
+      this.setStatus(t('postNoName'), 'is-error')
       this.name.focus()
       return
     }
 
     this.submit.disabled = true
     this.name.disabled = true
-    this.setStatus('Posting…', null)
+    this.setStatus(t('posting'), null)
     try {
       const result = await handler(name)
       this.setStatus(result.message, result.ok ? 'is-ok' : 'is-error')
@@ -90,7 +92,7 @@ export class Overlay {
         this.name.disabled = false
       }
     } catch {
-      this.setStatus('Could not reach the leaderboard. Your score is saved locally.', 'is-error')
+      this.setStatus(t('postFailed'), 'is-error')
       this.submit.disabled = false
       this.name.disabled = false
     }

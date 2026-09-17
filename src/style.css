@@ -2411,13 +2411,25 @@ body {
   border: 1px solid var(--line);
 }
 
+/* Two lines, not one with an ellipsis.
+   A single nowrap line fits "Bob" and "Waves" and truncates almost every
+   Japanese and Chinese name in the catalogue — "ロングストレート" became
+   "ロングスト…", which names nothing. The height is fixed at two lines whether
+   or not the second is used, so a grid of mixed-length names stays on a
+   baseline instead of stepping up and down. */
 .option-name {
-  font-size: 9px;
-  color: var(--muted);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  height: 2.4em;
   max-width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 9px;
+  line-height: 1.2;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .profile-code {
@@ -2973,4 +2985,141 @@ body {
 .btn-sub {
   display: block;
   margin-top: 2px;
+}
+
+/* --- settings ------------------------------------------------------------ */
+
+.set-group {
+  margin: 0 0 18px;
+}
+
+.set-title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.set-sub {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Wraps rather than scrolls. A language list that scrolls hides the option
+   somebody is looking for behind a gesture, and the whole reason this list
+   exists is that they may not be able to read the label on the way there. */
+.set-langs,
+.set-skins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.set-chip {
+  flex: none;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.set-chip.is-on {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #fff;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+}
+
+.set-row + .set-row {
+  margin-top: 8px;
+}
+
+.set-row:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.set-row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.set-row-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.set-row-sub {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* Empty when the device can vibrate, so the row does not carry a blank line. */
+.set-row-sub:empty {
+  display: none;
+}
+
+.set-switch {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background 140ms ease;
+}
+
+.set-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: transform 140ms ease;
+}
+
+.set-row.is-on .set-switch {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+}
+
+.set-row.is-on .set-switch::after {
+  transform: translateX(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .set-switch,
+  .set-switch::after {
+    transition: none;
+  }
 }

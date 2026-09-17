@@ -1,6 +1,7 @@
 import type { Game } from '../game/game.ts'
 import { goalLabel } from '../game/goals.ts'
-import { styleFor } from '../render/theme.ts'
+import { n, t } from '../i18n/index.ts'
+import { gemColour, gemName } from '../i18n/gems.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -37,10 +38,22 @@ export class Hud {
     what: '',
   }
 
+  /**
+   * Throws away the diff, so the next update rewrites every readout.
+   *
+   * The HUD deliberately writes nothing on a frame where no value moved, which
+   * means a language change on a paused board would leave "Level 3" in English
+   * until the level itself changed. Clearing the cache is the whole fix: the
+   * next frame repaints because everything now differs from nothing.
+   */
+  invalidate(): void {
+    this.last = { score: -1, moves: -1, best: -1, level: -1, progress: -1, target: -1, seed: '', what: '' }
+  }
+
   update(game: Game, best: number): void {
     const l = this.last
     if (game.score !== l.score) {
-      this.score.textContent = game.score.toLocaleString()
+      this.score.textContent = n(game.score)
       l.score = game.score
     }
     if (game.moves !== l.moves) {
@@ -49,33 +62,38 @@ export class Hud {
       l.moves = game.moves
     }
     if (best !== l.best) {
-      this.best.textContent = best.toLocaleString()
+      this.best.textContent = n(best)
       l.best = best
     }
     if (game.level !== l.level) {
-      this.level.textContent = `Level ${game.level}`
+      this.level.textContent = t('levelN', { level: game.level })
       l.level = game.level
     }
     // Both read from the goal rather than from the score: a colour level is
     // measured in gems, and a bar that filled with points on one would be
     // reporting the wrong race.
     if (game.need !== l.target) {
-      this.target.textContent = game.need.toLocaleString()
+      this.target.textContent = n(game.need)
       l.target = game.need
     }
-    // The colour's name comes from the skin, so it matches the gems on screen —
-    // the same kind is "Mint" under Jewel and "Jade" under Glass.
-    const what = goalLabel(game.goal, (colour) => styleFor(colour).name)
+    // The words come from the interface strings, the colour name from the
+    // skin or its hue. The rules module supplies neither: what a level asks
+    // for does not depend on what language it is being read in.
+    const what = goalLabel(game.goal, gemName, {
+      score: t('goalScore'),
+      power: t('goalPower'),
+      gems: (colour) => t('goalGems', { colour }),
+    })
     if (what !== l.what) {
       this.what.textContent = what
-      const colour = game.goal.kind === 'colour' ? styleFor(game.goal.colour).base : null
+      const colour = game.goal.kind === 'colour' ? gemColour(game.goal.colour) : null
       this.gem.hidden = colour === null
       if (colour) this.gem.style.background = colour
       l.what = what
     }
     const progress = Math.min(game.progress, game.need)
     if (progress !== l.progress) {
-      this.progress.textContent = progress.toLocaleString()
+      this.progress.textContent = n(progress)
       this.bar.style.width = `${Math.min(100, (progress / game.need) * 100)}%`
       l.progress = progress
     }

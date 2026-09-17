@@ -28,7 +28,7 @@
         <div class="hero">
           <span class="brand-mark brand-mark-lg" aria-hidden="true"></span>
           <h1>Chroma Match</h1>
-          <p class="tagline">Six across, nine down. Line up three.</p>
+          <p class="tagline" data-i18n="tagline">Six across, nine down. Line up three.</p>
         </div>
 
         <!--
@@ -39,7 +39,7 @@
           that opens on an identity form is one nobody plays from.
         -->
         <section class="profile" aria-labelledby="profile-name">
-          <button class="profile-face" id="profile-face" type="button" aria-label="Your profile">
+          <button class="profile-face" id="profile-face" type="button" aria-label="Your profile" data-i18n-attr="aria-label:profileAria">
             <canvas class="avatar" id="profile-avatar" aria-hidden="true"></canvas>
             <span class="profile-pen" aria-hidden="true"></span>
           </button>
@@ -47,15 +47,15 @@
             <strong class="profile-name" id="profile-name">Player</strong>
             <div class="profile-stats">
               <span class="pstat">
-                <span class="pstat-label">Best</span>
+                <span class="pstat-label" data-i18n="statBest">Best</span>
                 <strong class="pstat-value" id="home-best">0</strong>
               </span>
               <span class="pstat">
-                <span class="pstat-label">Rank</span>
+                <span class="pstat-label" data-i18n="statRank">Rank</span>
                 <strong class="pstat-value" id="home-rank">&mdash;</strong>
               </span>
               <span class="pstat">
-                <span class="pstat-label">Level</span>
+                <span class="pstat-label" data-i18n="statLevel">Level</span>
                 <strong class="pstat-value" id="home-level">1</strong>
               </span>
             </div>
@@ -68,9 +68,9 @@
           what it costs.
         -->
         <button class="btn btn-primary btn-play" id="continue-run" type="button" hidden>
-          Continue<span class="btn-sub" id="continue-sub"></span>
+          <span data-i18n="continueRun">Continue</span><span class="btn-sub" id="continue-sub"></span>
         </button>
-        <button class="btn btn-primary btn-play" id="start-game" type="button">Play</button>
+        <button class="btn btn-primary btn-play" id="start-game" type="button" data-i18n="play">Play</button>
 
         <!--
           Everything that is not Play, at the weight it deserves. Each one is a
@@ -78,19 +78,19 @@
           shop all open over this screen instead of living on it, which is what
           let the screen go from nine stacked blocks to four.
         -->
-        <nav class="quick" aria-label="More">
+        <nav class="quick" aria-label="More" data-i18n-attr="aria-label:moreLabel">
           <button class="quick-btn" id="open-ranks" type="button">
             <span class="quick-icon quick-ranks" aria-hidden="true"></span>
-            <span class="quick-label">Ranks</span>
+            <span class="quick-label" data-i18n="quickRanks">Ranks</span>
           </button>
           <button class="quick-btn" id="today-row" type="button">
             <span class="quick-icon quick-today" aria-hidden="true"></span>
-            <span class="quick-label">Today</span>
+            <span class="quick-label" data-i18n="quickToday">Today</span>
             <span class="quick-badge" id="today-summary-badge" hidden>0</span>
           </button>
           <button class="quick-btn" id="open-shop" type="button">
             <span class="quick-icon quick-shop" aria-hidden="true"></span>
-            <span class="quick-label">Shop</span>
+            <span class="quick-label" data-i18n="quickShop">Shop</span>
             <span class="quick-sub"
               ><span class="coin" aria-hidden="true"></span
               ><span class="wallet-value" id="home-coins">0</span></span
@@ -98,17 +98,17 @@
           </button>
         </nav>
 
+        <!--
+          Two doors, not five toggles. Sound and the board style used to sit
+          here as bare switches; they are settings, they now live with the
+          other settings, and the footer stops competing with Play.
+        -->
         <footer class="home-foot">
-          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false">
+          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false" data-i18n="howToPlay">
             How to play
           </button>
-          <button class="btn btn-ghost" data-action="sound" type="button" aria-pressed="true">
-            <span class="sound-label">Sound on</span>
-          </button>
-          <!-- Same look, different coat of paint. The label names the skin that
-               is on, not the one the tap would switch to. -->
-          <button class="btn btn-ghost" data-action="skin" type="button">
-            Skin: <span class="skin-label">Jewel</span>
+          <button class="btn btn-ghost" id="open-settings" type="button" data-i18n="settings">
+            Settings
           </button>
         </footer>
       </section>
@@ -121,25 +121,25 @@
       <!-- ---------------------------------------------------------------- -->
       <section class="screen shop" id="screen-shop" hidden>
         <header class="shop-head">
-          <button class="btn btn-ghost" id="shop-back" type="button">Back</button>
-          <h2>Shop</h2>
+          <button class="btn btn-ghost" id="shop-back" type="button" data-i18n="back">Back</button>
+          <h2 data-i18n="shopTitle">Shop</h2>
           <span class="wallet-coins">
             <span class="coin" aria-hidden="true"></span>
             <strong class="wallet-value" id="shop-coins">0</strong>
           </span>
         </header>
 
-        <p class="shop-note">
-          Coins come from finishing runs. Items bought here are yours to keep &mdash; you choose
-          which to carry in when you press Play.
+        <p class="shop-note" data-i18n="shopNote">
+          Coins come from finishing runs. Items bought here are yours to keep — you choose which
+          to carry in when you press Play.
         </p>
 
         <ul class="shop-list" id="shop-list">
           <li class="shop-row" data-shop="hammer">
             <span class="item-art item-hammer" aria-hidden="true"></span>
             <span class="shop-text">
-              <strong class="shop-name">Hammer</strong>
-              <span class="shop-desc">Smash any one gem.</span>
+              <strong class="shop-name" data-i18n="itemHammer">Hammer</strong>
+              <span class="shop-desc" data-i18n="itemHammerShop">Smash any one gem.</span>
             </span>
             <span class="shop-owned" data-owned="hammer">0</span>
             <button class="btn btn-primary shop-buy" data-buy="hammer" type="button">
@@ -149,8 +149,8 @@
           <li class="shop-row" data-shop="rocket">
             <span class="item-art item-rocket" aria-hidden="true"></span>
             <span class="shop-text">
-              <strong class="shop-name">Rocket</strong>
-              <span class="shop-desc">Clear a whole row.</span>
+              <strong class="shop-name" data-i18n="itemRocket">Rocket</strong>
+              <span class="shop-desc" data-i18n="itemRocketShop">Clear a whole row.</span>
             </span>
             <span class="shop-owned" data-owned="rocket">0</span>
             <button class="btn btn-primary shop-buy" data-buy="rocket" type="button">
@@ -160,8 +160,8 @@
           <li class="shop-row" data-shop="bomb">
             <span class="item-art item-bomb" aria-hidden="true"></span>
             <span class="shop-text">
-              <strong class="shop-name">Bomb</strong>
-              <span class="shop-desc">Blow up the square around a gem.</span>
+              <strong class="shop-name" data-i18n="itemBomb">Bomb</strong>
+              <span class="shop-desc" data-i18n="itemBombShop">Blow up the square around a gem.</span>
             </span>
             <span class="shop-owned" data-owned="bomb">0</span>
             <button class="btn btn-primary shop-buy" data-buy="bomb" type="button">
@@ -170,34 +170,34 @@
           </li>
         </ul>
 
-        <h3 class="shop-sub">Coin packs</h3>
+        <h3 class="shop-sub" data-i18n="shopPacks">Coin packs</h3>
         <!--
           Nothing here charges anybody — see src/packs.ts. The note says so out
           loud rather than in a tooltip, because a storefront that looks real
           and is not is the one thing on this screen that could mislead.
         -->
-        <p class="shop-note shop-note-demo">
-          Prototype checkout. No payment is taken and nothing is charged &mdash; Buy adds the
-          coins so the price ladder can be judged.
+        <p class="shop-note shop-note-demo" data-i18n="shopDemoNote">
+          Prototype checkout. No payment is taken and nothing is charged — Buy adds the coins so
+          the price ladder can be judged.
         </p>
         <ul class="packs" id="packs"></ul>
 
         <p class="shop-status" id="shop-status" role="status"></p>
 
-        <p class="shop-foot">
-          A run pays out for the score it reached and every level it cleared.
-          Items you carry in are spent whether the run uses them or not.
+        <p class="shop-foot" data-i18n="shopFoot">
+          A run pays out for the score it reached and every level it cleared. Items you carry in
+          are spent whether the run uses them or not.
         </p>
       </section>
 
       <section class="screen game" id="screen-game" hidden>
         <section class="stats" aria-live="polite">
           <div class="stat stat-primary">
-            <span class="stat-label">Score</span>
+            <span class="stat-label" data-i18n="statScore">Score</span>
             <strong class="stat-value" id="score">0</strong>
           </div>
           <div class="stat">
-            <span class="stat-label">Moves</span>
+            <span class="stat-label" data-i18n="statMoves">Moves</span>
             <strong class="stat-value" id="moves">25</strong>
           </div>
           <div class="stat">
@@ -209,7 +209,7 @@
             carry — leaving, the rules, sound, the seed — is behind it, because
             none of it belongs on screen while a gem is being dragged.
           -->
-          <button class="pause" id="pause" type="button" aria-label="Pause">
+          <button class="pause" id="pause" type="button" aria-label="Pause" data-i18n-attr="aria-label:pauseAria">
             <span class="pause-bars" aria-hidden="true"></span>
           </button>
         </section>
@@ -242,23 +242,23 @@
         <section class="rotate" id="rotate" role="alert" aria-live="assertive">
           <div class="rotate-card">
             <span class="rotate-icon" aria-hidden="true"></span>
-            <h2>Turn your phone upright</h2>
-            <p>
+            <h2 data-i18n="rotateTitle">Turn your phone upright</h2>
+            <p data-i18n="rotateBody">
               The board is nine rows tall. On a phone lying down there is no way to fit that
               without shrinking the gems past a comfortable tap.
             </p>
-            <button class="btn" id="rotate-dismiss" type="button">Play anyway</button>
+            <button class="btn" id="rotate-dismiss" type="button" data-i18n="rotateDismiss">Play anyway</button>
           </div>
         </section>
 
         <div class="stage">
           <div class="board-wrap">
-            <canvas id="board" aria-label="Game board"></canvas>
+            <canvas id="board" aria-label="Game board" data-i18n-attr="aria-label:boardAria"></canvas>
             <!-- Announced politely: a chain is feedback, not something a
                  screen-reader user needs interrupting their move. -->
             <div class="combo" id="combo" aria-live="polite" hidden>
               <span class="combo-x" id="combo-x">&times;2</span>
-              <span class="combo-word">chain</span>
+              <span class="combo-word" data-i18n="chain">chain</span>
             </div>
           </div>
         </div>
@@ -268,20 +268,20 @@
           playing, not part of the chrome, and a thumb reaching the board can
           reach it without crossing anything else.
         -->
-        <div class="items" id="items" role="group" aria-label="Items">
+        <div class="items" id="items" role="group" aria-label="Items" data-i18n-attr="aria-label:itemsAria">
           <button class="item" data-item="hammer" type="button" aria-pressed="false" disabled>
             <span class="item-art item-hammer" aria-hidden="true"></span>
-            <span class="item-name">Hammer</span>
+            <span class="item-name" data-i18n="itemHammer">Hammer</span>
             <span class="item-count" data-count="hammer">0</span>
           </button>
           <button class="item" data-item="rocket" type="button" aria-pressed="false" disabled>
             <span class="item-art item-rocket" aria-hidden="true"></span>
-            <span class="item-name">Rocket</span>
+            <span class="item-name" data-i18n="itemRocket">Rocket</span>
             <span class="item-count" data-count="rocket">0</span>
           </button>
           <button class="item" data-item="bomb" type="button" aria-pressed="false" disabled>
             <span class="item-art item-bomb" aria-hidden="true"></span>
-            <span class="item-name">Bomb</span>
+            <span class="item-name" data-i18n="itemBomb">Bomb</span>
             <span class="item-count" data-count="bomb">0</span>
           </button>
         </div>
@@ -291,19 +291,18 @@
 
       <section class="help" id="help" hidden>
         <ul>
-          <li><b>Swap</b> two neighbouring gems to line up three or more of a colour.</li>
-          <li>Every colour has its own shape, so the board reads without relying on hue.</li>
-          <li><b>Four in a row</b> leaves a striped gem that clears its whole line.</li>
-          <li><b>An L or T</b> leaves a bomb that clears the surrounding 3&times;3.</li>
-          <li>
-            <b>Five in a line</b> leaves a prism — swap it onto any colour to wipe that colour off
-            the board.
+          <li data-i18n="helpSwap">Swap two neighbouring gems to line up three or more of a colour.</li>
+          <li data-i18n="helpShapes">Every colour has its own shape, so the board reads without relying on hue.</li>
+          <li data-i18n="helpFour">Four in a row leaves a striped gem that clears its whole line.</li>
+          <li data-i18n="helpLT">An L or T leaves a bomb that clears the surrounding 3×3.</li>
+          <li data-i18n="helpFive">
+            Five in a line leaves a prism — swap it onto any colour to wipe that colour off the
+            board.
           </li>
-          <li>Cascades multiply your score, up to &times;8.</li>
-          <li>
-            <b>Finish a level</b> to earn an item, and land a &times;5 chain for a bomb. Items
-            cost no move &mdash; and they are earned fresh every run, so the board is the same
-            climb for everyone.
+          <li data-i18n="helpCascade">Cascades multiply your score, up to ×8.</li>
+          <li data-i18n="helpItems">
+            Finish a level to earn an item, and land a ×5 chain for a bomb. Items cost no move —
+            and they are earned fresh every run, so the board is the same climb for everyone.
           </li>
         </ul>
       </section>
@@ -318,12 +317,12 @@
     <div class="overlay sheet" id="sheet-profile" hidden>
       <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-profile-title">
         <span class="sheet-handle" aria-hidden="true"></span>
-        <h2 class="sheet-title" id="sheet-profile-title">Your profile</h2>
+        <h2 class="sheet-title" id="sheet-profile-title" data-i18n="profileTitle">Your profile</h2>
 
         <div class="editor">
           <canvas class="editor-preview" id="profile-preview" aria-hidden="true"></canvas>
           <label class="editor-name">
-            <span class="sr-only">Display name</span>
+            <span class="sr-only" data-i18n="displayName">Display name</span>
             <input
               class="post-input"
               id="profile-name-input"
@@ -331,6 +330,7 @@
               maxlength="16"
               autocomplete="nickname"
               placeholder="Your name"
+              data-i18n-attr="placeholder:namePlaceholder"
               enterkeyhint="done"
             />
           </label>
@@ -338,7 +338,7 @@
 
         <!-- Filled from the part catalogue, so adding a hairstyle is a data
              edit rather than a markup one. -->
-        <div class="profile-tabs" id="profile-tabs" role="tablist" aria-label="What to change"></div>
+        <div class="profile-tabs" id="profile-tabs" role="tablist" aria-label="What to change" data-i18n-attr="aria-label:whatToChange"></div>
         <div class="profile-options" id="profile-options"></div>
 
         <p class="sheet-sub" id="account-sub">Sign in to keep your runs across devices</p>
@@ -353,13 +353,58 @@
       The board, over the launch screen rather than on it. It was the tallest
       thing on that screen and the one a player looks at least often.
     -->
+    <!--
+      Settings. The language list is first because it is the one thing here a
+      player may need before they can read anything else on the screen, and it
+      is spelled in its own language for the same reason: somebody who has
+      landed in the wrong one cannot find their way out of a list written in it.
+    -->
+    <div class="overlay sheet" id="sheet-settings" hidden>
+      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-settings-title">
+        <span class="sheet-handle" aria-hidden="true"></span>
+        <h2 class="sheet-title" id="sheet-settings-title" data-i18n="settingsTitle">Settings</h2>
+
+        <section class="set-group" aria-labelledby="set-lang-title">
+          <h3 class="set-title" id="set-lang-title" data-i18n="settingsLanguage">Language</h3>
+          <div class="set-langs" id="set-langs" role="radiogroup" aria-labelledby="set-lang-title"></div>
+        </section>
+
+        <section class="set-group" aria-labelledby="set-skin-title">
+          <h3 class="set-title" id="set-skin-title" data-i18n="settingsSkin">Board style</h3>
+          <p class="set-sub" data-i18n="settingsSkinSub">The same game in a different coat of paint</p>
+          <div class="set-skins" id="set-skins" role="radiogroup" aria-labelledby="set-skin-title"></div>
+        </section>
+
+        <section class="set-group">
+          <button class="set-row" id="set-sound" type="button" role="switch" aria-checked="true">
+            <span class="set-row-text">
+              <strong class="set-row-name" data-i18n="settingsSound">Sound</strong>
+              <span class="set-row-sub" data-i18n="settingsSoundSub">Effects while you play</span>
+            </span>
+            <span class="set-switch" aria-hidden="true"></span>
+          </button>
+          <button class="set-row" id="set-haptics" type="button" role="switch" aria-checked="true">
+            <span class="set-row-text">
+              <strong class="set-row-name" data-i18n="settingsHaptics">Vibration</strong>
+              <span class="set-row-sub" id="set-haptics-sub"></span>
+            </span>
+            <span class="set-switch" aria-hidden="true"></span>
+          </button>
+        </section>
+
+        <button class="btn btn-primary sheet-cta" id="settings-done" type="button" data-i18n="settingsDone">
+          Done
+        </button>
+      </div>
+    </div>
+
     <div class="overlay sheet" id="sheet-ranks" hidden>
       <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="ranks-title">
         <span class="sheet-handle" aria-hidden="true"></span>
         <section class="ranks">
 
           <header class="ranks-head">
-            <h2 class="sr-only" id="ranks-title">Leaderboard</h2>
+            <h2 class="sr-only" id="ranks-title" data-i18n="leaderboard">Leaderboard</h2>
             <!--
               Two boards, not two screens. A friends board on its own page is a
               page nobody opens; next to the global one it is a comparison, which
@@ -372,6 +417,7 @@
                 type="button"
                 role="tab"
                 aria-selected="true"
+                data-i18n="tabEveryone"
               >
                 Everyone
               </button>
@@ -381,6 +427,7 @@
                 type="button"
                 role="tab"
                 aria-selected="false"
+                data-i18n="tabFriends"
               >
                 Friends
               </button>
@@ -391,8 +438,8 @@
           <!-- Only on the friends tab: your code to hand out, and a box to
                take one in. -->
           <div class="friends-tools" id="friends-tools" hidden>
-            <button class="code-chip" id="my-code" type="button" title="Copy your friend code">
-              <span class="code-label">Your code</span>
+            <button class="code-chip" id="my-code" type="button" title="Copy your friend code" data-i18n-attr="title:copyCode">
+              <span class="code-label" data-i18n="myCode">Your code</span>
               <strong class="code-value" id="my-code-value">&mdash;&mdash;&mdash;</strong>
             </button>
             <form class="friend-add" id="friend-add">
@@ -405,9 +452,10 @@
                 autocapitalize="characters"
                 spellcheck="false"
                 placeholder="Friend code"
+                data-i18n-attr="placeholder:friendCodePlaceholder"
                 enterkeyhint="done"
               />
-              <button class="btn btn-primary" id="friend-submit" type="submit">Add</button>
+              <button class="btn btn-primary" id="friend-submit" type="submit" data-i18n="addFriend">Add</button>
             </form>
             <p class="friend-status" id="friend-status" role="status"></p>
           </div>
@@ -426,7 +474,7 @@
     <div class="overlay sheet" id="sheet-today" hidden>
       <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-today-title">
         <span class="sheet-handle" aria-hidden="true"></span>
-        <h2 class="sheet-title" id="sheet-today-title">Today</h2>
+        <h2 class="sheet-title" id="sheet-today-title" data-i18n="todayTitle">Today</h2>
 
         <button class="daily" id="daily-claim" type="button">
           <span class="daily-gift" aria-hidden="true"></span>
@@ -447,18 +495,18 @@
     -->
     <div class="overlay" id="paused" hidden>
       <div class="card" role="dialog" aria-modal="true" aria-labelledby="paused-title">
-        <p class="card-kicker">Paused</p>
+        <p class="card-kicker" data-i18n="paused">Paused</p>
         <h2 id="paused-title">Level 1</h2>
         <p class="card-body" id="paused-body"></p>
 
-        <button class="btn btn-primary" id="paused-resume" type="button">Resume</button>
+        <button class="btn btn-primary" id="paused-resume" type="button" data-i18n="resume">Resume</button>
         <!--
           Two ways out, and they are genuinely different. Keeping puts the run
           down where it stands; ending it banks the score and pays the run out,
           which is what leaving used to do silently and badly.
         -->
-        <button class="btn" id="paused-keep" type="button">Keep for later</button>
-        <button class="btn" id="paused-end" type="button">End run now</button>
+        <button class="btn" id="paused-keep" type="button" data-i18n="keepForLater">Keep for later</button>
+        <button class="btn" id="paused-end" type="button" data-i18n="endRunNow">End run now</button>
 
         <div class="paused-tools">
           <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false">
@@ -474,34 +522,34 @@
 
     <div class="overlay" id="loadout" hidden>
       <div class="card" role="dialog" aria-modal="true" aria-labelledby="loadout-title">
-        <p class="card-kicker">Before you start</p>
-        <h2 id="loadout-title">Take anything in?</h2>
-        <p class="card-body" id="loadout-body">Pick up to two. They start in your tray.</p>
+        <p class="card-kicker" data-i18n="beforeYouStart">Before you start</p>
+        <h2 id="loadout-title" data-i18n="loadoutTitle">Take anything in?</h2>
+        <p class="card-body" id="loadout-body" data-i18n="loadoutBody">Pick up to two. They start in your tray.</p>
 
         <div class="loadout-grid" id="loadout-grid">
           <button class="loadout-pick" data-load="hammer" type="button" aria-pressed="false">
             <span class="item-art item-hammer" aria-hidden="true"></span>
-            <span class="loadout-name">Hammer</span>
+            <span class="loadout-name" data-i18n="itemHammer">Hammer</span>
             <span class="loadout-have" data-have="hammer">0</span>
           </button>
           <button class="loadout-pick" data-load="rocket" type="button" aria-pressed="false">
             <span class="item-art item-rocket" aria-hidden="true"></span>
-            <span class="loadout-name">Rocket</span>
+            <span class="loadout-name" data-i18n="itemRocket">Rocket</span>
             <span class="loadout-have" data-have="rocket">0</span>
           </button>
           <button class="loadout-pick" data-load="bomb" type="button" aria-pressed="false">
             <span class="item-art item-bomb" aria-hidden="true"></span>
-            <span class="loadout-name">Bomb</span>
+            <span class="loadout-name" data-i18n="itemBomb">Bomb</span>
             <span class="loadout-have" data-have="bomb">0</span>
           </button>
         </div>
 
-        <p class="loadout-empty" id="loadout-empty" hidden>
-          Nothing in the stash yet &mdash; finish a run to earn coins, then visit the shop.
+        <p class="loadout-empty" id="loadout-empty" data-i18n="loadoutEmpty" hidden>
+          Nothing in the bag yet. The shop sells them, and finishing a level earns one.
         </p>
 
-        <button class="btn btn-primary" id="loadout-start" type="button">Start run</button>
-        <button class="btn btn-ghost" id="loadout-cancel" type="button">Back</button>
+        <button class="btn btn-primary" id="loadout-start" type="button" data-i18n="loadoutStart">Start run</button>
+        <button class="btn btn-ghost" id="loadout-cancel" type="button" data-i18n="back">Back</button>
       </div>
     </div>
 
@@ -518,7 +566,7 @@
 
         <!-- Only shown when a finished run can be posted to the board. -->
         <form class="post-run" id="post-run" hidden>
-          <label class="post-label" for="post-name">Post this run</label>
+          <label class="post-label" for="post-name" data-i18n="postThisRun">Post this run</label>
           <div class="post-row">
             <input
               class="post-input"
@@ -527,15 +575,16 @@
               maxlength="16"
               autocomplete="nickname"
               placeholder="Your name"
+              data-i18n-attr="placeholder:namePlaceholder"
               enterkeyhint="send"
             />
-            <button class="btn btn-primary" id="post-submit" type="submit">Post</button>
+            <button class="btn btn-primary" id="post-submit" type="submit" data-i18n="postScore">Post</button>
           </div>
           <p class="post-status" id="post-status" role="status"></p>
         </form>
 
         <button class="btn btn-primary" id="overlay-action" type="button"></button>
-        <button class="btn btn-ghost" id="overlay-home" type="button" hidden>Back to home</button>
+        <button class="btn btn-ghost" id="overlay-home" type="button" data-i18n="backToHome" hidden>Back to home</button>
       </div>
     </div>
 

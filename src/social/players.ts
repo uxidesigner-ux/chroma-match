@@ -4,7 +4,9 @@ import type { LeaderboardEntry } from '../leaderboard/types.ts'
 import type { RunRecord } from '../game/replay.ts'
 import { codeFor, normaliseCode } from './code.ts'
 import { SPEC_MAX, decodeSpec } from '../avatar/spec.ts'
+import { myAvatarCode } from '../avatar/store.ts'
 import type { AvatarSpec } from '../avatar/spec.ts'
+import { t } from '../i18n/index.ts'
 
 /**
  * Who a player is to their friends, who their friends are, and their best run.
@@ -89,8 +91,21 @@ function toPlayer(data: Record<string, unknown>): Player | null {
   }
 }
 
-/** Writes the player's own profile, creating it the first time. */
-export async function publishProfile(name: string, photo: string, avatar = ''): Promise<void> {
+/**
+ * Writes the player's own profile, creating it the first time.
+ *
+ * The avatar is read here rather than passed in, and that is the whole point.
+ * It used to be a third argument defaulting to the empty string, with the
+ * write skipped when it was empty — so the three calls from the profile editor,
+ * which did not pass it, wrote a name and no face. The effect was that editing
+ * your avatar changed nothing your friends could see until you happened to post
+ * a score, because the one caller that passed it was the one that posts runs.
+ *
+ * An argument a caller can forget is a bug waiting for the next caller. There
+ * is exactly one avatar this device plays as, this function can read it, and
+ * now every write carries it.
+ */
+export async function publishProfile(name: string, photo: string): Promise<void> {
   const { db } = await session()
   const uid = await currentUid()
   const { doc, setDoc } = await import('firebase/firestore')
@@ -101,7 +116,7 @@ export async function publishProfile(name: string, photo: string, avatar = ''): 
       name: cleanName(name) || 'Anonymous',
       code: codeFor(uid),
       photo: photo.slice(0, 300),
-      ...(avatar ? { avatar: avatar.slice(0, SPEC_MAX) } : {}),
+      avatar: myAvatarCode().slice(0, SPEC_MAX),
     },
     { merge: true },
   )
@@ -151,11 +166,11 @@ export interface AddResult {
  */
 export async function addFriendByCode(raw: string): Promise<AddResult> {
   const code = normaliseCode(raw)
-  if (!code) return { ok: false, reason: 'That is not a friend code.' }
+  if (!code) return { ok: false, reason: t('friendNotACode') }
 
   const { db } = await session()
   const me = await currentUid()
-  if (code === codeFor(me)) return { ok: false, reason: 'That is your own code.' }
+  if (code === codeFor(me)) return { ok: false, reason: t('friendOwnCode') }
 
   const { arrayUnion, collection, doc, getDocs, limit, query, setDoc, where } = await import(
     'firebase/firestore'
@@ -163,17 +178,17 @@ export async function addFriendByCode(raw: string): Promise<AddResult> {
   const snapshot = await getDocs(
     query(collection(db, 'players'), where('code', '==', code), limit(2)),
   )
-  if (snapshot.size !== 1) return { ok: false, reason: 'Nobody is using that code.' }
+  if (snapshot.size !== 1) return { ok: false, reason: t('friendNoMatch') }
 
   const player = toPlayer(snapshot.docs[0]?.data() ?? {})
   // The stored code is what the query matched, but the uid is what gets
   // followed — so it is checked against the code it claims before being used.
-  if (!player || player.code !== code) return { ok: false, reason: 'Nobody is using that code.' }
+  if (!player || player.code !== code) return { ok: false, reason: t('friendNoMatch') }
 
   const held = await friendUids()
   if (held.includes(player.uid)) return { ok: true, player }
   if (held.length >= FRIEND_LIMIT) {
-    return { ok: false, reason: `You can follow ${FRIEND_LIMIT} friends at most.` }
+    return { ok: false, reason: t('friendLimit', { limit: FRIEND_LIMIT }) }
   }
 
   await setDoc(doc(db, 'players', me), { uid: me, friends: arrayUnion(player.uid) }, { merge: true })

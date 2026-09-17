@@ -1,6 +1,7 @@
 import { ITEMS } from '../game/items.ts'
 import type { Item } from '../game/items.ts'
 import { BOOSTER_LIMIT, stash, totalStashed } from '../meta.ts'
+import { t } from '../i18n/index.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -73,7 +74,7 @@ export class Loadout {
         : room > 0
           ? `${this.picked.length} picked — room for ${room} more.`
           : `${this.picked.length} picked. That is the limit.`
-    this.start.textContent = this.picked.length > 0 ? 'Start run' : 'Start with nothing'
+    this.start.textContent = this.picked.length > 0 ? t('loadoutStart') : t('loadoutStartEmpty')
   }
 
   show(onStart: (picked: Item[]) => void): void {

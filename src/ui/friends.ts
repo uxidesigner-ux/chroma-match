@@ -2,6 +2,7 @@ import { account, onAccount } from '../leaderboard/session.ts'
 import { codeFor } from '../social/code.ts'
 import { addFriendByCode, boardFrom, friendUids, playersByUid } from '../social/players.ts'
 import type { LeaderboardEntry } from '../leaderboard/types.ts'
+import { t } from '../i18n/index.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -59,7 +60,7 @@ export class FriendsPanel {
     this.chip.disabled = !signedIn
     this.input.disabled = !signedIn
     this.submit.disabled = !signedIn
-    if (!signedIn) this.setStatus('Sign in to get a code and add friends.', null)
+    if (!signedIn) this.setStatus(t('friendsSignInFirst'), null)
   }
 
   private setStatus(text: string, tone: 'is-ok' | 'is-error' | null): void {
@@ -99,18 +100,18 @@ export class FriendsPanel {
     const typed = this.input.value
     if (!typed.trim()) return
     this.submit.disabled = true
-    this.setStatus('Looking…', null)
+    this.setStatus(t('friendLooking'), null)
     try {
       const result = await addFriendByCode(typed)
       if (!result.ok) {
-        this.setStatus(result.reason ?? 'That did not work.', 'is-error')
+        this.setStatus(result.reason ?? t('friendFailed'), 'is-error')
         return
       }
       this.input.value = ''
-      this.setStatus(`${result.player?.name ?? 'Added'} is on your board.`, 'is-ok')
+      this.setStatus(t('friendAdded', { name: result.player?.name ?? t('anonymous') }), 'is-ok')
       for (const listener of this.listeners) listener()
     } catch {
-      this.setStatus('Could not reach the server.', 'is-error')
+      this.setStatus(t('friendUnreachable'), 'is-error')
     } finally {
       this.submit.disabled = account()?.kind !== 'google'
     }
@@ -126,9 +127,9 @@ export class FriendsPanel {
    */
   async board(): Promise<FriendsBoard> {
     const current = account()
-    if (!current) return { entries: [], label: 'Offline' }
+    if (!current) return { entries: [], label: t('friendsOffline') }
     if (current.kind !== 'google') {
-      return { entries: [], label: 'Sign in to compare with friends' }
+      return { entries: [], label: t('friendsSignIn') }
     }
     try {
       const friends = await friendUids()
@@ -136,10 +137,15 @@ export class FriendsPanel {
       const count = friends.length
       return {
         entries: boardFrom(players, current.uid),
-        label: count === 0 ? 'Just you so far' : `You and ${count} friend${count === 1 ? '' : 's'}`,
+        label:
+          count === 0
+            ? t('friendsJustYou')
+            : count === 1
+              ? t('friendsCountOne')
+              : t('friendsCount', { count }),
       }
     } catch {
-      return { entries: [], label: 'Friends unavailable' }
+      return { entries: [], label: t('friendsUnavailable') }
     }
   }
 }

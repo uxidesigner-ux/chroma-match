@@ -3,6 +3,14 @@ import type { DailyState } from '../daily.ts'
 import { claimMission, todayMissions } from '../missions.ts'
 import type { MissionKind, MissionState } from '../missions.ts'
 import { Sheet } from './sheet.ts'
+import { n, t } from '../i18n/index.ts'
+
+/** An item's name in the current language, for the daily card's sentence. */
+function itemName(item: string): string {
+  if (item === 'hammer') return t('itemHammer')
+  if (item === 'rocket') return t('itemRocket')
+  return t('itemBomb')
+}
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -12,12 +20,12 @@ function el<T extends HTMLElement>(id: string): T {
 
 /** What each mission asks for, in the fewest words that are still specific. */
 const ASK: Record<MissionKind, (need: number) => string> = {
-  score: (need) => `Score ${need.toLocaleString()} in one run`,
-  gems: (need) => `Clear ${need} gems today`,
-  chain: (need) => `Land a ×${need} chain`,
-  power: (need) => `Make ${need} power gems`,
-  item: (need) => `Spend ${need} items`,
-  level: (need) => `Reach level ${need} in one run`,
+  score: (need) => t('missionScore', { need: n(need) }),
+  gems: (need) => t('missionGems', { need }),
+  chain: (need) => t('missionChain', { need }),
+  power: (need) => t('missionPower', { need }),
+  item: (need) => t('missionItem', { need }),
+  level: (need) => t('missionLevel', { need }),
 }
 
 /**
@@ -89,17 +97,17 @@ export class TodayPanel {
   private paintDaily(state: DailyState): void {
     const last = DAILY_REWARDS.length
     this.dailyName.textContent = state.available
-      ? `Day ${state.day} reward`
-      : `Day ${state.day} claimed`
+      ? t('dailyReward', { day: state.day })
+      : t('dailyClaimed', { day: state.day })
 
-    const item = state.reward.item ? ` and a ${state.reward.item}` : ''
+    const item = state.reward.item ? t('dailyAndItem', { item: itemName(state.reward.item) }) : ''
     this.dailySub.textContent = state.available
-      ? `${state.reward.coins} coins${item}${state.day === last ? ' — full week' : ''}`
-      : `Streak ${state.streak} · come back tomorrow for day ${(state.day % last) + 1}`
+      ? t(state.day === last ? 'dailySubFull' : 'dailySub', { coins: state.reward.coins, item })
+      : t('dailyBack', { streak: state.streak, next: (state.day % last) + 1 })
 
     this.daily.disabled = !state.available
     this.daily.classList.toggle('is-ready', state.available)
-    this.dailyTake.textContent = state.available ? 'Claim' : '✓'
+    this.dailyTake.textContent = state.available ? t('claim') : '✓'
   }
 
   private paintMissions(missions: readonly MissionState[]): void {
@@ -117,7 +125,7 @@ export class TodayPanel {
       ask.textContent = ASK[mission.kind](mission.need)
       const count = document.createElement('span')
       count.className = 'mission-count'
-      count.textContent = `${mission.progress.toLocaleString()} / ${mission.need.toLocaleString()}`
+      count.textContent = `${n(mission.progress)} / ${n(mission.need)}`
       text.append(ask, count)
 
       const bar = document.createElement('span')
