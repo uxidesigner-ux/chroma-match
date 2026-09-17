@@ -190,40 +190,62 @@ float hairline(vec3 q, float lift) {
   // line straight across the forehead, which is the one thing a hairline never
   // is; the x-squared term drops it at the temples, where hair really does
   // come down further than it does in the middle.
-  return (0.005 + lift) + 0.534 * q.z - 1.7 * q.x * q.x - q.y;
+  // The x-squared term is what drops the line at the temples, and it has a
+  // narrow window. At 1.7 it fell so steeply that what was left in the middle
+  // stood up as a point — a widow's peak nobody asked for. At 0.7 it barely
+  // fell at all and bare skull showed through beside the ear. 1.25 comes from
+  // the two places it has to be right: hair down to q.y = 0 at the temple
+  // (q.x = 0.28, q.z = 0.15), and down to -0.13 at the side of the head.
+  // The intercept sets how much forehead shows. At 0.02 the line sat just
+  // above the eyes and every style read as a bowl cut; 0.075 leaves the brow
+  // the reference leaves.
+  return (0.075 + lift) + 0.534 * q.z - 1.25 * q.x * q.x - q.y;
 }
 
 float hairField(vec3 p) {
   if (uStyle == 0) return 1e5;
   vec3 q = p - vec3(0.0, HEAD_Y, 0.0);
-  // A shell standing 0.04 proud of the skull all round. The skull's half
-  // extents are (0.30, 0.34, 0.29); a cap the same size as that is a cap that
-  // never surfaces.
-  float cap = sdEllipsoid(q - vec3(0.0, 0.045, -0.015), vec3(0.345, 0.375, 0.335));
+  // The cap is the skull's own field inflated by a constant, plus a volume on
+  // top of it.
+  //
+  // Inflating the shape hair actually sits on is the only construction that
+  // cannot leave scalp showing: a shell of uniform thickness follows every
+  // curve of the head by definition. Two attempts at fitting an ellipsoid over
+  // it failed the same way — tuned to cover the crown it exposed the temple,
+  // tuned to cover the temple it swallowed the brow — because an ellipsoid and
+  // a rounded box simply are not the same shape, and the gap between them
+  // moves as you resize either one.
+  //
+  // The crown on top is where the bulk is. Hair has thickness and most of it
+  // is above the head, which is what the first version, a shell 0.04 proud all
+  // round, read as a swimming cap for missing.
+  float scalp = sdRoundBox(q, HEAD_BOX, HEAD_R + 0.07);
+  float crown = sdEllipsoid(q - vec3(0.0, 0.13, -0.02), vec3(0.335, 0.355, 0.325));
+  float cap = smin(scalp, crown, 0.09);
   float d;
 
   if (uStyle == 1) {          // buzz — close to the skull, cut at the brow
-    d = max(sdEllipsoid(q - vec3(0.0, 0.035, -0.015), vec3(0.330, 0.360, 0.320)), hairline(q, -0.06));
+    d = max(sdRoundBox(q, HEAD_BOX, HEAD_R + 0.028), hairline(q, -0.06));
   } else if (uStyle == 2) {   // crop — swept across, heavier on one side
     d = max(cap, hairline(q, -0.02));
     d = smin(d, sdEllipsoid(q - vec3(-0.09, 0.23, 0.08), vec3(0.23, 0.12, 0.22)), 0.13);
     d = smin(d, sdEllipsoid(q - vec3(0.14, 0.18, 0.12), vec3(0.17, 0.10, 0.17)), 0.13);
   } else if (uStyle == 3) {   // curls — lumps, which is the entire read
     d = max(cap, hairline(q, 0.02));
-    d = smin(d, sdSphere(q - vec3(-0.19, 0.25, 0.05), 0.14), 0.045);
-    d = smin(d, sdSphere(q - vec3(0.02, 0.34, 0.01), 0.15), 0.045);
-    d = smin(d, sdSphere(q - vec3(0.21, 0.24, 0.06), 0.135), 0.045);
-    d = smin(d, sdSphere(q - vec3(-0.26, 0.08, -0.02), 0.12), 0.045);
-    d = smin(d, sdSphere(q - vec3(0.27, 0.07, -0.01), 0.115), 0.045);
-    d = smin(d, sdSphere(q - vec3(0.0, 0.20, -0.25), 0.15), 0.045);
+    d = smin(d, sdSphere(q - vec3(-0.20, 0.28, 0.05), 0.15), 0.045);
+    d = smin(d, sdSphere(q - vec3(0.02, 0.38, 0.01), 0.16), 0.045);
+    d = smin(d, sdSphere(q - vec3(0.22, 0.27, 0.06), 0.145), 0.045);
+    d = smin(d, sdSphere(q - vec3(-0.28, 0.11, -0.02), 0.13), 0.045);
+    d = smin(d, sdSphere(q - vec3(0.29, 0.10, -0.01), 0.125), 0.045);
+    d = smin(d, sdSphere(q - vec3(0.0, 0.23, -0.26), 0.16), 0.045);
   } else if (uStyle == 4) {   // bun — tied up and back
     d = max(cap, hairline(q, 0.0));
-    d = smin(d, sdEllipsoid(q - vec3(0.0, 0.42, -0.17), vec3(0.15, 0.14, 0.13)), 0.055);
+    d = smin(d, sdEllipsoid(q - vec3(0.0, 0.46, -0.18), vec3(0.16, 0.15, 0.14)), 0.055);
   } else {                    // bob, long, wave — lengths down the sides
     float drop = uStyle == 5 ? -0.40 : (uStyle == 6 ? -0.95 : -0.90);
     d = max(cap, hairline(q, -0.03));
-    vec3 s = vec3(abs(q.x) - 0.275, q.y, q.z);
-    float side = sdCapsule(s, vec3(0.0, 0.14, -0.05), vec3(0.0, drop, -0.05), 0.12);
+    vec3 s = vec3(abs(q.x) - 0.285, q.y, q.z);
+    float side = sdCapsule(s, vec3(0.0, 0.14, -0.05), vec3(0.0, drop, -0.05), 0.132);
     if (uStyle == 7) {
       side = smin(side, sdEllipsoid(s - vec3(0.03, drop * 0.45, -0.03),
                                     vec3(0.13, 0.17, 0.13)), 0.09);
@@ -231,7 +253,7 @@ float hairField(vec3 p) {
                                     vec3(0.115, 0.15, 0.115)), 0.09);
     }
     // The back of the head, so the lengths are one mass rather than two ropes.
-    d = smin(d, sdEllipsoid(q - vec3(0.0, -0.04, -0.15), vec3(0.30, 0.30, 0.25)), 0.07);
+    d = smin(d, sdEllipsoid(q - vec3(0.0, -0.03, -0.16), vec3(0.325, 0.325, 0.27)), 0.07);
     d = smin(d, side, 0.06);
   }
   return d;
