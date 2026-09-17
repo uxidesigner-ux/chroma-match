@@ -269,16 +269,24 @@ a submission that spends a bomb it never earned fails on that action.
 **A detonation is telegraphed before it lands.** A power gem used to take its
 row on the same frame it went off, which reads as the board losing a row rather
 than as the player firing something. There is a 150ms strike phase first, during
-which nothing is removed — the gems are all still there for the shot to cross,
-because a wind-up against an empty row is not a wind-up. A line clearer fires a
-beam from the gem out to both walls, a bomb and a prism throw a shockwave, and an
-item aimed by hand does the same. Only detonations get one: a plain three already
-pops well, and a wind-up on every match would slow the whole game down to dress
-up its most ordinary event.
+which nothing is removed — the gems are all still there to be hit, because a
+wind-up against an empty row is not a wind-up. Only detonations get one: a plain
+three already pops well, and a wind-up on every match would slow the whole game
+down to dress up its most ordinary event.
 
-Each beam is a thin bright core with light spilling off it, in the gem's own
-colour so the board says which gem fired, over a core taken from the skin so it
-reads on a cream sheet as well as on black.
+**Every blast fires at the cells it is about to take, one bolt each, all at
+once.** The first version drew an expanding ring for anything that was not a
+line, which was a picture of a blast rather than the blast: it swept over gems
+that were not going anywhere and said nothing about which ones were. The bolts
+cannot be wrong about that, because the rules hand the renderer the same list
+they are about to clear. They all leave at one speed, so near cells are hit
+first and far ones a moment later — that stagger is what separates a volley
+from a starburst.
+
+A bolt is three passes: a wide soft field, a heavy body in the gem's own colour
+so the board says which gem fired, and a hot core taken from the skin so it
+reads on a cream sheet as well as on black. Thick on purpose — a hairline is a
+laser pointer, and what this wants is mass.
 
 Three more things carry the feel of a run, and all three are deliberately placed:
 

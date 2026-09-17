@@ -1,6 +1,7 @@
 import {
   applyGravity,
   areNeighbours,
+  blastRadius,
   createBoard,
   expandClears,
   findMatches,
@@ -367,7 +368,8 @@ export class Game {
     // An item is aimed by hand, so it is the most deliberate thing a player
     // does on this board and the one that most deserves to be seen leaving.
     const shape = item === 'rocket' ? 'row' : item === 'bomb' ? 'square' : 'point'
-    this.commitClear(cleared, [], cell, [{ cell, kind: shape }, ...blasts])
+    const aimed = seeds.filter((target) => target !== cell)
+    this.commitClear(cleared, [], cell, [{ cell, kind: shape, targets: aimed }, ...blasts])
     return true
   }
 
@@ -546,11 +548,14 @@ export class Game {
     // The prism that was swapped is the origin of the sweep. Its own blast is
     // reported by the expansion only when it is caught in someone else's, so
     // firing it by hand has to say so here.
+    // Its reach is every gem of the colour it just took on, which is exactly
+    // what blastRadius already answers for the gem sitting there.
+    const targets = blastRadius(this.geom, this.grid, origin).filter((cell) => cell !== origin)
     const colour = at(this.grid, origin)?.kind
     const opening: Blast =
       colour === undefined
-        ? { cell: origin, kind: 'colour' }
-        : { cell: origin, kind: 'colour', colour }
+        ? { cell: origin, kind: 'colour', targets }
+        : { cell: origin, kind: 'colour', targets, colour }
     this.commitClear(cleared, [], origin, [opening, ...blasts])
     return true
   }
