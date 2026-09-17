@@ -1,7 +1,7 @@
 import { verifyRun } from '../game/replay.ts'
 import type { RunRecord } from '../game/replay.ts'
 import { BOARD } from '../game/types.ts'
-import { FIREBASE_CONFIG } from './firebase-config.ts'
+import { session, uid as currentUid } from './session.ts'
 import { cleanName } from './types.ts'
 import type { Leaderboard, LeaderboardEntry, SubmitResult } from './types.ts'
 
@@ -9,11 +9,6 @@ import type { Leaderboard, LeaderboardEntry, SubmitResult } from './types.ts'
 const PAGE = 25
 /** The player's own rows are sorted in the client, so this bounds that fetch. */
 const OWN_LIMIT = 50
-
-interface Connection {
-  db: import('firebase/firestore').Firestore
-  uid: string
-}
 
 /**
  * A leaderboard backed by Firestore.
@@ -24,6 +19,11 @@ interface Connection {
  * connect is reported rather than thrown so the caller can fall back to the
  * local board.
  *
+ * The app and the sign-in it uses are not opened here any more — they live in
+ * session.ts, shared with the friends list. Two modules signing in separately
+ * would each get an account, and whichever ran second would be reading rows
+ * that belonged to the other one.
+ *
  * Note what this class does NOT do: trust the server. Rows come back with the
  * run that produced them and are replayed by the viewer before they are
  * believed — see verify.ts. Until a Cloud Function can do that server-side,
@@ -33,23 +33,9 @@ export class FirebaseLeaderboard implements Leaderboard {
   readonly isShared = true
   readonly label = 'Everyone'
 
-  private connection: Promise<Connection> | null = null
-
-  /** Signs in anonymously and opens Firestore, once, on first use. */
-  private connect(): Promise<Connection> {
-    this.connection ??= (async () => {
-      const [{ initializeApp }, { getAuth, signInAnonymously }, { getFirestore }] =
-        await Promise.all([
-          import('firebase/app'),
-          import('firebase/auth'),
-          import('firebase/firestore'),
-        ])
-
-      const app = initializeApp(FIREBASE_CONFIG)
-      const credential = await signInAnonymously(getAuth(app))
-      return { db: getFirestore(app), uid: credential.user.uid }
-    })()
-    return this.connection
+  private async connect(): Promise<{ db: import('firebase/firestore').Firestore; uid: string }> {
+    const { db } = await session()
+    return { db, uid: await currentUid() }
   }
 
   async top(limit: number): Promise<LeaderboardEntry[]> {

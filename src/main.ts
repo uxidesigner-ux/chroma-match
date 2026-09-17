@@ -36,6 +36,14 @@ import { Loadout } from './ui/loadout.ts'
 import { PauseSheet } from './ui/pause.ts'
 import { Shop } from './ui/shop.ts'
 import { ItemTray } from './ui/items.ts'
+import { AccountBar } from './ui/account.ts'
+import { FriendsPanel } from './ui/friends.ts'
+import { PackShelf } from './ui/packs.ts'
+import { TodayPanel } from './ui/today.ts'
+import { report as reportMission } from './missions.ts'
+import { DAILY_REWARDS } from './daily.ts'
+import { publishBest, publishProfile } from './social/players.ts'
+import { account } from './leaderboard/session.ts'
 import { HomeScreen } from './ui/home.ts'
 import { Hud } from './ui/hud.ts'
 import { Overlay } from './ui/overlay.ts'
@@ -93,6 +101,10 @@ const shop = new Shop()
 const loadout = new Loadout()
 const pause = new PauseSheet()
 const screens = new Screens()
+const packs = new PackShelf()
+const today = new TodayPanel()
+const friends = new FriendsPanel()
+const accountBar = new AccountBar(() => readStored(NAME_KEY))
 
 /**
  * The local board is used immediately so the launch screen has something to
@@ -101,6 +113,20 @@ const screens = new Screens()
  */
 let leaderboard: Leaderboard = new LocalLeaderboard()
 const home = new HomeScreen(leaderboard)
+
+// The friends tab is a second source for the same list, not a second screen:
+// one board, two questions about it.
+home.setFriends(() => friends.board())
+home.onModeChange((mode) => friends.setVisible(mode === 'friends'))
+friends.onChange(() => void home.refresh())
+// Signing in or out changes whose rows the friends tab is about, so the board
+// is re-read rather than left showing the previous account's.
+accountBar.onChange(() => {
+  if (screens.active === 'home') void home.refresh()
+})
+
+today.onChange(() => shop.refresh())
+packs.onBuy(() => shop.refresh())
 
 void openLeaderboard().then((board) => {
   if (board === leaderboard) return
@@ -165,6 +191,10 @@ const hooks: Partial<GameHooks> = {
     sfx.clear(chain)
     haptics.clear(chain)
     combo.report(chain)
+    // Reported by kind rather than by mission: the board has no idea which
+    // three missions are running today, and should not have to.
+    reportMission('gems', cells.length)
+    reportMission('chain', chain)
     // What the hit is worth: how much of the board went at once, and how deep
     // into a chain it landed. A three-gem match at the top of a chain is not an
     // event, and should not be felt as one.
@@ -197,6 +227,7 @@ const hooks: Partial<GameHooks> = {
     tray.flash(item)
   },
   onItemUsed(item, cell) {
+    reportMission('item', 1)
     sfx.power()
     haptics.power()
     // The nudge has served its purpose the moment an item is spent.
@@ -236,6 +267,7 @@ const hooks: Partial<GameHooks> = {
     }
   },
   onPowerCreated() {
+    reportMission('power', 1)
     sfx.power()
     haptics.power()
     renderer.hit(0.5)
@@ -252,6 +284,9 @@ const hooks: Partial<GameHooks> = {
     sfx.shuffle()
   },
   onLevelComplete(level) {
+    // Reaching level N+1 is what finishing level N means; a mission that asks
+    // for level 6 should tick on the card that hands out level 6.
+    reportMission('level', level + 1)
     sfx.levelUp()
     haptics.levelUp()
     tray.arm(null)
@@ -270,6 +305,8 @@ const hooks: Partial<GameHooks> = {
     })
   },
   onGameOver(score) {
+    reportMission('score', score)
+    reportMission('level', game.level)
     sfx.gameOver()
     haptics.gameOver()
     tray.arm(null)
@@ -284,6 +321,7 @@ const hooks: Partial<GameHooks> = {
     const payout = payoutFor(score, game.level)
     setCoins(coins() + payout)
     shop.refresh()
+    today.refresh()
 
     const content: OverlayContent = {
       kicker: 'Out of moves',
@@ -307,6 +345,16 @@ const hooks: Partial<GameHooks> = {
           const clean = cleanName(name)
           writeStored(NAME_KEY, clean)
           const result = await leaderboard.submit(run, clean)
+          // A signed-in player's profile carries the name their friends see on
+          // the friends board, and the run behind their number. Both follow a
+          // posted run rather than any finished one: the friends board is the
+          // same claim as the public board, so it is made in the same place.
+          // Failures are swallowed — the run is already on the leaderboard, and
+          // a friends row that is one run stale is not worth an error card.
+          if (account()?.kind === 'google') {
+            void publishProfile(clean, account()?.photo ?? '').catch(() => {})
+            void publishBest(run).catch(() => {})
+          }
           if (!result.accepted) {
             return { ok: false, message: result.reason ?? 'That run was not accepted.' }
           }
@@ -380,6 +428,7 @@ function goHome(): void {
   pause.hide()
   screens.show('home')
   paintContinue()
+  today.refresh()
   void home.refresh()
 }
 
@@ -633,6 +682,32 @@ function frame(now: number): void {
 }
 
 /**
+ * The card that announces a daily reward.
+ *
+ * The panel does the claiming; this only says what arrived. A reward that
+ * changed a number on a button and nothing else is a reward the player has to
+ * go looking for evidence of.
+ */
+today.onDailyClaimed((state) => {
+  const item = state.reward.item ? ITEM_LABELS[state.reward.item] : ''
+  overlay.show({
+    kicker: `Day ${state.day}`,
+    title: state.streak > 1 ? `${state.streak} days in a row` : 'Daily reward',
+    hero: {
+      value: `+${state.reward.coins}`,
+      caption: 'coins',
+      ...(item ? { flair: `${item} too` } : {}),
+    },
+    body:
+      state.day === DAILY_REWARDS.length
+        ? 'A full week. The streak starts again tomorrow at day one.'
+        : `Come back tomorrow for day ${state.day + 1}.`,
+    action: 'Nice',
+    onAction: () => {},
+  })
+})
+
+/**
  * A first-time player used to meet every part of the meta as an absence: three
  * greyed-out item buttons, a shop they cannot afford anything in, and a loadout
  * screen whose whole content was an apology. The kit turns all three on, and
@@ -641,6 +716,7 @@ function frame(now: number): void {
  */
 const granted = grantStarterKit()
 shop.refresh()
+today.refresh()
 paintContinue()
 void home.refresh()
 
