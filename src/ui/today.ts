@@ -30,7 +30,6 @@ const ASK: Record<MissionKind, (need: number) => string> = {
  */
 export class TodayPanel {
   private row = el<HTMLButtonElement>('today-row')
-  private summarySub = el('today-summary-sub')
   private summaryBadge = el('today-summary-badge')
   private sheet = new Sheet('sheet-today')
   private daily = el<HTMLButtonElement>('daily-claim')
@@ -73,25 +72,16 @@ export class TodayPanel {
   }
 
   /**
-   * What the closed row says, since the row is all a player sees until they
-   * open it.
+   * The count on the closed button.
    *
-   * Ready-to-claim outranks everything else — it is coins sitting on the
-   * table — so the badge and the subtitle both lead with that count whenever
-   * it is not zero. With nothing waiting, the row falls back to the streak,
-   * which is the one number here that is worth seeing without opening
-   * anything.
+   * All the button has room for now is a number, and a number is the only part
+   * worth having at a glance: how many rewards are sitting there unclaimed.
+   * Anything else — which day of the streak, how far along each mission is —
+   * is a sentence, and a sentence belongs behind the tap.
    */
   private paintSummary(daily: DailyState, missions: readonly MissionState[]): void {
     const ready = (daily.available ? 1 : 0) + missions.filter((m) => m.done && !m.claimed).length
-
-    if (ready > 0) {
-      this.summarySub.textContent = `${ready} reward${ready === 1 ? '' : 's'} ready to claim`
-      this.summaryBadge.textContent = String(ready)
-    } else {
-      const done = missions.filter((m) => m.claimed).length
-      this.summarySub.textContent = `Day ${daily.day} claimed · ${done}/${missions.length} missions done`
-    }
+    this.summaryBadge.textContent = String(ready)
     this.summaryBadge.hidden = ready === 0
     this.row.classList.toggle('is-ready', ready > 0)
   }

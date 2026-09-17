@@ -1,6 +1,6 @@
 import { ITEMS } from '../game/items.ts'
 import type { Item } from '../game/items.ts'
-import { PRICES, STASH_LIMIT, buy, coins, stash, totalStashed } from '../meta.ts'
+import { PRICES, STASH_LIMIT, buy, coins, stash } from '../meta.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -19,7 +19,6 @@ function el<T extends HTMLElement>(id: string): T {
 export class Shop {
   private coinsHome = el('home-coins')
   private coinsShop = el('shop-coins')
-  private stashHint = el('home-stash')
   private status = el('shop-status')
   private listeners: Array<() => void> = []
 
@@ -59,9 +58,6 @@ export class Shop {
     const held = stash()
     this.coinsHome.textContent = balance.toLocaleString()
     this.coinsShop.textContent = balance.toLocaleString()
-
-    const total = totalStashed(held)
-    this.stashHint.textContent = total > 0 ? ` · ${total} held` : ''
 
     for (const item of ITEMS) {
       const owned = document.querySelector<HTMLElement>(`[data-owned="${item}"]`)
