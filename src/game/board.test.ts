@@ -141,7 +141,15 @@ test('a clear chains through any power gem it catches', () => {
   for (let c = 0; c < G.cols; c++) assert.ok(cleared.has(G.idx(c, 3)))
   // The expansion also reports what fired, so the renderer can show the shot
   // leaving rather than the row simply ceasing to exist.
-  assert.deepEqual(blasts, [{ cell: seed, kind: 'row' }])
+  assert.equal(blasts.length, 1)
+  assert.equal(blasts[0]?.kind, 'row')
+  assert.equal(blasts[0]?.cell, seed)
+  // The shot is fired at the cells the blast is about to take, so the two lists
+  // cannot disagree — everything in the row except the gem doing the firing.
+  assert.deepEqual(
+    [...(blasts[0]?.targets ?? [])].sort((x, y) => x - y),
+    [...cleared].filter((cell) => cell !== seed).sort((x, y) => x - y),
+  )
 })
 
 test('gravity closes holes, preserves column order, and refills the top', () => {

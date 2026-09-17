@@ -185,6 +185,15 @@ export interface Blast {
   /** Where it went off. */
   cell: number
   kind: BlastKind
+  /**
+   * The cells it is reaching for.
+   *
+   * Carried rather than re-derived by the renderer for the obvious reason —
+   * the rules already worked it out — and for a less obvious one: a shot drawn
+   * from a second calculation of "what a bomb hits" is a shot that can disagree
+   * with what the bomb actually took. The beam and the blast are the same list.
+   */
+  targets: number[]
   /** For a prism: the colour it is taking with it. */
   colour?: Kind
 }
@@ -220,10 +229,12 @@ export function expandClears(geom: Geom, grid: Grid, seeds: Iterable<number>): C
     const i = queue.pop() as number
     const gem = at(grid, i)
     const kind = gem ? BLAST_KINDS[gem.power] : undefined
+    const reach = blastRadius(geom, grid, i)
     if (gem && kind) {
-      blasts.push(kind === 'colour' ? { cell: i, kind, colour: gem.kind } : { cell: i, kind })
+      const targets = reach.filter((cell) => cell !== i)
+      blasts.push(kind === 'colour' ? { cell: i, kind, targets, colour: gem.kind } : { cell: i, kind, targets })
     }
-    for (const hit of blastRadius(geom, grid, i)) {
+    for (const hit of reach) {
       if (!cleared.has(hit) && at(grid, hit)) {
         cleared.add(hit)
         queue.push(hit)
