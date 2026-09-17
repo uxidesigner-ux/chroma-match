@@ -835,11 +835,14 @@ paintLevel()
 void home.refresh()
 
 if (granted) {
-  const names = granted.items.map((item) => ITEM_LABELS[item]).join(' and a ')
+  // ITEM_LABELS holds getters, not strings — joining them printed the source
+  // of the arrow functions into the dialog. And the list itself does not
+  // translate by concatenation anyway: 'A hammer and a bomb' is one phrase in
+  // every language, so it is one key.
   overlay.show({
     kicker: t('welcome'),
     title: t('starterKit'),
-    hero: { value: String(granted.coins), caption: 'coins', flair: `A ${names}` },
+    hero: { value: String(granted.coins), caption: t('starterCoins'), flair: t('starterItems') },
     body: t('starterBody'),
     action: t('gotIt'),
     onAction: () => {},

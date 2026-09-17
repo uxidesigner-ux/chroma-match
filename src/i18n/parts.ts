@@ -82,6 +82,10 @@ const EN_PARTS = {
   'outer.jacket': 'Jacket',
   'outer.hoodie': 'Hoodie',
   'outer.coat': 'Coat',
+  'outer.blazer': 'Blazer',
+  'outer.cardigan': 'Cardigan',
+  'outer.puffer': 'Puffer',
+  'outer.gilet': 'Gilet',
 
   'shoes.sneaker': 'Trainers',
   'shoes.boot': 'Boots',
@@ -166,6 +170,10 @@ const KO_PARTS: PartNames = {
   'outer.jacket': '재킷',
   'outer.hoodie': '후드집업',
   'outer.coat': '코트',
+  'outer.blazer': '블레이저',
+  'outer.cardigan': '가디건',
+  'outer.puffer': '패딩',
+  'outer.gilet': '조끼',
 
   'shoes.sneaker': '운동화',
   'shoes.boot': '부츠',
@@ -247,6 +255,10 @@ const JA_PARTS: PartNames = {
   'outer.jacket': 'ジャケット',
   'outer.hoodie': 'パーカー',
   'outer.coat': 'コート',
+  'outer.blazer': 'ブレザー',
+  'outer.cardigan': 'カーディガン',
+  'outer.puffer': 'ダウンジャケット',
+  'outer.gilet': 'ベスト',
 
   'shoes.sneaker': 'スニーカー',
   'shoes.boot': 'ブーツ',
@@ -328,6 +340,10 @@ const ZH_PARTS: PartNames = {
   'outer.jacket': '夹克',
   'outer.hoodie': '连帽外套',
   'outer.coat': '大衣',
+  'outer.blazer': '西装外套',
+  'outer.cardigan': '开衫',
+  'outer.puffer': '羽绒服',
+  'outer.gilet': '马甲',
 
   'shoes.sneaker': '运动鞋',
   'shoes.boot': '靴子',

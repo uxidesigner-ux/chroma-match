@@ -67,7 +67,15 @@ export type HairStyle =
   | 'twin'
 export type BuildStyle = 'slim' | 'average' | 'broad'
 export type BottomStyle = 'trousers' | 'shorts' | 'wide' | 'skirt'
-export type OuterStyle = 'none' | 'jacket' | 'hoodie' | 'coat'
+export type OuterStyle =
+  | 'none'
+  | 'jacket'
+  | 'hoodie'
+  | 'coat'
+  | 'cardigan'
+  | 'puffer'
+  | 'blazer'
+  | 'gilet'
 export type ShoeStyle = 'bare' | 'sneaker' | 'boot'
 export type OutfitStyle = 'crew' | 'collar' | 'tie' | 'blazer' | 'turtle' | 'hoodie'
 export type AccessoryStyle = 'none' | 'square' | 'round' | 'studs' | 'roundStuds'
@@ -200,6 +208,10 @@ export const OUTERS: readonly OuterPart[] = [
   { id: 'none', code: 'oa', name: 'None', style: 'none', lock: 'free' },
   { id: 'jacket', code: 'ob', name: 'Jacket', style: 'jacket', lock: 'free' },
   { id: 'hoodie', code: 'oc', name: 'Hoodie', style: 'hoodie', lock: 'free' },
+  { id: 'blazer', code: 'oe', name: 'Blazer', style: 'blazer', lock: 'free' },
+  { id: 'cardigan', code: 'of', name: 'Cardigan', style: 'cardigan', lock: 'free' },
+  { id: 'puffer', code: 'og', name: 'Puffer', style: 'puffer', lock: 'free' },
+  { id: 'gilet', code: 'oh', name: 'Gilet', style: 'gilet', lock: 'free' },
   { id: 'coat', code: 'od', name: 'Coat', style: 'coat', lock: 'free' },
 ]
 
