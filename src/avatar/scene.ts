@@ -41,12 +41,24 @@ out vec4 outColour;
 
 uniform vec3 uSkin;
 uniform vec3 uHair;
-uniform vec3 uCloth;
+uniform vec3 uCloth;      // the top
+uniform vec3 uBottomCol;
+uniform vec3 uOuterCol;
+uniform vec3 uShoeCol;
 uniform vec3 uBack;
 uniform int uStyle;      // hair
-uniform int uOutfit;
+uniform int uOutfit;     // top
+uniform int uBottom;
+uniform int uOuter;
+uniform int uShoes;
 uniform int uExtra;      // accessory
 uniform float uEars;
+/** 0 shows the head and shoulders, 1 shows the whole figure. */
+uniform float uFull;
+/** How heavy the build is: 0 slim, 0.5 average, 1 broad. */
+uniform float uBuild;
+/** Image height over image width; 1 is square. */
+uniform float uAspect;
 
 const int MAT_BACK = 0;
 const int MAT_SKIN = 1;
@@ -55,6 +67,9 @@ const int MAT_CLOTH = 3;
 const int MAT_EYE = 4;
 const int MAT_METAL = 5;
 const int MAT_LINING = 6;
+const int MAT_BOTTOM = 7;
+const int MAT_OUTER = 8;
+const int MAT_SHOE = 9;
 
 /* ---- primitives -------------------------------------------------------- */
 
@@ -80,12 +95,21 @@ float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {
 /* The same, with the radius running from one end to the other. Hair that ends
    on its full thickness is a rope with a ball on it; a real length comes to a
    point, and a plane cut cannot produce that — it takes a taper along the
-   length itself. A bound rather than an exact distance where the taper is
-   steep, which the march's safety factor already covers. */
+   length itself.
+
+   Scaled down at the end, and that is not decoration. The formula measures to
+   the axis and subtracts the interpolated radius, which *overestimates* the
+   true distance wherever the radius is changing — and a distance field that
+   claims to be further away than it is lets a ray step straight through the
+   surface. On the lit side that is invisible; on the shadow ray, which takes
+   long steps by design, it came out as bands of stripes across the figure.
+   The factor is the worst-case slope over the shapes here, and costs a few
+   extra steps in exchange for the field telling the truth. */
 float sdTaperCapsule(vec3 p, vec3 a, vec3 b, float ra, float rb) {
   vec3 pa = p - a, ba = b - a;
   float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-  return length(pa - ba * h) - mix(ra, rb, h);
+  float slope = abs(rb - ra) / max(1e-4, length(ba));
+  return (length(pa - ba * h) - mix(ra, rb, h)) / sqrt(1.0 + slope * slope);
 }
 
 float sdTorus(vec3 p, vec2 t) {
@@ -150,47 +174,238 @@ float neckField(vec3 p) {
   return sdCapsule(p, vec3(0.0, -0.30, -0.01), vec3(0.0, 0.02, -0.01), 0.135);
 }
 
-float bodyField(vec3 p) {
-  // Wide enough to run past both edges of the frame: shoulders that stop
-  // inside it read as a bust on a plinth rather than as a person.
-  float d = sdRoundBox(p - vec3(0.0, -0.64, 0.0), vec3(0.46, 0.13, 0.14), 0.28);
-  if (uOutfit == 4) {
-    d = smin(d, sdCapsule(p, vec3(0.0, -0.30, -0.01), vec3(0.0, -0.06, -0.01), 0.175), 0.05);
+/* ---- the figure below the neck -----------------------------------------
+ *
+ * Everything here is new, and it exists because a wardrobe needs a body to
+ * hang on. The portrait framing only ever showed a head and a pair of
+ * shoulders, so "outfit" could be a collar and a tie and nothing else had to
+ * exist. Trousers and shoes need legs.
+ *
+ * Proportions are the ones the head already implies: the skull is 0.68 tall,
+ * and the figure is a little over three heads, which is where these characters
+ * live — tall enough to wear clothes that read, short enough to stay a toy.
+ *
+ * Every group is wrapped in a bounding test. map() is evaluated about a
+ * hundred and sixteen times per pixel — eighty-eight marching, twenty-four for
+ * the shadow, four for occlusion — so a ray up at the head must not pay for
+ * the shoes. The test returns the distance to the bounding box rather than a
+ * constant, because a distance field that lies about being far away marches
+ * straight through a surface; a bound is a lower bound, so it is safe to
+ * return.
+ */
+
+// Proportion, which is most of what a stylised figure is.
+//
+// The first pass made the torso 0.44 tall and up to 0.80 wide — wider than it
+// was tall — on legs half a head long, and the result read as a toddler in a
+// sack whatever it was wearing. The head stays the size it is, because the
+// head is what a profile card shows and it is already right; everything below
+// it gets longer and narrower. Four heads rather than three and a bit, which
+// is where a stylised adult sits without losing the toy.
+const float HIP_Y = -0.92;
+const float FOOT_Y = -1.86;
+
+/** Cheap conservative test: outside the box, its distance will do. */
+float boundOf(vec3 p, vec3 centre, vec3 ext) {
+  vec3 q = abs(p - centre) - ext;
+  return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
+/**
+ * Half the shoulder width, and the thickness of every limb, by build.
+ *
+ * The head is 0.60 across. The first pass put the shoulders at 0.80 to 1.04,
+ * which on a figure this short read as a poncho rather than as a body — a
+ * chibi's shoulders are barely wider than its head, and everything hung on
+ * them inherits whatever they are.
+ */
+float shoulderHalf() { return mix(0.250, 0.340, uBuild); }
+float limbScale()    { return mix(0.88, 1.15, uBuild); }
+float hipHalf()      { return mix(0.225, 0.300, uBuild); }
+
+/**
+ * The torso: a chest that carries the shoulders and a pelvis that carries the
+ * legs, blended. One capsule from neck to hip gives a tube, and a tube wears
+ * every garment the same way — the waist is what makes a coat read as a coat
+ * rather than as a coloured cylinder.
+ */
+float torsoField(vec3 p) {
+  float w = shoulderHalf();
+  float chest = sdRoundBox(p - vec3(0.0, -0.44, 0.0), vec3(w - 0.15, 0.15, 0.02), 0.15);
+  float waist = sdRoundBox(p - vec3(0.0, HIP_Y + 0.08, 0.0),
+                           vec3(hipHalf() - 0.15, 0.10, 0.015), 0.15);
+  return smin(chest, waist, 0.15);
+}
+
+/**
+ * Upper arm to hand, mirrored.
+ *
+ * Ending at the hip, not below it. The first pass ran them to y = -1.16, which
+ * on a figure whose hips are at -0.74 is an arm reaching past the knee; what it
+ * actually looked like was a pale sausage hanging beside the shirt.
+ */
+float armsField(vec3 p) {
+  float w = shoulderHalf();
+  vec3 q = vec3(abs(p.x), p.y, p.z);
+  float r = 0.072 * limbScale();
+  // Set outboard, with daylight between the arm and the ribs. Tucked against
+  // the body they were inside the torso's own silhouette, which meant the
+  // figure read as a sack with a head on it and a sleeve could not be seen at
+  // all — a short sleeve and a long one ended at the same outline.
+  float arm = sdTaperCapsule(q, vec3(w - 0.01, -0.33, 0.0), vec3(w + 0.11, -0.95, 0.005),
+                             r, r * 0.82);
+  float hand = sdEllipsoid(q - vec3(w + 0.125, -1.02, 0.005), vec3(0.068, 0.078, 0.058));
+  return smin(arm, hand, 0.045);
+}
+
+/** Thigh, calf and foot. The feet point at the camera, not out to the sides. */
+float legsField(vec3 p) {
+  vec3 q = vec3(abs(p.x), p.y, p.z);
+  float r = 0.092 * limbScale();
+  float gap = hipHalf() * 0.48;
+  float leg = sdTaperCapsule(q, vec3(gap, HIP_Y + 0.02, 0.0), vec3(gap, FOOT_Y + 0.09, 0.0),
+                             r, r * 0.72);
+  float foot = sdRoundBox(q - vec3(gap, FOOT_Y + 0.035, 0.055),
+                          vec3(0.015, 0.004, 0.055), 0.060);
+  return smin(leg, foot, 0.045);
+}
+
+/* ---- what the figure is wearing ----------------------------------------
+ *
+ * Designed for the size it is actually seen at. The whole figure is about two
+ * hundred pixels tall in the wardrobe and a hundred and twenty on a profile
+ * card, which puts the torso at sixty pixels and a neckline at three. The
+ * first pass carved necklines, plackets and collars into everything and the
+ * result was a row of identical shirts with a dark smudge at the throat.
+ *
+ * So the three things a garment gets to say are the three that survive being
+ * small: where its silhouette ends, how wide it is, and what colour it is. A
+ * tee and a long sleeve differ at the wrist. A crop and a shirt differ at the
+ * hem. A coat differs at the knee. Nothing here differs at the collar.
+ */
+
+/** The shell every garment is built from: the torso, inflated and cut. */
+float garment(vec3 p, float thick, float hem) {
+  return max(torsoField(p) - thick, hem - p.y);
+}
+
+/** A sleeve down the arm to a given cuff, thick enough to clear the arm. */
+float sleeveField(vec3 p, float thick, float cuff) {
+  float w = shoulderHalf();
+  vec3 q = vec3(abs(p.x), p.y, p.z);
+  float r = 0.072 * limbScale() + thick;
+  return sdTaperCapsule(q, vec3(w - 0.01, -0.30, 0.0), vec3(w + 0.11, cuff, 0.005), r, r * 0.92);
+}
+
+float topField(vec3 p) {
+  if (uOutfit == 6) return 1e5;                          // a vest: no top drawn
+  // A sweatshirt is a long sleeve with bulk, and bulk is the only thing that
+  // tells them apart at this size. Fabric weight is a silhouette, not a
+  // texture — which is lucky, because a texture would be one pixel.
+  float thick = uOutfit == 5 ? 0.058 : 0.028;
+  // Where it ends is the read. A crop stops at the ribs, everything else
+  // covers the hip.
+  // At the waist rather than over the hips. A top that covers the hip leaves
+  // the figure in two colours — garment and legs — and a waist is what turns
+  // that into a person wearing two things.
+  float d = garment(p, thick, HIP_Y + 0.02);
+  // Where the sleeve ends is the read that survives the full-length framing.
+  float cuff = uOutfit == 0 || uOutfit == 3 ? -0.46 : -0.94;
+  d = smin(d, sleeveField(p, thick, cuff), 0.035);
+
+  // And these two are the read that survives the *portrait* framing, which is
+  // where a profile card and a leaderboard row actually see a top. A collar and
+  // a placket are three pixels on a full-length figure and a third of the
+  // visible garment on a bust, so they earn their place on one screen and cost
+  // nothing on the other.
+  if (uOutfit == 2 || uOutfit == 3) {
+    vec3 q = vec3(abs(p.x), p.y, p.z);
+    // Lying on the chest rather than standing off it: a flap held proud
+    // shadows itself into a pair of black marks, which is not what a collar
+    // looks like at any size.
+    float flap = sdRoundBox(
+      (q - vec3(0.098, -0.29, 0.212)) * mat3(0.93, 0.37, 0.0, -0.37, 0.93, 0.0, 0.0, 0.0, 1.0),
+      vec3(0.042, 0.080, 0.008), 0.024);
+    d = smin(d, flap, 0.02);
   }
-  if (uOutfit == 5) {
-    d = smin(d, sdEllipsoid(p - vec3(0.0, -0.28, -0.20), vec3(0.34, 0.17, 0.15)), 0.09);
+  if (uOutfit == 4) {
+    // A turtleneck's collar: a band of garment colour where there was skin.
+    d = smin(d, sdCapsule(p, vec3(0.0, -0.30, -0.01), vec3(0.0, -0.10, -0.01), 0.150), 0.04);
   }
   return d;
 }
 
-float collarField(vec3 p) {
-  if (uOutfit == 0 || uOutfit == 4 || uOutfit == 5) return 1e5;
-  // Lying on the chest at z = 0.34, which is just proud of the shoulders'
-  // front face at 0.42 minus their curvature — so the flaps rest on cloth
-  // instead of floating in front of it.
+/** Trousers, shorts or a skirt, over the hips and down the legs. */
+float bottomField(vec3 p) {
+  float thick = 0.030;
+  float gap = hipHalf() * 0.48;
   vec3 q = vec3(abs(p.x), p.y, p.z);
-  float flap = sdRoundBox(
-    (q - vec3(0.115, -0.33, 0.30)) * mat3(0.93, 0.37, 0.0, -0.37, 0.93, 0.0, 0.0, 0.0, 1.0),
-    vec3(0.045, 0.105, 0.012), 0.032);
-  if (uOutfit == 3) {
-    flap = min(flap, sdRoundBox(
-      (q - vec3(0.20, -0.47, 0.26)) * mat3(0.89, 0.46, 0.0, -0.46, 0.89, 0.0, 0.0, 0.0, 1.0),
-      vec3(0.055, 0.16, 0.012), 0.036));
+
+  if (uBottom == 3) {                                     // a skirt: one flare
+    float skirt = sdTaperCapsule(p, vec3(0.0, HIP_Y + 0.16, 0.0), vec3(0.0, HIP_Y - 0.38, 0.0),
+                                 hipHalf() * 0.95, hipHalf() * 1.45);
+    return max(skirt, HIP_Y - 0.38 - p.y);
   }
-  return flap;
+
+  float r = 0.092 * limbScale() + thick;
+  float cut = uBottom == 1 ? HIP_Y - 0.34 : FOOT_Y + 0.15;
+  float flare = uBottom == 2 ? 1.62 : 0.88;               // wide leg, or tapered
+  float leg = sdTaperCapsule(q, vec3(gap, HIP_Y + 0.14, 0.0), vec3(gap, cut, 0.0),
+                             r * 1.04, r * flare);
+  float seat = sdRoundBox(p - vec3(0.0, HIP_Y + 0.11, 0.0),
+                          vec3(hipHalf() - 0.19, 0.08, 0.015), 0.19);
+  return max(smin(leg, seat, 0.06), cut - p.y);
 }
 
-float tieField(vec3 p) {
-  if (uOutfit != 2) return 1e5;
-  float knot = sdRoundBox(p - vec3(0.0, -0.33, 0.33), vec3(0.028, 0.032, 0.012), 0.026);
-  float blade = sdRoundBox(p - vec3(0.0, -0.62, 0.30), vec3(0.036, 0.19, 0.01), 0.022);
-  return smin(knot, blade, 0.028);
+/**
+ * A jacket, hoodie or coat worn over the top.
+ *
+ * Thicker than the shirt and open down the middle, and the opening has to be
+ * wide enough to be an opening — at three pixels it reads as a dark stripe
+ * painted on a jacket rather than as the shirt showing through one.
+ */
+float outerField(vec3 p) {
+  if (uOuter == 0) return 1e5;
+  float thick = 0.068;
+  float hem = uOuter == 3 ? HIP_Y - 0.34 : HIP_Y - 0.02;  // a long coat
+  float d = garment(p, thick, hem);
+  d = smin(d, sleeveField(p, thick, -0.80), 0.04);
+  // The front, carved away so the top shows down the middle of the figure.
+  // A V from the neck to the hem, not a rectangle in the middle of the chest.
+  // A carve that starts and stops in open cloth reads as a pocket with
+  // something in it; an opening has to reach both ends of the garment.
+  float slotMid = (hem - 0.16) * 0.5;
+  d = max(d, -sdRoundBox(p - vec3(0.0, slotMid, 0.30),
+                         vec3(0.052, (-0.16 - hem) * 0.5, 0.15), 0.028));
+  if (uOuter == 2) {
+    // Sitting up behind the neck and spilling over the shoulders, not tucked
+    // flat against the back. A hood the figure is not wearing is only visible
+    // from behind, and nothing here is ever seen from behind — so it reads as
+    // a jacket with extra polygons unless it breaks the shoulder line.
+    // Wide enough to show past the neck. A hood the same width as the head is
+    // a hood the head hides, and every one of these is seen from the front.
+    float hood = sdEllipsoid(p - vec3(0.0, -0.11, -0.13), vec3(0.36, 0.23, 0.19));
+    hood = max(hood, -sdEllipsoid(p - vec3(0.0, -0.12, -0.04), vec3(0.28, 0.17, 0.16)));
+    d = smin(d, hood, 0.05);
+  }
+  return d;
 }
 
-/** What shows at the neckline: a dark shirt under a blazer. */
-float liningField(vec3 p) {
-  if (uOutfit != 3) return 1e5;
-  return sdRoundBox(p - vec3(0.0, -0.56, 0.31), vec3(0.075, 0.22, 0.012), 0.035);
+/** Shoes. A block of colour at the foot, taller for a boot. */
+float shoeField(vec3 p) {
+  if (uShoes == 0) return 1e5;
+  float gap = hipHalf() * 0.48;
+  vec3 q = vec3(abs(p.x), p.y, p.z);
+  float r = 0.092 * limbScale();
+  float shoe = sdRoundBox(q - vec3(gap, FOOT_Y + 0.045, 0.06),
+                          vec3(0.018, 0.010, 0.062), r * 0.80);
+  // A boot's shaft has to be wider than the trouser cuff it comes up over.
+  // At the same width the trousers simply win the depth test and the boot is a
+  // trainer with extra geometry nobody can see.
+  float top = uShoes == 2 ? FOOT_Y + 0.44 : FOOT_Y + 0.11;
+  float ankle = sdTaperCapsule(q, vec3(gap, FOOT_Y + 0.04, 0.0), vec3(gap, top, 0.0),
+                               r * 0.98, uShoes == 2 ? r * 1.24 : r * 0.88);
+  return smin(shoe, ankle, 0.04);
 }
 
 /**
@@ -377,17 +592,56 @@ float extraField(vec3 p) {
 }
 
 /** The whole scene: nearest distance, and what was nearest. */
+/**
+ * The whole scene: nearest distance, and what was nearest.
+ *
+ * Grouped by region and guarded by a bounding test each. Without the guards a
+ * ray passing the top of the head evaluates the shoes, the trousers and both
+ * arms on every one of its steps, and there are about a hundred and sixteen
+ * steps per pixel. With them a head-height ray pays for the head.
+ *
+ * Each guard returns the distance to its bounding box when the point is
+ * outside it. That is a lower bound on the distance to anything inside, which
+ * is exactly what a sphere-tracing march needs; returning a large constant
+ * instead would let the ray step straight through a leg.
+ */
 vec2 map(vec3 p) {
   vec2 res = vec2(p.z + 0.72, float(MAT_BACK));
-  float skin = smin(headField(p), neckField(p), 0.08);
-  res = closer(res, vec2(skin, float(MAT_SKIN)));
-  res = closer(res, vec2(bodyField(p), float(MAT_CLOTH)));
-  res = closer(res, vec2(collarField(p), float(MAT_CLOTH)));
-  res = closer(res, vec2(liningField(p), float(MAT_LINING)));
-  res = closer(res, vec2(tieField(p), float(MAT_LINING)));
-  res = closer(res, vec2(hairField(p), float(MAT_HAIR)));
-  res = closer(res, vec2(eyeField(p), float(MAT_EYE)));
-  res = closer(res, vec2(extraField(p), float(MAT_METAL)));
+
+  // Head, hair, eyes and glasses: everything above the collarbone.
+  float headBound = boundOf(p, vec3(0.0, 0.30, 0.0), vec3(0.62, 0.52, 0.52));
+  if (headBound > 0.05) {
+    res = closer(res, vec2(headBound, float(MAT_SKIN)));
+  } else {
+    res = closer(res, vec2(smin(headField(p), neckField(p), 0.08), float(MAT_SKIN)));
+    res = closer(res, vec2(hairField(p), float(MAT_HAIR)));
+    res = closer(res, vec2(eyeField(p), float(MAT_EYE)));
+    res = closer(res, vec2(extraField(p), float(MAT_METAL)));
+  }
+
+  // The torso and what is worn on it. Always evaluated, because the portrait
+  // framing shows the shoulders and nothing below them.
+  float chestBound = boundOf(p, vec3(0.0, -0.62, 0.0), vec3(0.72, 0.72, 0.40));
+  if (chestBound > 0.05) {
+    res = closer(res, vec2(chestBound, float(MAT_CLOTH)));
+  } else {
+    res = closer(res, vec2(torsoField(p), float(MAT_SKIN)));
+    res = closer(res, vec2(armsField(p), float(MAT_SKIN)));
+    res = closer(res, vec2(topField(p), float(MAT_CLOTH)));
+    res = closer(res, vec2(outerField(p), float(MAT_OUTER)));
+  }
+
+  // Legs, trousers and shoes. Only ever reached in the full-body framing, but
+  // guarded by geometry rather than by the frame so that a portrait of a tall
+  // hat and a full body of the same avatar are the same distance field.
+  float legBound = boundOf(p, vec3(0.0, -1.40, 0.02), vec3(0.44, 0.62, 0.32));
+  if (legBound > 0.05) {
+    res = closer(res, vec2(legBound, float(MAT_SKIN)));
+  } else {
+    res = closer(res, vec2(legsField(p), float(MAT_SKIN)));
+    res = closer(res, vec2(bottomField(p), float(MAT_BOTTOM)));
+    res = closer(res, vec2(shoeField(p), float(MAT_SHOE)));
+  }
   return res;
 }
 
@@ -436,13 +690,22 @@ float occlusion(vec3 p, vec3 n) {
 void main() {
   // A portrait lens: far enough back and long enough that the face is not
   // distorted by perspective the way a wide angle would.
-  vec3 eye = vec3(0.0, 0.05, 2.90);
-  vec3 dir = normalize(vec3(vUv.x * 0.276, vUv.y * 0.276, -1.0));
+  // Two framings from one scene. The portrait is what a leaderboard row and a
+  // profile card want; the full figure is what the wardrobe wants, since a
+  // pair of shoes you cannot see is a pair of shoes nobody buys. Same geometry,
+  // same lens, different crop — so the face on the small card is the same face
+  // as the one on the big one rather than a second drawing of it.
+  float aim = mix(0.05, -0.560, uFull);
+  float spread = mix(0.276, 0.556, uFull);
+  vec3 eye = vec3(0.0, aim, 2.90);
+  // The vertical spread is the one that frames the figure; the horizontal one
+  // is divided by the aspect so a taller image shows more height rather than
+  // the same height stretched.
+  vec3 dir = normalize(vec3(vUv.x * spread / uAspect, vUv.y * spread, -1.0));
 
-  // Skip straight to where the figure could possibly be. Everything is inside
-  // a sphere of radius 1.25 at the origin, and marching the empty two units in
-  // front of it costs the same as marching anything else.
-  float t = max(0.0, 2.90 - 1.45);
+  // Skip straight to where the figure could possibly be, rather than marching
+  // the two empty units in front of it.
+  float t = max(0.0, 2.90 - mix(1.45, 2.45, uFull));
   vec2 hit = vec2(-1.0);
   for (int i = 0; i < 88; i++) {
     vec3 p = eye + dir * t;
@@ -463,6 +726,9 @@ void main() {
     : mat == MAT_CLOTH ? uCloth
     : mat == MAT_EYE ? vec3(0.13, 0.11, 0.10)
     : mat == MAT_METAL ? (uExtra == 1 ? vec3(0.16, 0.16, 0.18) : vec3(0.68, 0.53, 0.26))
+    : mat == MAT_BOTTOM ? uBottomCol
+    : mat == MAT_OUTER ? uOuterCol
+    : mat == MAT_SHOE ? uShoeCol
     : mat == MAT_LINING ? uCloth * 0.42
     : uBack;
 

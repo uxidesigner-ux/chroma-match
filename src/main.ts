@@ -37,6 +37,7 @@ import { PauseSheet } from './ui/pause.ts'
 import { Shop } from './ui/shop.ts'
 import { ItemTray } from './ui/items.ts'
 import { ProfileCard } from './ui/profile.ts'
+import { Creator } from './ui/creator.ts'
 import { Sheet } from './ui/sheet.ts'
 import { FriendsPanel } from './ui/friends.ts'
 import { PackShelf } from './ui/packs.ts'
@@ -120,9 +121,14 @@ const packs = new PackShelf()
 const today = new TodayPanel()
 const friends = new FriendsPanel()
 const ranksSheet = new Sheet('sheet-ranks')
+const creator = new Creator(() => screens.show('home'))
 const profile = new ProfileCard(
   () => readStored(NAME_KEY),
   (name) => writeStored(NAME_KEY, name),
+  () => {
+    creator.open()
+    screens.show('creator')
+  },
 )
 
 /**
@@ -144,6 +150,24 @@ friends.onChange(() => void home.refresh())
 // rather than left showing the previous account's.
 profile.onChange(() => {
   if (screens.active === 'home') void home.refresh()
+})
+
+/**
+ * What the wardrobe changed has to reach everywhere the face is.
+ *
+ * The card behind it, the sheet it was opened from, the boards that draw a row
+ * per player — and the profile document, so a friend sees the new outfit
+ * without either of you posting a score. That last one is the whole reason
+ * publishProfile reads the avatar itself rather than taking it as an argument.
+ */
+creator.onChange(() => {
+  profile.refresh()
+  void home.refresh()
+  if (account()?.kind === 'google') {
+    void publishProfile(readStored(NAME_KEY) || t('anonymous'), account()?.photo ?? '').catch(
+      () => {},
+    )
+  }
 })
 
 today.onChange(() => shop.refresh())
@@ -691,6 +715,7 @@ function repaintText(): void {
   applySound(soundOn())
   settings.paint()
   hud.invalidate()
+  if (screens.active === 'creator') creator.paint()
   paintContinue()
   profile.paintCard()
 

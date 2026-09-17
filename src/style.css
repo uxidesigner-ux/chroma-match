@@ -3123,3 +3123,178 @@ body {
     transition: none;
   }
 }
+
+/* --- character creator --------------------------------------------------- */
+
+/* A column that fills the viewport: the figure takes what is left after the
+   header and the picker, so the preview is as big as the phone allows rather
+   than a fixed size that is wrong on both a small phone and a large one. */
+.creator {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 16px 14px;
+}
+
+.creator[hidden] {
+  display: none;
+}
+
+.creator-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.creator-title {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Reserves its own width so the title stays centred whether or not it is
+   showing — a note that appears and shoves the heading sideways reads as a
+   glitch rather than as confirmation. */
+.creator-saved {
+  min-width: 56px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-2);
+  text-align: right;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.creator-saved.is-on {
+  opacity: 1;
+}
+
+.creator-stage {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.creator-figure {
+  display: block;
+  max-height: 100%;
+  border-radius: 20px;
+}
+
+.creator-tabs {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  margin: 0 -16px;
+  padding: 0 16px 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.creator-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.creator-tab {
+  flex: none;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.creator-tab.is-on {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #fff;
+}
+
+/* Capped and scrollable, so switching categories cannot resize the stage
+   above it under the thumb that just tapped. */
+.creator-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 8px;
+  flex: none;
+  max-height: 34vh;
+  padding: 2px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.creator-options.is-chips {
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+}
+
+.creator-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.creator-option.is-on {
+  border-color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2) 12%, var(--panel));
+}
+
+.creator-option.is-locked {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.creator-option .avatar {
+  border-radius: 12px;
+}
+
+.creator-picker {
+  position: relative;
+}
+
+/* The platform's own picker, sized to look like the swatch next to it: a
+   colour wheel on a phone and an eyedropper on a desktop, for no code. */
+.creator-picker input[type='color'] {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.creator-picker input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.creator-picker input[type='color']::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.profile-edit {
+  width: 100%;
+  margin: 4px 0 14px;
+}

@@ -72,29 +72,51 @@ export { DEFAULT_SPEC }
  * driver that will not give us a context, because a face that is flatter than
  * intended beats a blank square.
  */
+export interface PaintOptions {
+  round?: boolean
+  /** Frame the whole figure rather than the head and shoulders. */
+  full?: boolean
+  /** Image height over width. Square unless a caller asks otherwise. */
+  aspect?: number
+}
+
 export function paintAvatar(
   canvas: HTMLCanvasElement,
   spec: AvatarSpec,
   size: number,
-  options: { round?: boolean } = {},
+  options: PaintOptions = {},
 ): void {
   const ratio = Math.min(3, Math.max(1, window.devicePixelRatio || 1))
+  const aspect = options.aspect ?? 1
   canvas.width = Math.round(size * ratio)
-  canvas.height = Math.round(size * ratio)
+  canvas.height = Math.round(size * aspect * ratio)
   canvas.style.width = `${size}px`
-  canvas.style.height = `${size}px`
+  canvas.style.height = `${size * aspect}px`
   const ctx = canvas.getContext('2d')
   if (!ctx) return
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-  ctx.clearRect(0, 0, size, size)
-  if (!renderAvatar(ctx, spec, size, ratio)) drawAvatar(ctx, spec, size, options)
+  ctx.clearRect(0, 0, size, size * aspect)
+  if (renderAvatar(ctx, spec, size, ratio, { full: options.full === true, aspect })) return
+
+  // The drawn fallback only knows how to paint a bust — it exists for a driver
+  // that will not give us a context at all, and a flatter portrait where a
+  // figure was asked for still says who this is. What it must not do is paint
+  // that bust into the top of a canvas shaped for a standing figure, so the
+  // canvas goes back to a square first.
+  if (aspect !== 1) {
+    canvas.height = Math.round(size * ratio)
+    canvas.style.height = `${size}px`
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+    ctx.clearRect(0, 0, size, size)
+  }
+  drawAvatar(ctx, spec, size, options)
 }
 
 /** A canvas already painted, for code that is building a row from scratch. */
 export function avatarCanvas(
   spec: AvatarSpec,
   size: number,
-  options: { round?: boolean } = {},
+  options: PaintOptions = {},
 ): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
   canvas.className = 'avatar'
