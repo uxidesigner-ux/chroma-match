@@ -18,7 +18,7 @@ import { cleanName } from './leaderboard/types.ts'
 import type { Leaderboard } from './leaderboard/types.ts'
 import { Effects } from './render/particles.ts'
 import { Renderer } from './render/renderer.ts'
-import { activeSkin, initSkin, nextSkin, onSkinChange, setSkin } from './render/skins/index.ts'
+import { initSkin } from './render/skins/index.ts'
 import { contrastingShade, styleFor } from './render/theme.ts'
 import {
   BOOSTER_LIMIT,
@@ -38,7 +38,6 @@ import { Shop } from './ui/shop.ts'
 import { ItemTray } from './ui/items.ts'
 import { ProfileCard } from './ui/profile.ts'
 import { Sheet } from './ui/sheet.ts'
-import { myAvatarCode } from './avatar/store.ts'
 import { FriendsPanel } from './ui/friends.ts'
 import { PackShelf } from './ui/packs.ts'
 import { TodayPanel } from './ui/today.ts'
@@ -51,6 +50,10 @@ import { Hud } from './ui/hud.ts'
 import { Overlay } from './ui/overlay.ts'
 import type { OverlayContent } from './ui/overlay.ts'
 import { Screens } from './ui/screens.ts'
+import { applyLanguage, n, onLanguageChange, t } from './i18n/index.ts'
+import { gemName } from './i18n/gems.ts'
+import { SettingsSheet } from './ui/settings.ts'
+import { hapticsOn, setHapticsOn, setSoundOn, soundOn } from './settings.ts'
 
 function totalHeld(inventory: { hammer: number; rocket: number; bomb: number }): number {
   return inventory.hammer + inventory.rocket + inventory.bomb
@@ -61,16 +64,20 @@ function nextLevelAsk(level: number): string {
   const goal = goalForLevel(level, BOARD.kinds)
   const moves = movesForLevel(level)
   if (goal.kind === 'score') {
-    return `Level ${level} asks for ${goal.need.toLocaleString()} points in ${moves} moves.`
+    return t('askScore', { level, need: n(goal.need), moves })
   }
   if (goal.kind === 'power') {
-    return `Level ${level} asks for ${goal.need} power gems in ${moves} moves.`
+    return t('askPower', { level, need: goal.need, moves })
   }
-  return `Level ${level} asks for ${goal.need} ${styleFor(goal.colour).name} gems in ${moves} moves.`
+  return t('askGems', { level, need: goal.need, moves, colour: gemName(goal.colour) })
 }
 
 /** Only for the card that announces a payout; the tray labels itself. */
-const ITEM_LABELS: Record<Item, string> = { hammer: 'Hammer', rocket: 'Rocket', bomb: 'Bomb' }
+const ITEM_LABELS: Record<Item, () => string> = {
+  hammer: () => t('itemHammer'),
+  rocket: () => t('itemRocket'),
+  bomb: () => t('itemBomb'),
+}
 
 const BEST_KEY = 'chroma-match:best'
 const LEVEL_KEY = 'chroma-match:best-level'
@@ -94,6 +101,11 @@ const renderer = new Renderer(canvas, BOARD)
 const effects = new Effects()
 const sfx = new Sfx()
 const haptics = new Haptics()
+// Read back rather than assumed: both kits default to on, and a player who
+// muted the game last time would otherwise get it back at full volume on
+// every load — which is what happened before these were written down.
+sfx.enabled = soundOn()
+haptics.enabled = hapticsOn()
 const hud = new Hud()
 const overlay = new Overlay()
 const combo = new ComboMeter()
@@ -324,15 +336,15 @@ const hooks: Partial<GameHooks> = {
     tray.arm(null)
     const earned = itemForLevel(level)
     overlay.show({
-      kicker: 'Cleared',
-      title: `Level ${level} complete`,
+      kicker: t('cleared'),
+      title: t('levelComplete', { level }),
       hero: {
-        value: game.score.toLocaleString(),
-        caption: 'points banked',
-        flair: `${ITEM_LABELS[earned]} earned`,
+        value: n(game.score),
+        caption: t('pointsBanked'),
+        flair: t('itemEarned', { item: ITEM_LABELS[earned]() }),
       },
       body: nextLevelAsk(level + 1),
-      action: 'Next level',
+      action: t('nextLevel'),
       onAction: () => game.nextLevel(),
     })
   },
@@ -356,17 +368,19 @@ const hooks: Partial<GameHooks> = {
     today.refresh()
 
     const content: OverlayContent = {
-      kicker: 'Out of moves',
-      title: 'Run over',
+      kicker: t('outOfMoves'),
+      title: t('runOver'),
       hero: {
-        value: score.toLocaleString(),
-        caption: `points · level ${game.level}`,
-        ...(isRecord ? { flair: 'New personal best' } : {}),
+        value: n(score),
+        caption: t('pointsAndLevel', { level: game.level }),
+        ...(isRecord ? { flair: t('newPersonalBest') } : {}),
       },
-      body: `+${payout} coins${isRecord ? '' : ` · your best is still ${previous.toLocaleString()}`}`,
-      action: 'Play again',
+      body: isRecord
+        ? t('coinsGained', { coins: payout })
+        : t('coinsGainedBest', { coins: payout, best: n(previous) }),
+      action: t('playAgain'),
       onAction: () => startRun(),
-      secondary: { label: 'Back to home', onAction: () => goHome() },
+      secondary: { label: t('backToHome'), onAction: () => goHome() },
     }
 
     // A run with no accepted swaps has nothing to verify, so nothing to post.
@@ -384,20 +398,18 @@ const hooks: Partial<GameHooks> = {
           // Failures are swallowed — the run is already on the leaderboard, and
           // a friends row that is one run stale is not worth an error card.
           if (account()?.kind === 'google') {
-            // The avatar goes with the name: a friends board is a row of faces,
-            // and a face that is one run out of date is the wrong face.
-            void publishProfile(clean, account()?.photo ?? '', myAvatarCode()).catch(() => {})
+            void publishProfile(clean, account()?.photo ?? '').catch(() => {})
             void publishBest(run).catch(() => {})
           }
           if (!result.accepted) {
-            return { ok: false, message: result.reason ?? 'That run was not accepted.' }
+            return { ok: false, message: result.reason ?? t('postRejected') }
           }
           void home.refresh()
           return {
             ok: true,
             message: result.rank
-              ? `Posted — #${result.rank} with ${result.score.toLocaleString()}.`
-              : `Posted ${result.score.toLocaleString()}.`,
+              ? t('postedRank', { rank: result.rank, score: n(result.score) })
+              : t('posted', { score: n(result.score) }),
           }
         },
       }
@@ -500,10 +512,10 @@ function continueRun(): boolean {
     clearSuspended()
     paintContinue()
     overlay.show({
-      kicker: 'Sorry',
-      title: 'That run could not be resumed',
-      body: 'The saved run no longer replays on this version of the board, so it has been cleared.',
-      action: 'Start a new one',
+      kicker: t('sorry'),
+      title: t('cannotResume'),
+      body: t('cannotResumeBody'),
+      action: t('startANewOne'),
       onAction: () => loadout.show((picked) => startRun(picked)),
     })
     return false
@@ -523,7 +535,7 @@ function paintContinue(): void {
   if (!button) return
   button.hidden = kept === null
   if (kept && sub) {
-    sub.textContent = `Level ${kept.level} · ${kept.score.toLocaleString()}`
+    sub.textContent = t('continueSub', { level: kept.level, score: n(kept.score) })
   }
 }
 
@@ -542,7 +554,7 @@ document.getElementById('continue-run')?.addEventListener('click', (event) => {
   const button = event.currentTarget as HTMLButtonElement
   const label = button.innerHTML
   button.disabled = true
-  button.textContent = 'Restoring…'
+  button.textContent = t('restoring')
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       continueRun()
@@ -561,16 +573,16 @@ document.getElementById('start-game')?.addEventListener('click', () => {
   }
   // A new run overwrites the kept one, so it is asked for rather than assumed.
   overlay.show({
-    kicker: 'You have a run waiting',
-    title: `Level ${kept.level}`,
-    body: `${kept.score.toLocaleString()} points. Starting a new run discards it.`,
-    action: 'Start a new run',
+    kicker: t('runWaiting'),
+    title: t('levelN', { level: kept.level }),
+    body: t('runWaitingBody', { score: n(kept.score) }),
+    action: t('startANewRun'),
     onAction: () => {
       clearSuspended()
       paintContinue()
       loadout.show((picked) => startRun(picked))
     },
-    secondary: { label: 'Continue that one', onAction: () => continueRun() },
+    secondary: { label: t('continueThatOne'), onAction: () => continueRun() },
   })
 })
 
@@ -611,37 +623,43 @@ document.getElementById('rotate-dismiss')?.addEventListener('click', () => {
 
 // ---- controls shared by both screens --------------------------------------
 
+/**
+ * The quick mute that stays on the pause card.
+ *
+ * Sound is a setting and lives in Settings now, but it is also the one setting
+ * somebody reaches for mid-run — in a waiting room, next to a sleeping child —
+ * and making them leave the board to find it is the wrong trade. It writes to
+ * the same stored preference, so the two never disagree.
+ */
 const soundButtons = document.querySelectorAll<HTMLButtonElement>('[data-action="sound"]')
+function applySound(on: boolean): void {
+  sfx.enabled = on
+  // One control for both here: a buzz with no sound reads as a fault, not a
+  // reward. The Settings sheet separates them, because there it can explain.
+  haptics.enabled = on && hapticsOn()
+  for (const other of soundButtons) {
+    other.setAttribute('aria-pressed', String(on))
+    const label = other.querySelector('.sound-label')
+    if (label) label.textContent = on ? t('settingsSound') : t('settingsOff')
+  }
+}
 for (const button of soundButtons) {
   button.addEventListener('click', () => {
     sfx.unlock()
-    sfx.enabled = !sfx.enabled
-    // One control for both: a buzz with no sound reads as a fault, not a reward.
-    haptics.enabled = sfx.enabled
-    for (const other of soundButtons) {
-      other.setAttribute('aria-pressed', String(sfx.enabled))
-      const label = other.querySelector('.sound-label')
-      if (label) label.textContent = sfx.enabled ? 'Sound on' : 'Sound off'
-    }
+    const next = !soundOn()
+    setSoundOn(next)
+    applySound(next)
+    settings.paint()
   })
 }
 
-const skinButtons = document.querySelectorAll<HTMLButtonElement>('[data-action="skin"]')
-function paintSkinButtons(): void {
-  for (const button of skinButtons) {
-    const label = button.querySelector('.skin-label')
-    if (label) label.textContent = activeSkin().name
-    button.title = `Switch to ${nextSkin().name}`
-  }
-}
-for (const button of skinButtons) {
-  button.addEventListener('click', () => setSkin(nextSkin()))
-}
-// Both footers carry the toggle, and the skin can also change from the URL, so
-// the labels are painted from the skin rather than from whichever button was
-// pressed.
-onSkinChange(paintSkinButtons)
-paintSkinButtons()
+const settings = new SettingsSheet({
+  applySound,
+  applyHaptics(on) {
+    setHapticsOn(on)
+    haptics.enabled = on && soundOn()
+  },
+})
 
 const help = document.getElementById('help')
 const helpButtons = document.querySelectorAll<HTMLButtonElement>('[data-action="how-to"]')
@@ -656,6 +674,33 @@ for (const button of helpButtons) {
 }
 
 // ---- loop -----------------------------------------------------------------
+
+/**
+ * Text, after everything that owns some has been built.
+ *
+ * The static pass fills anything carrying `data-i18n`, including the profile
+ * tabs and the settings chips, which are created in their constructors — so it
+ * runs here rather than at import time, when half of them would not exist yet.
+ *
+ * On a language change it runs again and every panel repaints its own dynamic
+ * text. Nothing else is touched: no state is read, written or migrated, so a
+ * run in progress keeps its board, its score and its move list across a switch.
+ */
+function repaintText(): void {
+  applyLanguage()
+  applySound(soundOn())
+  settings.paint()
+  hud.invalidate()
+  paintContinue()
+  profile.paintCard()
+
+  today.refresh()
+  shop.refresh()
+  packs.refresh()
+  void home.refresh()
+}
+applyLanguage()
+onLanguageChange(repaintText)
 
 const observer = new ResizeObserver(() => renderer.resize())
 observer.observe(canvas)
@@ -732,20 +777,20 @@ function frame(now: number): void {
  * go looking for evidence of.
  */
 today.onDailyClaimed((state) => {
-  const item = state.reward.item ? ITEM_LABELS[state.reward.item] : ''
+  const item = state.reward.item ? ITEM_LABELS[state.reward.item]() : ''
   overlay.show({
-    kicker: `Day ${state.day}`,
-    title: state.streak > 1 ? `${state.streak} days in a row` : 'Daily reward',
+    kicker: t('dayN', { day: state.day }),
+    title: state.streak > 1 ? t('daysInARow', { streak: state.streak }) : t('dailyRewardTitle'),
     hero: {
       value: `+${state.reward.coins}`,
-      caption: 'coins',
-      ...(item ? { flair: `${item} too` } : {}),
+      caption: t('starterCoins'),
+      ...(item ? { flair: t('itemToo', { item }) } : {}),
     },
     body:
       state.day === DAILY_REWARDS.length
-        ? 'A full week. The streak starts again tomorrow at day one.'
-        : `Come back tomorrow for day ${state.day + 1}.`,
-    action: 'Nice',
+        ? t('fullWeek')
+        : t('comeBackTomorrow', { next: state.day + 1 }),
+    action: t('nice'),
     onAction: () => {},
   })
 })
@@ -767,11 +812,11 @@ void home.refresh()
 if (granted) {
   const names = granted.items.map((item) => ITEM_LABELS[item]).join(' and a ')
   overlay.show({
-    kicker: 'Welcome',
-    title: 'Your starter kit',
+    kicker: t('welcome'),
+    title: t('starterKit'),
     hero: { value: String(granted.coins), caption: 'coins', flair: `A ${names}` },
-    body: 'Items are aimed at any gem and cost no move. Coins buy more in the shop.',
-    action: 'Got it',
+    body: t('starterBody'),
+    action: t('gotIt'),
     onAction: () => {},
   })
 }

@@ -83,8 +83,26 @@ export function goalForLevel(level: number, kinds: number): Goal {
 }
 
 /** One line for the HUD, in the player's terms rather than the type's. */
-export function goalLabel(goal: Goal, colourName: (colour: Kind) => string): string {
-  if (goal.kind === 'score') return 'Score'
-  if (goal.kind === 'power') return 'Power gems'
-  return `${colourName(goal.colour)} gems`
+export function goalLabel(
+  goal: Goal,
+  colourName: (colour: Kind) => string,
+  words: { score: string; power: string; gems: (colour: string) => string } = DEFAULT_WORDS,
+): string {
+  if (goal.kind === 'score') return words.score
+  if (goal.kind === 'power') return words.power
+  return words.gems(colourName(goal.colour))
+}
+
+/**
+ * English, for the tests and for any caller with nothing better.
+ *
+ * The words are a parameter rather than an import because this module is the
+ * rules of the game — what a level asks for — and the rules do not depend on
+ * what language somebody is reading them in. The tests assert on these
+ * directly, which is the other reason they stay here.
+ */
+const DEFAULT_WORDS = {
+  score: 'Score',
+  power: 'Power gems',
+  gems: (colour: string) => `${colour} gems`,
 }

@@ -1,5 +1,6 @@
 import { ITEMS } from '../game/items.ts'
 import type { Inventory, Item } from '../game/items.ts'
+import { t } from '../i18n/index.ts'
 
 const LABELS: Record<Item, string> = {
   hammer: 'Hammer',
@@ -117,7 +118,7 @@ export class ItemTray {
   nudge(on: boolean): void {
     for (const [, button] of this.buttons) button.classList.toggle('is-nudged', on)
     if (on) {
-      this.hint.textContent = 'Tap an item, then tap a gem to use it'
+      this.hint.textContent = t('itemsHint')
       this.hint.hidden = false
     } else if (!this.armedItem) {
       this.hint.textContent = ''

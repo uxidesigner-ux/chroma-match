@@ -1,6 +1,7 @@
 import { checkEntries } from '../leaderboard/verify.ts'
 import type { EntryCheck, Leaderboard, LeaderboardEntry } from '../leaderboard/types.ts'
 import { avatarCanvas, myAvatar } from '../avatar/store.ts'
+import { t } from '../i18n/index.ts'
 
 const SHOWN = 20
 
@@ -83,7 +84,7 @@ export class HomeScreen {
 
   async refresh(): Promise<void> {
     const generation = ++this.generation
-    this.note.textContent = this.mode === 'friends' ? 'Loading…' : this.board.label
+    this.note.textContent = this.mode === 'friends' ? t('loading') : this.board.label
 
     let entries: LeaderboardEntry[]
     let mine: LeaderboardEntry | null
@@ -91,7 +92,7 @@ export class HomeScreen {
       if (this.mode === 'friends') {
         // The friends board is already the player's own rows plus their
         // friends', so "mine" comes out of it rather than from a second query.
-        const friends = (await this.friends?.()) ?? { entries: [], label: 'Friends unavailable' }
+        const friends = (await this.friends?.()) ?? { entries: [], label: t('friendsUnavailable') }
         if (generation !== this.generation) return
         entries = friends.entries
         mine = entries.find((entry) => entry.mine) ?? null
@@ -102,7 +103,7 @@ export class HomeScreen {
       }
     } catch {
       // A board that will not load must not block the Play button.
-      this.note.textContent = 'Leaderboard unavailable'
+      this.note.textContent = t('boardUnavailable')
       this.renderList([])
       return
     }
@@ -142,7 +143,7 @@ export class HomeScreen {
       const badge = row.querySelector('.rank-check')
       if (badge) {
         badge.textContent = '✓'
-        badge.setAttribute('title', 'Your browser replayed this run and it checks out')
+        badge.setAttribute('title', t('verifiedTitle'))
         badge.classList.add('is-ok')
       }
     }
@@ -164,8 +165,8 @@ export class HomeScreen {
     // copy for both would tell the player to do the wrong thing on one of them.
     empty.textContent =
       this.mode === 'friends'
-        ? 'Nobody here yet. Share your code, or add a friend’s.'
-        : 'No runs yet. Play one and it lands here.'
+        ? t('emptyFriends')
+        : t('emptyEveryone')
     this.list.replaceChildren(empty)
   }
 

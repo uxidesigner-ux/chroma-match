@@ -4,6 +4,7 @@ import { BOARD } from '../game/types.ts'
 import { session, uid as currentUid } from './session.ts'
 import { cleanName } from './types.ts'
 import type { Leaderboard, LeaderboardEntry, SubmitResult } from './types.ts'
+import { t } from '../i18n/index.ts'
 
 /** Rows pulled per page. The launch screen shows twenty. */
 const PAGE = 25
@@ -31,7 +32,9 @@ const OWN_LIMIT = 50
  */
 export class FirebaseLeaderboard implements Leaderboard {
   readonly isShared = true
-  readonly label = 'Everyone'
+  get label(): string {
+    return t('boardEveryone')
+  }
 
   private async connect(): Promise<{ db: import('firebase/firestore').Firestore; uid: string }> {
     const { db } = await session()
@@ -69,7 +72,7 @@ export class FirebaseLeaderboard implements Leaderboard {
     // verification should never become a row for everyone else to filter out.
     const verdict = verifyRun(run, BOARD)
     if (!verdict.ok) {
-      return { accepted: false, reason: 'That run could not be replayed.', rank: null, score: 0 }
+      return { accepted: false, reason: t('replayFailed'), rank: null, score: 0 }
     }
 
     const { db, uid } = await this.connect()

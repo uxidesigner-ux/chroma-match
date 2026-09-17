@@ -1,4 +1,5 @@
 import { FIREBASE_CONFIG } from './firebase-config.ts'
+import { t } from '../i18n/index.ts'
 
 /**
  * One Firebase app, one auth state, for everything that talks to the backend.
@@ -142,7 +143,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
     auth = await import('firebase/auth')
     instance = opened.auth
   } catch {
-    return { ok: false, reason: 'Could not reach the sign-in service.' }
+    return { ok: false, reason: t('signInUnreachable') }
   }
 
   const provider = new auth.GoogleAuthProvider()
@@ -170,7 +171,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
         announce(describe(signed.user))
         return { ok: true, switched: true }
       } catch {
-        return { ok: false, reason: 'That Google account is already signed in elsewhere.' }
+        return { ok: false, reason: t('signInTaken') }
       }
     }
 
@@ -180,15 +181,15 @@ export async function signInWithGoogle(): Promise<SignInResult> {
       return { ok: false }
     }
     if (code === 'auth/operation-not-allowed') {
-      return { ok: false, reason: 'Google sign-in is not enabled for this project yet.' }
+      return { ok: false, reason: t('signInDisabled') }
     }
     if (code === 'auth/unauthorized-domain') {
-      return { ok: false, reason: 'This site is not on the project’s allowed sign-in domains.' }
+      return { ok: false, reason: t('signInDomain') }
     }
     if (code === 'auth/popup-blocked') {
-      return { ok: false, reason: 'Your browser blocked the sign-in window.' }
+      return { ok: false, reason: t('signInBlocked') }
     }
-    return { ok: false, reason: 'Sign-in did not complete.' }
+    return { ok: false, reason: t('signInIncomplete') }
   }
 }
 

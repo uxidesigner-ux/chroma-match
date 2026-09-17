@@ -1,4 +1,5 @@
 import { PACKS, grantPack } from '../packs.ts'
+import { n, t } from '../i18n/index.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -19,6 +20,18 @@ export class PackShelf {
   private listeners: Array<(coins: number) => void> = []
 
   constructor() {
+    this.refresh()
+  }
+
+  /**
+   * Rebuilds the shelf.
+   *
+   * The rows carry translated copy — the amount, the bonus, the "best value"
+   * flag — and they are built from the pack list rather than from markup, so a
+   * language change has to rebuild them rather than refill them.
+   */
+  refresh(): void {
+    this.list.replaceChildren()
     for (const pack of PACKS) {
       const row = document.createElement('li')
       row.className = pack.best ? 'pack is-best' : 'pack'
@@ -31,12 +44,12 @@ export class PackShelf {
       text.className = 'pack-text'
       const amount = document.createElement('strong')
       amount.className = 'pack-amount'
-      amount.textContent = `${pack.coins.toLocaleString()} coins`
+      amount.textContent = `${n(pack.coins)} ${t('starterCoins')}`
       const note = document.createElement('span')
       note.className = 'pack-note'
       // The bonus is what the ladder is for: it is the reason a bigger pack is
       // a different decision rather than the same one three times.
-      note.textContent = pack.bonus > 0 ? `+${pack.bonus}% more per won` : 'Starter amount'
+      note.textContent = pack.bonus > 0 ? t('shopBonus', { percent: pack.bonus }) : t('shopStarterAmount')
       text.append(amount, note)
 
       const button = document.createElement('button')
@@ -52,7 +65,7 @@ export class PackShelf {
       if (pack.best) {
         const flag = document.createElement('span')
         flag.className = 'pack-flag'
-        flag.textContent = 'Best value'
+        flag.textContent = t('shopBestValue')
         row.append(flag)
       }
       row.append(art, text, button)

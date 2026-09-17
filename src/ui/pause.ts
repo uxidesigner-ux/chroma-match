@@ -1,3 +1,5 @@
+import { n, t } from '../i18n/index.ts'
+
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
   if (!node) throw new Error(`Missing element #${id}`)
@@ -48,8 +50,8 @@ export class PauseSheet {
 
   show(level: number, score: number, actions: PauseActions): void {
     this.actions = actions
-    this.title.textContent = `Level ${level}`
-    this.body.textContent = `${score.toLocaleString()} points so far.`
+    this.title.textContent = t('levelN', { level })
+    this.body.textContent = t('pointsSoFar', { score: n(score) })
     this.root.hidden = false
     this.resume.focus()
   }
