@@ -79,6 +79,17 @@ FLOWS = [
     ("back_centre", False, [
         (0.42, 0.96, -0.18), (0.22, 1.00, -0.62), (0.12, 0.20, -0.86),
         (0.06, -0.80, -0.82), (0.10, -1.86, -0.66), (0.04, -2.72, -0.46)]),
+    # Over the ear, between the sweep and the back. Without these the mass
+    # splits into a front group and a back group with the side of the head
+    # showing between them, and the whole thing reads as two thick tails
+    # rather than a head of hair. The reference has no such gap; the flow is
+    # continuous from the brow round to the nape.
+    ("side_left", True, [
+        (0.06, 1.06, -0.10), (-0.46, 0.92, -0.28), (-0.92, 0.28, -0.34),
+        (-1.16, -0.62, -0.26), (-1.10, -1.60, -0.14), (-1.26, -2.60, -0.14)]),
+    ("side_right", True, [
+        (0.52, 1.02, -0.12), (0.88, 0.86, -0.28), (1.14, 0.24, -0.34),
+        (1.30, -0.66, -0.24), (1.22, -1.64, -0.12), (1.38, -2.60, -0.12)]),
 ]
 
 

@@ -32,17 +32,28 @@ not a second garment.
 Each is its own mesh. Where two share a construction they may share a builder,
 but they may not share an outline.
 
-## 2. Colour changes colour
+## 2. Colour without losing the material
 
-The rule already in the showroom: a part is tintable when its exported material
-is named for a slot — `skin`, `hair`, `cloth`, `eye`. A part exported with any
-other material keeps what it was authored with and is not tintable. That is how
-an authored fabric with maps on it opts out.
+Keeping what a garment was authored with and being able to recolour it are not
+alternatives. The end state is both: a garment keeps its own roughness, sheen
+and any maps it ships with, and a named region of it can still be recoloured.
+
+That means the recolourable part of a garment is a declared region — a tint
+mask or a named material slot within the garment — not the whole thing and not
+nothing. A knit's weave, a shirt's weft, a shoe's sole all stay put; the panel
+the swatch applies to changes hue.
 
 A colour change sets base colour only. Roughness, sheen and clearcoat belong to
-the garment, not to the swatch, so a knit stays a knit in every colour. The
-sheen is tinted towards the garment's own colour rather than white, because a
-white sheen over a dark colour lifts the whole thing to grey.
+the garment, not to the swatch. The sheen is tinted towards the garment's own
+colour rather than white, because a white sheen over a dark colour lifts the
+whole thing to grey.
+
+**What exists today is a prototype, not this.** The showroom currently replaces
+a part's material outright whenever the GLB names it `skin`, `hair`, `cloth` or
+`eye`, and a part named anything else is left alone and cannot be tinted. That
+is four shared materials standing in for per-garment ones, and it is an
+either/or of exactly the kind this section rules out. It is adequate for judging
+one character and has to be replaced before any authored fabric arrives.
 
 ## 3. Layering
 
@@ -52,10 +63,17 @@ Draw order, and more importantly cover order:
 
 Three rules do the work:
 
-**Thickness, not sorting.** Each layer's section is the section of the layer
-under it pushed out by a cloth thickness. This is the one thing that makes skin
-coming through impossible rather than unlikely, and it is already proven on the
-current top. Outer clears top clears body.
+**Thickness, and then checking.** Each layer's section is the section of the
+layer under it pushed out by a cloth thickness. That removes the common case,
+and it is what the current top does. It does not prove anything: an offset holds
+where the garment follows the body it was derived from, and stops holding at a
+shoulder that rotates, at a build the garment was not derived for, at a hem that
+gathers, and wherever two garments were authored against different body
+versions. So the guarantee is not "thickness, therefore never" — it is a matrix.
+Every supported build and pose, crossed with the combinations the rules allow,
+rendered against a contrasting skin and checked. Penetration found there is
+fixed by cover rules or by a compatibility rule, not by adding thickness until
+it goes away.
 
 **Cover, don't overlap.** A garment declares the regions it covers. A long
 sleeved outer covers `sleeve`, so the top's sleeve is *hidden*, not drawn inside
@@ -63,10 +81,14 @@ it. That is what stops two cuffs appearing at one wrist. Tucking is the same
 mechanism: a tucked top hides the bottom's waistband region rather than fighting
 it.
 
-**Collisions are the wardrobe's problem, not the wearer's.** A bag strap and
-long hair both want the shoulder. The strap is drawn over the hair, as it would
-be if it were put on after, and the hair bands that cross the strap are offset
-inward where it lies. The user is never asked to pick a different bag.
+**Collisions are resolved in space, not in draw order.** A bag strap and long
+hair both want the shoulder. Drawing one over the other does not resolve it —
+it hides it from one angle and shows it from the next, which is worse than
+leaving it alone. The strap has a real path over the shoulder, the hair has a
+deformation that gives way along that path, and the pair is checked all the way
+round rather than from the front. Where a deformation cannot be made to work,
+the combination becomes a declared compatibility rule with a defined result.
+Either way the wearer is never asked to pick a different bag.
 
 ## 4. Compatibility
 
@@ -105,3 +127,8 @@ anything social. The order stands: the representative character's quality is
 approved first, then a few real hair and garment swaps on that same face and
 body are used to check the combination rules — not three separate finished
 characters.
+
+Camera framing, colour changes and showing or hiding a part are working in the
+showroom. None of them is evidence that the character looks right, and none of
+them is a test of swapping in a different part: there is only one hair and one
+top to swap between.

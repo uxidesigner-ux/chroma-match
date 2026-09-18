@@ -204,3 +204,39 @@ def round_box(name: str, centre, half, radius: float, segments: int = 5):
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.modifier_apply(modifier=bevel.name)
     return obj
+
+
+def join(objects, name: str):
+    """Make several objects one object, without changing any geometry."""
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in objects:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = objects[0]
+    bpy.ops.object.join()
+    merged = bpy.context.active_object
+    merged.name = name
+    merged.select_set(False)
+    return merged
+
+
+def fuse(obj, voxel: float, adaptivity: float = 0.0):
+    """Rebuild the surface of overlapping solids as one skin.
+
+    Separate swept bands that pass through each other each keep their own hard
+    edge, and those edges are what show as steps in the outline and as slabs
+    that never became a mass. A voxel remesh replaces the lot with the surface
+    of their union, so where two bands cross there is one surface, and where
+    they are genuinely apart there is still a valley between them.
+
+    The voxel size decides what survives: too coarse and the divisions melt into
+    a helmet, too fine and there is no fusing to speak of, only a great many
+    triangles.
+    """
+    modifier = obj.modifiers.new("remesh", "REMESH")
+    modifier.mode = "VOXEL"
+    modifier.voxel_size = voxel
+    modifier.adaptivity = adaptivity
+    modifier.use_smooth_shade = True
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.modifier_apply(modifier=modifier.name)
+    return obj

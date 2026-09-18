@@ -151,10 +151,16 @@ def rim_angle(phi):
     enough to close the gaps between them at the top."""
     front = math.cos(phi)
     side = abs(math.sin(phi))
-    return math.pi * (0.385 - 0.075 * front + 0.150 * side * side + 0.175 * lib.smoothstep(0.2, -1, front))
+    # Stops well above the temple. It used to reach the hairline, which put its
+    # rim within a voxel or two of the seated inner face of every side band —
+    # two nearly-coincident surfaces, which a voxel remesh resolves as a row of
+    # jagged ridges rather than as one skin. Widening the gap made it worse and
+    # coarsening the grid made it worse again; removing one of the two surfaces
+    # is what actually fixes it. The bands cover the sides anyway.
+    return math.pi * (0.250 - 0.045 * front + 0.075 * side * side + 0.130 * lib.smoothstep(0.2, -1, front))
 
 
-def build_crown(lift=0.075):
+def build_crown(lift=0.175):
     """A small patch over the crown, to close between the bands.
 
     Not a scalp. The previous one was a full cap cut at a hairline, and a cap is
@@ -176,7 +182,11 @@ def build_crown(lift=0.075):
             theta = (v ** 0.92) * rim_angle(phi)
             d = (math.sin(theta) * math.sin(phi), math.cos(theta), math.sin(theta) * math.cos(phi))
             p = head_surface(d)
-            thin = 1 - v ** 3.0
+            # Full lift at the apex, thinning to nothing at the rim. The
+            # bands arc above the skull near the parting, so a patch that only
+            # skims it leaves a wedge of scalp showing between the two — the
+            # notch at the top of the head.
+            thin = (1 - v ** 2.2) ** 0.75
             q = [p[k] + d[k] * lift * thin for k in range(3)]
             row.append(bm.verts.new(to_blender(q)))
         grid.append(row)
@@ -189,8 +199,11 @@ def build_crown(lift=0.075):
                 pass
     bm.to_mesh(mesh)
     bm.free()
+    # Thick enough to survive a voxel remesh. A sheet that feathers to nothing
+    # at its rim has no volume for the voxels to find, and what comes back is a
+    # ragged edge — which showed as a row of jagged bumps along the temple.
     solid = obj.modifiers.new("solid", "SOLIDIFY")
-    solid.thickness = 0.040
+    solid.thickness = 0.085
     solid.offset = -1.0
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.modifier_apply(modifier=solid.name)
@@ -215,13 +228,18 @@ def build_crown(lift=0.075):
 # were the half width and every band came out at half the intended size: seven
 # straps with skull showing between them instead of one mass.
 BANDS = [
-    ("band_sweep",   "sweep_across",   [0.40, 0.76, 0.86, 0.76, 0.54, 0.16], 0.40, 1.57),
-    ("band_sweep_2", "sweep_across_2", [0.44, 0.80, 0.90, 0.78, 0.56, 0.16], 0.40, 1.57),
-    ("band_short",   "sweep_short",    [0.36, 0.68, 0.78, 0.68, 0.48, 0.14], 0.40, 1.57),
-    ("band_short_2", "sweep_short_2",  [0.40, 0.72, 0.82, 0.70, 0.50, 0.14], 0.40, 1.57),
-    ("band_bk_l",    "back_left",      [0.52, 0.90, 0.98, 0.86, 0.60, 0.18], 0.44, 1.57),
-    ("band_bk_r",    "back_right",     [0.52, 0.90, 0.98, 0.86, 0.60, 0.18], 0.44, 1.57),
-    ("band_bk_c",    "back_centre",    [0.64, 1.06, 1.14, 0.98, 0.68, 0.20], 0.46, 1.57),
+    ("band_sweep",   "sweep_across",   [0.40, 0.80, 0.92, 0.84, 0.62, 0.30], 0.40, 1.57),
+    ("band_sweep_2", "sweep_across_2", [0.44, 0.84, 0.96, 0.86, 0.64, 0.30], 0.40, 1.57),
+    ("band_short",   "sweep_short",    [0.36, 0.72, 0.84, 0.76, 0.56, 0.28], 0.40, 1.57),
+    ("band_short_2", "sweep_short_2",  [0.40, 0.76, 0.88, 0.80, 0.58, 0.28], 0.40, 1.57),
+    ("band_bk_l",    "back_left",      [0.60, 1.02, 1.12, 0.98, 0.70, 0.22], 0.46, 1.57),
+    ("band_bk_r",    "back_right",     [0.60, 1.02, 1.12, 0.98, 0.70, 0.22], 0.46, 1.57),
+    # The centre of the back carries the widest band: the nape is where three
+    # flows have to meet, and a narrow one there leaves a wedge of neck showing
+    # between the other two.
+    ("band_bk_c",    "back_centre",    [0.84, 1.34, 1.44, 1.24, 0.86, 0.26], 0.50, 1.57),
+    ("band_side_l",  "side_left",      [0.66, 1.10, 1.20, 1.04, 0.74, 0.30], 0.48, 1.57),
+    ("band_side_r",  "side_right",     [0.66, 1.10, 1.20, 1.04, 0.74, 0.30], 0.48, 1.57),
 ]
 
 
@@ -265,19 +283,45 @@ def seat_on_skull(obj, clearance=0.045, hold=0.62, fade=0.20):
 
 
 def build_bands():
+    """The bands, seated on the skull and then fused into one surface.
+
+    They are authored as separate swept solids because that is how a flow is
+    described, but they must not stay separate. Two solids that pass through
+    each other keep both their edges, and those edges are exactly the three
+    faults left over: lengths that read as slabs rather than one mass, a step
+    in the outline wherever two bands cross, and a gap at the crown that looks
+    like damage rather than a parting.
+
+    So they are joined and remeshed. What comes back is the surface of their
+    union: one skin where they overlap, and a real valley where they are
+    actually apart — which is what keeps the parting and the divisions between
+    the masses. The crown patch goes in too, so the scalp is part of the same
+    skin instead of a separate cap under it.
+    """
     from flows import FLOWS
 
     paths = {name: path for name, _certain, path in FLOWS}
-    out = []
-    for name, flow, widths, flatten, tilt in BANDS:
+    pieces = [build_crown()]
+    for i, (name, flow, widths, flatten, tilt) in enumerate(BANDS):
         obj = lib.ribbon(name, [to_blender(p) for p in paths[flow]], widths,
                          flatten=flatten, tilt=tilt)
         obj.name = name
-        seat_on_skull(obj)
-        lib.relax(obj, 0.25, 1)
-        lib.shaded_smooth(obj)
-        out.append(obj)
-    return out
+        # A different height for each band. Seating them all at one clearance
+        # stacks their inner faces exactly on top of each other over the
+        # temple, and a voxel grid cannot resolve coincident surfaces: it
+        # returns a row of jagged ridges. Widening the single gap made that
+        # worse, coarsening the grid made it worse again, and removing the
+        # crown patch from the temple barely touched it — because the pair that
+        # coincides is two bands, not a band and the patch. Staggering them by
+        # more than a voxel each is what separates the pair.
+        seat_on_skull(obj, clearance=0.030 + 0.026 * (i % 4))
+        pieces.append(obj)
+
+    merged = lib.join(pieces, "hair")
+    lib.fuse(merged, voxel=0.022)
+    lib.relax(merged, 0.42, 4)
+    lib.shaded_smooth(merged)
+    return [merged]
 
 
 def build():
@@ -290,7 +334,6 @@ def build():
     lib.assign(build_head(), skin)
     lib.assign(build_body(), skin)
     lib.assign(build_top(), cloth)
-    lib.assign(build_crown(), hair_mat)
     for obj in build_bands():
         lib.assign(obj, hair_mat)
 
