@@ -1,76 +1,59 @@
-# Representative reference — how to find it, what it is, how to crop it
+# Representative reference — opened and measured 2026-09-18
 
-This file is a locator, not a substitute for opening the bitmap. Every session
-must open the original and read its pixels. A note here that the file exists
-does not mean it is on this machine.
+This file records **this session’s decode**. It is not a substitute for opening
+the bitmaps next time.
 
-**Do not commit the original, crops that contain it, or comparison stills that
-contain it.** They stay outside `public/` and outside deploy output. The review
-page reads them through a local file picker.
+**Do not commit the originals, the extract, or comparison stills that contain
+them.** They live in `refs/` (gitignored) and are read with a local file picker.
 
-## What the original is
+## What was actually opened
 
-| | |
+Three JPEGs, each a vertical pair (six characters total). **Not** 1536×1024.
+
+| Private copy | Source attachment | Decoded size | Bytes |
+|---|---|---|---|
+| `refs/sheet-long-wave.jpg` | `01a0b2e1-958f-76ca-b38a-d2d3eb961416.jpg` | **1290 × 2796** | 361 811 |
+| `refs/sheet-short-hair-men.jpg` | `01a0b2e1-95a2-7118-910b-672e0644ff9c.jpg` | **1290 × 2796** | 347 064 |
+| `refs/sheet-glasses-bob.jpg` | `01a0b2e1-95bb-7f5f-8e86-b9c74b4a474b.jpg` | **1290 × 2796** | 343 464 |
+
+Target character: **long wave, black knit** = **top panel of `sheet-long-wave.jpg`**.
+
+The other five (glasses + lilac knit; two short-haired men; white shirt + glasses; bob + cream shirt) are the same style family, not this sculpt’s target.
+
+## Crop — measured on this file
+
+`sheet-long-wave.jpg`, row-mean luma > 230:
+
+| | pixels |
 |---|---|
-| What | Six-character sheet |
-| Expected pixels | **1536 × 1024** |
-| Target character | **Top-right**: long wave hair, black knit |
-| Job | Visual bar for the representative sculpt (face, hair, material) |
-| Not this file’s job | Wardrobe combination rules — that direction is Bondee’s structure (`docs/wardrobe.md`) |
+| White separator band | **y = 1555 … 1630** (76 px) |
+| Top panel (target) | **x = 0 … 1290, y = 0 … 1555** |
+| Crop resolution | **1290 × 1555** (copied, not stretched) |
+| Aspect | 1290/1555 = **0.830** |
+| Mapping | crop `(x, y)` → original `(x, y)` because crop origin is `(0, 0)` |
 
-The clay-style sheet and Bondee’s combination model are related references doing
-different jobs. Mixing Bondee’s proportions into a rejected sculpt, or treating
-kept 5c as the new default character, is out of scope.
+Other sheets have their own bands (1524–1599 and 1513–1590). Do not reuse this crop on those files.
 
-## Where it lives
+## Eyes — measured on this crop
 
-| Place | Allowed? |
-|---|---|
-| Local file picker on `tools/figure/review/compare-large.html` | yes |
-| `refs/` at the repo root (gitignored, Vite `fs.deny`) | yes, private copy for this machine |
-| `public/`, GitHub, GitHub Pages, live | **no**, unless explicitly approved |
+Dark pixels in a centre face box, split on the largest x-gap. **Not** the retired 153 px / 635 px notes.
 
-This environment (2026-09-18, follow-up that asked to restore comparison): the
-attached original was **not present** on disk. Paths searched included the
-workspace, `refs/`, `public/dev/`, `/tmp`, `/cursor/stores`, and prior review
-artifacts. No 1536×1024 image was found. Sculpting was not started.
+| | crop px | original px |
+|---|---|---|
+| Left eye | 604.5, 631.8 | 604.5, 631.8 |
+| Right eye | 753.3, 643.3 | 753.3, 643.3 |
+| Separation | **149.3** | 149.3 |
 
-## Crop — only after the file is open
+(Exact values may shift a pixel when the review page re-measures; the method is the same.)
 
-Do **not** reuse older notes:
+Retired, do not reuse: 1536×1024 grid, 3×2 cells, y0=95, y1=1105, eye sep 153, eye y 635.
 
-- eye separation **153 px**
-- eye height **635 px**
-- crop `y0=95 … y1=1105`
-
-Those numbers belonged to a previous crop of a different file (or a crop of a
-crop). They are not coordinates on the 1536×1024 sheet.
-
-Once the current file is decoded and its size is **exactly** 1536×1024:
-
-| | value |
-|---|---|
-| Layout assumed | 3 columns × 2 rows |
-| Cell size | 1536/3 = **512**, 1024/2 = **512** |
-| Top-right cell in original pixels | **x = 1024 … 1536, y = 0 … 512** |
-| Crop resolution | **512 × 512** (copied, not stretched) |
-| Mapping | crop `(x, y)` → original `(1024 + x, y)` |
-
-If the decoded size is not 1536×1024, **stop**. Do not invent a crop. Do not
-fall back to 153 / 635.
-
-Eye landmarks are measured on **that crop**, then mapped back with the row
-above. The review page records all four: original size, crop rect, crop
-resolution, eye coordinates in both spaces.
-
-## How to run a comparison
+## How to compare
 
     npx vite --port 5173
-    # In the browser: open /tools/figure/review/compare-large.html
-    # Choose the original with the file picker.
+    # /tools/figure/review/compare-large.html → choose refs/sheet-long-wave.jpg
 
-    # Headless, once a private copy exists at refs/six-sheet.png:
-    REF=refs/six-sheet.png node tools/figure/review/shot.mjs \
+    REF=refs/sheet-long-wave.jpg node tools/figure/review/shot.mjs \
       http://127.0.0.1:5173/tools/figure/review/compare-large.html out.png
 
 `window.__modelReady` means the GLB loaded. `window.__compareReady` means the
@@ -78,9 +61,24 @@ original was read and the first row (original / coloured / clay) exists.
 Model-ready is not comparison-ready. Clay-versus-colour is not a reference
 comparison.
 
-## Quality standing (unchanged)
+## Quality standing (this comparison)
 
 Kept 5c is an experimental checkpoint, not an approved default character.
-Large remaining gaps: inflated crown, round temple masses, a small trapped
-face, long hair that does not read as one waving mass. Joining meshes or
-piling spheres is not the same as matching the long-wave style.
+
+Against the extracted long-wave / black-knit bust, the largest remaining gaps:
+
+1. Hair is two inflated side bulbs, not one wrapping long-wave mass.
+2. No diagonal bang; the forehead is covered instead of framed.
+3. The face is a remnant trapped between masses; the original is a simple
+   round clay head with a readable forehead, cheeks, and neck.
+4. Hair does not fall past the shoulders as S-curves. The silhouette is a
+   mushroom, not an inverted triangle that is narrow at the crown and wide
+   at the shoulders.
+5. Neck, crew knit, and shoulders barely read.
+
+Joining meshes or piling ellipsoids is not the same as matching this style.
+Do not start a new hair method until this original comparison is the one
+being sculpted against.
+
+The clay sheet is the look bar. Bondee’s character/combination model
+(`docs/wardrobe.md`) is the wardrobe end-state, not this sculpt pass.

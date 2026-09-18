@@ -5,10 +5,10 @@ approved default character.
 
 ## Reference (must be opened, not remembered)
 
-See `REFERENCE.md`. The six-character original (expected 1536×1024, target =
-top-right long wave / black knit) was **not on this machine** in the session
-that restored the comparison page. Older numbers (eye sep 153 px, eye y 635,
-crop y0=95) are **retired** until the current file is decoded and re-measured.
+See `REFERENCE.md`. The originals are three 1290×2796 stacked pairs (not
+1536×1024). Target = **top panel of `sheet-long-wave.jpg`** (long wave, black
+knit). Crop 1290×1555; eyes L 604.5,631.8 R 753.3,643.3, sep **149.3 px**.
+Retired: 3×2 grid, y0=95, eye sep 153, eye y 635.
 
 Comparison is `tools/figure/review/compare-large.html`. The first row is
 original / coloured / clay. `window.__compareReady` is false until that row
@@ -23,9 +23,11 @@ exists. Clay-versus-colour is not a reference comparison.
 | **5c** | Overlapping ellipsoids | Inflated bulbs; not the long-wave style |
 | 5d | Coarser remesh | Helmet — discarded |
 
-5c’s remaining gaps, as reviewed: oversized crown, round temple masses, a
-small trapped face, long hair that does not continue as one waving mass.
-Piling large spheres is not “finding the large form.”
+5c’s remaining gaps, **confirmed against this original extract**: two inflated
+side bulbs instead of one wrapping long-wave mass; no diagonal bang; a
+trapped remnant face; mushroom silhouette instead of inverted-triangle
+shoulder-length waves; neck / crew knit barely readable. Piling large
+spheres is not “finding the large form.”
 
 ## What not to retry
 
@@ -38,6 +40,6 @@ Piling large spheres is not “finding the large form.”
 ## Direction
 
 - Pipeline: `tools/figure/*.py` → `public/figure/character.glb` → Three.js showroom
-- Visual bar: top-right character on the six-person sheet
+- Visual bar: top panel of `sheet-long-wave.jpg` (long wave, black knit)
 - Combination / wardrobe end state: Bondee’s character and assembly model (`docs/wardrobe.md`)
 - Do not merge or deploy until visual approval

@@ -24,9 +24,9 @@ and re-running a script reproduces its GLB exactly.
 Required visual check — original is mandatory:
 
     npx vite --port 5173
-    # open /tools/figure/review/compare-large.html and choose the 1536×1024 sheet
+    # open /tools/figure/review/compare-large.html and choose refs/sheet-long-wave.jpg
 
-    REF=refs/six-sheet.png node tools/figure/review/shot.mjs \
+    REF=refs/sheet-long-wave.jpg node tools/figure/review/shot.mjs \
       http://127.0.0.1:5173/tools/figure/review/compare-large.html out.png
 
 `refs/` is gitignored and blocked from the Vite file server. Never put the

@@ -53,7 +53,6 @@ import { Vector3 } from 'three'
 import { Showroom } from '/src/avatar/figure/showroom.ts'
 
 const LOOK = { skin: '#F0B894', hair: '#4A382F', cloth: '#23232A', backdrop: '#E3C4C2' }
-const EXPECT = { width: 1536, height: 1024, cols: 3, rows: 2 }
 
 window.__modelReady = false
 window.__compareReady = false
@@ -97,44 +96,128 @@ function measureEyes(canvas) {
   const w = canvas.width
   const h = canvas.height
   const { data } = ctx.getImageData(0, 0, w, h)
-  const x0 = Math.floor(w * 0.22)
-  const x1 = Math.floor(w * 0.78)
-  const y0 = Math.floor(h * 0.10)
-  const y1 = Math.floor(h * 0.42)
-  const pts = []
+  const lumaAt = (x, y) => {
+    const i = (y * w + x) * 4
+    return 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
+  }
+  // Face sits in the middle of these busts. Hair at the sides is also dark,
+  // so the search is a centre box, then a split on the largest x-gap in the
+  // remaining dark pixels — measured on this crop, not copied from notes.
+  const x0 = Math.floor(w * 0.34)
+  const x1 = Math.floor(w * 0.66)
+  const y0 = Math.floor(h * 0.32)
+  const y1 = Math.floor(h * 0.48)
+  const dark = []
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
-      const i = (y * w + x) * 4
-      const luma = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
-      if (luma < 55) pts.push([x, y, luma])
+      if (lumaAt(x, y) < 32) dark.push([x, y])
     }
   }
-  if (pts.length < 20) return null
-  let cx = 0
-  let cy = 0
-  for (const [x, y] of pts) { cx += x; cy += y }
-  cx /= pts.length
-  cy /= pts.length
-  const left = []
-  const right = []
-  for (const p of pts) (p[0] < cx ? left : right).push(p)
-  if (left.length < 8 || right.length < 8) return null
+  if (dark.length < 30) return null
+  const xs = dark.map((p) => p[0]).sort((a, b) => a - b)
+  let gapAt = 0
+  let gap = 0
+  for (let i = 1; i < xs.length; i++) {
+    const g = xs[i] - xs[i - 1]
+    if (g > gap) {
+      gap = g
+      gapAt = i
+    }
+  }
+  if (gap < w * 0.04) return null
+  const split = (xs[gapAt - 1] + xs[gapAt]) / 2
+  const left = dark.filter((p) => p[0] < split)
+  const right = dark.filter((p) => p[0] >= split)
+  if (left.length < 10 || right.length < 10) return null
   const mean = (arr) => {
-    let x = 0, y = 0
-    for (const p of arr) { x += p[0]; y += p[1] }
+    let x = 0
+    let y = 0
+    for (const p of arr) {
+      x += p[0]
+      y += p[1]
+    }
     return { x: x / arr.length, y: y / arr.length }
   }
   const L = mean(left)
   const R = mean(right)
   const sep = Math.hypot(R.x - L.x, R.y - L.y)
-  if (sep < w * 0.06 || sep > w * 0.45) return null
-  if (Math.abs(R.y - L.y) > sep * 0.45) return null
+  if (sep < w * 0.06 || sep > w * 0.28) return null
   return {
     left: L,
     right: R,
     mid: { x: (L.x + R.x) / 2, y: (L.y + R.y) / 2 },
     sep,
     search: { x0, y0, x1, y1 },
+    gap,
+  }
+}
+
+function findWhiteBand(canvas) {
+  const ctx = canvas.getContext('2d')
+  const w = canvas.width
+  const h = canvas.height
+  const px = ctx.getImageData(0, 0, w, h).data
+  const means = new Float64Array(h)
+  for (let y = 0; y < h; y++) {
+    let s = 0
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4
+      s += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]
+    }
+    means[y] = s / w
+  }
+  let best = null
+  let start = null
+  for (let y = 0; y <= h; y++) {
+    const on = y < h && means[y] > 230
+    if (on) {
+      if (start == null) start = y
+    } else if (start != null) {
+      const band = { y0: start, y1: y - 1 }
+      if (!best || band.y1 - band.y0 > best.y1 - best.y0) best = band
+      start = null
+    }
+  }
+  return best
+}
+
+function extractTarget(img) {
+  const sheet = document.createElement('canvas')
+  sheet.width = img.width
+  sheet.height = img.height
+  sheet.getContext('2d').drawImage(img, 0, 0)
+  const band = findWhiteBand(sheet)
+  const mid = band && (band.y0 + band.y1) / 2
+  const stacked =
+    band &&
+    band.y1 - band.y0 >= 20 &&
+    mid > img.height * 0.35 &&
+    mid < img.height * 0.70
+  if (stacked) {
+    return {
+      layout: 'stacked-pair-top',
+      crop: {
+        x: 0,
+        y: 0,
+        w: img.width,
+        h: band.y0,
+        reason: `Decoded ${img.width}×${img.height}. White band y=${band.y0}–${band.y1} (${band.y1 - band.y0 + 1}px). Top panel is the long-wave / black-knit target.`,
+      },
+      band,
+      sheet,
+    }
+  }
+  return {
+    layout: 'single',
+    crop: {
+      x: 0,
+      y: 0,
+      w: img.width,
+      h: img.height,
+      reason: `Decoded ${img.width}×${img.height}. No stacked white band; whole image is the crop.`,
+    },
+    band: null,
+    sheet,
   }
 }
 
@@ -170,23 +253,6 @@ async function loadModel() {
   setPill(pills.model, 'ok', '모델: 준비됨')
 }
 
-function extractTopRight(img) {
-  const { width, height } = img
-  const layoutOk = width === EXPECT.width && height === EXPECT.height
-  const cellW = layoutOk ? width / EXPECT.cols : NaN
-  const cellH = layoutOk ? height / EXPECT.rows : NaN
-  const crop = layoutOk
-    ? {
-        x: Math.round(cellW * (EXPECT.cols - 1)),
-        y: 0,
-        w: Math.round(cellW),
-        h: Math.round(cellH),
-        reason: `${width}×${height} confirmed. 3×2 cells of ${cellW}×${cellH}. Top-right cell.`,
-      }
-    : null
-  return { layoutOk, cellW, cellH, crop }
-}
-
 function frameToEyes(s, cropW, cropH, eyes) {
   const centres = s.eyeCentres()
   if (!centres) return { ok: false, reason: '모델에서 eye_l / eye_r 를 찾지 못함' }
@@ -216,13 +282,13 @@ function frameToEyes(s, cropW, cropH, eyes) {
   }
 }
 
-function captureSameSize(s, w, h, label, neutral) {
+function captureSameSize(s, w, h, label, neutral, dispW, dispH) {
   s.setNeutral(neutral)
   const c = document.createElement('canvas')
   c.width = w
   c.height = h
-  c.style.width = w + 'px'
-  c.style.height = h + 'px'
+  c.style.width = dispW + 'px'
+  c.style.height = dispH + 'px'
   s.capture(c, w, h)
   return panel(label, c)
 }
@@ -257,20 +323,10 @@ async function onOriginal(file) {
   setPill(pills.orig, 'ok', `원본: ${img.width}×${img.height} (${file.name})`)
   block.style.display = 'none'
 
-  const { layoutOk, crop } = extractTopRight(img)
-  if (!layoutOk || !crop) {
-    warn(`원본 크기가 ${img.width}×${img.height} 이다. 기대는 ${EXPECT.width}×${EXPECT.height} (3×2). 과거 크롭(y0=95 등)을 쓰지 않았고, 이 파일에서 셀을 확정하지 못했다. 기준 비교 미완료.`)
-    section('실제로 읽은 원본 (셀 미확정)')
-    const sheet = document.createElement('canvas')
-    sheet.width = img.width
-    sheet.height = img.height
-    sheet.getContext('2d').drawImage(img, 0, 0)
-    sheet.style.width = Math.min(768, img.width) + 'px'
-    sheet.style.height = 'auto'
-    out.append(panel('original sheet', sheet))
-    return
-  }
-
+  const extracted = extractTarget(img)
+  const crop = extracted.crop
+  dump.layout = extracted.layout
+  dump.band = extracted.band
   dump.crop = {
     original: { x: crop.x, y: crop.y, w: crop.w, h: crop.h },
     resolution: { w: crop.w, h: crop.h },
@@ -280,31 +336,21 @@ async function onOriginal(file) {
   }
 
   section('실제로 읽은 원본')
-  const sheet = document.createElement('canvas')
-  sheet.width = img.width
-  sheet.height = img.height
+  const sheet = extracted.sheet
   const sctx = sheet.getContext('2d')
-  sctx.drawImage(img, 0, 0)
   sctx.strokeStyle = '#39d17b'
-  sctx.lineWidth = 4
-  sctx.strokeRect(crop.x + 2, crop.y + 2, crop.w - 4, crop.h - 4)
-  sctx.fillStyle = 'rgba(57,209,123,0.12)'
+  sctx.lineWidth = 6
+  sctx.strokeRect(crop.x + 3, crop.y + 3, crop.w - 6, crop.h - 6)
+  sctx.fillStyle = 'rgba(57,209,123,0.10)'
   sctx.fillRect(crop.x, crop.y, crop.w, crop.h)
-  sctx.strokeStyle = 'rgba(255,255,255,0.25)'
-  sctx.lineWidth = 1
-  for (let c = 1; c < EXPECT.cols; c++) {
-    sctx.beginPath()
-    sctx.moveTo(c * crop.w, 0)
-    sctx.lineTo(c * crop.w, img.height)
-    sctx.stroke()
+  if (extracted.band) {
+    sctx.fillStyle = 'rgba(255,255,255,0.25)'
+    sctx.fillRect(0, extracted.band.y0, img.width, extracted.band.y1 - extracted.band.y0 + 1)
   }
-  sctx.beginPath()
-  sctx.moveTo(0, crop.h)
-  sctx.lineTo(img.width, crop.h)
-  sctx.stroke()
-  sheet.style.width = Math.min(768, img.width) + 'px'
-  sheet.style.height = 'auto'
-  out.append(panel(`${img.width}×${img.height} · 초록 = 오른쪽 위 셀`, sheet))
+  const sheetDisp = Math.min(420, img.width)
+  sheet.style.width = sheetDisp + 'px'
+  sheet.style.height = Math.round(sheetDisp * img.height / img.width) + 'px'
+  out.append(panel(`${img.width}×${img.height} · 초록 = 기준 캐릭터 (상단)`, sheet))
 
   const cropCanvas = document.createElement('canvas')
   cropCanvas.width = crop.w
@@ -335,18 +381,20 @@ async function onOriginal(file) {
     warn('이 크롭에서 눈을 측정하지 못했다. 과거 153px·635px를 재사용하지 않는다. 얼굴 크기는 맞추지 못한 채로 나란히 둔다.')
   }
 
-  section('기준 캐릭터 추출본 (오른쪽 위 셀, 원본 해상도 유지)')
-  cropView.style.width = crop.w + 'px'
-  cropView.style.height = crop.h + 'px'
-  out.append(panel(`${crop.w}×${crop.h} px · 비율 ${ (crop.w / crop.h).toFixed(3) }`, cropView))
+  section('기준 캐릭터 추출본')
+  const dispW = Math.min(440, crop.w)
+  const dispH = Math.round(dispW * crop.h / crop.w)
+  cropView.style.width = dispW + 'px'
+  cropView.style.height = dispH + 'px'
+  out.append(panel(`${crop.w}×${crop.h} px · 표시 ${dispW}×${dispH} (비율 유지 ${ (crop.w / crop.h).toFixed(3) })`, cropView))
 
   const table = el('table')
   const rows = [
     ['원본 파일', `${file.name} · ${file.size} bytes · ${file.type || 'unknown'}`],
     ['원본 픽셀', `${img.width} × ${img.height}`],
-    ['격자', layoutOk ? `3열 × 2행, 셀 ${crop.w} × ${crop.h}` : '미확정'],
+    ['레이아웃', extracted.layout + (extracted.band ? ` · 흰 띠 y=${extracted.band.y0}–${extracted.band.y1}` : '')],
     ['크롭 (원본 좌표)', `(${crop.x}, ${crop.y}) … (${crop.x + crop.w}, ${crop.y + crop.h})`],
-    ['크롭 해상도', `${crop.w} × ${crop.h} (스트레치 없음)`],
+    ['크롭 해상도', `${crop.w} × ${crop.h} (복사, 스트레치 없음)`],
     ['좌표 관계', `크롭의 (x,y) = 원본의 (${crop.x}+x, ${crop.y}+y)`],
     ['눈 (크롭)', eyes ? `L ${eyes.left.x.toFixed(1)},${eyes.left.y.toFixed(1)}  R ${eyes.right.x.toFixed(1)},${eyes.right.y.toFixed(1)}  sep ${eyes.sep.toFixed(1)}px` : '측정 실패 — 과거 수치 미사용'],
     ['눈 (원본)', eyes ? `L ${(crop.x + eyes.left.x).toFixed(1)},${(crop.y + eyes.left.y).toFixed(1)}  R ${(crop.x + eyes.right.x).toFixed(1)},${(crop.y + eyes.right.y).toFixed(1)}` : '—'],
@@ -369,8 +417,8 @@ async function onOriginal(file) {
   origPanel.width = crop.w
   origPanel.height = crop.h
   origPanel.getContext('2d').drawImage(cropCanvas, 0, 0)
-  origPanel.style.width = crop.w + 'px'
-  origPanel.style.height = crop.h + 'px'
+  origPanel.style.width = dispW + 'px'
+  origPanel.style.height = dispH + 'px'
   r.append(panel('기준 원본 (추출)', origPanel))
 
   let framed = { ok: false, reason: 'eyes not measured' }
@@ -387,8 +435,8 @@ async function onOriginal(file) {
     warn('카메라: 원본에서 잰 눈 간격·눈 높이에 모델 눈을 맞췄다. 원본의 고개 각도·렌즈는 모르는 값이라 남는 시점 차이는 조형 오류로 보지 않는다.')
   }
 
-  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 최종 재질', false))
-  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 중성 재질', true))
+  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 최종 재질', false, dispW, dispH))
+  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 중성 재질', true, dispW, dispH))
   out.append(r)
 
   window.__compareReady = true
