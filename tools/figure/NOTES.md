@@ -1,7 +1,7 @@
 # Hair & representative character
 
-Visual approval is not claimed. Attempt 7 is the current candidate
-(`checkpoints/2026-09-18-attempt-7/`). 5c is not the proportion source.
+Visual approval is not claimed. Attempt 8 is the current candidate
+(`checkpoints/2026-09-18-attempt-8/`). 5c is not the proportion source.
 
 ## Reference (must be opened, not remembered)
 
@@ -24,27 +24,31 @@ exists. Clay-versus-colour is not a reference comparison.
 | 5d | Coarser remesh | Helmet — discarded |
 | **6** | Open skull wrap + bang + hanging locks | Face opened; two curtains + visor |
 | **7** | Overlapping flowing locks, then surface cleanup | Bang saw-tooth from `seat_inside` slam is gone; bang is one diagonal sheet; face size in the original row matches eye spacing; front still two curtains; back still inner mass + hanging pieces |
+| **8** | Bang/eye visibility, then placement | Same-camera vis: bang-only is a wide sheet. Face on + green bang sits on the forehead. Raycaster: forehead hits `lock_p_bang` then `head`. Eyes-only vs eyes+face: the pinprick was burial in the finished skin. |
 
-Attempt 7 keeps hair as named lock meshes (`scalp_*`, `back_vol_*`, `lock_p_*`,
-`lock_s_*`) so the showroom can hide layers. Voxel-fusing the whole head is
-not the default. Secondary locks sit inside the same outline. No new locks
-were added in the cleanup; existing paths and `seat_inside` were changed.
+Attempt 8 keeps the attempt-7 lock list. No new locks. `seat_inside` still
+caps at 0.07 — that cap is deformation stability, not placement. The bang
+centreline is authored with `bang_pt()` at `head_surface.z + clearance`, and
+forehead tilt is **negative** (~−0.85) so width runs down the forehead and
+thickness toward the camera. Attempt 7’s +1.15 tilt stood a near-round
+section into the skull; flatten 0.94 made a sausage whose inner half was
+inside the head. Depth test is still on.
 
-`seat_inside` was measured lock-by-lock. The binary lift (any vert inside
-0.86 × skull, scaled out in one step) moved verts 0.3–0.7 head units and
-stretched edges up to **3.5×** (`lock_s_part_l`, `lock_s_bang_under`). That
-is a saw-tooth hairline, not a seated root. The current function weights
-the lift by depth and scalp region, caps it at 0.07, and spreads it to
-neighbours. After that, max edge stretch is ~1.00.
+Eyes are placed from `front_z()` on the finished head (after subsurf +
+relax), not from the pre-deform superellipsoid. A 0.016 cap sits proud of
+that surface; `EYE_D` is unchanged. Width/height went 0.076/0.084 →
+0.090/0.098 after the oval was un-buried, to match the visible area on the
+original — not a marble, not a pinprick.
 
-Still wrong: from the front the silhouette is two curtains more than one
-wrapping wave; the bang is a smoother diagonal, not yet the original’s
-forehead mass; the back still shows a round inner volume with hanging
-pieces beside it. The back is designed (not in the crop).
+Still wrong: the restored bang is a distinct diagonal patch, not yet the
+original’s long smooth forehead mass; sides are still two curtains; the
+back is still an inner round volume plus hanging pieces. The back is
+designed (not in the crop). Visual approval is not claimed.
 
-Large review: `tools/figure/review/finish.html` (front / 3/4 / back,
-secondary hidden vs final). Original row display is 720 px wide, same
-eye spacing.
+Diagnosis page: `tools/figure/review/vis.html` (bang-only / green-on-face /
+normal; eyes-only vs eyes+face; raycast). Large review:
+`tools/figure/review/finish.html` (front / 3/4 / side / back). Original row
+display is 720 px wide, same eye spacing.
 
 ## What not to retry
 
@@ -55,6 +59,8 @@ eye spacing.
 - Another automatic pack of ellipsoids without a working original comparison
 - Closed helmet + face-hole boolean (hood)
 - Pushing every inside vertex of a thick lock onto the skull (flattens to a visor or cap; measured 3.5× edge stretch)
+- Raising or removing the `seat_inside` 0.07 cap to drag a buried bang out
+- Turning off depth test, forcing render order, or deleting skin to “show” the bang
 
 ## Direction
 

@@ -61,15 +61,17 @@ original was read and the first row (original / coloured / clay) exists.
 Model-ready is not comparison-ready. Clay-versus-colour is not a reference
 comparison.
 
-## Quality standing (attempt 7 candidate)
+## Quality standing (attempt 8 candidate)
 
-Attempt 7 is layered flowing locks against this extract, not an approved
+Attempt 8 is layered flowing locks against this extract, not an approved
 character. 5c is not the proportion source. The whole head is not voxel-fused.
 
-`seat_inside` was measured and changed: the binary slam stretched edges up
-to 3.5×; the current lift is weighted, capped, and spread. Bang saw-teeth
-from that slam are gone. Front still reads as two curtains. Back is designed
-(not in the crop).
+Attempt 7’s bang read as a thin forehead curve because the section was
+tilted into the skull and the path sat on/inside `head_surface`; `seat_inside`
+could not lift the outer face past 0.07. The bang is now authored in front
+of the finished head. Eyes were mostly behind the subdivided skin; they are
+seated on that surface. Front still reads as two curtains around a distinct
+bang patch. Back is designed (not in the crop).
 
 The clay sheet is the look bar. Bondee’s character/combination model
 (`docs/wardrobe.md`) is the wardrobe end-state, not this sculpt pass.
