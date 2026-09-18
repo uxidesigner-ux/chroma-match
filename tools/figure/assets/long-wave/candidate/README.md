@@ -10,18 +10,22 @@ Visual quality is not approved.
 
 ## This pass
 
-Crown and bang are one surface: a wide diagonal from the part, convex on the
-left forehead, ending at the temple. Side and back keep the long length and
-carry a large lock S; radial size stays near the head. Two meshes (`hair_top`,
-`hair_hang`).
+Crown and bang are one wrapped surface: a wide diagonal pad from the part
+across the left forehead, thinning at the fringe. Sides are two long S-locks
+beside the face (right ear can show). Back is a separate mass that overlaps
+the cap, with a softer middle — not a shoulder plate.
+
+Four meshes (`hair_top`, `hair_left`, `hair_right`, `hair_back`). Same save
+for `.blend`, GLB, and stills.
 
 ## Still wrong on screen
 
-- Front left temple still shows a gap between bang and hang.
-- Back is no longer a shelf, but it still reads as a thick column.
-- Crown/hang join still shows from behind.
-- Large waves are visible in 3/4 and on the right; the left front length is
-  still too straight versus the clay reference.
+- Bang is closer to a diagonal pad, but the underside crease still reads as a
+  visor in 3/4 and side.
+- Side locks show a large S, yet they still read as separate hanging straps,
+  not one clay volume with the bang.
+- Back is no longer a punctured shelf, but it still reads as a thick helmet
+  column from behind; side pieces still peel off.
 
 Do not merge. Do not replace `public/figure/hair_long_wave.glb`.
 
