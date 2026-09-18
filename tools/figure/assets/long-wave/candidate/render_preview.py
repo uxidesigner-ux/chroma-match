@@ -64,9 +64,18 @@ def main():
         ("side.png", add_camera("c_side", (8.6, -0.40, 0.02), target, 85)),
         ("back.png", add_camera("c_back", (0.0, 8.4, 0.08), target, 85)),
     ]
+    notes = []
     for name, cam in cams:
         render(OUT / name, cam)
         render(ART / name, cam)
+        loc = tuple(round(v, 3) for v in cam.location)
+        notes.append(
+            f"{name}: Workbench 85mm perspective, camera {loc}, "
+            f"target {target}, engine BLENDER_WORKBENCH studio/material"
+        )
+    (OUT / "cameras.txt").write_text("\n".join(notes) + "\n")
+    (ART / "cameras.txt").write_text("\n".join(notes) + "\n")
+    print("CAMERAS", notes)
 
 
 if __name__ == "__main__":

@@ -30,10 +30,12 @@ import { Showroom } from '/src/avatar/figure/showroom.ts'
 const LOOK = { skin: '#F0B894', hair: '#4A382F', cloth: '#23232A', backdrop: '#E3C4C2' }
 window.__viewsReady = false
 
+const hairUrl = new URLSearchParams(location.search).get('hair') || '/figure/hair_long_wave.glb'
+
 const out = document.getElementById('out')
 const s = new Showroom({ url: '/figure/body.glb', look: LOOK, width: 560, height: 740 })
 await s.load()
-await s.attach('/figure/hair_long_wave.glb')
+await s.attach(hairUrl)
 
 const names = s.partNames()
 const hairNames = names.filter((n) => n.startsWith('hair_'))
