@@ -27,7 +27,10 @@
 import { Vector3 } from 'three'
 import { Showroom } from '/src/avatar/figure/showroom.ts'
 
-const LOOK = { skin: '#F0B894', hair: '#4A382F', cloth: '#23232A', backdrop: '#E3C4C2' }
+// Sheet palette, adjusted for the showroom's tone mapping so rendered pixels
+// land on the sheet's: skin lit (254,212,188), hair lit (76,57,54),
+// knit (35,31,30), backdrop (222,188,187).
+const LOOK = { skin: '#F8D2BA', hair: '#5A4238', cloth: '#0C0B0B', backdrop: '#DEBCBB' }
 window.__viewsReady = false
 
 const hairUrl = new URLSearchParams(location.search).get('hair') || '/figure/hair_long_wave.glb'
@@ -99,6 +102,13 @@ r2.append(panel('헤어 대비색', 0, () => { s.setNeutral(false); s.recolour({
 r2.append(panel('색 복원', 0, () => { s.setNeutral(false); s.recolour(LOOK) }))
 r2.append(panel('사선 최종', 0.55, () => { s.setNeutral(false); s.recolour(LOOK) }))
 out.append(r2)
+
+section('3b. 시트 다섯 뷰와 같은 순서 (최종 재질)')
+const r3 = document.createElement('div'); r3.className = 'row'
+for (const [label, yaw] of [['시트 정면', 0], ['시트 3/4 정면', 0.62], ['시트 측면', Math.PI / 2], ['시트 3/4 후면', Math.PI - 0.62], ['시트 후면', Math.PI]]) {
+  r3.append(panel(label, yaw, () => { s.setNeutral(false); s.recolour(LOOK) }))
+}
+out.append(r3)
 
 window.__dump = { parts: names, hair: hairNames, attached: hairNames.length > 0 }
 window.__viewsReady = true

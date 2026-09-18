@@ -41,9 +41,17 @@ EYE_W, EYE_H, EYE_D = 0.064, 0.088, 0.016
 NOSE_Y = -0.340
 NOSE_HALF = (0.135, 0.105, 0.120)
 NOSE_PROUD = 0.100
-NECKLINE_Y = -1.18
-SHOULDER_HALF = 1.12
-NECK_TOP_Y = -0.98
+# Neck and shoulders from the sheet: a slim short neck straight under the
+# chin, a wide soft shoulder slope, and a scoop neckline that dips at the
+# front (-1.42) and rides higher at the sides/back (-1.24).
+NECK_HALF_W, NECK_HALF_D = 0.335, 0.300
+NECKLINE_Y = -1.36
+NECKLINE_SIDE_Y = -1.20
+SHOULDER_HALF = 1.42
+SHOULDER_DEPTH = 0.52
+NECK_TOP_Y = -0.95
+SHOULDER_START_Y = -1.02
+SHOULDER_END_Y = -1.90
 # Ears: tall (0.41 units) discs stuck on at eye-to-nose height, sticking
 # ~0.15 units out from the skull. Pearl on the lobe.
 EAR_HALF = (0.085, 0.205, 0.115)
@@ -130,14 +138,22 @@ def head_surface(d):
 
 
 def body_axes(y):
-    # Short neck cylinder into a modest shoulder. The knit sits high.
-    neck = 0.355
-    to_shoulder = lib.smoothstep(NECK_TOP_Y, -1.55, y)
-    to_chest = lib.smoothstep(-1.50, -2.45, y)
+    # Slim neck cylinder, then a wide, soft shoulder slope into the chest.
+    to_shoulder = lib.smoothstep(SHOULDER_START_Y, SHOULDER_END_Y, y)
+    to_chest = lib.smoothstep(-1.90, -2.60, y)
+    # Trapezius flares early (half-width 0.55 by y=-1.22, 0.75 at the collar),
+    # then the shoulder rounds off toward the arm.
+    ease = to_shoulder ** 0.95
     return (
-        lib.mix(neck, SHOULDER_HALF, to_shoulder ** 0.90) + 0.05 * to_chest,
-        lib.mix(0.330, 0.460, to_shoulder ** 0.92) + 0.040 * to_chest,
+        lib.mix(NECK_HALF_W, SHOULDER_HALF, ease) + 0.05 * to_chest,
+        lib.mix(NECK_HALF_D, SHOULDER_DEPTH, to_shoulder ** 1.1) + 0.05 * to_chest,
     )
+
+
+def neckline_y(front):
+    """Scoop neckline height for a horizontal direction; `front` in [-1, 1]."""
+    dip = max(0.0, front) ** 1.6
+    return lib.mix(NECKLINE_SIDE_Y, NECKLINE_Y, dip)
 
 
 def build_head():
@@ -167,19 +183,18 @@ def front_z(obj, x, y):
 def build_body():
     def shape(d):
         t = (d.z + 1) / 2
-        # Top of the body meets the chin more closely so neck length is short
-        # and the shoulder slope starts under the jaw, not a handspan below it.
-        y = lib.mix(-3.05, NECK_TOP_Y + 0.10, t)
+        # The neck runs up into the skull so there is no seam under the chin.
+        y = lib.mix(-3.05, NECK_TOP_Y + 0.12, t ** 0.85)
         a, c = body_axes(y)
         cap = math.sqrt(max(0.0, 1 - abs(d.z) ** 12))
         horiz = math.hypot(d.x, d.y) or 1e-5
         ux, uy = d.x / horiz, d.y / horiz
-        k = 2.6
+        k = 2.4
         s = max(1e-9, (abs(ux) / a) ** k + (abs(uy) / c) ** k)
         r = s ** (-1 / k)
         return (ux * r * cap, uy * r * cap, y)
 
-    obj = lib.sphere_cage(36, 30, shape)
+    obj = lib.sphere_cage(40, 40, shape)
     lib.subsurf(obj, 2)
     lib.shaded_smooth(obj)
     obj.name = "body"
@@ -195,26 +210,23 @@ def build_top():
     def shape(d):
         t = (d.z + 1) / 2
         v = 1 - t
-        y = lib.mix(NECKLINE_Y, hem, v ** 0.94)
-        a, c = body_axes(y)
-        roll = lib.smoothstep(0.10, 0.0, v)
-        grow = cloth * (1 - 0.40 * roll)
-        # Opening tracks the neck section closely so skin does not fan out
-        # above the collar as a triangle.
-        a_open = a + grow * 0.95
-        c_open = c + grow * 0.85
-        if v < 0.08:
-            # Round crew: keep the opening on the neck, not a V of chest skin.
-            c_open *= 0.88
-            a_open *= 0.96
         horiz = math.hypot(d.x, d.y) or 1e-5
         ux, uy = d.x / horiz, d.y / horiz
-        k = 2.5
+        # Blender -y is the front. The opening dips at the front centre.
+        top = neckline_y(-uy)
+        y = lib.mix(top, hem, v ** 0.94)
+        a, c = body_axes(y)
+        # Rolled hem at the opening: slightly thicker, always outside the body.
+        roll = lib.smoothstep(0.08, 0.0, v)
+        grow = cloth * (1 + 0.35 * roll)
+        a_open = a + grow
+        c_open = c + grow
+        k = 2.4
         s = max(1e-9, (abs(ux) / a_open) ** k + (abs(uy) / c_open) ** k)
         r = s ** (-1 / k)
         return (ux * r, uy * r, y)
 
-    obj = lib.sphere_cage(48, 32, shape)
+    obj = lib.sphere_cage(56, 40, shape)
     lib.subsurf(obj, 2)
     lib.shaded_smooth(obj)
     obj.name = "top"

@@ -221,13 +221,13 @@ def _smooth_rim(obj, rounds=8, factor=0.55):
 SIL = [
     (1.24, 0.00), (1.08, 0.52), (0.77, 0.87), (0.61, 0.95), (0.29, 1.13),
     (-0.03, 1.20), (-0.35, 1.27), (-0.66, 1.29), (-0.98, 1.24), (-1.30, 1.30),
-    (-1.78, 1.40), (-2.30, 1.40), (-2.88, 1.10),
+    (-1.78, 1.60), (-2.30, 1.68), (-2.88, 1.30),
 ]
 SIDE_FULL = {-1: 1.04, 1: 0.96}
 # Bang lower edge: side part on the crown -> across the forehead -> left ear top.
 BANG_EDGE = [(0.19, 0.82), (0.00, 0.36), (-0.42, 0.10), (-0.78, 0.00)]
 # Top edge sits inside the cap so the sweep emerges from under it, no fin.
-BANG_TOP = [(0.21, 0.84), (-0.12, 0.86), (-0.52, 0.70), (-0.86, 0.36)]
+BANG_TOP = [(0.20, 0.86), (-0.12, 0.90), (-0.52, 0.74), (-0.86, 0.38)]
 # Exposed forehead to the right of the part, down to the right ear.
 HAIRLINE_R = [(0.19, 0.78), (0.40, 0.58), (0.60, 0.28), (0.78, -0.05), (1.00, -0.30)]
 
@@ -363,6 +363,12 @@ def cap_point(da):
         sz = da[2] * spread * 1.1
     part = math.exp(-((p[0] - PART_X) ** 2) / 0.10) * (up ** 1.2)
     pile -= 0.04 * part * max(0.0, p[2] + 0.2)
+    # Clay lobes fanning out from the side part (top view of the sheet):
+    # ridges run front-to-back, spaced wider on the bang side.
+    lobe_axis = (p[0] - PART_X) * 1.0 + 0.10 * p[2]
+    lobes = math.cos(lobe_axis * 9.5) * 0.5 + 0.5
+    lobe_amp = 0.032 * smooth(up / 0.6) * (1.0 - 0.6 * part)
+    pile += lobe_amp * lobes
     return (
         p[0] + p[0] / r * wrap + sx,
         p[1] + p[1] / r * wrap + pile,
@@ -429,7 +435,7 @@ def build_bang():
         z0 = skull_front(x, y)
         n = skull_normal(x, y, max(z0, 0.02))
         if v < 0.40:
-            base = mix(0.13, 0.30, smooth(v / 0.40))
+            base = mix(0.08, 0.30, smooth(v / 0.40))
         else:
             base = mix(0.30, 0.014, smooth((v - 0.40) / 0.60) ** 0.85)
         span = math.sin(math.pi * mix(0.06, 0.97, u)) ** 0.5
@@ -471,8 +477,8 @@ def build_side(side):
         inner_edge = max(inner_edge, skull - 0.10)
         cx = (outer + inner_edge) / 2.0
         a = max(0.04, (outer - inner_edge) / 2.0)
-        cz = table([(0.60, -0.40), (0.20, -0.42), (-0.20, -0.40), (-0.80, -0.22), (-1.30, 0.04), (-1.80, 0.24), (-2.30, 0.32), (-2.88, 0.34)], y)
-        b = table([(0.60, 0.22), (0.20, 0.32), (-0.40, 0.34), (-0.90, 0.42), (-1.40, 0.46), (-2.00, 0.44), (-2.60, 0.30), (-2.88, 0.05)], y)
+        cz = table([(0.60, -0.30), (0.20, -0.30), (-0.20, -0.32), (-0.80, -0.20), (-1.30, 0.04), (-1.80, 0.24), (-2.30, 0.32), (-2.88, 0.34)], y)
+        b = table([(0.60, 0.30), (0.20, 0.38), (-0.40, 0.40), (-0.90, 0.44), (-1.40, 0.48), (-2.00, 0.46), (-2.60, 0.32), (-2.88, 0.05)], y)
         tip = smooth((y - Y_TIP) / 0.45)
         a *= mix(0.15, 1.0, tip)
         b *= mix(0.15, 1.0, tip)
@@ -524,11 +530,13 @@ def build_occipital():
 def build_back():
     """후면: three overlapping S-wave tubes sharing one phase (big horizontal
     ridges, not columns) over a wide flat nape tube so nothing shows through."""
-    y_top = 1.00
+    y_top = 1.16
     nv = 36
 
     def back_z(y):
-        return table([(1.00, -0.58), (0.72, -0.78), (0.20, -0.94), (-0.40, -1.00), (-0.95, -0.92),
+        # Tops are buried under the cap/occipital so the S-locks emerge from
+        # the crown instead of sitting on it as a row of bumps.
+        return table([(1.16, -0.18), (1.00, -0.36), (0.72, -0.62), (0.20, -0.90), (-0.40, -1.00), (-0.95, -0.92),
                       (-1.50, -0.84), (-2.10, -0.78), (-2.60, -0.72), (Y_TIP, -0.66)], y)
 
     def strand(name, x0, phase_off):
@@ -539,11 +547,11 @@ def build_back():
             ph = math.tau * (y + 0.40) / 0.85 + phase_off
             sway = smooth((0.30 - y) / 0.80)
             amp = 0.16 * sway
-            cx = x0 * table([(1.00, 0.55), (0.72, 0.85), (-0.30, 1.0), (-1.60, 1.15), (Y_TIP, 1.25)], y) + amp * math.sin(ph)
+            cx = x0 * table([(1.16, 0.40), (1.00, 0.55), (0.72, 0.85), (-0.30, 1.0), (-1.60, 1.15), (Y_TIP, 1.25)], y) + amp * math.sin(ph)
             cz = back_z(y) + 0.10 * sway * math.cos(ph)
-            a = table([(1.00, 0.16), (0.72, 0.34), (-0.20, 0.42), (-1.20, 0.44), (-2.20, 0.40), (-2.60, 0.28), (Y_TIP, 0.06)], y)
-            b = table([(1.00, 0.08), (0.72, 0.16), (-0.20, 0.24), (-1.20, 0.28), (-2.20, 0.26), (-2.60, 0.18), (Y_TIP, 0.04)], y)
-            top = smooth((y_top - y) / 0.45)
+            a = table([(1.16, 0.10), (1.00, 0.18), (0.72, 0.34), (-0.20, 0.42), (-1.20, 0.44), (-2.20, 0.40), (-2.60, 0.28), (Y_TIP, 0.06)], y)
+            b = table([(1.16, 0.06), (1.00, 0.10), (0.72, 0.17), (-0.20, 0.24), (-1.20, 0.28), (-2.20, 0.26), (-2.60, 0.18), (Y_TIP, 0.04)], y)
+            top = smooth((y_top - y) / 0.50)
             a *= mix(0.55, 1.0, top)
             rows.append((Vector((cx, y, cz)), a, b, 1.8 * y + phase_off))
         return tube(name, rows, nu=22)

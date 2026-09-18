@@ -24,7 +24,15 @@ Visual quality is not approved.
   ear at ear height.
 - Back: three S-wave tubes sharing one phase over a flat nape tube.
 
-Same save for `.blend`, GLB, and stills.
+- Body (`character.py`): slim short neck straight under the chin, trapezius
+  flaring early into a wide soft shoulder, scoop neckline dipping at the
+  front (-1.36) and riding higher at the sides (-1.20). The knit opening
+  always sits outside the body, so no skin pokes through the collar.
+- Colour (`review/asset.html` LOOK): sheet palette adjusted for the showroom
+  tone mapping so rendered pixels land on the sheet's skin/hair/knit/backdrop.
+- Back locks start inside the cap so they emerge from the crown, not sit on it.
+
+Same save for `.blend`, GLB, and stills. Full sheet lives outside the repo (`refs/` is gitignored).
 
 ## Still a candidate
 
