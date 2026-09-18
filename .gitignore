@@ -4,3 +4,6 @@ dist
 *.local
 .vite
 .claude
+
+# Reference images copied in for side-by-side checks are the user's, not ours.
+public/dev/
