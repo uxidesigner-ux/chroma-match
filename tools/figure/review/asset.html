@@ -49,12 +49,12 @@ const mid = s.eyeCentres()
 const bust = mid.clone(); bust.y -= 0.55
 const frameH = 4.6
 
-function panel(label, yaw, after, w = 400, h = 540) {
+function panel(label, yaw, after, w = 400, h = 540, target = bust, height = frameH) {
   after()
   s.camera.aspect = w / h
   s.camera.updateProjectionMatrix()
   s.orbit(yaw, 0.04)
-  s.frameOn(bust, frameH)
+  s.frameOn(target, height)
   const c = document.createElement('canvas')
   c.width = w
   c.height = h
@@ -103,10 +103,13 @@ r2.append(panel('색 복원', 0, () => { s.setNeutral(false); s.recolour(LOOK) }
 r2.append(panel('사선 최종', 0.55, () => { s.setNeutral(false); s.recolour(LOOK) }))
 out.append(r2)
 
-section('3b. 시트 다섯 뷰와 같은 순서 (최종 재질)')
+section('3b. 시트 다섯 뷰와 같은 순서 (최종 재질, 시트 프레이밍)')
+// Sheet panels are 322x416 with the face 0.41 of the panel width and the
+// cheek row at 0.51 of the height: 4.9 head units tall, centred at y=-0.50.
+const sheetTarget = new Vector3(0, -0.50, 0)
 const r3 = document.createElement('div'); r3.className = 'row'
 for (const [label, yaw] of [['시트 정면', 0], ['시트 3/4 정면', 0.62], ['시트 측면', Math.PI / 2], ['시트 3/4 후면', Math.PI - 0.62], ['시트 후면', Math.PI]]) {
-  r3.append(panel(label, yaw, () => { s.setNeutral(false); s.recolour(LOOK) }))
+  r3.append(panel(label, yaw, () => { s.setNeutral(false); s.recolour(LOOK) }, 400, 517, sheetTarget, 4.9))
 }
 out.append(r3)
 

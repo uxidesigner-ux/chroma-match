@@ -480,6 +480,31 @@ def build_side(side):
     return tube(name, rows, nu=22)
 
 
+def build_front_lock(side):
+    """Sheet "front layer": a thin, flat strand that leaves the bundle behind
+    the ear, runs down beside the jaw in front of the shoulder, and tapers
+    over the chest. Same wave phase as the bundle so the two read as one."""
+    s = -1 if side < 0 else 1
+    name = "hair_front_l" if s < 0 else "hair_front_r"
+    rows = []
+    nv = 30
+    y_top, y_tip = -0.35, -2.55
+    for j in range(nv):
+        v = j / (nv - 1)
+        y = mix(y_top, y_tip, v)
+        skull = character.half_width(y) if y > -0.95 else 0.0
+        cx = table([(-0.35, max(skull, 0.72) + 0.06), (-0.80, 0.78), (-1.30, 0.82), (-1.90, 0.90), (-2.55, 1.00)], y)
+        cz = table([(-0.35, -0.02), (-0.80, 0.10), (-1.30, 0.28), (-1.90, 0.40), (-2.55, 0.44)], y)
+        a = table([(-0.35, 0.10), (-0.80, 0.16), (-1.50, 0.18), (-2.20, 0.14), (-2.55, 0.03)], y)
+        b = table([(-0.35, 0.14), (-0.80, 0.22), (-1.50, 0.26), (-2.20, 0.20), (-2.55, 0.04)], y)
+        top = smooth((y_top - y) / 0.30)
+        a *= mix(0.4, 1.0, top)
+        amp = 0.08 * smooth((-0.6 - y) / 0.6)
+        ph = math.tau * (y + 0.40) / 0.85
+        rows.append((Vector((s * (cx + amp * math.sin(ph)), y, cz + 0.5 * amp * math.cos(ph))), a, b, 1.5 * y))
+    return tube(name, rows, nu=18)
+
+
 def build_occipital():
     """Back of the skull: thick clay with vertical S ridges."""
 
@@ -565,7 +590,7 @@ def main():
     hair_mat = bpy.data.materials.get("hair")
     if hair_mat is None:
         hair_mat = lib.material("hair", (0.210, 0.145, 0.125), 0.62)
-    pieces = [build_scalp(), build_side(-1), build_side(1), build_occipital()]
+    pieces = [build_scalp(), build_side(-1), build_side(1), build_front_lock(-1), build_front_lock(1), build_occipital()]
     pieces.extend(build_back())
     for obj in pieces:
         lib.assign(obj, hair_mat)

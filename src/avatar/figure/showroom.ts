@@ -152,7 +152,9 @@ export class Showroom {
       sheen: 0.45, sheenColor: new Color('#FF9E86'), sheenRoughness: 0.85,
     }))
     this.materials.set('hair', new MeshPhysicalMaterial({ roughness: 0.56, clearcoat: 0.0 }))
-    this.materials.set('cloth', new MeshPhysicalMaterial({ roughness: 0.94, sheen: 0.30, sheenRoughness: 0.80 }))
+    // Low sheen: a ribbed knit reads matte, and a near-black top should stay
+    // near black rather than lifting to grey under the key light.
+    this.materials.set('cloth', new MeshPhysicalMaterial({ roughness: 0.94, sheen: 0.14, sheenRoughness: 0.85 }))
     this.materials.set('eye', new MeshPhysicalMaterial({
       color: new Color(EYE_COLOUR), roughness: 0.85, clearcoat: 0.0, clearcoatRoughness: 1.0,
       metalness: 0.0, envMapIntensity: 0.0,
@@ -376,8 +378,8 @@ export class Showroom {
     } else if (slot === 'cloth') {
       material.roughness = 0.94
       material.clearcoat = 0
-      material.sheen = 0.30
-      material.sheenRoughness = 0.80
+      material.sheen = 0.14
+      material.sheenRoughness = 0.85
     } else {
       material.roughness = 0.85
       material.clearcoat = 0.0

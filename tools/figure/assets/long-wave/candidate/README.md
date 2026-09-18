@@ -24,7 +24,11 @@ Visual quality is not approved.
   part; extra depth at the upper back.
 - Sides: one wave bundle per side following the sheet silhouette, kept
   behind z=-0.10 at ear height so both pearls read from the front.
+- Front layer: a thin flat strand per side beside the jaw, in front of the
+  shoulder (the sheet's 전면 레이어), same wave phase as the bundle.
 - Back: three S-wave tubes sharing one phase over a flat nape tube.
+- Review page: the "sheet five views" row uses the sheet's own framing
+  (4.9 head units tall, centred at y=-0.50, 322:416 panels).
 
 - Body (`character.py`): slim short neck straight under the chin, trapezius
   flaring early into a wide soft shoulder, scoop neckline dipping at the
