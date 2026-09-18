@@ -204,7 +204,48 @@ export class Showroom {
     }
   }
 
-  /** Fit the camera to a height in model units, centred on a point. */
+  /**
+   * What each wardrobe category needs the camera to show.
+   *
+   * Every item in a grid of identical small full-body thumbnails looks the
+   * same, because the part being chosen is a dozen pixels of it. A category
+   * frames the region its parts actually occupy: choosing hair shows the head,
+   * choosing shoes shows the feet.
+   *
+   * Heights and centres are in head units — the skull is 2.0 tall, centred on
+   * the origin — so they hold whatever the figure turns out to be.
+   */
+  static readonly FOCUS: Record<string, { centre: [number, number, number]; height: number }> = {
+    face: { centre: [0, -0.15, 0], height: 2.5 },
+    hair: { centre: [0, -0.55, 0], height: 4.0 },
+    top: { centre: [0, -2.35, 0], height: 3.4 },
+    outer: { centre: [0, -2.35, 0], height: 3.8 },
+    bottom: { centre: [0, -4.60, 0], height: 3.4 },
+    shoes: { centre: [0, -6.10, 0], height: 1.8 },
+    accessory: { centre: [0, -0.30, 0], height: 2.8 },
+    full: { centre: [0, -3.20, 0], height: 8.4 },
+  }
+
+  /**
+   * Frame a category, keeping the direction the viewer is looking from.
+   *
+   * Turning and zooming are the viewer's; the category only decides what is in
+   * shot. Resetting the angle every time a category changed would throw away
+   * the three-quarter view someone had just turned to in order to judge a
+   * collar.
+   */
+  focus(category: string): void {
+    const f = Showroom.FOCUS[category] ?? Showroom.FOCUS.full!
+    this.frameOn(new Vector3(...f.centre), f.height)
+  }
+
+  /**
+   * Fit the camera to a height in model units, centred on a point.
+   *
+   * Only the target and the distance move; the yaw and pitch the viewer set are
+   * kept, which is what makes changing a part or a category leave them looking
+   * from where they were.
+   */
   frameOn(target: Vector3, heightUnits: number): void {
     this.lookTarget.copy(target)
     this.distance = heightUnits / (2 * Math.tan((this.camera.fov * Math.PI) / 360))

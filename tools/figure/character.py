@@ -225,6 +225,45 @@ BANDS = [
 ]
 
 
+def seat_on_skull(obj, clearance=0.045, hold=0.62, fade=0.20):
+    """Push every vertex near the head out onto the skull's own surface.
+
+    The bands are swept along curves, and a swept section has no idea the head
+    is there: near the parting the section is wide enough that half of it ends
+    up inside the skull and the other half arcs off it, which is the gap that
+    made the crown read as a separate cap sitting under floating straps. This
+    is not a matter of moving the curve — the curve is a centre line and the
+    problem is at the edges of the section.
+
+    So the roots are seated. For a vertex, take its direction from the head
+    centre, ask the head where its surface is in that direction, and if the
+    vertex is inside that surface plus a clearance, move it out to it. It only
+    applies where the band is still on the head: full effect within `hold` of
+    the head centre, fading out over `fade` so the lengths hang free.
+    """
+    from mathutils import Vector
+
+    for vertex in obj.data.vertices:
+        p = vertex.co
+        # Back to the authoring frame: Blender (x, -front, up) -> (x, up, front)
+        q = (p.x, p.z, -p.y)
+        radius = math.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2)
+        if radius < 1e-6:
+            continue
+        near = 1.0 - lib.smoothstep(hold, hold + fade, radius)
+        if near <= 0.0:
+            continue
+        d = (q[0] / radius, q[1] / radius, q[2] / radius)
+        surface = head_surface(d)
+        reach = math.sqrt(surface[0] ** 2 + surface[1] ** 2 + surface[2] ** 2) + clearance
+        if radius >= reach:
+            continue
+        scale = 1.0 + near * (reach / radius - 1.0)
+        vertex.co = Vector((p.x * scale, p.y * scale, p.z * scale))
+    obj.data.update()
+    return obj
+
+
 def build_bands():
     from flows import FLOWS
 
@@ -234,6 +273,8 @@ def build_bands():
         obj = lib.ribbon(name, [to_blender(p) for p in paths[flow]], widths,
                          flatten=flatten, tilt=tilt)
         obj.name = name
+        seat_on_skull(obj)
+        lib.relax(obj, 0.25, 1)
         lib.shaded_smooth(obj)
         out.append(obj)
     return out

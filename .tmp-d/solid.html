@@ -11,23 +11,19 @@ import { Showroom } from '/src/avatar/figure/showroom.ts'
 const out=document.getElementById('out')
 const LOOK={ skin:'#F0B894', hair:'#4A382F', cloth:'#23232A', backdrop:'#E3C4C2' }
 const AIM=new Vector3(0,-0.55,0), HEIGHT=3.9
-const VIEWS=[['front',0,0],['3/4 left',-0.62,0.05],['3/4 right',0.62,0.05],['side',1.57,0.03],['back',3.14,0.03]]
+const VIEWS=[['front',0,0],['3/4 left',-0.62,0.05],['3/4 right',0.62,0.05],['side',1.57,0.03],['back',3.14,0.03],['top-down',0.3,0.75]]
 function head(t){const h=document.createElement('h3');h.textContent=t;out.append(h)}
 function row(){const r=document.createElement('div');r.className='row';out.append(r);return r}
-async function strip(title,neutral,overlay){
-  const s=new Showroom({url:'/figure/character.glb', look:LOOK, width:520, height:620})
-  await s.load(); if(overlay) await s.overlay('/figure/flows.glb')
-  s.frameOn(AIM,HEIGHT); s.setNeutral(neutral)
-  head(title); const r=row()
+const s=new Showroom({url:'/figure/character.glb', look:LOOK, width:520, height:620})
+await s.load(); s.frameOn(AIM,HEIGHT)
+for(const [title,neutral] of [['roots seated on the skull — neutral flat colour',true],['the same, hair colour',false]]){
+  s.setNeutral(neutral); head(title); const r=row()
   for(const [name,yaw,pitch] of VIEWS){
     const d=document.createElement('div'); d.className='c'
     const t=document.createElement('h4'); t.textContent=name
-    const c=document.createElement('canvas'); c.style.width='300px'; c.style.height='360px'
-    d.append(t,c); r.append(d); s.orbit(yaw,pitch); s.capture(c,300,360)
+    const c=document.createElement('canvas'); c.style.width='250px'; c.style.height='300px'
+    d.append(t,c); r.append(d); s.orbit(yaw,pitch); s.capture(c,250,300)
   }
-  s.dispose()
 }
-await strip('minimal solid from the flows — neutral flat colour', true, false)
-await strip('the same solid with the flow curves over it', true, true)
 window.__ready=true
 </script></body></html>

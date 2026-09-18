@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{margin:0;background:#0f1115;font:12px system-ui;color:#c9cdd4;padding:14px}
+h3{margin:14px 0 6px;font-size:13px;color:#e4e8ee;font-weight:600}
+p{margin:0 0 8px;color:#8d94a0;font-size:11px;max-width:1500px}
+.row{display:flex;gap:10px}.c{text-align:center}
+.c h4{margin:0 0 4px;font-size:11px;color:#8d94a0;font-weight:600}
+canvas{display:block;border-radius:5px}
+</style></head><body><div id="out"></div>
+<script type="module">
+import { Showroom } from '/src/avatar/figure/showroom.ts'
+const out=document.getElementById('out')
+const LOOK={ skin:'#F0B894', hair:'#4A382F', cloth:'#23232A', backdrop:'#E3C4C2' }
+function head(t,sub){const h=document.createElement('h3');h.textContent=t;out.append(h)
+  if(sub){const p=document.createElement('p');p.textContent=sub;out.append(p)}}
+function row(){const r=document.createElement('div');r.className='row';out.append(r);return r}
+function shot(r,label,s,w,h){const d=document.createElement('div');d.className='c'
+  const t=document.createElement('h4');t.textContent=label
+  const c=document.createElement('canvas');c.style.width=w+'px';c.style.height=h+'px'
+  d.append(t,c);r.append(d);s.capture(c,w,h)}
+const s=new Showroom({url:'/figure/character.glb', look:LOOK, width:520, height:620})
+await s.load()
+
+head('category framing — the same figure, the camera showing what is being chosen',
+     'The bust model has no legs yet, so bottom and shoes frame empty space. They are shown to prove the frames are defined, not to claim the parts exist.')
+const r1=row()
+for(const cat of ['face','hair','top','outer','accessory','bottom','shoes','full']){
+  s.orbit(0.30,0.04); s.focus(cat); shot(r1,cat,s,190,230)
+}
+
+head('the viewer’s angle survives a category change',
+     'Turned to three-quarter once, then the category changed four times. The camera target and distance move; the angle does not.')
+const r2=row()
+s.orbit(-0.75,0.10)
+for(const cat of ['full','hair','top','face']){ s.focus(cat); shot(r2,'turned, then '+cat,s,230,280) }
+
+head('the viewer’s angle and framing survive a part change',
+     'Same view throughout. Only the parts shown change — this is show/hide of one asset, not a swap for a different hair.')
+const r3=row()
+s.orbit(0.55,0.06); s.focus('hair')
+const HAIR=['crown','band_sweep','band_sweep_2','band_short','band_short_2','band_bk_l','band_bk_r','band_bk_c']
+shot(r3,'all',s,230,280)
+for(const n of ['band_sweep','band_sweep_2']) s.setVisible(n,false)
+shot(r3,'two bands hidden',s,230,280)
+for(const n of HAIR) s.setVisible(n,false)
+shot(r3,'all hair hidden',s,230,280)
+for(const n of HAIR) s.setVisible(n,true)
+s.recolour({hair:'#C08A4A'}); shot(r3,'hair recoloured',s,230,280)
+s.recolour({hair:'#4A382F'})
+window.__ready=true
+</script></body></html>
