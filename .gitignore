@@ -7,3 +7,7 @@ dist
 
 # Reference images copied in for side-by-side checks are the user's, not ours.
 public/dev/
+
+# Python bytecode from the asset build.
+__pycache__/
+*.pyc

@@ -74,13 +74,24 @@ def sphere_cage(segments: int, rings: int, shape) -> "bpy.types.Object":
     return obj
 
 
-def ribbon(name: str, path, widths, thicks, resolution: int = 24):
+def ribbon(name, path, widths, flatten=0.35, tilt=0.0, resolution: int = 24):
     """
-    A lock of hair: a curve with a rectangular bevel profile and a taper.
+    A lock of hair: a curve swept by a flat section, tapering to a point.
 
-    Blender's own taper curve drives the section along the length, which is what
-    gives a lock a point at the end. The browser version faked that by scaling a
-    swept ellipse and the tip always ended as a flat cap.
+    `flatten` is the section's thickness as a fraction of its width, and it is
+    baked into the bevel profile — an ellipse rather than a circle — so it acts
+    in the section's own frame.
+
+    The first version swept a circle and then scaled the finished mesh on the
+    global Y axis, which in this frame is front-to-back. That did not thin the
+    section, it squashed the whole lock towards the head's mid-plane: measured,
+    a lock authored to run from 0.10 to 0.42 in front of the head had its mean
+    front position pulled from 0.285 to 0.086 when the factor went from 1.0 to
+    0.3, while x and height did not move at all. Every length that was meant to
+    hang in front of a shoulder was sitting flat against the skull instead.
+
+    `tilt` turns the section about the curve, in radians, so a band can be laid
+    flat against the head rather than edge-on to it.
     """
     curve = bpy.data.curves.new(name, "CURVE")
     curve.dimensions = "3D"
@@ -89,17 +100,23 @@ def ribbon(name: str, path, widths, thicks, resolution: int = 24):
     spline.points.add(len(path) - 1)
     for i, point in enumerate(path):
         spline.points[i].co = (point[0], point[1], point[2], 1.0)
+        spline.points[i].tilt = tilt
     spline.use_endpoint_u = True
     spline.order_u = min(4, len(path))
 
     profile = bpy.data.curves.new(name + "_profile", "CURVE")
     profile.dimensions = "2D"
     poly = profile.splines.new("POLY")
-    corners = 16
+    corners = 24
     poly.points.add(corners - 1)
     for i in range(corners):
         a = (i / corners) * math.tau
-        poly.points[i].co = (math.cos(a) * 0.5, math.sin(a) * 0.5, 0.0, 1.0)
+        poly.points[i].co = (
+            math.cos(a) * 0.5,
+            math.sin(a) * 0.5 * flatten,
+            0.0,
+            1.0,
+        )
     poly.use_cyclic_u = True
     profile_obj = bpy.data.objects.new(name + "_profile", profile)
     bpy.context.scene.collection.objects.link(profile_obj)
@@ -126,10 +143,6 @@ def ribbon(name: str, path, widths, thicks, resolution: int = 24):
     bpy.ops.object.convert(target="MESH")
     obj = bpy.context.active_object
     obj.select_set(False)
-    # The profile is a circle; squashing the mesh afterwards is what makes the
-    # section a band rather than a cable, and it keeps the taper intact.
-    for vertex in obj.data.vertices:
-        vertex.co.y *= thicks
     bpy.data.objects.remove(profile_obj, do_unlink=True)
     bpy.data.objects.remove(taper_obj, do_unlink=True)
     return obj
@@ -159,3 +172,35 @@ def export(path: str) -> None:
         export_normals=True,
         export_materials="EXPORT",
     )
+
+
+def boolean(obj, cutter, operation: str = "DIFFERENCE"):
+    """Cut one solid with another and throw the cutter away.
+
+    The exact solver, not the fast one: the fast one leaves holes where two
+    surfaces are nearly parallel, and a hair mass laid over a skull is nearly
+    parallel to it everywhere."""
+    modifier = obj.modifiers.new("bool", "BOOLEAN")
+    modifier.operation = operation
+    modifier.solver = "EXACT"
+    modifier.object = cutter
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.modifier_apply(modifier=modifier.name)
+    bpy.data.objects.remove(cutter, do_unlink=True)
+    return obj
+
+
+def round_box(name: str, centre, half, radius: float, segments: int = 5):
+    """A box with the corners taken off, as a cutter."""
+    bpy.ops.mesh.primitive_cube_add(size=2, location=centre)
+    obj = bpy.context.active_object
+    obj.name = name
+    obj.scale = (half[0], half[1], half[2])
+    bpy.ops.object.transform_apply(scale=True)
+    bevel = obj.modifiers.new("bevel", "BEVEL")
+    bevel.width = radius
+    bevel.segments = segments
+    bevel.limit_method = "NONE"
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.modifier_apply(modifier=bevel.name)
+    return obj

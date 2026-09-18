@@ -36,6 +36,21 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 /** Which material a part uses, and so which colour control moves it. */
 export type Slot = 'skin' | 'hair' | 'cloth' | 'eye'
 
+/** The eye colour is fixed rather than a look, so it needs somewhere to live. */
+const EYE_COLOUR = '#2B2220'
+
+/**
+ * Which authored material names the showroom is allowed to take over.
+ *
+ * The rule, so that assets made later do not quietly lose their surfacing: the
+ * showroom substitutes its own material only where the GLB's material is named
+ * as one of these slots. A part that arrives with any other material — an
+ * authored one with maps on it, say — keeps what it was exported with, and is
+ * simply not tintable from the colour controls. Anything that wants to be
+ * recoloured has to opt in by being named.
+ */
+const OWNED_MATERIALS = new Set(['skin', 'hair', 'cloth', 'eye'])
+
 const SLOT_OF: { test: RegExp; slot: Slot }[] = [
   { test: /^eye/, slot: 'eye' },
   { test: /^(hair|scalp|lock|sweep|front|side|back)/, slot: 'hair' },
@@ -70,6 +85,8 @@ export class Showroom {
   private readonly figure = new Group()
   private readonly materials = new Map<Slot, MeshPhysicalMaterial>()
   private readonly parts = new Map<string, Object3D>()
+  /** Authored materials the showroom left alone, for reporting. */
+  readonly kept = new Set<string>()
   private yaw = 0
   private pitch = 0
   private distance = 6
@@ -78,7 +95,10 @@ export class Showroom {
   private buffer: Uint8Array | null = null
   private scratch: HTMLCanvasElement | null = null
 
+  private look: Look
+
   constructor(private readonly options: ShowroomOptions) {
+    this.look = { ...options.look }
     // preserveDrawingBuffer so a still can be copied out of the live canvas.
     // Without it the browser has to reproduce the frame for every drawImage,
     // and a 74px thumbnail measured at 760ms against 1.1ms for a full redraw.
@@ -134,7 +154,7 @@ export class Showroom {
     this.materials.set('hair', new MeshPhysicalMaterial({ roughness: 0.56, clearcoat: 0.0 }))
     this.materials.set('cloth', new MeshPhysicalMaterial({ roughness: 0.94, sheen: 0.30, sheenRoughness: 0.80 }))
     this.materials.set('eye', new MeshPhysicalMaterial({
-      color: new Color('#2B2220'), roughness: 0.28, clearcoat: 0.8, clearcoatRoughness: 0.16,
+      color: new Color(EYE_COLOUR), roughness: 0.28, clearcoat: 0.8, clearcoatRoughness: 0.16,
     }))
     this.recolour(options.look)
   }
@@ -147,7 +167,13 @@ export class Showroom {
       if (!mesh.isMesh) return
       mesh.castShadow = true
       mesh.receiveShadow = true
-      mesh.material = this.materials.get(slotFor(mesh.name))!
+      const authored = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material
+      const name = authored?.name ?? ''
+      if (OWNED_MATERIALS.has(name)) {
+        mesh.material = this.materials.get(slotFor(mesh.name))!
+      } else {
+        this.kept.add(name || mesh.name)
+      }
     })
     for (const child of [...gltf.scene.children]) {
       this.parts.set(child.name, child)
@@ -192,6 +218,7 @@ export class Showroom {
 
   /** Change colours. Materials are shared, so this is four assignments. */
   recolour(look: Partial<Look>): void {
+    this.look = { ...this.look, ...look }
     if (look.skin) this.materials.get('skin')!.color.set(look.skin)
     if (look.hair) this.materials.get('hair')!.color.set(look.hair)
     if (look.cloth) {
@@ -203,6 +230,54 @@ export class Showroom {
       cloth.sheenColor.lerp(new Color('#FFFFFF'), 0.30)
     }
     if (look.backdrop) (this.scene.background as Color).set(look.backdrop)
+  }
+
+  /**
+   * Put every part in the same neutral clay.
+   *
+   * Form first, colour second. A dark hair colour hides a bad join and a warm
+   * skin tone flatters a shape that has nothing in it; one grey across the
+   * whole figure shows where the surfaces actually are.
+   */
+  setNeutral(on: boolean): void {
+    for (const [slot, material] of this.materials) {
+      if (on) {
+        material.color.set('#B9B4AE')
+        material.sheen = 0
+        material.clearcoat = slot === 'eye' ? 0.5 : 0.05
+        material.roughness = 0.62
+      } else {
+        this.restore(slot, material)
+      }
+    }
+  }
+
+  private restore(slot: Slot, material: MeshPhysicalMaterial): void {
+    if (slot === 'skin') {
+      material.roughness = 0.74
+      material.clearcoat = 0.14
+      material.clearcoatRoughness = 0.66
+      material.sheen = 0.45
+      material.sheenColor.set('#FF9E86')
+      material.sheenRoughness = 0.85
+    } else if (slot === 'hair') {
+      material.roughness = 0.56
+      material.clearcoat = 0
+      material.sheen = 0
+    } else if (slot === 'cloth') {
+      material.roughness = 0.94
+      material.clearcoat = 0
+      material.sheen = 0.30
+      material.sheenRoughness = 0.80
+    } else {
+      material.roughness = 0.28
+      material.clearcoat = 0.8
+      material.clearcoatRoughness = 0.16
+      material.sheen = 0
+      // The eye is not part of the look, so recolour() will not put it back.
+      material.color.set(EYE_COLOUR)
+    }
+    this.recolour(this.look)
   }
 
   /** Show or hide a part by name. This is what a wardrobe swap is. */

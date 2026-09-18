@@ -147,8 +147,7 @@ def build_top():
 
 def rim_angle(phi):
     """Polar angle of the hairline for an azimuth. High at the brow, low at the
-    temple, and low enough behind that the scalp reaches the lengths — the first
-    build stopped short and left bare skin showing at the back of the head."""
+    temple, and low enough behind that the scalp reaches the lengths."""
     front = math.cos(phi)
     side = abs(math.sin(phi))
     return math.pi * (
@@ -208,17 +207,23 @@ def build_scalp(lift=0.058):
     return obj
 
 
-# The long wave, as separate lengths over the scalp.
+# The long wave, as lengths over the scalp.
 #
-# The thickness numbers matter more than they look. At 0.26 of a unit these
-# were thin enough to vanish edge-on and read as knife blades from the side;
-# hair is a band, but a band with a body.
+# The last number on each row is `flatten`: the section's thickness as a
+# fraction of its width, applied inside the bevel profile. It used to be a
+# scale on the finished mesh's global Y, which in this frame is front-to-back,
+# so it moved the lock instead of thinning it — a length authored to run from
+# 0.10 to 0.42 in front of the head had its mean front position pulled to 0.086
+# at flatten 0.30. See ribbon() in lib.py.
 #
-# A single continuous curtain was tried instead of this — one sheet from the
-# parting, over the skull and down to the tips, solidified — on the theory that
-# it would give unbroken flow. It gave a hood: the sheet's face opening is set
-# by its own parametrisation and there is no way to open it wide enough without
-# tearing the flow it was built for. Kept as a note, not as code.
+# Two rebuilds of the large form have been tried against this and neither is
+# kept. A single continuous curtain from the parting down to the tips gave a
+# hood, because the face opening is set by the sheet's own parametrisation. A
+# closed mass with the face cut out by a boolean gave a hood as well, from the
+# opposite direction: widening the cutter far enough to clear the jaw left torn
+# edges where the cutter met the mass almost tangentially, and the mass still
+# met the face along the cheek instead of behind the ear. Both are recorded
+# here rather than in the tree.
 LOCKS = [
     ("sweep_r", [(0.10, 0.92, 0.14), (0.50, 0.70, 0.34), (0.72, 0.14, 0.24), (0.76, -0.50, 0.06)],
      [0.30, 0.46, 0.44, 0.30], 0.62),
@@ -248,8 +253,8 @@ def build():
     lib.assign(build_body(), skin)
     lib.assign(build_top(), cloth)
     lib.assign(build_scalp(), hair_mat)
-    for name, path, widths, thick in LOCKS:
-        obj = lib.ribbon(name, [to_blender(p) for p in path], widths, thick)
+    for name, path, widths, flatten in LOCKS:
+        obj = lib.ribbon(name, [to_blender(p) for p in path], widths, flatten=flatten)
         obj.name = name
         lib.shaded_smooth(obj)
         lib.assign(obj, hair_mat)
