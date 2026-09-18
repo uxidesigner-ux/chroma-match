@@ -2,7 +2,8 @@
 
 Generation must never overwrite the editable original or the shipped GLB.
 
-    BLEND, HAIR_GLB  — written by a person / export_hair.py
+    BLEND            — editable original; seed_hair_original.py may create it
+    HAIR_GLB         — export_hair.py (fails if BLEND is missing)
     GENERATED        — hair_long_wave.py, sculpt_long_wave.py
     BODY_GLB         — character.py
 """

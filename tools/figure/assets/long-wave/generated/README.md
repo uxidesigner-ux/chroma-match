@@ -1,11 +1,14 @@
-# Frozen generation — not the completion candidate
+# generated/ — not the editable original
 
-| file | what it is |
+| file | kind |
 |---|---|
-| `blockout.blend` | Tube-clump starting point. Seeds `../hair_long_wave.blend` once if that file is missing. |
-| `sculpt_attempt.blend` | Headless measured-clump attempt. Bang visor + hanging tubes. Do not ship. |
-| `preview-sculpt-attempt/` | Workbench stills of that attempt. |
+| `blockout.blend` | Frozen **generation**: tube-clump. Input to `seed_hair_original.py` only. |
+| `sculpt_attempt.blend` | Frozen **unadopted** attempt: measured clumps, visor bang. Do not ship. |
+| `preview-sculpt-attempt/` | Stills of that unadopted attempt. |
+| `sculpt-ops.md` | bpy operator notes from 2026-09-18 (context / SIGSEGV). |
 
 `hair_long_wave.py` and `sculpt_long_wave.py` write **only this folder**.
-The editable original and `public/figure/hair_long_wave.glb` are not updated
-here.
+
+`export_hair.py` does not copy `blockout.blend` into the original slot.
+If `../hair_long_wave.blend` is missing, export fails. Creating it from this
+freeze is `python3.11 tools/figure/seed_hair_original.py`.

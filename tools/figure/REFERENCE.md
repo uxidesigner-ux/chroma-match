@@ -64,11 +64,11 @@ comparison.
 ## Quality standing (asset blockout — not approved)
 
 The long-wave is a separate hair asset on the shared head. Attempt 8’s
-bang/eye visibility seating is kept. Stage 1 in Blender has **not** passed:
-the editable original is still the tube-clump blockout. Headless sculpt
-brushes crash in this bpy; do not treat a new generator pass as the
-finished hair. Do not treat export or showroom attach as a form fix.
-5c is not the proportion source.
+bang/eye visibility seating is kept. Stage 1 has **not** passed: the
+editable original is a tube-clump starting point, not an approved
+hairstyle. Do not treat export or showroom attach as a form fix. 5c is
+not the proportion source. Operator notes (separate from quality):
+`assets/long-wave/generated/sculpt-ops.md`.
 
 The clay sheet is the look bar. Wardrobe combination is later
 (`docs/wardrobe.md`), not this pass.

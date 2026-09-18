@@ -28,12 +28,14 @@ exists. Clay-versus-colour is not a reference comparison.
 | **7** | Overlapping flowing locks, then surface cleanup | Bang saw-tooth from `seat_inside` slam is gone; bang is one diagonal sheet; face size in the original row matches eye spacing; front still two curtains; back still inner mass + hanging pieces |
 | **8** | Bang/eye visibility, then placement | Same-camera vis: bang-only is a wide sheet. Face on + green bang sits on the forehead. Raycaster: forehead hits `lock_p_bang` then `head`. Eyes-only vs eyes+face: the pinprick was burial in the finished skin. |
 | **asset** | Tube-clump hair as a separate GLB + .blend | Stage 1: bang is a visible diagonal; scalp rim is a cut opening; sides are hanging tubes; back is a cap plus nape pieces. **Not the original’s one clay hairstyle.** Stage 2–3: attach / orbit / recolour match the Blender form. |
-| **paths** | Generate vs export split | `character.py` writes `body.glb` only. `export_hair.py` reads the .blend and writes hair GLB without regenerating form. Editable original is no longer overwritten by a body rebuild. |
-| **headless sculpt** | Cap+skirt grid, then measured clumps | Cap+skirt: bang on the crown, vase skirt. Measured clumps: bang visor over the left eye, sides still tubes. `sculpt.brush_stroke` / `mesh_filter` **segfault** in bpy 5.0.1 background. Attempts frozen under `generated/`; original left as the tube blockout. **Not submitted as the finished hair.** |
+| **paths** | Generate vs export split | `character.py` writes `body.glb` only. `export_hair.py` reads the .blend and writes hair GLB; it fails if the original is missing (does not copy `generated/blockout`). `seed_hair_original.py` is the only command that may create the original from that freeze. |
+| **headless attempts** | Cap+skirt grid, then measured clumps | Cap+skirt: bang on the crown, vase skirt. Measured clumps: visor bang, sides still tubes. Not adopted. `generated/sculpt-ops.md` records `brush_stroke` / `mesh_filter` SIGSEGV in bpy 5.0.1 background — a process note, not the quality bar. Original left as the tube-clump starting point. |
 
 The lock generator (`hair.py`) is retired. Do not add more `seat_inside`
-passes or disable depth test. Next form work is desktop sculpting of
-`hair_long_wave.blend`. Handoff: `assets/long-wave/README.md`.
+passes or disable depth test. This pass ends at path protection and
+handoff (`assets/long-wave/README.md`). Operator notes:
+`assets/long-wave/generated/sculpt-ops.md`. The next form pass is a
+separate assignment.
 
 Review: `review/asset.html` (attach / orbit / colour). Original row:
 `review/compare-large.html`.
@@ -52,11 +54,12 @@ Visual approval is not claimed.
 - Raising or removing the `seat_inside` 0.07 cap to drag a buried bang out
 - Turning off depth test, forcing render order, or deleting skin to “show” the bang
 - Cap + one skirt sheet around the body (vase / cloak)
-- Another headless ribbon/clump combo as a substitute for clay sculpt (`brush_stroke` crashes here)
+- Another automatic ribbon/clump combo in this headless process as a stand-in for changing the original’s form
 
 ## Direction
 
 - Pipeline: shared head (`body.glb`) + hair asset (`hair_long_wave.glb`) → Three.js showroom attach
-- Visual bar: top panel of `sheet-long-wave.jpg` (long wave, black knit)
-- Next form work: sculpt the `.blend` in desktop Blender; export with `export_hair.py`
+- Visual bar: top panel of `sheet-long-wave.jpg` (long wave, black knit); private, not in git or live
+- This pass: protect original vs export; hand off. No more generator or sculpt-operator trials here
+- Next form work: separate assignment, once edit + visual inspection are available
 - Do not merge or deploy until visual approval

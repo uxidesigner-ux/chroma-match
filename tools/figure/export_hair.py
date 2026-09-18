@@ -1,8 +1,11 @@
-"""Export hair GLB from the editable .blend. Does not regenerate form."""
+"""Export hair GLB from the editable .blend. Does not regenerate form.
+
+Fails if the editable original is missing. Does not copy generated/blockout.
+To create the original from the frozen blockout, run seed_hair_original.py.
+"""
 
 from __future__ import annotations
 
-import shutil
 import sys
 from pathlib import Path
 
@@ -13,23 +16,13 @@ import asset_paths  # noqa: E402
 import lib  # noqa: E402
 
 
-def seed_original_if_missing():
-    """Copy the frozen blockout into the original slot once. Never overwrite."""
-    if asset_paths.BLEND.exists():
-        return
-    src = asset_paths.GENERATED / "blockout.blend"
-    if not src.exists():
-        raise SystemExit(
-            f"missing editable original {asset_paths.BLEND} and no seed {src}"
-        )
-    shutil.copy(src, asset_paths.BLEND)
-    print(f"SEED {asset_paths.BLEND} from {src}")
-
-
 def export_hair():
-    seed_original_if_missing()
     if not asset_paths.BLEND.exists():
-        raise SystemExit(f"missing editable original: {asset_paths.BLEND}")
+        raise SystemExit(
+            f"missing editable original: {asset_paths.BLEND}\n"
+            "export does not create it. "
+            "Run: python3.11 tools/figure/seed_hair_original.py"
+        )
     bpy.ops.wm.open_mainfile(filepath=str(asset_paths.BLEND))
     hair = []
     for obj in bpy.data.objects:
@@ -44,7 +37,11 @@ def export_hair():
         raise SystemExit("no hair_* meshes in the blend")
     asset_paths.PUBLIC.mkdir(parents=True, exist_ok=True)
     lib.export(str(asset_paths.HAIR_GLB), visible_only=True)
-    print(f"HAIR {asset_paths.HAIR_GLB} bytes={asset_paths.HAIR_GLB.stat().st_size} parts={[o.name for o in hair]}")
+    print(
+        f"HAIR {asset_paths.HAIR_GLB} "
+        f"bytes={asset_paths.HAIR_GLB.stat().st_size} "
+        f"parts={[o.name for o in hair]}"
+    )
 
 
 def assemble_character():

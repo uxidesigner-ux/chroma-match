@@ -1,11 +1,7 @@
-"""Headless form attempts. Writes generated/sculpt_attempt.blend only.
+"""Unadopted headless form attempts. Writes generated/sculpt_attempt.blend only.
 
 Does not overwrite the editable original or the shipped hair GLB.
-Tubes in generated/blockout.blend are the frozen starting blockout.
-A desktop sculptor edits hair_long_wave.blend; export_hair.py writes the GLB.
-
-Silhouette is taken from the original (top panel of sheet-long-wave.jpg)
-scaled by the confirmed eye spacing (sep 148.8 px → 0.524 head units).
+Not a completion path. Frozen under generated/; do not ship.
 """
 
 from __future__ import annotations
@@ -499,7 +495,6 @@ def sculpt():
         _report(obj, obj.name)
 
     # Never write the editable original or the shipped hair GLB.
-    # Headless attempts land in generated/; a desktop sculptor edits BLEND.
     asset_paths.GENERATED.mkdir(parents=True, exist_ok=True)
     out = asset_paths.GENERATED / "sculpt_attempt.blend"
     bpy.ops.wm.save_as_mainfile(filepath=str(out))
