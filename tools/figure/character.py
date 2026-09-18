@@ -37,10 +37,11 @@ DEPTH_FRONT, DEPTH_BACK = 0.92, 1.00
 # Eyes: 0.53 face widths above the chin, 0.28 apart, tall black ovals.
 EYE_Y, EYE_X = -0.125, 0.220
 EYE_W, EYE_H, EYE_D = 0.064, 0.088, 0.016
-# Nose: a clay ball 0.21 units below the eyes, ~0.27 wide, standing proud.
-NOSE_Y = -0.395
-NOSE_HALF = (0.150, 0.118, 0.130)
-NOSE_PROUD = 0.100
+# Nose: a clay ball whose top overlaps the eye's height (sheet side view:
+# centre 0.24 units below the eye centre, radius ~0.16, tip ~0.25 proud).
+NOSE_Y = -0.345
+NOSE_HALF = (0.155, 0.155, 0.160)
+NOSE_PROUD = 0.240
 # Neck and shoulders from the sheet: a slim short neck straight under the
 # chin, a wide soft shoulder slope, and a scoop neckline that dips at the
 # front (-1.42) and rides higher at the sides/back (-1.24).
@@ -52,6 +53,9 @@ SHOULDER_DEPTH = 0.52
 NECK_TOP_Y = -0.95
 SHOULDER_START_Y = -1.02
 SHOULDER_END_Y = -1.90
+# Bust: the sheet's side view has the chest coming forward ~0.4 units below
+# the collar. Front half only.
+CHEST = 0.42
 # Ears: tall (0.41 units) discs stuck on at eye-to-nose height, sticking
 # ~0.15 units out from the skull. Pearl on the lobe.
 EAR_HALF = (0.085, 0.205, 0.115)
@@ -150,6 +154,22 @@ def body_axes(y):
     )
 
 
+def chest_bulge(y):
+    """Extra front depth of the torso at height y (0 above the collar)."""
+    return CHEST * lib.smoothstep(-1.55, -2.75, y)
+
+
+def torso_front_z(x, y):
+    """Front surface of the knit at lateral x, height y (authoring coords)."""
+    a, c = body_axes(y)
+    a += 0.080
+    c += 0.080 + chest_bulge(y)
+    if abs(x) >= a:
+        return 0.0
+    k = 2.4
+    return c * (1.0 - (abs(x) / a) ** k) ** (1.0 / k)
+
+
 def neckline_y(front):
     """Scoop neckline height for a horizontal direction; `front` in [-1, 1]."""
     dip = max(0.0, front) ** 1.6
@@ -189,6 +209,8 @@ def build_body():
         cap = math.sqrt(max(0.0, 1 - abs(d.z) ** 12))
         horiz = math.hypot(d.x, d.y) or 1e-5
         ux, uy = d.x / horiz, d.y / horiz
+        if uy < 0:
+            c += chest_bulge(y)
         k = 2.4
         s = max(1e-9, (abs(ux) / a) ** k + (abs(uy) / c) ** k)
         r = s ** (-1 / k)
@@ -220,7 +242,7 @@ def build_top():
         roll = lib.smoothstep(0.08, 0.0, v)
         grow = cloth * (1 + 0.35 * roll)
         a_open = a + grow
-        c_open = c + grow
+        c_open = c + grow + (chest_bulge(y) if uy < 0 else 0.0)
         k = 2.4
         s = max(1e-9, (abs(ux) / a_open) ** k + (abs(uy) / c_open) ** k)
         r = s ** (-1 / k)

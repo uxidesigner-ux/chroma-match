@@ -331,6 +331,10 @@ def cap_shell(name, outer, inner, nu, nv):
     return finish(obj, sub=2, relax=0.18)
 
 
+DOME_C = Vector((0.0, 0.10, -0.12))
+DOME_AX, DOME_AY, DOME_AZ = 1.08, 1.32, 1.42
+
+
 def cap_point(da):
     """Cap outer surface for an authoring direction. One clay mass: the crown
     dome (hair top at y=1.24 like the sheet), a swell running from the part
@@ -379,11 +383,23 @@ def cap_point(da):
             fade_front = smooth((p[2] + 0.15) / 0.35)
             bang = 0.24 * prof * fade_part * fade_front
     n = skull_normal(p[0], p[1], p[2])
-    return (
+    q = Vector((
         p[0] + p[0] / r * wrap + sx + n.x * bang,
         p[1] + p[1] / r * wrap + pile + n.y * bang,
         p[2] + p[2] / r * wrap * 0.6 + sz + n.z * bang,
-    )
+    ))
+    # Crown + upper-back volume measured off the sheet's side view: the hair
+    # top sits ~1.42 up and the mass stands ~1.5 units behind the skull centre
+    # at ear height. Anything inside that egg is pushed out to it (back and
+    # top only; the bang and hairline keep their own shape).
+    rel = q - DOME_C
+    f = math.sqrt((rel.x / DOME_AX) ** 2 + (rel.y / DOME_AY) ** 2 + (rel.z / DOME_AZ) ** 2)
+    if f < 1.0:
+        w = smooth((0.45 - p[2]) / 0.60) * smooth((p[1] + 0.45) / 0.50)
+        target = DOME_C + rel / f
+        q = q.lerp(target, w)
+        q += rel.normalized() * (lobe_amp * lobes * w)
+    return (q.x, q.y, q.z)
 
 
 def _dir(az, y):
@@ -434,11 +450,11 @@ def build_scalp():
 # head unit): x half-width A, z half-depth B, and section centre CZ by height.
 CURTAIN = [
     #   y      A      B      CZ
-    (1.00, 0.55, 0.50, -0.10),
-    (0.60, 0.86, 0.68, -0.16),
-    (0.10, 1.16, 0.80, -0.28),
-    (-0.50, 1.40, 0.95, -0.45),
-    (-1.00, 1.32, 1.00, -0.58),
+    (1.00, 0.60, 1.10, -0.10),
+    (0.60, 0.92, 1.22, -0.16),
+    (0.10, 1.16, 1.30, -0.28),
+    (-0.50, 1.40, 1.12, -0.45),
+    (-1.00, 1.32, 1.05, -0.58),
     (-1.50, 1.46, 0.96, -0.55),
     (-2.00, 1.64, 0.90, -0.45),
     (-2.50, 1.62, 0.82, -0.36),
@@ -519,6 +535,12 @@ def build_curtain():
                 sk = character.head_surface(_dir(math.pi - az, lat))
                 cap_pt = Vector((sk[0] * 1.02, sk[1], sk[2] * 1.02))
             pt = pt.lerp(cap_pt, merge)
+            if outer:
+                # Keep the ridges running up over the dome to the crown
+                # (sheet back view: locks flow from the whorl, no shelf).
+                n = Vector((pt.x, 0.0, pt.z - CZ))
+                if n.length > 1e-6:
+                    pt += n.normalized() * (0.045 * merge * ridge * smooth((1.05 - y0) / 0.25))
         return pt
 
     return grid_shell(
@@ -551,6 +573,12 @@ def build_front_lock(side):
         a *= mix(0.4, 1.0, top)
         amp = 0.08 * smooth((-0.6 - y) / 0.6)
         ph = math.tau * (y + 0.40) / 0.85
+        # Below the collar the strand lies on the knit over the chest, its back
+        # half sunk into the cloth so it reads as resting, not hovering.
+        rest = smooth((-1.30 - y) / 0.40)
+        if rest > 0.0:
+            b_here = table([(-0.35, 0.14), (-0.80, 0.22), (-1.50, 0.26), (-2.20, 0.20), (-2.55, 0.04)], y)
+            cz = mix(cz, character.torso_front_z(cx, y) + 0.35 * b_here, rest)
         rows.append((Vector((s * (cx + amp * math.sin(ph)), y, cz + 0.5 * amp * math.cos(ph))), a, b, 1.5 * y))
     return tube(name, rows, nu=18)
 

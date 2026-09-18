@@ -13,15 +13,21 @@ Visual quality is not approved.
 ## This pass
 
 - Skull: egg profile, widest at the cheek (`EGG_C`), broad rounded chin,
-  taller upper half. Nose is a separate clay ball; ears are tall discs stuck
-  on at eye-to-nose height with a pearl on the lobe.
+  taller upper half. Nose is a separate clay ball whose top overlaps the
+  eye's height (sheet side view: centre 0.24 below the eye, radius ~0.16,
+  tip ~0.25 proud); ears are tall discs stuck on at eye-to-nose height with
+  a pearl on the lobe.
 - Cap: parametric shell whose front rim *is* the measured hairline (exposed
   forehead right of the part, tucked under the bang left of it). No more
   vertex-culled stair edge.
 - Bang: not a separate piece. The cap's rim left of the part is the bang's
   lower edge, and a swell in the cap surface makes the diagonal sweep, so
   crown and bang are one piece of clay. Lobes radiate from a whorl at the
-  part; extra depth at the upper back.
+  part.
+- Dome (`DOME_*`): the crown and upper back are pushed out to an egg measured
+  off the sheet's side view (top at y=1.42, mass ~1.5 units behind the skull
+  centre at ear height), back and top only, so the crown is a round dome
+  instead of a flat lid and the upper back is not pressed in.
 - Sides + back (`hair_curtain`): one clay curtain, a partial ring from behind
   one ear around the back to behind the other ear. Its half-width / depth /
   centre per height come from the sheet's back and side panels (`CURTAIN`
@@ -29,17 +35,21 @@ Visual quality is not approved.
   down it with one shared S phase (period 1.15 head units), drift a third of
   a ridge spacing so they read as waves, not chevrons, and split into a
   scalloped hem of tapered lock ends. From y=0.05 up the curtain is blended
-  onto the cap surface so the crown dome flows into the ridges. The front
+  onto the cap surface so the crown dome flows into the ridges, and the
+  ridges keep running up over the dome toward the crown. The front
   edge stays behind z=-0.24 at ear height so both pearls read from the front.
 - Front layer: a thin flat strand per side beside the jaw, in front of the
-  shoulder (the sheet's 전면 레이어), same wave phase as the curtain.
+  shoulder (the sheet's 전면 레이어), same wave phase as the curtain. Below
+  the collar it rests on the knit over the chest (`torso_front_z`).
 - Review page: the "sheet five views" row uses the sheet's own framing
   (4.9 head units tall, centred at y=-0.50, 322:416 panels).
 
 - Body (`character.py`): slim short neck straight under the chin, trapezius
   flaring early into a wide soft shoulder, scoop neckline dipping at the
   front (-1.36) and riding higher at the sides (-1.20). The knit opening
-  always sits outside the body, so no skin pokes through the collar.
+  always sits outside the body, so no skin pokes through the collar. Bust:
+  the front half of the torso comes forward `CHEST` = 0.42 units below the
+  collar (`chest_bulge`), as in the sheet's side view.
 - Colour (`review/asset.html` LOOK): sheet palette adjusted for the showroom
   tone mapping so rendered pixels land on the sheet's skin/hair/knit/backdrop.
 - Back locks start inside the cap so they emerge from the crown, not sit on it.
