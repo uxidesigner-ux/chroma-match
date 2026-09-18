@@ -22,11 +22,17 @@ Visual quality is not approved.
   lower edge, and a swell in the cap surface makes the diagonal sweep, so
   crown and bang are one piece of clay. Lobes radiate from a whorl at the
   part; extra depth at the upper back.
-- Sides: one wave bundle per side following the sheet silhouette, kept
-  behind z=-0.10 at ear height so both pearls read from the front.
+- Sides + back (`hair_curtain`): one clay curtain, a partial ring from behind
+  one ear around the back to behind the other ear. Its half-width / depth /
+  centre per height come from the sheet's back and side panels (`CURTAIN`
+  table: narrow at the neck, flaring over the shoulders). Eleven ridges run
+  down it with one shared S phase (period 1.15 head units), drift a third of
+  a ridge spacing so they read as waves, not chevrons, and split into a
+  scalloped hem of tapered lock ends. From y=0.05 up the curtain is blended
+  onto the cap surface so the crown dome flows into the ridges. The front
+  edge stays behind z=-0.24 at ear height so both pearls read from the front.
 - Front layer: a thin flat strand per side beside the jaw, in front of the
-  shoulder (the sheet's 전면 레이어), same wave phase as the bundle.
-- Back: three S-wave tubes sharing one phase over a flat nape tube.
+  shoulder (the sheet's 전면 레이어), same wave phase as the curtain.
 - Review page: the "sheet five views" row uses the sheet's own framing
   (4.9 head units tall, centred at y=-0.50, 322:416 panels).
 

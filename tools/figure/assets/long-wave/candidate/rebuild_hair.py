@@ -215,15 +215,6 @@ def _smooth_rim(obj, rounds=8, factor=0.55):
 
 
 # ---------------------------------------------------------------------------
-# Reference silhouette (front panel), in head units. Face width 528 px = 1.56.
-# Hair half-width by height, measured on the sheet; viewer's left (bang side)
-# is a little fuller than the right.
-SIL = [
-    (1.24, 0.00), (1.08, 0.52), (0.77, 0.87), (0.61, 0.95), (0.29, 1.13),
-    (-0.03, 1.20), (-0.35, 1.27), (-0.66, 1.29), (-0.98, 1.24), (-1.30, 1.30),
-    (-1.78, 1.60), (-2.30, 1.68), (-2.88, 1.30),
-]
-SIDE_FULL = {-1: 1.04, 1: 0.96}
 # Bang lower edge: side part on the crown -> across the forehead -> left ear top.
 BANG_EDGE = [(0.19, 0.82), (0.00, 0.36), (-0.42, 0.10), (-0.78, 0.00)]
 # Exposed forehead to the right of the part, down to the right ear.
@@ -250,10 +241,6 @@ def polyline(pts, t):
     f = s - i
     (x0, y0), (x1, y1) = pts[i], pts[i + 1]
     return (mix(x0, x1, f), mix(y0, y1, f))
-
-
-def sil(y, side):
-    return table(SIL, y) * SIDE_FULL[side]
 
 
 def hairline(x):
@@ -443,41 +430,104 @@ def build_scalp():
     return cap_shell("hair_scalp", outer, inner, nu=56, nv=18)
 
 
-def build_side(side):
-    """One thick lock bundle per side, from under the cap to the shoulder,
-    following the measured silhouette. Sits behind the ear at ear height,
-    falls forward over the shoulder below the chin. S-wave in x and z, one
-    shared phase; three helical ridges so it reads as locks."""
-    s = -1 if side < 0 else 1
-    name = "hair_side_l" if s < 0 else "hair_side_r"
-    y_top = 0.60
-    rows = []
-    nv = 34
-    for j in range(nv):
-        v = j / (nv - 1)
-        y = mix(y_top, Y_TIP, v)
-        outer = sil(y, s)
-        skull = character.half_width(y) if y > -0.95 else 0.0
-        inner_edge = table([(0.60, 0.40), (0.30, 0.56), (-0.30, 0.74), (-0.95, 0.60), (-1.40, 0.52), (-2.00, 0.66), (-2.88, 1.00)], y)
-        inner_edge = max(inner_edge, skull - 0.10)
-        cx = (outer + inner_edge) / 2.0
-        a = max(0.04, (outer - inner_edge) / 2.0)
-        # Behind the ear at ear height (front face stays behind z=-0.10 so both
-        # pearls read from the front), then swings forward over the shoulder.
-        cz = table([(0.60, -0.42), (0.20, -0.46), (-0.20, -0.46), (-0.60, -0.36), (-0.95, -0.14), (-1.30, 0.06), (-1.80, 0.24), (-2.30, 0.32), (-2.88, 0.34)], y)
-        b = table([(0.60, 0.26), (0.20, 0.32), (-0.40, 0.34), (-0.90, 0.42), (-1.40, 0.48), (-2.00, 0.46), (-2.60, 0.32), (-2.88, 0.05)], y)
-        tip = smooth((y - Y_TIP) / 0.45)
-        a *= mix(0.15, 1.0, tip)
-        b *= mix(0.15, 1.0, tip)
-        top = smooth((y_top - y) / 0.30)
-        a *= mix(0.35, 1.0, top)
-        b *= mix(0.6, 1.0, top)
-        amp = 0.11 * smooth((0.20 - y) / 0.90)
-        ph = math.tau * (y + 0.40) / 0.85
-        wx = s * amp * math.sin(ph)
-        wz = amp * 0.6 * math.cos(ph)
-        rows.append((Vector((s * cx + wx, y, cz + wz)), a, b, 2.2 * y + (0.0 if s > 0 else 1.0)))
-    return tube(name, rows, nu=22)
+# Side + back mass measured off the sheet's back and side panels (84.6 px per
+# head unit): x half-width A, z half-depth B, and section centre CZ by height.
+CURTAIN = [
+    #   y      A      B      CZ
+    (1.00, 0.55, 0.50, -0.10),
+    (0.60, 0.86, 0.68, -0.16),
+    (0.10, 1.16, 0.80, -0.28),
+    (-0.50, 1.40, 0.95, -0.45),
+    (-1.00, 1.32, 1.00, -0.58),
+    (-1.50, 1.46, 0.96, -0.55),
+    (-2.00, 1.64, 0.90, -0.45),
+    (-2.50, 1.62, 0.82, -0.36),
+    (-2.95, 1.25, 0.55, -0.30),
+]
+
+
+def curtain_at(y):
+    A = table([(r[0], r[1]) for r in CURTAIN], y)
+    B = table([(r[0], r[2]) for r in CURTAIN], y)
+    CZ = table([(r[0], r[3]) for r in CURTAIN], y)
+    return A, B, CZ
+
+
+def build_curtain():
+    """옆/뒤머리 as one clay curtain: a partial ring around the head and neck
+    from behind one ear, around the back, to behind the other ear. Ridges run
+    down it in phase (the sheet's S-waves) and separate into tapered lock
+    ends at the bottom. Top is buried under the cap."""
+    y_top, y_tip = 1.00, -2.95
+    n_ridge = 11.0          # ~6 ridges across the back half
+    period = 1.15           # S-wave wavelength in head units (sheet: ~3 waves over the length)
+    z_front_ear = -0.24     # front edge stays behind the ear at ear height
+
+    def front_angle(y, B, CZ):
+        # Forward wrap: behind the ear at head height, over the shoulder below.
+        z_front = table([(0.4, -0.30), (-0.6, z_front_ear), (-1.2, 0.05), (-1.8, 0.35), (-2.95, 0.45)], y)
+        s = max(-0.95, min(0.95, (z_front - CZ) / B))
+        return math.pi / 2 + math.asin(s)
+
+    def wave(y):
+        return math.sin(math.tau * (y + 0.40) / period) * smooth((0.30 - y) / 0.80)
+
+    def sway(y):
+        # Ridge lines drift about a third of a ridge spacing: long smooth S
+        # curves, not chevrons.
+        return 0.10 * wave(y)
+
+    def sample(u, v, outer):
+        y0 = mix(y_top, y_tip, v ** 0.95)
+        A, B, CZ = curtain_at(y0)
+        az_max = front_angle(y0, B, CZ)
+        az = mix(-az_max, az_max, u)
+        side_full = 1.0 + 0.04 * (-math.copysign(1.0, az) if abs(az) > 1e-6 else 0.0)
+        A *= side_full
+        ph = n_ridge * (az - sway(y0))
+        ridge = math.cos(ph)
+        tip = smooth((y0 - y_tip) / 0.70)          # 0 at the tip, 1 above
+        amp = mix(0.10, 0.035, tip)
+        # Lock ends: between ridges the tip is higher (scalloped hem) and
+        # every lock thins to a point.
+        scallop = (0.5 - 0.5 * ridge) * 0.30 * (1.0 - tip)
+        y = y0 + scallop
+        taper = mix(0.25, 1.0, smooth((y0 - y_tip) / 0.55))
+        top_fade = mix(0.55, 1.0, smooth((y_top - y0) / 0.40))
+        base_scale = taper * top_fade
+        thick = mix(0.06, mix(0.28, 0.40, smooth((0.5 - y0) / 1.2)), tip) * taper
+        r_out = 1.0 + amp * ridge
+        rx, rz = A * r_out * base_scale, B * r_out * base_scale
+        if not outer:
+            rx = max(0.05, rx - thick)
+            rz = max(0.05, rz - thick)
+        x = rx * math.sin(az) + 0.10 * wave(y0)
+        z = CZ - rz * math.cos(az)
+        pt = Vector((x, y, z))
+        # Near the top the curtain lies flush on the cap so the crown dome
+        # flows into the ridges instead of sitting on them as a helmet rim.
+        merge = smooth((y0 - 0.05) / 0.75)
+        if merge > 0.0:
+            lat = max(-0.30, min(0.98, y0))
+            cap = cap_point(_dir(math.pi - az, lat))
+            if outer:
+                cap_pt = Vector((cap[0], cap[1], cap[2]))
+                n = Vector((cap[0], 0.0, cap[2]))
+                if n.length > 1e-6:
+                    cap_pt += n.normalized() * 0.012
+            else:
+                sk = character.head_surface(_dir(math.pi - az, lat))
+                cap_pt = Vector((sk[0] * 1.02, sk[1], sk[2] * 1.02))
+            pt = pt.lerp(cap_pt, merge)
+        return pt
+
+    return grid_shell(
+        "hair_curtain",
+        lambda u, v: sample(u, v, True),
+        lambda u, v: sample(u, v, False),
+        nu=64,
+        nv=34,
+    )
 
 
 def build_front_lock(side):
@@ -505,93 +555,13 @@ def build_front_lock(side):
     return tube(name, rows, nu=18)
 
 
-def build_occipital():
-    """Back of the skull: thick clay with vertical S ridges."""
-
-    def sample(u, v, outer):
-        az = math.pi + mix(-1.30, 1.30, u)
-        polar = mix(0.30, 2.20, v ** 0.85)
-        mid = math.sin(v * math.pi)
-        vol = mix(0.05, 0.22 + 0.13 * mid, smooth(v / 0.30))
-        ridge = 0.09 * math.cos(u * math.pi * 5.0 + 2.6 * math.sin(v * math.pi * 3.0)) * smooth(v / 0.25)
-        wave = 0.08 * math.sin(v * math.pi * 3.0) * smooth(v)
-        if u < 0.08:
-            vol *= mix(0.55, 1.0, u / 0.08)
-        if u > 0.92:
-            vol *= mix(1.0, 0.55, (u - 0.92) / 0.08)
-        vol += ridge
-        inner = max(0.022, vol * 0.25)
-        clr = vol if outer else inner
-        p = on_head(
-            math.sin(polar) * math.sin(az),
-            math.cos(polar),
-            math.sin(polar) * math.cos(az),
-            clr,
-        )
-        return Vector((p.x, p.y, p.z - wave))
-
-    return grid_shell(
-        "hair_occipital",
-        lambda u, v: sample(u, v, True),
-        lambda u, v: sample(u, v, False),
-        nu=20,
-        nv=12,
-    )
-
-
-def build_back():
-    """후면: three overlapping S-wave tubes sharing one phase (big horizontal
-    ridges, not columns) over a wide flat nape tube so nothing shows through."""
-    y_top = 1.16
-    nv = 36
-
-    def back_z(y):
-        # Tops are buried under the cap/occipital so the S-locks emerge from
-        # the crown instead of sitting on it as a row of bumps.
-        return table([(1.16, -0.18), (1.00, -0.36), (0.72, -0.62), (0.20, -0.90), (-0.40, -1.00), (-0.95, -0.92),
-                      (-1.50, -0.84), (-2.10, -0.78), (-2.60, -0.72), (Y_TIP, -0.66)], y)
-
-    def strand(name, x0, phase_off):
-        rows = []
-        for j in range(nv):
-            v = j / (nv - 1)
-            y = mix(y_top, Y_TIP, v)
-            ph = math.tau * (y + 0.40) / 0.85 + phase_off
-            sway = smooth((0.30 - y) / 0.80)
-            amp = 0.16 * sway
-            cx = x0 * table([(1.16, 0.40), (1.00, 0.55), (0.72, 0.85), (-0.30, 1.0), (-1.60, 1.15), (Y_TIP, 1.25)], y) + amp * math.sin(ph)
-            cz = back_z(y) + 0.10 * sway * math.cos(ph)
-            a = table([(1.16, 0.10), (1.00, 0.18), (0.72, 0.34), (-0.20, 0.42), (-1.20, 0.44), (-2.20, 0.40), (-2.60, 0.28), (Y_TIP, 0.06)], y)
-            b = table([(1.16, 0.06), (1.00, 0.10), (0.72, 0.17), (-0.20, 0.24), (-1.20, 0.28), (-2.20, 0.26), (-2.60, 0.18), (Y_TIP, 0.04)], y)
-            top = smooth((y_top - y) / 0.50)
-            a *= mix(0.55, 1.0, top)
-            rows.append((Vector((cx, y, cz)), a, b, 1.8 * y + phase_off))
-        return tube(name, rows, nu=22)
-
-    out = [
-        strand("hair_back_l", -0.58, 0.0),
-        strand("hair_back_c", 0.00, 0.0),
-        strand("hair_back_r", 0.58, 0.0),
-    ]
-    rows = []
-    for j in range(nv):
-        v = j / (nv - 1)
-        y = mix(0.66, Y_TIP + 0.06, v)
-        a = table([(0.66, 0.70), (-0.30, 0.85), (-1.40, 0.90), (-2.40, 0.80), (Y_TIP + 0.06, 0.10)], y)
-        b = table([(0.66, 0.10), (-0.30, 0.16), (-1.40, 0.18), (-2.40, 0.16), (Y_TIP + 0.06, 0.04)], y)
-        rows.append((Vector((0.0, y, back_z(y) + 0.16)), a, b, 0.0))
-    out.append(tube("hair_nape", rows, nu=28))
-    return out
-
-
 def main():
     replace_head()
     remove_hair()
     hair_mat = bpy.data.materials.get("hair")
     if hair_mat is None:
         hair_mat = lib.material("hair", (0.210, 0.145, 0.125), 0.62)
-    pieces = [build_scalp(), build_side(-1), build_side(1), build_front_lock(-1), build_front_lock(1), build_occipital()]
-    pieces.extend(build_back())
+    pieces = [build_scalp(), build_curtain(), build_front_lock(-1), build_front_lock(1)]
     for obj in pieces:
         lib.assign(obj, hair_mat)
         b = bounds(obj)
