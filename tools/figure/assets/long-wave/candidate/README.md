@@ -12,11 +12,11 @@ Visual quality is not approved.
 
 ## This pass
 
-- Skull: egg profile, widest at the cheek (`EGG_C`), broad rounded chin,
-  taller upper half. Nose is a separate clay ball whose top overlaps the
-  eye's height (sheet side view: centre 0.24 below the eye, radius ~0.16,
-  tip ~0.25 proud); ears are tall discs stuck on at eye-to-nose height with
-  a pearl on the lobe.
+- Skull: egg profile, widest at the cheek (`EGG_C`), flatter forehead from
+  the side, broader cheeks, rounded chin. Eyes sit in the upper half of the
+  visible face. Nose is a modest clay ball whose top overlaps the eye (front
+  = a bump, side = a ball). Ears are small discs at eye-to-nose height with
+  a pearl on the lobe, both visible from the front.
 - Cap: parametric shell whose front rim *is* the measured hairline (exposed
   forehead right of the part, tucked under the bang left of it). No more
   vertex-culled stair edge.
@@ -47,9 +47,10 @@ Visual quality is not approved.
 - Body (`character.py`): slim short neck straight under the chin, trapezius
   flaring early into a wide soft shoulder, scoop neckline dipping at the
   front (-1.36) and riding higher at the sides (-1.20). The knit opening
-  always sits outside the body, so no skin pokes through the collar. Bust:
-  the front half of the torso comes forward `CHEST` = 0.42 units below the
-  collar (`chest_bulge`), as in the sheet's side view.
+  always sits outside the body, so no skin pokes through the collar. A slim
+  visible neck sits under the chin; shoulders are narrower and sloped. Bust:
+  the front half of the torso comes forward `CHEST` = 0.36 units below the
+  collar (`chest_bulge`). Side hair stays behind the ear so the neck reads.
 - Colour (`review/asset.html` LOOK): sheet palette adjusted for the showroom
   tone mapping so rendered pixels land on the sheet's skin/hair/knit/backdrop.
 - Back locks start inside the cap so they emerge from the crown, not sit on it.

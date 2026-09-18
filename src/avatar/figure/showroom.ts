@@ -122,13 +122,13 @@ export class Showroom {
     this.scene.background = new Color(options.look.backdrop)
     const pmrem = new PMREMGenerator(this.renderer)
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.05).texture
-    this.scene.environmentIntensity = 0.18
+    this.scene.environmentIntensity = 0.12
     pmrem.dispose()
 
     this.camera = new PerspectiveCamera(24, options.width / options.height, 0.4, 60)
 
-    const key = new DirectionalLight(0xfff3ea, 2.5)
-    key.position.set(-3.4, 4.6, 6.0)
+    const key = new DirectionalLight(0xfff3ea, 3.2)
+    key.position.set(-4.2, 5.2, 5.4)
     key.castShadow = true
     key.shadow.mapSize.set(2048, 2048)
     key.shadow.radius = 5
@@ -141,15 +141,15 @@ export class Showroom {
     shadow.bottom = -5
     shadow.near = 0.5
     shadow.far = 24
-    const fill = new DirectionalLight(0xd9e4ff, 0.6)
+    const fill = new DirectionalLight(0xd9e4ff, 0.38)
     fill.position.set(4.5, 0.8, 3.2)
-    const rim = new DirectionalLight(0xffffff, 0.8)
+    const rim = new DirectionalLight(0xffffff, 0.55)
     rim.position.set(1.2, 2.0, -5.0)
     this.scene.add(key, fill, rim, this.figure)
 
     this.materials.set('skin', new MeshPhysicalMaterial({
-      roughness: 0.74, clearcoat: 0.14, clearcoatRoughness: 0.66,
-      sheen: 0.45, sheenColor: new Color('#FF9E86'), sheenRoughness: 0.85,
+      roughness: 0.80, clearcoat: 0.08, clearcoatRoughness: 0.72,
+      sheen: 0.38, sheenColor: new Color('#FF9E86'), sheenRoughness: 0.88,
     }))
     this.materials.set('hair', new MeshPhysicalMaterial({ roughness: 0.56, clearcoat: 0.0 }))
     // Low sheen: a ribbed knit reads matte, and a near-black top should stay
@@ -365,10 +365,10 @@ export class Showroom {
 
   private restore(slot: Slot, material: MeshPhysicalMaterial): void {
     if (slot === 'skin') {
-      material.roughness = 0.74
-      material.clearcoat = 0.14
-      material.clearcoatRoughness = 0.66
-      material.sheen = 0.45
+      material.roughness = 0.80
+      material.clearcoat = 0.08
+      material.clearcoatRoughness = 0.72
+      material.sheen = 0.38
       material.sheenColor.set('#FF9E86')
       material.sheenRoughness = 0.85
     } else if (slot === 'hair') {

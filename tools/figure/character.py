@@ -28,41 +28,38 @@ import lib  # noqa: E402
 # crown-to-chin ~665 px -> 2.0 head units, so 1 face width = 1.56 units).
 # Widest at the cheek, well below the eyes; lower half rounds quickly to a
 # broad chin; upper half is a taller ellipse under the hair.
-HEAD_HALF_W = 0.78
-EGG_C = -0.45          # y of the widest row
-EGG_B_LO, EGG_B_HI = 0.55, 1.45
-EGG_K_LO, EGG_K_HI = 1.75, 2.2
-SECTION_K = 2.15       # horizontal cross-section roundness
-DEPTH_FRONT, DEPTH_BACK = 0.92, 1.00
-# Eyes: 0.53 face widths above the chin, 0.28 apart, tall black ovals.
-EYE_Y, EYE_X = -0.125, 0.220
-EYE_W, EYE_H, EYE_D = 0.064, 0.088, 0.016
-# Nose: a clay ball whose top overlaps the eye's height (sheet side view:
-# centre 0.24 units below the eye centre, radius ~0.16, tip ~0.25 proud).
-NOSE_Y = -0.345
-NOSE_HALF = (0.155, 0.155, 0.160)
-NOSE_PROUD = 0.240
-# Neck and shoulders from the sheet: a slim short neck straight under the
-# chin, a wide soft shoulder slope, and a scoop neckline that dips at the
-# front (-1.42) and rides higher at the sides/back (-1.24).
-NECK_HALF_W, NECK_HALF_D = 0.335, 0.300
-NECKLINE_Y = -1.36
-NECKLINE_SIDE_Y = -1.20
-SHOULDER_HALF = 1.42
-SHOULDER_DEPTH = 0.52
-NECK_TOP_Y = -0.95
-SHOULDER_START_Y = -1.02
-SHOULDER_END_Y = -1.90
-# Bust: the sheet's side view has the chest coming forward ~0.4 units below
-# the collar. Front half only.
-CHEST = 0.42
-# Ears: tall (0.41 units) discs stuck on at eye-to-nose height, sticking
-# ~0.15 units out from the skull. Pearl on the lobe.
-EAR_HALF = (0.085, 0.205, 0.115)
-EAR_Y = -0.190
-EAR_Z = -0.050
-EAR_PROUD = 0.060
-PEARL_R = 0.045
+HEAD_HALF_W = 0.74
+EGG_C = -0.38          # y of the widest row (cheeks)
+EGG_B_LO, EGG_B_HI = 0.62, 1.38
+EGG_K_LO, EGG_K_HI = 1.85, 2.55
+SECTION_K = 2.30       # horizontal cross-section: oval, not a circle
+DEPTH_FRONT, DEPTH_BACK = 0.78, 1.06
+# Eyes sit in the upper half of the visible face (sheet front).
+EYE_Y, EYE_X = 0.02, 0.205
+EYE_W, EYE_H, EYE_D = 0.055, 0.078, 0.014
+# Nose: a modest clay ball whose top overlaps the eye. From the front it is
+# a bump on the face, not a snowman; from the side the ball still reads.
+NOSE_Y = -0.18
+NOSE_HALF = (0.115, 0.100, 0.110)
+NOSE_PROUD = 0.100
+# Neck and shoulders from the sheet: a slim visible neck under the chin,
+# then a soft slope into a narrower shoulder, scoop neckline dipping front.
+NECK_HALF_W, NECK_HALF_D = 0.290, 0.255
+NECKLINE_Y = -1.48
+NECKLINE_SIDE_Y = -1.32
+SHOULDER_HALF = 1.18
+SHOULDER_DEPTH = 0.50
+NECK_TOP_Y = -1.02
+SHOULDER_START_Y = -1.16
+SHOULDER_END_Y = -2.05
+# Bust: sheet side view, chest coming forward below the collar. Front half.
+CHEST = 0.40
+# Ears: small discs at eye-to-nose height, pearls visible from the front.
+EAR_HALF = (0.070, 0.155, 0.090)
+EAR_Y = -0.05
+EAR_Z = -0.02
+EAR_PROUD = 0.048
+PEARL_R = 0.038
 
 
 def to_blender(p):
@@ -128,15 +125,19 @@ def head_surface(d):
     front = lib.smoothstep(-0.05, 0.60, uz)
 
     # Soft cheeks and a broad chin. The nose is a separate clay ball.
-    cheek = lib.blob(math.hypot((abs(p[0]) - 0.340) / 0.460, (p[1] + 0.420) / 0.360))
-    p[2] += cheek * 0.034 * front
+    cheek = lib.blob(math.hypot((abs(p[0]) - 0.320) / 0.440, (p[1] + 0.360) / 0.340))
+    p[2] += cheek * 0.048 * front
 
-    chin = lib.blob(math.hypot(p[0] / 0.420, (p[1] + 0.860) / 0.300))
-    p[2] += chin * 0.030 * front
+    chin = lib.blob(math.hypot(p[0] / 0.400, (p[1] + 0.880) / 0.280))
+    p[2] += chin * 0.036 * front
+
+    # Flatten the forehead so the side profile is an egg, not a ball.
+    brow = lib.smoothstep(0.04, 0.55, p[1])
+    p[2] -= 0.120 * brow * front
 
     # Very shallow sockets — eyes should not sit on stilts.
-    socket = lib.blob(math.hypot((abs(p[0]) - EYE_X) / 0.190, (p[1] - EYE_Y) / 0.150))
-    p[2] -= socket * 0.014 * front
+    socket = lib.blob(math.hypot((abs(p[0]) - EYE_X) / 0.180, (p[1] - EYE_Y) / 0.140))
+    p[2] -= socket * 0.016 * front
 
     return p
 

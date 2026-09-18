@@ -216,9 +216,9 @@ def _smooth_rim(obj, rounds=8, factor=0.55):
 
 # ---------------------------------------------------------------------------
 # Bang lower edge: side part on the crown -> across the forehead -> left ear top.
-BANG_EDGE = [(0.19, 0.82), (0.00, 0.36), (-0.42, 0.10), (-0.78, 0.00)]
+BANG_EDGE = [(0.19, 0.62), (0.00, 0.14), (-0.42, -0.02), (-0.78, -0.10)]
 # Exposed forehead to the right of the part, down to the right ear.
-HAIRLINE_R = [(0.19, 0.78), (0.40, 0.58), (0.60, 0.28), (0.78, -0.05), (1.00, -0.30)]
+HAIRLINE_R = [(0.19, 0.68), (0.40, 0.48), (0.60, 0.20), (0.78, -0.08), (1.00, -0.32)]
 
 
 def table(pts, x):
@@ -344,7 +344,7 @@ def cap_point(da):
     r = math.sqrt(p[0] ** 2 + p[1] ** 2 + p[2] ** 2) or 1.0
     up = max(0.0, p[1])
     wrap = 0.10
-    pile = 0.15 * smooth(up)
+    pile = 0.28 * smooth(up)
     horiz = math.hypot(p[0], p[2])
     spread = 0.22 * (up ** 1.6)
     if horiz > 0.08:
@@ -481,7 +481,7 @@ def build_curtain():
 
     def front_angle(y, B, CZ):
         # Forward wrap: behind the ear at head height, over the shoulder below.
-        z_front = table([(0.4, -0.30), (-0.6, z_front_ear), (-1.2, 0.05), (-1.8, 0.35), (-2.95, 0.45)], y)
+        z_front = table([(0.4, -0.34), (-0.4, -0.32), (-1.0, -0.30), (-1.45, -0.28), (-1.85, 0.06), (-2.4, 0.22), (-2.95, 0.30)], y)
         s = max(-0.95, min(0.95, (z_front - CZ) / B))
         return math.pi / 2 + math.asin(s)
 
@@ -560,24 +560,24 @@ def build_front_lock(side):
     name = "hair_front_l" if s < 0 else "hair_front_r"
     rows = []
     nv = 30
-    y_top, y_tip = -0.35, -2.55
+    y_top, y_tip = -1.55, -2.55
     for j in range(nv):
         v = j / (nv - 1)
         y = mix(y_top, y_tip, v)
         skull = character.half_width(y) if y > -0.95 else 0.0
-        cx = table([(-0.35, max(skull, 0.72) + 0.06), (-0.80, 0.78), (-1.30, 0.82), (-1.90, 0.90), (-2.55, 1.00)], y)
-        cz = table([(-0.35, -0.02), (-0.80, 0.10), (-1.30, 0.28), (-1.90, 0.40), (-2.55, 0.44)], y)
-        a = table([(-0.35, 0.10), (-0.80, 0.16), (-1.50, 0.18), (-2.20, 0.14), (-2.55, 0.03)], y)
-        b = table([(-0.35, 0.14), (-0.80, 0.22), (-1.50, 0.26), (-2.20, 0.20), (-2.55, 0.04)], y)
+        cx = table([(-1.55, 0.95), (-1.90, 1.00), (-2.55, 1.10)], y)
+        cz = table([(-1.55, 0.08), (-1.90, 0.20), (-2.55, 0.28)], y)
+        a = table([(-1.55, 0.20), (-2.20, 0.16), (-2.55, 0.04)], y)
+        b = table([(-1.55, 0.26), (-2.20, 0.22), (-2.55, 0.04)], y)
         top = smooth((y_top - y) / 0.30)
         a *= mix(0.4, 1.0, top)
         amp = 0.08 * smooth((-0.6 - y) / 0.6)
         ph = math.tau * (y + 0.40) / 0.85
         # Below the collar the strand lies on the knit over the chest, its back
         # half sunk into the cloth so it reads as resting, not hovering.
-        rest = smooth((-1.30 - y) / 0.40)
+        rest = smooth((-1.55 - y) / 0.30)
         if rest > 0.0:
-            b_here = table([(-0.35, 0.14), (-0.80, 0.22), (-1.50, 0.26), (-2.20, 0.20), (-2.55, 0.04)], y)
+            b_here = table([(-1.55, 0.26), (-2.20, 0.22), (-2.55, 0.04)], y)
             cz = mix(cz, character.torso_front_z(cx, y) + 0.35 * b_here, rest)
         rows.append((Vector((s * (cx + amp * math.sin(ph)), y, cz + 0.5 * amp * math.cos(ph))), a, b, 1.5 * y))
     return tube(name, rows, nu=18)
