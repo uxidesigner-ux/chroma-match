@@ -1,7 +1,9 @@
 # Hair & representative character
 
-Visual approval is not claimed. Attempt 8 is the current candidate
-(`checkpoints/2026-09-18-attempt-8/`). 5c is not the proportion source.
+Visual approval is not claimed. The long-wave is now an independent asset
+(`tools/figure/assets/long-wave/`). Attempt 8’s visibility fix (bang in
+front of the forehead, eyes on the finished skin) is kept. 5c is not the
+proportion source.
 
 ## Reference (must be opened, not remembered)
 
@@ -25,30 +27,20 @@ exists. Clay-versus-colour is not a reference comparison.
 | **6** | Open skull wrap + bang + hanging locks | Face opened; two curtains + visor |
 | **7** | Overlapping flowing locks, then surface cleanup | Bang saw-tooth from `seat_inside` slam is gone; bang is one diagonal sheet; face size in the original row matches eye spacing; front still two curtains; back still inner mass + hanging pieces |
 | **8** | Bang/eye visibility, then placement | Same-camera vis: bang-only is a wide sheet. Face on + green bang sits on the forehead. Raycaster: forehead hits `lock_p_bang` then `head`. Eyes-only vs eyes+face: the pinprick was burial in the finished skin. |
+| **asset** | Tube-clump hair as a separate GLB + .blend | Stage 1 (Blender): bang is a visible diagonal; scalp rim is a cut opening; sides are hanging tubes; back is a cap plus nape pieces. **Not the original’s one clay hairstyle.** Stage 2–3: `body.glb` + attach `hair_long_wave.glb`; orbit and recolour work; showroom matches the Blender form (so the fault is the asset, not the exporter). |
 
-Attempt 8 keeps the attempt-7 lock list. No new locks. `seat_inside` still
-caps at 0.07 — that cap is deformation stability, not placement. The bang
-centreline is authored with `bang_pt()` at `head_surface.z + clearance`, and
-forehead tilt is **negative** (~−0.85) so width runs down the forehead and
-thickness toward the camera. Attempt 7’s +1.15 tilt stood a near-round
-section into the skull; flatten 0.94 made a sausage whose inner half was
-inside the head. Depth test is still on.
+The lock generator (`hair.py`) is retired for this hairstyle. Do not add
+more `seat_inside` passes or disable depth test. The next form work is
+sculpting `hair_long_wave.blend` on the guide head. Public references:
+ZEPETO hair modelling (tube/clump, cover scalp, do not dig into the face)
+and a stylized blockout (silhouette first). Handoff:
+`tools/figure/assets/long-wave/README.md`.
 
-Eyes are placed from `front_z()` on the finished head (after subsurf +
-relax), not from the pre-deform superellipsoid. A 0.016 cap sits proud of
-that surface; `EYE_D` is unchanged. Width/height went 0.076/0.084 →
-0.090/0.098 after the oval was un-buried, to match the visible area on the
-original — not a marble, not a pinprick.
+Review: `review/asset.html` (attach / orbit / colour). Original row:
+`review/compare-large.html`.
 
-Still wrong: the restored bang is a distinct diagonal patch, not yet the
-original’s long smooth forehead mass; sides are still two curtains; the
-back is still an inner round volume plus hanging pieces. The back is
-designed (not in the crop). Visual approval is not claimed.
-
-Diagnosis page: `tools/figure/review/vis.html` (bang-only / green-on-face /
-normal; eyes-only vs eyes+face; raycast). Large review:
-`tools/figure/review/finish.html` (front / 3/4 / side / back). Original row
-display is 720 px wide, same eye spacing.
+Still wrong: part / bang / side / back do not yet read as the original’s
+long-wave. Visual approval is not claimed.
 
 ## What not to retry
 
@@ -64,7 +56,7 @@ display is 720 px wide, same eye spacing.
 
 ## Direction
 
-- Pipeline: `tools/figure/*.py` → `public/figure/character.glb` → Three.js showroom
+- Pipeline: shared head (`body.glb`) + hair asset (`hair_long_wave.glb`) → Three.js showroom attach
 - Visual bar: top panel of `sheet-long-wave.jpg` (long wave, black knit)
-- Combination / wardrobe end state: Bondee’s character and assembly model (`docs/wardrobe.md`)
+- Next form work: sculpt the `.blend` on the guide head; do not extend `hair.py`
 - Do not merge or deploy until visual approval

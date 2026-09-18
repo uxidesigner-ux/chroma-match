@@ -181,8 +181,8 @@ def assign(obj, mat) -> None:
     obj.data.materials.append(mat)
 
 
-def export(path: str) -> None:
-    bpy.ops.export_scene.gltf(
+def export(path: str, *, visible_only: bool = False) -> None:
+    kwargs = dict(
         filepath=path,
         export_format="GLB",
         export_apply=True,
@@ -190,6 +190,9 @@ def export(path: str) -> None:
         export_normals=True,
         export_materials="EXPORT",
     )
+    if visible_only:
+        kwargs["use_visible"] = True
+    bpy.ops.export_scene.gltf(**kwargs)
 
 
 def boolean(obj, cutter, operation: str = "DIFFERENCE"):
@@ -233,6 +236,7 @@ def join(objects, name: str):
     bpy.ops.object.join()
     merged = bpy.context.active_object
     merged.name = name
+    merged.data.name = name
     merged.select_set(False)
     return merged
 

@@ -61,17 +61,13 @@ original was read and the first row (original / coloured / clay) exists.
 Model-ready is not comparison-ready. Clay-versus-colour is not a reference
 comparison.
 
-## Quality standing (attempt 8 candidate)
+## Quality standing (asset blockout — not approved)
 
-Attempt 8 is layered flowing locks against this extract, not an approved
-character. 5c is not the proportion source. The whole head is not voxel-fused.
+The long-wave is a separate hair asset on the shared head. Attempt 8’s
+bang/eye visibility seating is kept. Stage 1 in Blender has **not** passed:
+the meshes are tube clumps, not the original’s one clay hairstyle. Do not
+treat export or showroom attach as a form fix. 5c is not the proportion
+source.
 
-Attempt 7’s bang read as a thin forehead curve because the section was
-tilted into the skull and the path sat on/inside `head_surface`; `seat_inside`
-could not lift the outer face past 0.07. The bang is now authored in front
-of the finished head. Eyes were mostly behind the subdivided skin; they are
-seated on that surface. Front still reads as two curtains around a distinct
-bang patch. Back is designed (not in the crop).
-
-The clay sheet is the look bar. Bondee’s character/combination model
-(`docs/wardrobe.md`) is the wardrobe end-state, not this sculpt pass.
+The clay sheet is the look bar. Wardrobe combination is later
+(`docs/wardrobe.md`), not this pass.

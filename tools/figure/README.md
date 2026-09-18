@@ -1,35 +1,39 @@
 # Building the figure
 
-The editable source is this directory. Nothing in `public/figure/` is authored
-by hand; it is all output.
+The shared head is scripted. The long-wave hair is an **independent asset**.
 
-    python3.11 tools/figure/character.py   # -> public/figure/character.glb
-    python3.11 tools/figure/flows.py       # -> public/figure/flows.glb (legacy flow curves)
+    python3.11 tools/figure/character.py
+    # public/figure/body.glb              — head, body, eyes, ears, knit
+    # public/figure/hair_long_wave.glb    — hair asset
+    # public/figure/character.glb         — assembled (existing review pages)
+    # tools/figure/assets/long-wave/hair_long_wave.blend — editable original
 
-Blender is a Python module here (`pip install bpy`, 5.0.1 on Python 3.11), so
-there is no application to open and no .blend file. Every surface is scripted,
-and re-running a script reproduces its GLB exactly.
+    python3.11 tools/figure/preview_blender.py
+    # Stage-1 stills (Blender Workbench). If these are wrong, do not correct
+    # the form in Three.js.
+
+Blender is a Python module here (`pip install bpy`, 5.0.1 on Python 3.11).
+There is no interactive sculpt viewport in this environment. The `.blend` is
+the file a desktop sculptor opens.
 
 | file | what it holds |
 |---|---|
-| `lib.py` | mesh helpers — sweep, sculpt, join, voxel remesh, boolean, export |
-| `character.py` | head, body, top, eyes, ears; calls hair |
-| `hair.py` | representative hairstyle (attempt 7, layered locks — see NOTES.md) |
-| `flows.py` | earlier band-flow curves (kept for history / overlay) |
-| `NOTES.md` | screen-first log of attempts; 7 is a candidate, not approved |
-| `REFERENCE.md` | how to find, crop and measure the original — not a substitute for opening it |
-| `review/` | comparison page; `finish.html` for hidden-vs-final; original is a local file |
-| `checkpoints/` | editable snapshots of rejected or prior designs |
+| `lib.py` | mesh helpers |
+| `character.py` | shared head / body / eyes; eye seating vs finished skin is kept |
+| `hair_long_wave.py` | tube-clump blockout for the long-wave asset |
+| `hair.py` | **retired** lock generator. Do not extend `seat_inside` to hide form. |
+| `preview_blender.py` | Stage-1 cameras |
+| `assets/long-wave/` | `.blend`, README (handoff), Blender stills |
+| `NOTES.md` | screen-first log |
+| `REFERENCE.md` | how to open and measure the original |
+| `review/asset.html` | Stage 2–3: attach hair GLB, orbit, recolour |
+| `review/compare-large.html` | original required |
 
-Required visual check — original is mandatory:
+Showroom: load `body.glb`, then `attach('/figure/hair_long_wave.glb')`.
+Hair meshes are named `hair_*` so they take the hair colour slot.
 
-    npx vite --port 5173
-    # open /tools/figure/review/compare-large.html and choose refs/sheet-long-wave.jpg
+Visual approval is not claimed. Stage 1 (Blender form vs the original’s part /
+bang / sides / back) has **not** passed. Stage 2–3 check that export and
+attach do not change the authored form.
 
-    REF=refs/sheet-long-wave.jpg node tools/figure/review/shot.mjs \
-      http://127.0.0.1:5173/tools/figure/review/compare-large.html out.png
-
-`refs/` is gitignored and blocked from the Vite file server. Never put the
-original in `public/` or in a comparison still that is committed or deployed.
-
-Do not treat `window.__modelReady` as a finished comparison.
+`refs/` is gitignored. Do not merge or deploy until visual approval.

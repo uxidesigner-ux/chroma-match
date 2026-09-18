@@ -185,21 +185,18 @@ def build():
 
     head = build_head()
     lib.assign(head, skin)
-    lib.assign(build_body(), skin)
-    lib.assign(build_top(), cloth)
-
-    from hair import build_hair
-    for obj in build_hair():
-        lib.assign(obj, hair_mat)
+    body_obj = build_body()
+    lib.assign(body_obj, skin)
+    top_obj = build_top()
+    lib.assign(top_obj, cloth)
 
     # Eyes sit against the *finished* skin (subsurf + relax), not the
-    # pre-deform superellipsoid. Attempt 7 used formula z then seated
-    # 0.018 deeper; after smoothing, 3654/4322 eye verts were behind the
-    # nearby head and the front camera saw pinpricks. The oval is kept
-    # flat (EYE_D unchanged); only the front cap is placed just proud of
-    # the final surface.
+    # pre-deform superellipsoid. Keep this seating; it is the visibility
+    # fix, not a hair-algorithm tweak.
     skin_z = front_z(head, EYE_X, EYE_Y)
     eye_front = skin_z + 0.016
+
+    body = [head, body_obj, top_obj]
 
     for side, tag in ((-1, "l"), (1, "r")):
         eye = lib.sphere_cage(
@@ -211,6 +208,7 @@ def build():
         eye.name = "eye_" + tag
         eye.location = to_blender((side * EYE_X, EYE_Y, eye_front - EYE_D))
         lib.assign(eye, eye_mat)
+        body.append(eye)
 
         ear = lib.sphere_cage(16, 12, lambda d: to_blender((d.x * 0.045, d.z * 0.140, -d.y * 0.095)))
         lib.subsurf(ear, 1)
@@ -218,12 +216,21 @@ def build():
         ear.name = "ear_" + tag
         ear.location = to_blender((side * (axes_at(0.0)[0] - 0.035), 0.005, -0.130))
         lib.assign(ear, skin)
+        body.append(ear)
 
-    out = Path(__file__).resolve().parents[2] / "public" / "figure" / "character.glb"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    lib.export(str(out))
+    from hair_long_wave import ASSET_DIR, PUBLIC, assign_hair, build_hair, export_objects, save_blend
+    hair = assign_hair(build_hair(), hair_mat)
+
+    PUBLIC.mkdir(parents=True, exist_ok=True)
+    export_objects(hair, PUBLIC / "hair_long_wave.glb", hair_mat)
+    export_objects(body, PUBLIC / "body.glb", None)
+
+    assembled = PUBLIC / "character.glb"
+    lib.export(str(assembled))
     total = sum(len(o.data.vertices) for o in bpy.data.objects if o.type == "MESH")
-    print(f"BUILT {out} verts={total} bytes={out.stat().st_size}")
+    print(f"BUILT {assembled} verts={total} bytes={assembled.stat().st_size}")
+
+    save_blend(ASSET_DIR / "hair_long_wave.blend")
 
 
 if __name__ == "__main__":

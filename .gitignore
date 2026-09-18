@@ -16,3 +16,4 @@ public/dev/
 # Python bytecode from the asset build.
 __pycache__/
 *.pyc
+*.blend1

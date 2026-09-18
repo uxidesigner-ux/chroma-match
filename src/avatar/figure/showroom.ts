@@ -183,6 +183,28 @@ export class Showroom {
     this.frameOn(new Vector3(0, -0.35, 0), 2.6)
   }
 
+  /** Load another GLB onto the same figure (hair attach). Owned materials recolour. */
+  async attach(url: string): Promise<void> {
+    const gltf = await new GLTFLoader().loadAsync(url)
+    gltf.scene.traverse((object) => {
+      const mesh = object as Mesh
+      if (!mesh.isMesh) return
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      const authored = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material
+      const name = authored?.name ?? ''
+      if (OWNED_MATERIALS.has(name)) {
+        mesh.material = this.materials.get(slotFor(mesh.name))!
+      } else {
+        this.kept.add(name || mesh.name)
+      }
+    })
+    for (const child of [...gltf.scene.children]) {
+      this.parts.set(child.name, child)
+      this.figure.add(child)
+    }
+  }
+
   /**
    * Load a second GLB into the same scene, keeping its authored materials.
    *
