@@ -28,12 +28,15 @@ import lib  # noqa: E402
 # crown-to-chin ~665 px -> 2.0 head units, so 1 face width = 1.56 units).
 # Widest at the cheek, well below the eyes; lower half rounds quickly to a
 # broad chin; upper half is a taller ellipse under the hair.
-HEAD_HALF_W = 0.74
-EGG_C = -0.38          # y of the widest row (cheeks)
-EGG_B_LO, EGG_B_HI = 0.62, 1.38
-EGG_K_LO, EGG_K_HI = 1.85, 2.55
-SECTION_K = 2.30       # horizontal cross-section: oval, not a circle
-DEPTH_FRONT, DEPTH_BACK = 0.78, 1.06
+HEAD_HALF_W = 0.76
+# Gentle egg: a sphere stretched a little taller, widest just below centre.
+# k=2 on every section — k>2 is a rounded square, which is what the last
+# pass still read as.
+EGG_C = -0.20
+EGG_B_LO, EGG_B_HI = 0.80, 1.20
+EGG_K_LO, EGG_K_HI = 2.00, 2.00
+SECTION_K = 2.00
+DEPTH_FRONT, DEPTH_BACK = 0.94, 1.00
 # Eyes sit in the upper half of the visible face (sheet front).
 EYE_Y, EYE_X = 0.02, 0.205
 EYE_W, EYE_H, EYE_D = 0.055, 0.078, 0.014
@@ -122,23 +125,9 @@ def head_surface(d):
     s = max(1e-9, (abs(ux) / hw) ** SECTION_K + (abs(uz) / hz) ** SECTION_K)
     r = s ** (-1.0 / SECTION_K)
     p = [ux * r, y, uz * r]
-    front = lib.smoothstep(-0.05, 0.60, uz)
-
-    # Soft cheeks and a broad chin. The nose is a separate clay ball.
-    cheek = lib.blob(math.hypot((abs(p[0]) - 0.320) / 0.440, (p[1] + 0.360) / 0.340))
-    p[2] += cheek * 0.048 * front
-
-    chin = lib.blob(math.hypot(p[0] / 0.400, (p[1] + 0.880) / 0.280))
-    p[2] += chin * 0.036 * front
-
-    # Flatten the forehead so the side profile is an egg, not a ball.
-    brow = lib.smoothstep(0.04, 0.55, p[1])
-    p[2] -= 0.120 * brow * front
-
-    # Very shallow sockets — eyes should not sit on stilts.
-    socket = lib.blob(math.hypot((abs(p[0]) - EYE_X) / 0.180, (p[1] - EYE_Y) / 0.140))
-    p[2] -= socket * 0.016 * front
-
+    # No local cheek / chin / socket / brow blobs. Those carved a valley
+    # under the nose (a punched-mouth shadow) and squared the silhouette.
+    # The sheet face is one smooth egg; the nose ball sits on it.
     return p
 
 
@@ -180,7 +169,7 @@ def neckline_y(front):
 def build_head():
     obj = lib.sphere_cage(44, 36, lambda d: to_blender(head_surface((d.x, d.z, -d.y))))
     lib.subsurf(obj, 2)
-    lib.relax(obj, 0.30, 1)
+    lib.relax(obj, 0.42, 2)
     lib.shaded_smooth(obj)
     obj.name = "head"
     obj.data.name = "head"

@@ -12,11 +12,10 @@ Visual quality is not approved.
 
 ## This pass
 
-- Skull: egg profile, widest at the cheek (`EGG_C`), flatter forehead from
-  the side, broader cheeks, rounded chin. Eyes sit in the upper half of the
-  visible face. Nose is a modest clay ball whose top overlaps the eye (front
-  = a bump, side = a ball). Ears are small discs at eye-to-nose height with
-  a pearl on the lobe, both visible from the front.
+- Skull: a gentle egg sphere (`SECTION_K` = 2, no cheek/chin/socket/brow
+  blobs). Local blobs had carved a punched valley under the nose and left a
+  rounded-square silhouette. Eyes sit in the upper half of the visible face.
+  Nose is a modest clay ball on the egg. Ears are small discs with pearls.
 - Cap: parametric shell whose front rim *is* the measured hairline (exposed
   forehead right of the part, tucked under the bang left of it). No more
   vertex-culled stair edge.

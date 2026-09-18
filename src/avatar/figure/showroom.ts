@@ -127,8 +127,8 @@ export class Showroom {
 
     this.camera = new PerspectiveCamera(24, options.width / options.height, 0.4, 60)
 
-    const key = new DirectionalLight(0xfff3ea, 3.2)
-    key.position.set(-4.2, 5.2, 5.4)
+    const key = new DirectionalLight(0xfff3ea, 2.7)
+    key.position.set(-3.6, 4.8, 5.8)
     key.castShadow = true
     key.shadow.mapSize.set(2048, 2048)
     key.shadow.radius = 5
@@ -141,7 +141,7 @@ export class Showroom {
     shadow.bottom = -5
     shadow.near = 0.5
     shadow.far = 24
-    const fill = new DirectionalLight(0xd9e4ff, 0.38)
+    const fill = new DirectionalLight(0xd9e4ff, 0.55)
     fill.position.set(4.5, 0.8, 3.2)
     const rim = new DirectionalLight(0xffffff, 0.55)
     rim.position.set(1.2, 2.0, -5.0)
