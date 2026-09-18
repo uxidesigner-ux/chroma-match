@@ -22,12 +22,20 @@ exists. Clay-versus-colour is not a reference comparison.
 | 5a–5b | Shell / ribbons | Still plates |
 | **5c** | Overlapping ellipsoids | Inflated bulbs; not the long-wave style |
 | 5d | Coarser remesh | Helmet — discarded |
+| **6** | Open skull wrap + bang + hanging locks | Face opened; bang direction present; hair still two curtains + visor |
 
-5c’s remaining gaps, **confirmed against this original extract**: two inflated
-side bulbs instead of one wrapping long-wave mass; no diagonal bang; a
-trapped remnant face; mushroom silhouette instead of inverted-triangle
-shoulder-length waves; neck / crew knit barely readable. Piling large
-spheres is not “finding the large form.”
+Attempt 6 is the current candidate (`checkpoints/2026-09-18-attempt-6/`).
+5c is not the proportion source.
+
+Against the original extract: the face is no longer trapped, the neck and crew
+knit read, and a right-side part throws a diagonal bang to the left. Hair is
+still not the long-wave wrap — skull cap, forehead visor, two hanging masses,
+jagged part, temple nicks. Lengths do not carry the original’s S-curve over
+the shoulders. The back is designed (not in the crop).
+
+Further automatic ellipsoid / helmet / remesh packs will repeat 5c–5d. The
+remaining correction is the wrap itself: smooth the hairline, merge the bang
+into the left mass, and give the lengths wave volume beside the shoulders.
 
 ## What not to retry
 
@@ -36,6 +44,8 @@ spheres is not “finding the large form.”
 - Continuous curtain sheet (hood)
 - Coarser remesh until the silhouette is a helmet (5d)
 - Another automatic pack of ellipsoids without a working original comparison
+- Closed helmet + face-hole boolean (hood)
+- Decimating a remeshed hair volume (holes in the scalp)
 
 ## Direction
 

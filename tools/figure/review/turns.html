@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Candidate views</title>
+<style>
+  body { margin: 0; background: #12141a; color: #d5dae2; font: 13px/1.4 system-ui, sans-serif; padding: 16px; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  h2 { font-size: 13px; margin: 18px 0 8px; color: #c9d0da; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .c { text-align: center; }
+  .c h3 { margin: 0 0 6px; font-size: 12px; color: #8d94a0; }
+  canvas { display: block; border-radius: 4px; background: #1a1d24; }
+</style>
+</head>
+<body>
+<h1>재조형 후보 — 중성 / 측면 / 후면 / 회전</h1>
+<p>후면과 가려진 부분은 원본 크롭에 없으므로 같은 흐름의 연장으로 새로 설계한 것이다.</p>
+<div id="out"></div>
+<script type="module">
+import { Vector3 } from 'three'
+import { Showroom } from '/src/avatar/figure/showroom.ts'
+
+const LOOK = { skin: '#F0B894', hair: '#4A382F', cloth: '#23232A', backdrop: '#E3C4C2' }
+window.__viewsReady = false
+
+const out = document.getElementById('out')
+const s = new Showroom({ url: '/figure/character.glb', look: LOOK, width: 640, height: 800 })
+await s.load()
+
+const centres = s.eyeCentres()
+const mid = centres
+  ? centres.left.clone().add(centres.right).multiplyScalar(0.5)
+  : new Vector3(0, 0, 0)
+const target = mid.clone(); target.y -= 0.55
+const frameH = 4.4
+
+function panel(label, yaw, pitch, neutral, w = 360, h = 450) {
+  s.setNeutral(neutral)
+  s.camera.aspect = w / h
+  s.camera.updateProjectionMatrix()
+  s.orbit(yaw, pitch)
+  s.frameOn(target, frameH)
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  c.style.width = w + 'px'
+  c.style.height = h + 'px'
+  s.capture(c, w, h)
+  const d = document.createElement('div')
+  d.className = 'c'
+  const h3 = document.createElement('h3')
+  h3.textContent = label
+  d.append(h3, c)
+  return d
+}
+
+function section(title) {
+  const h = document.createElement('h2')
+  h.textContent = title
+  out.append(h)
+}
+
+section('정면 최종 재질 / 중성 재질')
+const r1 = document.createElement('div'); r1.className = 'row'
+r1.append(panel('정면 · 최종', 0, 0.02, false, 420, 560))
+r1.append(panel('정면 · 중성', 0, 0.02, true, 420, 560))
+out.append(r1)
+
+section('삼면 — 중성 (형태)')
+const r2 = document.createElement('div'); r2.className = 'row'
+r2.append(panel('3/4', 0.55, 0.04, true, 340, 460))
+r2.append(panel('측면', 1.15, 0.02, true, 340, 460))
+r2.append(panel('후면 (설계)', Math.PI, 0.02, true, 340, 460))
+out.append(r2)
+
+section('회전 확인 — 중성')
+const r3 = document.createElement('div'); r3.className = 'row'
+for (const [label, yaw] of [['−60°', -1.05], ['−30°', -0.52], ['0°', 0], ['30°', 0.52], ['60°', 1.05], ['120°', 2.1]]) {
+  r3.append(panel(label, yaw, 0.03, true, 220, 300))
+}
+out.append(r3)
+
+window.__viewsReady = true
+</script>
+</body>
+</html>

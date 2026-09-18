@@ -14,9 +14,9 @@ and re-running a script reproduces its GLB exactly.
 |---|---|
 | `lib.py` | mesh helpers — sweep, sculpt, join, voxel remesh, boolean, export |
 | `character.py` | head, body, top, eyes, ears; calls hair |
-| `hair.py` | representative hairstyle (attempt 5c — see NOTES.md) |
+| `hair.py` | representative hairstyle (attempt 6 — see NOTES.md) |
 | `flows.py` | earlier band-flow curves (kept for history / overlay) |
-| `NOTES.md` | screen-first log of attempts; 5c is not approved |
+| `NOTES.md` | screen-first log of attempts; 6 is a candidate, not approved |
 | `REFERENCE.md` | how to find, crop and measure the original — not a substitute for opening it |
 | `review/` | comparison page; original is a local file, not a public URL |
 | `checkpoints/` | editable snapshots of rejected or prior designs |

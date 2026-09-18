@@ -61,24 +61,17 @@ original was read and the first row (original / coloured / clay) exists.
 Model-ready is not comparison-ready. Clay-versus-colour is not a reference
 comparison.
 
-## Quality standing (this comparison)
+## Quality standing (attempt 6 candidate)
 
-Kept 5c is an experimental checkpoint, not an approved default character.
+Attempt 6 is a remake against this extract, not an approved character. 5c is
+not the proportion source.
 
-Against the extracted long-wave / black-knit bust, the largest remaining gaps:
+Moved: the face is a round clay head again (not trapped between bulbs); a
+right-side part throws a diagonal bang left; the neck and crew knit read.
 
-1. Hair is two inflated side bulbs, not one wrapping long-wave mass.
-2. No diagonal bang; the forehead is covered instead of framed.
-3. The face is a remnant trapped between masses; the original is a simple
-   round clay head with a readable forehead, cheeks, and neck.
-4. Hair does not fall past the shoulders as S-curves. The silhouette is a
-   mushroom, not an inverted triangle that is narrow at the crown and wide
-   at the shoulders.
-5. Neck, crew knit, and shoulders barely read.
-
-Joining meshes or piling ellipsoids is not the same as matching this style.
-Do not start a new hair method until this original comparison is the one
-being sculpted against.
+Still wrong: hair is a skull cap + forehead visor + two hanging masses, not
+one wrapping long-wave. Jagged part, temple nicks, lengths without the
+original’s S-curve body. Back of the head is designed (not in the crop).
 
 The clay sheet is the look bar. Bondee’s character/combination model
 (`docs/wardrobe.md`) is the wardrobe end-state, not this sculpt pass.
