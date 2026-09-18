@@ -1,14 +1,9 @@
-# Attempt 7 — overlapping flowing locks
+# Attempt 7 — overlapping flowing locks (surface cleanup)
 
-Layered ribbons, no voxel fuse of the whole head. Three mesh groups:
+Layered ribbons, no voxel fuse, no extra locks in the cleanup.
 
-- `scalp_*` / `back_vol_*` — base volume (occiput, nape, sides, cheek fill)
-- `lock_p_*` — primary flows (bang, left/right waves, side-to-back wraps)
-- `lock_s_*` — secondary locks, inside the same outline, different roots
+`seat_inside` was measured. The binary lift stretched some lock edges up
+to 3.5×. The current function uses a depth×root weight, a 0.07 cap, and
+neighbour falloff. Max edge stretch after that is ~1.00.
 
-Showroom treats them as one hair slot. Hide `lock_s_*` and the long-wave
-silhouette from the base+primary should remain.
-
-Hanging locks keep section tilt near 0 so the width faces the camera.
-`seat_inside` only lifts vertices that punched deep into the skull.
-The back volume is authored outside the occiput, not projected onto it.
+Showroom still treats the named meshes as one hair slot.

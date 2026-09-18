@@ -23,23 +23,28 @@ exists. Clay-versus-colour is not a reference comparison.
 | **5c** | Overlapping ellipsoids | Inflated bulbs; not the long-wave style |
 | 5d | Coarser remesh | Helmet — discarded |
 | **6** | Open skull wrap + bang + hanging locks | Face opened; two curtains + visor |
-| **7** | Overlapping flowing locks (no whole-hair remesh) | Back/nape/shoulder volume present; bang stays above the eyes; three-state holds as long hair without secondary; front still two curtains; some intersections and a cap rim remain |
+| **7** | Overlapping flowing locks, then surface cleanup | Bang saw-tooth from `seat_inside` slam is gone; bang is one diagonal sheet; face size in the original row matches eye spacing; front still two curtains; back still inner mass + hanging pieces |
 
 Attempt 7 keeps hair as named lock meshes (`scalp_*`, `back_vol_*`, `lock_p_*`,
 `lock_s_*`) so the showroom can hide layers. Voxel-fusing the whole head is
-not the default. Secondary locks sit inside the same outline.
+not the default. Secondary locks sit inside the same outline. No new locks
+were added in the cleanup; existing paths and `seat_inside` were changed.
 
-Moved from 6: the back, nape and shoulders have hanging volume as a base
-layer (not a face helmet); the bang stays above the eyes; base+primary
-already read as long hair if secondary is hidden. Hanging locks keep
-section tilt near 0 so they are not edge-on curtains; `seat_inside` only
-lifts vertices that punched *deep* into the skull, so a thick lock can
-bury its inner side.
+`seat_inside` was measured lock-by-lock. The binary lift (any vert inside
+0.86 × skull, scaled out in one step) moved verts 0.3–0.7 head units and
+stretched edges up to **3.5×** (`lock_s_part_l`, `lock_s_bang_under`). That
+is a saw-tooth hairline, not a seated root. The current function weights
+the lift by depth and scalp region, caps it at 0.07, and spreads it to
+neighbours. After that, max edge stretch is ~1.00.
 
 Still wrong: from the front the silhouette is two curtains more than one
-wrapping wave; some lock intersections show; the part/crown still sits a
-little like a separate cap; the bang is rounder than a visor strip but not
-yet the original’s forehead mass. The back is designed (not in the crop).
+wrapping wave; the bang is a smoother diagonal, not yet the original’s
+forehead mass; the back still shows a round inner volume with hanging
+pieces beside it. The back is designed (not in the crop).
+
+Large review: `tools/figure/review/finish.html` (front / 3/4 / back,
+secondary hidden vs final). Original row display is 720 px wide, same
+eye spacing.
 
 ## What not to retry
 
@@ -49,7 +54,7 @@ yet the original’s forehead mass. The back is designed (not in the crop).
 - Coarser remesh until the silhouette is a helmet (5d)
 - Another automatic pack of ellipsoids without a working original comparison
 - Closed helmet + face-hole boolean (hood)
-- Pushing every inside vertex of a thick lock onto the skull (flattens to a visor or cap)
+- Pushing every inside vertex of a thick lock onto the skull (flattens to a visor or cap; measured 3.5× edge stretch)
 
 ## Direction
 

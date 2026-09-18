@@ -18,7 +18,7 @@ and re-running a script reproduces its GLB exactly.
 | `flows.py` | earlier band-flow curves (kept for history / overlay) |
 | `NOTES.md` | screen-first log of attempts; 7 is a candidate, not approved |
 | `REFERENCE.md` | how to find, crop and measure the original — not a substitute for opening it |
-| `review/` | comparison page; original is a local file, not a public URL |
+| `review/` | comparison page; `finish.html` for hidden-vs-final; original is a local file |
 | `checkpoints/` | editable snapshots of rejected or prior designs |
 
 Required visual check — original is mandatory:

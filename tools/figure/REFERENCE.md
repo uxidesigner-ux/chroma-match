@@ -66,13 +66,10 @@ comparison.
 Attempt 7 is layered flowing locks against this extract, not an approved
 character. 5c is not the proportion source. The whole head is not voxel-fused.
 
-Moved: back / nape / shoulder volume exists as a base layer; the bang stays
-above the eyes; hiding secondary locks still leaves a long-hair silhouette.
-
-Still wrong: from the front the hair reads as two curtains more than one
-wrapping wave; some lock intersections show; the crown/part is a little
-separate; the bang is not yet the original’s forehead mass. Back of the
-head is designed (not in the crop).
+`seat_inside` was measured and changed: the binary slam stretched edges up
+to 3.5×; the current lift is weighted, capped, and spread. Bang saw-teeth
+from that slam are gone. Front still reads as two curtains. Back is designed
+(not in the crop).
 
 The clay sheet is the look bar. Bondee’s character/combination model
 (`docs/wardrobe.md`) is the wardrobe end-state, not this sculpt pass.

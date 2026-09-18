@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Finish — large form</title>
+<style>
+  body { margin: 0; background: #12141a; color: #d5dae2; font: 13px/1.4 system-ui, sans-serif; padding: 16px; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  h2 { font-size: 13px; margin: 18px 0 8px; color: #c9d0da; }
+  p { color: #9aa3b2; max-width: 1400px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .c { text-align: center; }
+  .c h3 { margin: 0 0 6px; font-size: 12px; color: #8d94a0; }
+  canvas { display: block; border-radius: 4px; background: #1a1d24; }
+</style>
+</head>
+<body>
+<h1>큰 형태 — 보조 숨김 / 최종</h1>
+<p>
+  같은 카메라, 같은 크기. 왼쪽 열은 기본층+주요 다발만, 오른쪽 열은 보조 다발까지.
+  후면은 원본 크롭에 없어 같은 흐름의 연장으로 설계한 것이다.
+</p>
+<div id="out"></div>
+<script type="module">
+import { Vector3 } from 'three'
+import { Showroom } from '/src/avatar/figure/showroom.ts'
+
+const LOOK = { skin: '#F0B894', hair: '#4A382F', cloth: '#23232A', backdrop: '#E3C4C2' }
+window.__viewsReady = false
+
+const out = document.getElementById('out')
+const s = new Showroom({ url: '/figure/character.glb', look: LOOK, width: 720, height: 960 })
+await s.load()
+
+function groupOf(name) {
+  if (name.startsWith('lock_s')) return 'sec'
+  if (name.startsWith('lock_p')) return 'prim'
+  if (name.startsWith('scalp') || name.startsWith('back_')) return 'base'
+  return 'other'
+}
+
+const hairParts = s.partNames().filter((n) => groupOf(n) !== 'other')
+
+function setLayer(which) {
+  for (const n of hairParts) {
+    const g = groupOf(n)
+    if (which === 'prim') s.setVisible(n, g === 'base' || g === 'prim')
+    else s.setVisible(n, true)
+  }
+}
+
+const centres = s.eyeCentres()
+const mid = centres
+  ? centres.left.clone().add(centres.right).multiplyScalar(0.5)
+  : new Vector3(0, 0, 0)
+const target = mid.clone(); target.y -= 0.55
+const frameH = 4.5
+
+function panel(label, yaw, pitch, neutral, w, h) {
+  s.setNeutral(neutral)
+  s.camera.aspect = w / h
+  s.camera.updateProjectionMatrix()
+  s.orbit(yaw, pitch)
+  s.frameOn(target, frameH)
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  c.style.width = w + 'px'
+  c.style.height = h + 'px'
+  s.capture(c, w, h)
+  const d = document.createElement('div')
+  d.className = 'c'
+  const h3 = document.createElement('h3')
+  h3.textContent = label
+  d.append(h3, c)
+  return d
+}
+
+function section(title) {
+  const h = document.createElement('h2')
+  h.textContent = title
+  out.append(h)
+}
+
+const W = 520
+const H = 700
+
+for (const [title, yaw] of [
+  ['정면', 0],
+  ['사선', 0.55],
+  ['후면 (설계)', Math.PI],
+]) {
+  section(title + ' — 중성')
+  const row = document.createElement('div')
+  row.className = 'row'
+  setLayer('prim')
+  row.append(panel(title + ' · 보조 숨김 (기본+주요)', yaw, 0.02, true, W, H))
+  setLayer('all')
+  row.append(panel(title + ' · 최종', yaw, 0.02, true, W, H))
+  out.append(row)
+}
+
+section('정면 · 최종 재질')
+setLayer('all')
+const colour = document.createElement('div')
+colour.className = 'row'
+colour.append(panel('정면 · 최종 재질', 0, 0.02, false, 640, 860))
+out.append(colour)
+
+window.__viewsReady = true
+</script>
+</body>
+</html>

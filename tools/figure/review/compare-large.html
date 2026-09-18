@@ -263,7 +263,10 @@ function frameToEyes(s, cropW, cropH, eyes) {
   const frameH = cropH * unitsPerPx
   const target = new Vector3(
     mid.x,
-    mid.y + (cropH / 2 - eyes.mid.y) * unitsPerPx,
+    // Screen y grows down, world y grows up. Eyes above the crop centre
+    // (smaller pixel y) must sit above the look target (larger world y),
+    // so the pixel offset is subtracted.
+    mid.y - (cropH / 2 - eyes.mid.y) * unitsPerPx,
     mid.z,
   )
   s.camera.aspect = cropW / cropH
@@ -413,12 +416,14 @@ async function onOriginal(file) {
 
   section('1. 기준 원본 / 현재 모델 최종 재질 / 현재 모델 중성 재질')
   const r = el('div', { class: 'row' })
+  const compareW = Math.min(720, crop.w)
+  const compareH = Math.round(compareW * crop.h / crop.w)
   const origPanel = document.createElement('canvas')
   origPanel.width = crop.w
   origPanel.height = crop.h
   origPanel.getContext('2d').drawImage(cropCanvas, 0, 0)
-  origPanel.style.width = dispW + 'px'
-  origPanel.style.height = dispH + 'px'
+  origPanel.style.width = compareW + 'px'
+  origPanel.style.height = compareH + 'px'
   r.append(panel('기준 원본 (추출)', origPanel))
 
   let framed = { ok: false, reason: 'eyes not measured' }
@@ -435,8 +440,8 @@ async function onOriginal(file) {
     warn('카메라: 원본에서 잰 눈 간격·눈 높이에 모델 눈을 맞췄다. 원본의 고개 각도·렌즈는 모르는 값이라 남는 시점 차이는 조형 오류로 보지 않는다.')
   }
 
-  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 최종 재질', false, dispW, dispH))
-  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 중성 재질', true, dispW, dispH))
+  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 최종 재질', false, compareW, compareH))
+  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 중성 재질', true, compareW, compareH))
   out.append(r)
 
   window.__compareReady = true
