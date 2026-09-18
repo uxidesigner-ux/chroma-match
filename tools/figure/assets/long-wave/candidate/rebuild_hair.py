@@ -1,11 +1,7 @@
-"""Rebuild candidate hair as hanging oval locks, not y-sliced plates.
+"""Sculpt the candidate as one long-wave style.
 
 Does not touch the protected original or public GLB.
-Previous plate candidate is checkpoint-b5d56d2 / git b5d56d2.
-
-Volume is parameterized along lock length. Side width is not taken from
-the clothes/shoulder silhouette. Cross-section is an ellipse (not a
-rounded rectangle, not a circle).
+Long-length checkpoint is checkpoint-8fbe93b / git 8fbe93b.
 """
 
 from __future__ import annotations
@@ -53,6 +49,13 @@ def on_head(x, y, z, clearance):
         p[1] + p[1] / n * clearance,
         p[2] + p[2] / n * clearance,
     ))
+
+
+def wrap_az(az):
+    a = az % math.tau
+    if a > math.pi:
+        a -= math.tau
+    return a
 
 
 def finish(obj, sub=1, relax=0.16):
@@ -115,95 +118,7 @@ def grid_shell(name, sample_outer, sample_inner, nu, nv):
     mesh.update()
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.scene.collection.objects.link(obj)
-    return finish(obj, sub=2, relax=0.14)
-
-
-def loft_oval(name, spine, widths, thicks, nu=16, roll=0.0):
-    """Solid ellipse swept along a 3D spine in author space.
-
-    Width and thickness are full diameters. Section is an ellipse, not a
-    superellipse plate and not a circle. Frames follow the spine so a hanging
-    lock stays oval in the plane perpendicular to its length.
-    """
-    pts = [Vector((float(p[0]), float(p[1]), float(p[2]))) for p in spine]
-    n = len(pts)
-    if n < 2:
-        raise SystemExit("spine too short")
-    if len(widths) != n or len(thicks) != n:
-        raise SystemExit("widths/thicks must match spine")
-
-    tangents = []
-    for i in range(n):
-        if i == 0:
-            d = pts[1] - pts[0]
-        elif i == n - 1:
-            d = pts[n - 1] - pts[n - 2]
-        else:
-            d = pts[i + 1] - pts[i - 1]
-        if d.length < 1e-8:
-            d = Vector((0.0, -1.0, 0.0))
-        tangents.append(d.normalized())
-
-    normals = []
-    binormals = []
-    t0 = tangents[0]
-    ref = Vector((0.0, 0.0, 1.0))
-    if abs(t0.dot(ref)) > 0.92:
-        ref = Vector((1.0, 0.0, 0.0))
-    n0 = t0.cross(ref)
-    if n0.length < 1e-6:
-        n0 = t0.cross(Vector((0.0, 1.0, 0.0)))
-    n0.normalize()
-    b0 = n0.cross(t0).normalized()
-    normals.append(n0)
-    binormals.append(b0)
-    for i in range(1, n):
-        t = tangents[i]
-        b = binormals[i - 1] - t * binormals[i - 1].dot(t)
-        if b.length < 0.12:
-            b = t.cross(normals[i - 1])
-        b.normalize()
-        nn = t.cross(b)
-        if nn.length < 1e-6:
-            nn = normals[i - 1]
-        else:
-            nn.normalize()
-        b = nn.cross(t).normalized()
-        normals.append(nn)
-        binormals.append(b)
-
-    rolls = [roll] * n if isinstance(roll, (int, float)) else list(roll)
-    if len(rolls) < n:
-        rolls = rolls + [rolls[-1]] * (n - len(rolls))
-
-    verts = []
-    for i, p in enumerate(pts):
-        ca, sa = math.cos(rolls[i]), math.sin(rolls[i])
-        B = binormals[i] * ca + normals[i] * sa
-        N = normals[i] * ca - binormals[i] * sa
-        hw, ht = 0.5 * widths[i], 0.5 * thicks[i]
-        for j in range(nu):
-            a = (j / nu) * math.tau
-            q = p + B * (hw * math.cos(a)) + N * (ht * math.sin(a))
-            verts.append(_to_b(q))
-
-    faces = []
-    for i in range(n - 1):
-        for j in range(nu):
-            a = i * nu + j
-            b = i * nu + (j + 1) % nu
-            c = (i + 1) * nu + (j + 1) % nu
-            d = (i + 1) * nu + j
-            faces.append((a, b, c, d))
-    faces.append(tuple(range(nu - 1, -1, -1)))
-    faces.append(tuple(range((n - 1) * nu, n * nu)))
-
-    mesh = bpy.data.meshes.new(name)
-    mesh.from_pydata(verts, [], faces)
-    mesh.update()
-    obj = bpy.data.objects.new(name, mesh)
-    bpy.context.scene.collection.objects.link(obj)
-    return finish(obj, sub=1, relax=0.14)
+    return finish(obj, sub=2, relax=0.16)
 
 
 def bounds(obj):
@@ -234,75 +149,121 @@ def find_head():
     raise SystemExit("no head mesh")
 
 
-def build_crown(head):
-    """Top of the skull only. Sides and nape belong to the hanging mass."""
+def _lobe_along(a, a_start, a_end):
+    """Cover (surface extent) and volume (convex pad) along the bang face."""
+    span = a_start - a_end
+    if span <= 1e-6 or a > a_start or a < a_end:
+        return 0.0, 0.0
+    s = (a_start - a) / span
+    mid = 0.36
+    if s < mid:
+        vol = mix(0.92, 1.0, smooth(s / mid))
+    else:
+        vol = mix(1.0, 0.20, smooth((s - mid) / (1.0 - mid)))
+    if s < 0.82:
+        cover = 1.0
+    else:
+        cover = mix(1.0, 0.55, smooth((s - 0.82) / 0.18))
+    return cover, vol
+
+
+def _lobe_right(a, a_start, a_end):
+    """Smaller right-of-part pad, start at the part, end at the right temple."""
+    span = a_end - a_start
+    if span <= 1e-6:
+        return 0.0
+    if a < a_start or a > a_end:
+        return 0.0
+    s = (a - a_start) / span
+    mid = 0.32
+    if s < mid:
+        return mix(0.70, 0.82, smooth(s / mid))
+    return mix(0.82, 0.0, smooth((s - mid) / (1.0 - mid)))
+
+
+def build_top(head):
+    """Crown and bang as one surface: wide start, convex middle, temple end."""
 
     def sample(u, v, outer):
-        az = math.pi + u * math.tau * 1.02
+        az = math.pi + u * math.tau
+        a = wrap_az(az)
         backness = 0.5 - 0.5 * math.cos(az)
-        polar = mix(0.05, mix(0.52, 0.82, backness), v)
-        x = math.sin(polar) * math.sin(az)
-        y = math.cos(polar)
-        z = math.sin(polar) * math.cos(az)
-        az_w = az % math.tau
-        part = math.exp(-((az_w - 0.32) ** 2) / 0.20)
-        groove = 0.016 * part * (1.0 - v)
-        clearance = (0.26 if outer else 0.07) - groove * (1.0 if outer else 0.35)
-        return on_head(x, y, z, clearance)
+        # Part sits slightly to the character's right of centre.
+        bang_cover, bang_vol = _lobe_along(a, 0.40, -1.38)
+        right = _lobe_right(a, 0.28, 1.18)
+        s_bang = 0.0
+        if -1.38 <= a <= 0.40:
+            s_bang = (0.40 - a) / (0.40 - (-1.38))
+        # Diagonal: high at the part, lower toward the left temple. Not a visor lip.
+        polar_extra = mix(0.16, 0.88, smooth(s_bang)) * bang_cover
+        polar_rim = mix(0.48, 0.58, backness) + polar_extra + 0.26 * right
+        polar = mix(0.05, polar_rim, v)
+        along = math.sin(v * math.pi)
+        clr = 0.26 + 0.16 * bang_vol * along + 0.06 * right * v
+        if not outer:
+            clr = 0.08 + 0.04 * bang_vol * along
+        part = math.exp(-(a - 0.34) ** 2 / 0.16) * (1.0 - v * 0.35)
+        clr -= 0.018 * part * (1.0 if outer else 0.4)
+        p = on_head(
+            math.sin(polar) * math.sin(az),
+            math.cos(polar),
+            math.sin(polar) * math.cos(az),
+            clr,
+        )
+        drop = bang_cover * v * mix(0.02, 0.26, s_bang)
+        p = Vector((
+            p.x - 0.08 * drop,
+            p.y - drop,
+            p.z + 0.04 * bang_vol * along - 0.08 * s_bang * v,
+        ))
+        return p
 
     return grid_shell(
-        "hair_crown",
+        "hair_top",
         lambda u, v: sample(u, v, True),
         lambda u, v: sample(u, v, False),
-        nu=22,
-        nv=10,
+        nu=28,
+        nv=14,
     )
-
-
-def build_bang():
-    """Volume starts at the part and runs as a wide diagonal to the left temple."""
-    bang = loft_oval(
-        "hair_bang",
-        [
-            (0.18, 1.00, 0.14),
-            (0.06, 0.86, 0.40),
-            (-0.10, 0.66, 0.66),
-            (-0.28, 0.44, 0.68),
-            (-0.48, 0.18, 0.48),
-            (-0.64, -0.08, 0.26),
-            (-0.74, -0.28, 0.10),
-        ],
-        [0.64, 0.78, 0.82, 0.72, 0.52, 0.34, 0.18],
-        [0.34, 0.38, 0.36, 0.32, 0.24, 0.16, 0.10],
-        nu=16,
-        roll=[-0.06, -0.18, -0.32, -0.38, -0.22, -0.10, -0.02],
-    )
-    return [bang]
 
 
 def _curtain_az(u):
-    """u=0 left front, u=0.5 back, u=1 right front. Face stays open."""
-    left_front = -0.98
-    right_front = 0.96
+    left_front = -1.02
+    right_front = 1.00
     back_span = math.tau - (right_front - left_front)
     return left_front - u * back_span
 
 
-def build_hang():
-    """Sides and back as one mass: follow the skull, then hang with a long S.
+def _lock_wave(u, t):
+    """A few large locks. Shared phase so the wave is a big curve, not ripples."""
+    locks = (
+        (0.10, 0.20, 0.20),
+        (0.30, 0.18, 0.70),
+        (0.70, 0.18, 1.10),
+        (0.90, 0.20, 1.55),
+    )
+    d_az = d_r = d_z = 0.0
+    for center, sigma, phase in locks:
+        w = math.exp(-((u - center) / sigma) ** 2)
+        s = math.sin(t * math.pi * 1.06 + phase)
+        c = math.cos(t * math.pi * 1.02 + phase)
+        d_az += w * 0.34 * s
+        d_r += w * 0.18 * s
+        d_z += w * 0.20 * c
+    return d_az, d_r, d_z
 
-    Temple fibers start at the temple, not as a hood over the crown.
-    Radial size stays near the head, not the clothes/shoulder outline.
-    """
+
+def build_hang():
+    """Long length kept. Large lock waves along that length. Back follows sides."""
 
     def sample(u, v, outer):
         backness = math.sin(u * math.pi)
         edge = 1.0 - backness
         az0 = _curtain_az(u)
-        v_leave = mix(0.24, 0.42, backness)
-        polar0 = mix(0.70, 0.24, backness)
-        polar1 = mix(1.12, 1.34, backness)
-        clr = (0.26 if outer else 0.08) * mix(1.06, 0.94, backness)
+        v_leave = mix(0.20, 0.38, backness)
+        polar0 = mix(0.48, 0.16, backness)
+        polar1 = mix(1.12, 1.32, backness)
+        clr = (0.27 if outer else 0.08) * mix(1.05, 0.95, backness)
 
         tv_head = min(1.0, v / max(1e-6, v_leave))
         polar = mix(polar0, polar1, smooth(tv_head))
@@ -316,67 +277,33 @@ def build_hang():
             return head_p
 
         t = (v - v_leave) / (1.0 - v_leave)
-        az = az0 + mix(0.30, 0.12, backness) * math.sin(t * math.pi * 1.35 + u * 2.05)
+        d_az, d_r, d_z = _lock_wave(u, t)
+        az = az0 + d_az
         y = mix(head_p.y, -3.12, t)
         r0 = math.hypot(head_p.x, head_p.z)
-        r = r0 + 0.04 * t + mix(0.18, 0.10, backness) * math.sin(
-            t * math.pi * 1.32 + u * 1.45
-        )
-        r = min(max(r, 0.70), 1.16)
-        thick = mix(0.28, 0.12, smooth(max(0.0, (t - 0.55) / 0.45)))
+        # Width grows then tapers along the lock. Cap keeps the shoulder plate off.
+        r = r0 + 0.05 * math.sin(t * math.pi) + d_r
+        r -= 0.09 * math.exp(-((u - 0.5) / 0.14) ** 2) * math.sin(min(1.0, t / 0.35) * math.pi)
+        r = min(max(r, 0.70), 1.22)
+        thick = mix(0.30, 0.12, smooth(max(0.0, (t - 0.58) / 0.42)))
+        thick *= mix(0.90, 1.08, edge)
         if not outer:
             r = max(0.40, r - thick)
         x = r * math.sin(az)
-        z = r * math.cos(az)
-        if t < 0.48:
-            z += (0.22 if outer else 0.08) * edge * math.sin(math.pi * t / 0.48)
-        else:
-            z += 0.09 * math.sin((t - 0.48) * math.pi * 1.15) * mix(0.25, 1.0, backness)
+        z = r * math.cos(az) + d_z
+        sx = mix(-1.0, 1.0, u)
+        x += 0.20 * sx * math.sin(t * math.pi * 1.10 + mix(0.18, 1.45, u))
+        if t < 0.42:
+            z += (0.16 if outer else 0.06) * edge * math.sin(math.pi * t / 0.42)
         return Vector((x, y, z))
 
-    curtain = grid_shell(
+    return grid_shell(
         "hair_hang",
         lambda u, v: sample(u, v, True),
         lambda u, v: sample(u, v, False),
-        nu=26,
-        nv=18,
+        nu=28,
+        nv=20,
     )
-    # Extra lock beside the cheek so the front edge is hair flow, not a hole.
-    left_face = loft_oval(
-        "hair_side_l_face",
-        [
-            (-0.52, 0.52, 0.38),
-            (-0.70, 0.18, 0.50),
-            (-0.82, -0.08, 0.46),
-            (-0.78, -0.62, 0.28),
-            (-0.90, -1.28, 0.20),
-            (-0.82, -1.95, 0.10),
-            (-0.94, -2.60, 0.04),
-            (-0.86, -3.10, 0.00),
-        ],
-        [0.40, 0.52, 0.56, 0.50, 0.42, 0.32, 0.20, 0.12],
-        [0.26, 0.32, 0.34, 0.30, 0.24, 0.18, 0.12, 0.08],
-        nu=14,
-        roll=0.08,
-    )
-    right_face = loft_oval(
-        "hair_side_r_face",
-        [
-            (0.54, 0.48, 0.30),
-            (0.72, 0.14, 0.40),
-            (0.82, -0.12, 0.34),
-            (0.76, -0.68, 0.18),
-            (0.88, -1.32, 0.14),
-            (0.80, -2.00, 0.06),
-            (0.90, -2.62, 0.02),
-            (0.84, -3.10, 0.00),
-        ],
-        [0.36, 0.48, 0.50, 0.44, 0.36, 0.26, 0.16, 0.10],
-        [0.22, 0.28, 0.30, 0.26, 0.20, 0.14, 0.10, 0.06],
-        nu=14,
-        roll=-0.06,
-    )
-    return [curtain, left_face, right_face]
 
 
 def main():
@@ -385,9 +312,7 @@ def main():
     hair_mat = bpy.data.materials.get("hair")
     if hair_mat is None:
         hair_mat = lib.material("hair", (0.210, 0.145, 0.125), 0.62)
-    pieces = [build_crown(head)]
-    pieces.extend(build_bang())
-    pieces.extend(build_hang())
+    pieces = [build_top(head), build_hang()]
     for obj in pieces:
         lib.assign(obj, hair_mat)
         b = bounds(obj)
