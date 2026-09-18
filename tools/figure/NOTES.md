@@ -1,7 +1,7 @@
 # Hair & representative character
 
-Visual approval is not claimed. Kept 5c is an experimental checkpoint, not an
-approved default character.
+Visual approval is not claimed. Attempt 7 is the current candidate
+(`checkpoints/2026-09-18-attempt-7/`). 5c is not the proportion source.
 
 ## Reference (must be opened, not remembered)
 
@@ -22,20 +22,24 @@ exists. Clay-versus-colour is not a reference comparison.
 | 5a–5b | Shell / ribbons | Still plates |
 | **5c** | Overlapping ellipsoids | Inflated bulbs; not the long-wave style |
 | 5d | Coarser remesh | Helmet — discarded |
-| **6** | Open skull wrap + bang + hanging locks | Face opened; bang direction present; hair still two curtains + visor |
+| **6** | Open skull wrap + bang + hanging locks | Face opened; two curtains + visor |
+| **7** | Overlapping flowing locks (no whole-hair remesh) | Back/nape/shoulder volume present; bang stays above the eyes; three-state holds as long hair without secondary; front still two curtains; some intersections and a cap rim remain |
 
-Attempt 6 is the current candidate (`checkpoints/2026-09-18-attempt-6/`).
-5c is not the proportion source.
+Attempt 7 keeps hair as named lock meshes (`scalp_*`, `back_vol_*`, `lock_p_*`,
+`lock_s_*`) so the showroom can hide layers. Voxel-fusing the whole head is
+not the default. Secondary locks sit inside the same outline.
 
-Against the original extract: the face is no longer trapped, the neck and crew
-knit read, and a right-side part throws a diagonal bang to the left. Hair is
-still not the long-wave wrap — skull cap, forehead visor, two hanging masses,
-jagged part, temple nicks. Lengths do not carry the original’s S-curve over
-the shoulders. The back is designed (not in the crop).
+Moved from 6: the back, nape and shoulders have hanging volume as a base
+layer (not a face helmet); the bang stays above the eyes; base+primary
+already read as long hair if secondary is hidden. Hanging locks keep
+section tilt near 0 so they are not edge-on curtains; `seat_inside` only
+lifts vertices that punched *deep* into the skull, so a thick lock can
+bury its inner side.
 
-Further automatic ellipsoid / helmet / remesh packs will repeat 5c–5d. The
-remaining correction is the wrap itself: smooth the hairline, merge the bang
-into the left mass, and give the lengths wave volume beside the shoulders.
+Still wrong: from the front the silhouette is two curtains more than one
+wrapping wave; some lock intersections show; the part/crown still sits a
+little like a separate cap; the bang is rounder than a visor strip but not
+yet the original’s forehead mass. The back is designed (not in the crop).
 
 ## What not to retry
 
@@ -45,7 +49,7 @@ into the left mass, and give the lengths wave volume beside the shoulders.
 - Coarser remesh until the silhouette is a helmet (5d)
 - Another automatic pack of ellipsoids without a working original comparison
 - Closed helmet + face-hole boolean (hood)
-- Decimating a remeshed hair volume (holes in the scalp)
+- Pushing every inside vertex of a thick lock onto the skull (flattens to a visor or cap)
 
 ## Direction
 

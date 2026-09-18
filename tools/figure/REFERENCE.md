@@ -61,17 +61,18 @@ original was read and the first row (original / coloured / clay) exists.
 Model-ready is not comparison-ready. Clay-versus-colour is not a reference
 comparison.
 
-## Quality standing (attempt 6 candidate)
+## Quality standing (attempt 7 candidate)
 
-Attempt 6 is a remake against this extract, not an approved character. 5c is
-not the proportion source.
+Attempt 7 is layered flowing locks against this extract, not an approved
+character. 5c is not the proportion source. The whole head is not voxel-fused.
 
-Moved: the face is a round clay head again (not trapped between bulbs); a
-right-side part throws a diagonal bang left; the neck and crew knit read.
+Moved: back / nape / shoulder volume exists as a base layer; the bang stays
+above the eyes; hiding secondary locks still leaves a long-hair silhouette.
 
-Still wrong: hair is a skull cap + forehead visor + two hanging masses, not
-one wrapping long-wave. Jagged part, temple nicks, lengths without the
-original’s S-curve body. Back of the head is designed (not in the crop).
+Still wrong: from the front the hair reads as two curtains more than one
+wrapping wave; some lock intersections show; the crown/part is a little
+separate; the bang is not yet the original’s forehead mass. Back of the
+head is designed (not in the crop).
 
 The clay sheet is the look bar. Bondee’s character/combination model
 (`docs/wardrobe.md`) is the wardrobe end-state, not this sculpt pass.
