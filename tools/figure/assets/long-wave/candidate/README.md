@@ -1,27 +1,22 @@
 # Long-wave candidate (not approved)
 
-Form pass from the turnaround sheet (front / 3/4 / side / back, layer guide).
+Overall bust from the turnaround sheet: a slightly oval clay skull, a bit
+smaller than a bowling ball, with ears stuck on, and abundant hair sitting
+up on that skull. Not extra hair pieces strapped onto a full sphere.
+
 Does not replace the protected original or `public/figure/hair_long_wave.glb`.
 
 Visual quality is not approved.
 
 ## This pass
 
-Open scalp plus a forehead bang pad from the side part. Front and back are
-overlapping S-locks that start under the scalp and tuck behind the ears.
-An occipital pad covers the back of the skull so the showroom back is not
-a bald head under a lid. Inner nape fill hangs with the back locks.
-Same save for `.blend`, GLB, and stills.
+Head is a smaller oval (`character.py`) with stuck-on ears and pearl lobes.
+Hair piles in +Y on that skull, bang drapes on the forehead, sides tuck
+behind the ears. Same save for `.blend`, GLB, and stills.
 
-## Still wrong on screen
+## Still a candidate
 
-- Bang is a diagonal forehead pad, but the fringe still reads as a visor lip
-  and the scalp still sits as a separate cap with a crease.
-- Side locks have length and S-waves, but they still separate from the bang
-  at the temples more than the sheet's one clay mass.
-- Showroom back now has skull coverage; a nape gap and hanging-strip roots
-  remain versus the sheet's one wavy clay mass.
-
-Do not merge. Do not replace `public/figure/hair_long_wave.glb`.
+Judge the whole bust (head size/shape, ear sit, hair volume on the crown)
+against the sheet. Do not merge. Do not replace `public/figure/hair_long_wave.glb`.
 
 Protected original (untouched): `../hair_long_wave.blend`

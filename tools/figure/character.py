@@ -24,16 +24,24 @@ import lib  # noqa: E402
 # fixed so hair could be compared in isolation; that constraint is lifted here
 # because the hair-to-face ratio and the neck/collar join are part of the same
 # judgment as the hair itself.
-HEAD_HALF_W = 0.950
-HEAD_HALF_D = 0.860
-SQUARENESS = 2.02
-EYE_Y, EYE_X = 0.040, 0.262
+# Slightly oval clay skull — taller than it is wide, a bit smaller than a
+# bowling ball — with ears stuck on. Hair sits up on this skull; it is not
+# strapped onto a full sphere. Height stays 2.0 head units (crown to chin).
+HEAD_HALF_W = 0.700
+HEAD_HALF_D = 0.660
+SQUARENESS = 2.06
+EYE_Y, EYE_X = 0.022, 0.198
 # Flatter eyes — almost discs. Bead highlights come from protrusion + gloss.
-EYE_W, EYE_H, EYE_D = 0.090, 0.098, 0.018
-NOSE_Y, NOSE_OUT = -0.170, 0.205
+EYE_W, EYE_H, EYE_D = 0.084, 0.092, 0.016
+NOSE_Y, NOSE_OUT = -0.205, 0.142
 NECKLINE_Y = -1.18
 SHOULDER_HALF = 1.12
 NECK_TOP_Y = -0.98
+# Small ear blob stuck into the oval, visible from the front. Pearl on the lobe.
+EAR_HALF = (0.058, 0.142, 0.092)
+EAR_Y = -0.038
+EAR_Z = -0.052
+PEARL_R = 0.030
 
 
 def to_blender(p):
@@ -42,12 +50,24 @@ def to_blender(p):
 
 
 def axes_at(y):
-    jaw = lib.smoothstep(-0.30, -1.0, y)
-    crown = lib.smoothstep(0.55, 1.0, y)
+    # Egg, not a bowling ball: widest at the cheek, tapering to crown and chin.
+    jaw = lib.smoothstep(-0.10, -1.0, y)
+    crown = lib.smoothstep(0.28, 1.0, y)
+    cheek = lib.blob(abs(y + 0.04) / 0.40)
     return (
-        HEAD_HALF_W * (1 - 0.070 * jaw - 0.030 * crown),
-        HEAD_HALF_D * (1 - 0.060 * jaw - 0.025 * crown),
+        HEAD_HALF_W * (1 - 0.145 * jaw - 0.110 * crown + 0.065 * cheek),
+        HEAD_HALF_D * (1 - 0.110 * jaw - 0.075 * crown + 0.035 * cheek),
     )
+
+
+def ear_center(side):
+    """Stuck-on ear: centre on the oval, blob sticks out to the side."""
+    return (side * (axes_at(EAR_Y)[0] + 0.030), EAR_Y, EAR_Z)
+
+
+def pearl_center(side):
+    c = ear_center(side)
+    return (c[0] + side * 0.016, c[1] - 0.112, c[2] + 0.018)
 
 
 def super_radius(d, a, b, c, k):
@@ -101,6 +121,7 @@ def build_head():
     lib.relax(obj, 0.35, 1)
     lib.shaded_smooth(obj)
     obj.name = "head"
+    obj.data.name = "head"
     return obj
 
 
@@ -137,6 +158,7 @@ def build_body():
     lib.subsurf(obj, 2)
     lib.shaded_smooth(obj)
     obj.name = "body"
+    obj.data.name = "body"
     return obj
 
 
@@ -171,7 +193,53 @@ def build_top():
     lib.subsurf(obj, 2)
     lib.shaded_smooth(obj)
     obj.name = "top"
+    obj.data.name = "top"
     return obj
+
+
+def build_face_parts(head, skin, eye_mat, pearl_mat):
+    """Eyes, stuck-on ears, and pearl lobes on the finished oval skull."""
+    skin_z = front_z(head, EYE_X, EYE_Y)
+    eye_front = skin_z + 0.016
+    parts = []
+    for side, tag in ((-1, "l"), (1, "r")):
+        eye = lib.sphere_cage(
+            20, 14,
+            lambda d: to_blender((d.x * EYE_W, d.z * EYE_H, -d.y * EYE_D)),
+        )
+        lib.subsurf(eye, 2)
+        lib.shaded_smooth(eye)
+        eye.name = "eye_" + tag
+        eye.data.name = "eye_" + tag
+        eye.location = to_blender((side * EYE_X, EYE_Y, eye_front - EYE_D))
+        lib.assign(eye, eye_mat)
+        parts.append(eye)
+
+        hx, hy, hz = EAR_HALF
+        ear = lib.sphere_cage(
+            16, 12,
+            lambda d, hx=hx, hy=hy, hz=hz: to_blender((d.x * hx, d.z * hy, -d.y * hz)),
+        )
+        lib.subsurf(ear, 1)
+        lib.shaded_smooth(ear)
+        ear.name = "ear_" + tag
+        ear.data.name = "ear_" + tag
+        ear.location = to_blender(ear_center(side))
+        lib.assign(ear, skin)
+        parts.append(ear)
+
+        pearl = lib.sphere_cage(
+            12, 10,
+            lambda d, r=PEARL_R: to_blender((d.x * r, d.z * r, -d.y * r)),
+        )
+        lib.subsurf(pearl, 1)
+        lib.shaded_smooth(pearl)
+        pearl.name = "pearl_" + tag
+        pearl.data.name = "pearl_" + tag
+        pearl.location = to_blender(pearl_center(side))
+        lib.assign(pearl, pearl_mat)
+        parts.append(pearl)
+    return parts
 
 
 def build():
@@ -182,6 +250,7 @@ def build():
     # Soft eye: less specular bead. The reference eyes are simple dark ovals,
     # not glass marbles.
     eye_mat = lib.material("eye", (0.145, 0.118, 0.110), 0.55)
+    pearl_mat = lib.material("pearl", (0.93, 0.90, 0.86), 0.28)
 
     head = build_head()
     lib.assign(head, skin)
@@ -190,33 +259,8 @@ def build():
     top_obj = build_top()
     lib.assign(top_obj, cloth)
 
-    # Eyes sit against the *finished* skin (subsurf + relax), not the
-    # pre-deform superellipsoid. Keep this seating; it is the visibility
-    # fix, not a hair-algorithm tweak.
-    skin_z = front_z(head, EYE_X, EYE_Y)
-    eye_front = skin_z + 0.016
-
     body = [head, body_obj, top_obj]
-
-    for side, tag in ((-1, "l"), (1, "r")):
-        eye = lib.sphere_cage(
-            20, 14,
-            lambda d: to_blender((d.x * EYE_W, d.z * EYE_H, -d.y * EYE_D)),
-        )
-        lib.subsurf(eye, 2)
-        lib.shaded_smooth(eye)
-        eye.name = "eye_" + tag
-        eye.location = to_blender((side * EYE_X, EYE_Y, eye_front - EYE_D))
-        lib.assign(eye, eye_mat)
-        body.append(eye)
-
-        ear = lib.sphere_cage(16, 12, lambda d: to_blender((d.x * 0.045, d.z * 0.140, -d.y * 0.095)))
-        lib.subsurf(ear, 1)
-        lib.shaded_smooth(ear)
-        ear.name = "ear_" + tag
-        ear.location = to_blender((side * (axes_at(0.0)[0] - 0.035), 0.005, -0.130))
-        lib.assign(ear, skin)
-        body.append(ear)
+    body.extend(build_face_parts(head, skin, eye_mat, pearl_mat))
 
     from asset_paths import BODY_GLB, CHARACTER_GLB, HAIR_GLB, PUBLIC
     from hair_long_wave import export_objects

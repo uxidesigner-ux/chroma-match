@@ -2,10 +2,10 @@
 
 Does not touch the protected original or public GLB.
 
-Open scalp (face window, not a visor cap). Bang is a forehead pad from the
-side part to the left temple. Sides and back are overlapping S-locks that
-start on the crown and tuck behind the ears. Inner nape fill so the skull
-does not show. No voxel fuse. No crown-petal sausages.
+Whole bust: a slightly oval clay skull with ears stuck on, and abundant
+hair sitting up on that skull — not extra pieces strapped onto a bowling
+ball. Open scalp piles in +Y (not a radial mushroom). Bang drapes on the
+forehead. Sides tuck behind the ears, then hang in S. No voxel fuse.
 """
 
 from __future__ import annotations
@@ -171,6 +171,31 @@ def find_head():
     raise SystemExit("no head mesh")
 
 
+def replace_head():
+    """Put the current oval skull (character.py) into the candidate blend."""
+    if bpy.context.object and bpy.context.object.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
+    skin = bpy.data.materials.get("skin")
+    if skin is None:
+        skin = lib.material("skin", (0.945, 0.710, 0.560), 0.80)
+    eye_mat = bpy.data.materials.get("eye")
+    if eye_mat is None:
+        eye_mat = lib.material("eye", (0.145, 0.118, 0.110), 0.55)
+    pearl_mat = bpy.data.materials.get("pearl")
+    if pearl_mat is None:
+        pearl_mat = lib.material("pearl", (0.93, 0.90, 0.86), 0.28)
+    for obj in list(bpy.data.objects):
+        if obj.type != "MESH":
+            continue
+        n = obj.name
+        if n in ("head", "cage") or n.startswith("eye_") or n.startswith("ear_") or n.startswith("pearl_"):
+            bpy.data.objects.remove(obj, do_unlink=True)
+    head = character.build_head()
+    lib.assign(head, skin)
+    character.build_face_parts(head, skin, eye_mat, pearl_mat)
+    return head
+
+
 def _smooth_rim(obj, rounds=8, factor=0.55):
     mesh = obj.data
     bm = bmesh.new()
@@ -197,16 +222,30 @@ def _smooth_rim(obj, rounds=8, factor=0.55):
 
 
 def build_scalp():
-    """Thin open cap. Forehead is a window; the bang fills it."""
-    offset = 0.088
+    """Crown clay that sits UP on the oval. Modest wrap, not a radial mushroom."""
 
     def shape(d):
         p = character.head_surface((d.x, d.z, -d.y))
         r = math.sqrt(p[0] ** 2 + p[1] ** 2 + p[2] ** 2) or 1.0
+        up = max(0.0, p[1])
+        # Thin wrap so the cap follows the oval instead of inflating it.
+        wrap = 0.075
+        # Rounded bun: modest lift, and spread the crown so the pole is not a tent.
+        pile = 0.16 * smooth(up)
+        horiz = math.hypot(p[0], p[2])
+        spread = 0.26 * (up ** 1.55)
+        if horiz > 0.08:
+            sx = p[0] / horiz * spread
+            sz = p[2] / horiz * spread * 0.45
+        else:
+            sx = d.x * spread * 2.0
+            sz = (-d.y) * spread * 1.1
+        part = math.exp(-((p[0] - PART[0]) ** 2) / 0.12) * (up ** 1.2)
+        pile -= 0.045 * part
         q = (
-            p[0] + p[0] / r * offset,
-            p[1] + p[1] / r * offset,
-            p[2] + p[2] / r * offset,
+            p[0] + p[0] / r * wrap + sx,
+            p[1] + p[1] / r * wrap + pile,
+            p[2] + p[2] / r * wrap * 0.40 + sz,
         )
         return character.to_blender(q)
 
@@ -218,11 +257,11 @@ def build_scalp():
     kill = []
     for vertex in bm.verts:
         q = _auth(vertex.co)
-        nape = q[2] < -0.08 and q[1] > -0.22
-        crown = q[1] > 0.42
-        side = abs(q[0]) > 0.40 and q[1] > 0.16 and q[2] < 0.22
-        hairline = 0.78 + 0.12 * max(0.0, q[0])
-        face = q[2] > 0.14 and q[1] < hairline
+        nape = q[2] < -0.04 and q[1] > -0.22
+        crown = q[1] > 0.32
+        side = abs(q[0]) > 0.24 and q[1] > 0.10 and q[2] < 0.22
+        hairline = 0.54 + 0.14 * max(0.0, q[0])
+        face = q[2] > 0.20 and q[1] < hairline
         if (not (nape or crown or side)) or face:
             kill.append(vertex)
     if kill:
@@ -231,153 +270,148 @@ def build_scalp():
     bm.free()
     obj.data.update()
 
-    lib.solidify(obj, thickness=0.070, offset=1.0)
+    lib.solidify(obj, thickness=0.09, offset=1.0)
     _smooth_rim(obj)
-    lib.relax(obj, 0.22, 1)
+    lib.relax(obj, 0.20, 1)
     lib.shaded_smooth(obj)
     obj.name = obj.data.name = "hair_scalp"
     return obj
 
 
 def build_bang():
-    """Wide diagonal forehead pad. Overlaps the scalp rim; sits on the skin."""
+    """Diagonal forehead clay. Inner hugs skin; fringe meets the forehead."""
 
     def sample(u, v, outer):
-        az = mix(0.88, -1.58, u)
-        polar_fringe = mix(0.84, 1.32, smooth(u))
-        polar = mix(0.24, polar_fringe, v ** 0.62)
-        mid = math.sin(max(0.0, v - 0.04) * math.pi / 0.96) * math.sin(
-            math.pi * mix(0.10, 0.96, u)
-        )
-        vol = 0.070 + 0.150 * mid
-        if u < 0.10:
-            vol *= mix(0.48, 1.0, u / 0.10)
-        if u > 0.88:
-            vol *= mix(1.0, 0.50, (u - 0.88) / 0.12)
+        # u: 0 at the side part (viewer's right) → 1 at the left temple
+        x = mix(0.24, -0.48, u)
+        y_root = mix(0.74, 0.58, smooth(u))
+        y_tip = mix(0.40, 0.28, smooth(u))
+        y = mix(y_root, y_tip, v ** 0.82)
+        span = math.sin(math.pi * mix(0.07, 0.94, u))
+        along = math.sin(math.pi * max(0.0, v))
+        thick = 0.038 + 0.055 * span * along
         fringe = smooth((v - 0.58) / 0.42) if v > 0.58 else 0.0
-        vol = mix(vol, 0.008, fringe ** 0.65)
-        inner = max(0.006, vol * 0.30)
-        clr = vol if outer else inner
-        if v > 0.90:
-            meet = (v - 0.90) / 0.10
-            inner = mix(inner, 0.006, meet)
-            clr = 0.006 if not outer else mix(clr, 0.006, meet)
-        part = math.exp(-((az - 0.30) ** 2) / 0.12) * (1.0 - 0.40 * v)
-        clr = max(0.006, clr - 0.028 * part)
-        p = on_head(
-            math.sin(polar) * math.sin(az),
-            math.cos(polar),
-            math.sin(polar) * math.cos(az),
-            clr,
-        )
-        puff = mid * (1.0 - fringe) * 0.055
-        wrap = u * v
-        return Vector((p.x - 0.07 * wrap, p.y - 0.05 * wrap, p.z + puff - 0.02 * wrap))
+        thick = mix(thick, 0.012, fringe ** 0.90)
+        if u < 0.08:
+            thick *= mix(0.40, 1.0, u / 0.08)
+        if u > 0.90:
+            thick *= mix(1.0, 0.38, (u - 0.90) / 0.10)
+        wrap_t = smooth((abs(x) - 0.24) / 0.34)
+        root = bang_pt(x, y_root, 0.010, z_guess=0.80)
+        here = bang_pt(x, y, 0.010, z_guess=0.80)
+        wrapped = on_head(x, y, 0.18, 0.010)
+        z_drape = mix(root[2], min(root[2], here[2]), v ** 0.55)
+        ix = mix(x, wrapped.x, wrap_t)
+        iy = y
+        iz = mix(z_drape, wrapped.z, wrap_t)
+        if not outer:
+            return Vector((ix, iy, iz))
+        return Vector((ix, iy + thick * 0.70, iz + thick * 0.10 - 0.02 * fringe))
 
     return grid_shell(
         "hair_bang",
         lambda u, v: sample(u, v, True),
         lambda u, v: sample(u, v, False),
-        nu=20,
+        nu=22,
         nv=14,
     )
 
 
 def build_front():
-    """전면 레이어: temple roots (no crown horns), tuck behind ears, long S."""
+    """Hang from behind the ears in S. Roots stay off the crown and off the lobe."""
     left = lock(
         "hair_front_l",
         [
-            sit(-0.22, 0.72, 0.08, 0.06),
-            sit(-0.42, 0.52, 0.28, 0.10),
-            sit(-0.74, 0.14, -0.12, 0.12),
-            (-0.94, -0.40, 0.06),
-            (-0.74, -1.00, 0.20),
-            (-1.04, -1.60, 0.00),
-            (-0.82, -2.16, 0.14),
-            (-0.92, Y_TIP, 0.00),
+            sit(-0.50, 0.48, -0.02, 0.07),
+            sit(-0.66, 0.16, -0.12, 0.08),
+            sit(-0.80, -0.05, -0.26, 0.08),
+            (-0.76, -0.52, -0.02),
+            (-0.58, -1.10, 0.14),
+            (-0.82, -1.66, -0.04),
+            (-0.66, -2.22, 0.08),
+            (-0.72, Y_TIP, 0.00),
         ],
-        [0.34, 0.72, 0.98, 1.00, 0.88, 0.72, 0.46, 0.16],
-        flatten=0.58,
-        tilt=[0.06, 0.10, 0.08, 0.12, 0.06, 0.04, 0.02],
+        [0.34, 0.40, 0.36, 0.70, 0.80, 0.56, 0.32, 0.12],
+        flatten=0.56,
+        tilt=[0.10, 0.12, 0.10, 0.10, 0.06, 0.04, 0.02, 0.02],
     )
     left2 = lock(
         "hair_front_l2",
         [
-            sit(-0.40, 0.58, -0.04, 0.08),
-            sit(-0.70, 0.16, -0.20, 0.12),
-            (-0.90, -0.48, -0.02),
-            (-0.72, -1.08, 0.12),
-            (-0.98, -1.66, -0.04),
-            (-0.78, -2.20, 0.10),
-            (-0.86, Y_TIP + 0.06, -0.02),
+            sit(-0.56, 0.32, -0.16, 0.07),
+            sit(-0.72, 0.00, -0.26, 0.08),
+            (-0.78, -0.48, -0.10),
+            (-0.62, -1.08, 0.08),
+            (-0.82, -1.66, -0.06),
+            (-0.66, -2.20, 0.06),
+            (-0.70, Y_TIP + 0.06, -0.02),
         ],
-        [0.28, 0.62, 0.82, 0.74, 0.58, 0.34, 0.12],
-        flatten=0.60,
+        [0.30, 0.38, 0.62, 0.70, 0.50, 0.30, 0.12],
+        flatten=0.58,
         tilt=0.06,
     )
     right = lock(
         "hair_front_r",
         [
-            sit(0.32, 0.68, -0.10, 0.06),
-            sit(0.58, 0.46, 0.12, 0.10),
-            sit(0.82, 0.12, -0.16, 0.12),
-            (0.96, -0.40, -0.02),
-            (0.76, -1.00, 0.16),
-            (1.04, -1.60, -0.04),
-            (0.82, -2.16, 0.12),
-            (0.92, Y_TIP, -0.02),
+            sit(0.48, 0.50, -0.04, 0.07),
+            sit(0.66, 0.16, -0.14, 0.08),
+            sit(0.80, -0.05, -0.28, 0.08),
+            (0.76, -0.52, -0.04),
+            (0.60, -1.10, 0.12),
+            (0.82, -1.66, -0.06),
+            (0.66, -2.22, 0.06),
+            (0.72, Y_TIP, -0.02),
         ],
-        [0.30, 0.66, 0.92, 0.94, 0.82, 0.66, 0.42, 0.14],
-        flatten=0.58,
-        tilt=[0.06, 0.10, 0.08, 0.12, 0.06, 0.04, 0.02],
+        [0.32, 0.38, 0.34, 0.66, 0.76, 0.52, 0.30, 0.12],
+        flatten=0.56,
+        tilt=[0.10, 0.12, 0.10, 0.10, 0.06, 0.04, 0.02, 0.02],
     )
     right2 = lock(
         "hair_front_r2",
         [
-            sit(0.44, 0.58, -0.08, 0.08),
-            sit(0.76, 0.16, -0.24, 0.12),
-            (0.92, -0.48, -0.06),
-            (0.74, -1.08, 0.10),
-            (0.98, -1.66, -0.06),
-            (0.80, -2.20, 0.08),
-            (0.86, Y_TIP + 0.06, -0.04),
+            sit(0.54, 0.32, -0.18, 0.07),
+            sit(0.72, 0.00, -0.28, 0.08),
+            (0.78, -0.48, -0.12),
+            (0.62, -1.08, 0.06),
+            (0.80, -1.66, -0.06),
+            (0.66, -2.20, 0.04),
+            (0.70, Y_TIP + 0.06, -0.04),
         ],
-        [0.26, 0.58, 0.78, 0.70, 0.54, 0.32, 0.12],
-        flatten=0.60,
+        [0.28, 0.36, 0.58, 0.66, 0.48, 0.28, 0.12],
+        flatten=0.58,
         tilt=0.06,
     )
     return [left, left2, right, right2]
 
 
 def build_mid():
-    """중간 레이어: same S phase, rooted behind the ears."""
+    """중간 레이어: same S phase, rooted behind the ears — not on the crown."""
     left = lock(
         "hair_mid_l",
         [
-            sit(-0.36, 0.58, -0.28, 0.14),
-            sit(-0.66, 0.18, -0.18, 0.13),
-            (-0.86, -0.36, -0.04),
-            (-0.68, -0.96, 0.14),
-            (-0.94, -1.56, -0.04),
-            (-0.74, -2.12, 0.12),
-            (-0.84, Y_TIP + 0.04, 0.00),
+            sit(-0.42, 0.36, -0.24, 0.10),
+            sit(-0.58, 0.04, -0.20, 0.10),
+            (-0.80, -0.40, -0.06),
+            (-0.64, -0.98, 0.12),
+            (-0.88, -1.56, -0.04),
+            (-0.70, -2.12, 0.10),
+            (-0.80, Y_TIP + 0.04, 0.00),
         ],
-        [0.60, 0.84, 0.92, 0.82, 0.66, 0.42, 0.14],
+        [0.52, 0.76, 0.86, 0.76, 0.60, 0.38, 0.14],
         flatten=0.62,
     )
     right = lock(
         "hair_mid_r",
         [
-            sit(0.42, 0.58, -0.30, 0.14),
-            sit(0.72, 0.18, -0.22, 0.13),
-            (0.90, -0.36, -0.08),
-            (0.72, -0.96, 0.12),
-            (0.96, -1.56, -0.06),
-            (0.76, -2.12, 0.10),
-            (0.86, Y_TIP + 0.04, -0.02),
+            sit(0.44, 0.36, -0.26, 0.10),
+            sit(0.60, 0.04, -0.22, 0.10),
+            (0.84, -0.40, -0.08),
+            (0.68, -0.98, 0.10),
+            (0.90, -1.56, -0.06),
+            (0.72, -2.12, 0.08),
+            (0.82, Y_TIP + 0.04, -0.02),
         ],
-        [0.56, 0.80, 0.88, 0.78, 0.62, 0.40, 0.14],
+        [0.50, 0.74, 0.82, 0.72, 0.56, 0.36, 0.14],
         flatten=0.62,
     )
     return [left, right]
@@ -436,13 +470,13 @@ def build_back():
 
 
 def build_occipital():
-    """Back-of-head clay pad so the showroom back is not a bald skull under a lid."""
+    """Abundant clay on the smaller oval back of the head."""
 
     def sample(u, v, outer):
         az = math.pi + mix(-1.28, 1.28, u)
         polar = mix(0.28, 2.18, v ** 0.82)
         mid = math.sin(v * math.pi)
-        vol = 0.12 + 0.07 * mid
+        vol = 0.10 + 0.06 * mid
         wave = 0.10 * math.sin(v * math.pi * 3.0) * smooth(v)
         if u < 0.08:
             vol *= mix(0.55, 1.0, u / 0.08)
@@ -488,12 +522,17 @@ def build_inner():
 
 
 def main():
-    head = find_head()
+    head = replace_head()
     remove_hair()
     hair_mat = bpy.data.materials.get("hair")
     if hair_mat is None:
         hair_mat = lib.material("hair", (0.210, 0.145, 0.125), 0.62)
-    pieces = [build_scalp(), build_bang(), build_occipital(), build_inner()]
+    pieces = [
+        build_scalp(),
+        build_bang(),
+        build_occipital(),
+        build_inner(),
+    ]
     pieces.extend(build_front())
     pieces.extend(build_mid())
     pieces.extend(build_back())
