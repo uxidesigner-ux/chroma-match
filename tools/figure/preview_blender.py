@@ -1,12 +1,7 @@
-"""Stage-1 stills from Blender, not from the showroom.
-
-Form is judged here. If these views are wrong, do not correct them in
-Three.js — edit the asset in hair_long_wave.py / the .blend instead.
-"""
+"""Stage-1 stills from the editable .blend, not from a regenerated script."""
 
 from __future__ import annotations
 
-import math
 import sys
 from pathlib import Path
 
@@ -14,9 +9,10 @@ import bpy
 from mathutils import Vector, Euler
 
 sys.path.insert(0, str(Path(__file__).parent))
-import character  # noqa: E402
+import asset_paths  # noqa: E402
 
 OUT = Path("/opt/cursor/artifacts")
+PREVIEW = asset_paths.ASSET / "preview"
 
 
 def _look_at(camera, target):
@@ -39,7 +35,7 @@ def _add_light():
     data.energy = 3.0
     obj = bpy.data.objects.new("key", data)
     bpy.context.scene.collection.objects.link(obj)
-    obj.location = ( -3.0, -6.0, 5.0)
+    obj.location = (-3.0, -6.0, 5.0)
     obj.rotation_euler = Euler((0.7, 0.0, -0.4), "XYZ")
     fill = bpy.data.lights.new("fill", "SUN")
     fill.energy = 0.8
@@ -64,18 +60,27 @@ def render(path: Path, camera, size=(720, 960)):
 
 
 def main():
-    character.build()
+    if not asset_paths.BLEND.exists():
+        raise SystemExit(f"missing blend: {asset_paths.BLEND}")
+    bpy.ops.wm.open_mainfile(filepath=str(asset_paths.BLEND))
     OUT.mkdir(parents=True, exist_ok=True)
+    PREVIEW.mkdir(parents=True, exist_ok=True)
     _add_light()
-    target = (0.0, 0.35, -0.55)
-    front = _add_camera("cam_front", (0.0, -9.5, -0.35), target, lens=70)
-    three = _add_camera("cam_34", (6.2, -7.2, -0.25), target, lens=70)
-    side = _add_camera("cam_side", (9.5, -0.6, -0.30), target, lens=70)
-    back = _add_camera("cam_back", (0.0, 9.5, -0.20), target, lens=70)
-    render(OUT / "blender_front.png", front)
-    render(OUT / "blender_threequarter.png", three)
-    render(OUT / "blender_side.png", side)
-    render(OUT / "blender_back.png", back)
+    # Frame the bust like the original: eyes ~40% from the top, face filling
+    # the middle. Blender coords are (x, -front, up).
+    target = (0.0, -0.22, -0.15)
+    front = _add_camera("cam_front", (0.0, -6.6, 0.18), target, lens=85)
+    three = _add_camera("cam_34", (4.4, -5.2, 0.16), target, lens=85)
+    side = _add_camera("cam_side", (6.8, -0.35, 0.12), target, lens=85)
+    back = _add_camera("cam_back", (0.0, 6.6, 0.20), target, lens=85)
+    for name, cam in [
+        ("blender_front.png", front),
+        ("blender_threequarter.png", three),
+        ("blender_side.png", side),
+        ("blender_back.png", back),
+    ]:
+        render(OUT / name, cam)
+        render(PREVIEW / name, cam)
 
 
 if __name__ == "__main__":

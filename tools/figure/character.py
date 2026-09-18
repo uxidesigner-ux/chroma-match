@@ -175,9 +175,9 @@ def build_top():
 
 
 def build():
+    """Body only. Does not write hair_long_wave.blend or hair_long_wave.glb."""
     lib.reset()
     skin = lib.material("skin", (0.945, 0.710, 0.560), 0.80)
-    hair_mat = lib.material("hair", (0.210, 0.145, 0.125), 0.62)
     cloth = lib.material("cloth", (0.085, 0.082, 0.088), 0.96)
     # Soft eye: less specular bead. The reference eyes are simple dark ovals,
     # not glass marbles.
@@ -218,19 +218,22 @@ def build():
         lib.assign(ear, skin)
         body.append(ear)
 
-    from hair_long_wave import ASSET_DIR, PUBLIC, assign_hair, build_hair, export_objects, save_blend
-    hair = assign_hair(build_hair(), hair_mat)
+    from asset_paths import BODY_GLB, CHARACTER_GLB, HAIR_GLB, PUBLIC
+    from hair_long_wave import export_objects
 
     PUBLIC.mkdir(parents=True, exist_ok=True)
-    export_objects(hair, PUBLIC / "hair_long_wave.glb", hair_mat)
-    export_objects(body, PUBLIC / "body.glb", None)
+    export_objects(body, BODY_GLB)
+    print(f"BODY {BODY_GLB} bytes={BODY_GLB.stat().st_size}")
 
-    assembled = PUBLIC / "character.glb"
-    lib.export(str(assembled))
-    total = sum(len(o.data.vertices) for o in bpy.data.objects if o.type == "MESH")
-    print(f"BUILT {assembled} verts={total} bytes={assembled.stat().st_size}")
-
-    save_blend(ASSET_DIR / "hair_long_wave.blend")
+    if HAIR_GLB.exists():
+        # Assemble without regenerating hair. Form lives in the .blend.
+        lib.reset()
+        bpy.ops.import_scene.gltf(filepath=str(BODY_GLB))
+        bpy.ops.import_scene.gltf(filepath=str(HAIR_GLB))
+        lib.export(str(CHARACTER_GLB))
+        print(f"ASSEMBLED {CHARACTER_GLB} bytes={CHARACTER_GLB.stat().st_size}")
+    else:
+        print("no hair_long_wave.glb yet; body only")
 
 
 if __name__ == "__main__":

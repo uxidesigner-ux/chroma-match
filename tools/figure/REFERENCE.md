@@ -65,9 +65,10 @@ comparison.
 
 The long-wave is a separate hair asset on the shared head. Attempt 8’s
 bang/eye visibility seating is kept. Stage 1 in Blender has **not** passed:
-the meshes are tube clumps, not the original’s one clay hairstyle. Do not
-treat export or showroom attach as a form fix. 5c is not the proportion
-source.
+the editable original is still the tube-clump blockout. Headless sculpt
+brushes crash in this bpy; do not treat a new generator pass as the
+finished hair. Do not treat export or showroom attach as a form fix.
+5c is not the proportion source.
 
 The clay sheet is the look bar. Wardrobe combination is later
 (`docs/wardrobe.md`), not this pass.

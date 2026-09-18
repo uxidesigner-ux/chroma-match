@@ -1,18 +1,7 @@
-"""
-Long-wave hair as an independent asset on the shared head.
+"""Initial tube-clump blockout. Writes only to assets/long-wave/generated/.
 
-This is not another pass of the lock generator in hair.py. The form is
-blocked as tube clumps on the guide head, which is the public ZEPETO
-hair-modelling pattern (tube/clump geometry, scalp covered, do not dig
-into the face) plus a stylized blockout: silhouette and volume first.
-
-No strand simulation, no physics bones, no face-hole boolean on a closed
-helmet (that was 5d). The bang sits in front of the finished forehead —
-the visibility fix from attempt 8 is kept as placement, not as a web
-depth-test workaround.
-
-Editable original: tools/figure/assets/long-wave/hair_long_wave.blend
-Exported asset:    public/figure/hair_long_wave.glb
+Does not overwrite the editable original (.blend) or the shipped hair GLB.
+Those come from a hand-edited original plus export_hair.py.
 """
 
 from __future__ import annotations
@@ -21,8 +10,8 @@ import math
 import sys
 from pathlib import Path
 
-import bmesh
 import bpy
+import bmesh
 from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -328,3 +317,17 @@ def export_objects(objects, path: Path, mat=None):
     for obj in hidden:
         obj.hide_set(False)
     print(f"GLB {path.name} bytes={path.stat().st_size}")
+
+
+if __name__ == "__main__":
+    from asset_paths import GENERATED
+    from character import build_head
+    lib.reset()
+    hair_mat = lib.material("hair", (0.210, 0.145, 0.125), 0.62)
+    skin = lib.material("skin", (0.945, 0.710, 0.560), 0.80)
+    lib.assign(build_head(), skin)
+    pieces = assign_hair(build_hair(), hair_mat)
+    GENERATED.mkdir(parents=True, exist_ok=True)
+    export_objects(pieces, GENERATED / "blockout_hair.glb")
+    save_blend(GENERATED / "blockout.blend")
+    print("wrote generated/ only; editable original untouched")
