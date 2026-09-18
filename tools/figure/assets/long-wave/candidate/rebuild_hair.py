@@ -226,8 +226,6 @@ SIL = [
 SIDE_FULL = {-1: 1.04, 1: 0.96}
 # Bang lower edge: side part on the crown -> across the forehead -> left ear top.
 BANG_EDGE = [(0.19, 0.82), (0.00, 0.36), (-0.42, 0.10), (-0.78, 0.00)]
-# Top edge sits inside the cap so the sweep emerges from under it, no fin.
-BANG_TOP = [(0.20, 0.86), (-0.12, 0.90), (-0.52, 0.74), (-0.86, 0.38)]
 # Exposed forehead to the right of the part, down to the right ear.
 HAIRLINE_R = [(0.19, 0.78), (0.40, 0.58), (0.60, 0.28), (0.78, -0.05), (1.00, -0.30)]
 
@@ -283,7 +281,7 @@ def tube(name, rows, nu=20):
     for c, a, b, ph in rows:
         for i in range(nu):
             th = i / nu * math.tau
-            r = 1.0 + 0.11 * math.cos(3.0 * th + ph)
+            r = 1.0 + 0.06 * math.cos(3.0 * th + ph)
             p = (c.x + a * r * math.cos(th), c.y, c.z + b * r * math.sin(th))
             verts.append(Vector(character.to_blender(p)))
     nv = len(rows)
@@ -347,7 +345,10 @@ def cap_shell(name, outer, inner, nu, nv):
 
 
 def cap_point(da):
-    """Cap outer surface for an authoring direction; hair top at y=1.24 like the sheet."""
+    """Cap outer surface for an authoring direction. One clay mass: the crown
+    dome (hair top at y=1.24 like the sheet), a swell running from the part
+    diagonally across the forehead to the left ear top (the bang), extra depth
+    at the upper back, and lobes converging on a whorl at the part."""
     p = character.head_surface(da)
     r = math.sqrt(p[0] ** 2 + p[1] ** 2 + p[2] ** 2) or 1.0
     up = max(0.0, p[1])
@@ -356,23 +357,45 @@ def cap_point(da):
     horiz = math.hypot(p[0], p[2])
     spread = 0.22 * (up ** 1.6)
     if horiz > 0.08:
-        sx = p[0] / horiz * spread
-        sz = p[2] / horiz * spread * 0.5
+        ox, oz = p[0] / horiz, p[2] / horiz
+        sx = ox * spread
+        sz = oz * spread * 0.5
     else:
+        ox, oz = da[0], da[2]
         sx = da[0] * spread * 2.0
         sz = da[2] * spread * 1.1
     part = math.exp(-((p[0] - PART_X) ** 2) / 0.10) * (up ** 1.2)
     pile -= 0.04 * part * max(0.0, p[2] + 0.2)
-    # Clay lobes fanning out from the side part (top view of the sheet):
-    # ridges run front-to-back, spaced wider on the bang side.
-    lobe_axis = (p[0] - PART_X) * 1.0 + 0.10 * p[2]
-    lobes = math.cos(lobe_axis * 9.5) * 0.5 + 0.5
-    lobe_amp = 0.032 * smooth(up / 0.6) * (1.0 - 0.6 * part)
+
+    # Lobes radiating from the whorl at the part (sheet top view).
+    ang = math.atan2(p[2] - 0.12, p[0] - PART_X)
+    dist = math.hypot(p[2] - 0.12, p[0] - PART_X)
+    lobes = math.cos(ang * 7.0) * 0.5 + 0.5
+    lobe_amp = 0.034 * smooth(up / 0.5) * smooth(dist / 0.25)
     pile += lobe_amp * lobes
+
+    # Upper-back depth: the sheet's side view has the mass standing well
+    # behind the skull at crown height.
+    back_swell = 0.14 * smooth(-p[2] / 0.55) * smooth((p[1] + 0.25) / 0.85) * (1.0 - smooth((p[1] - 0.75) / 0.3))
+    sx += ox * back_swell * 0.6
+    sz += oz * back_swell
+
+    # Bang swell: left of the part, on the front, thickest mid-way between the
+    # hairline edge and the crown, thinning to a clay lip at the edge.
+    bang = 0.0
+    if p[0] < PART_X + 0.10 and p[2] > -0.15:
+        edge = hairline(min(p[0], PART_X - 0.001))
+        d = p[1] - edge
+        if 0.0 <= d <= 1.0:
+            prof = math.sin(math.pi * min(1.0, d / 1.0)) ** 0.9
+            fade_part = smooth((PART_X + 0.10 - p[0]) / 0.25)
+            fade_front = smooth((p[2] + 0.15) / 0.35)
+            bang = 0.24 * prof * fade_part * fade_front
+    n = skull_normal(p[0], p[1], p[2])
     return (
-        p[0] + p[0] / r * wrap + sx,
-        p[1] + p[1] / r * wrap + pile,
-        p[2] + p[2] / r * wrap * 0.6 + sz,
+        p[0] + p[0] / r * wrap + sx + n.x * bang,
+        p[1] + p[1] / r * wrap + pile + n.y * bang,
+        p[2] + p[2] / r * wrap * 0.6 + sz + n.z * bang,
     )
 
 
@@ -389,11 +412,9 @@ def cap_boundary(az):
     y = 0.4
     for _ in range(8):
         p = character.head_surface(_dir(wrapped, y))
+        # Left of the part the rim is the bang's lower edge itself: crown and
+        # bang are one piece of clay.
         lim = hairline(p[0])
-        if p[0] < PART_X:
-            # Under the bang the cap stops higher, but never climbs above
-            # the bang's top edge, or it pokes out as a fin at the part.
-            lim = min(lim + 0.30, 0.74)
         y = 0.5 * y + 0.5 * lim
     back = smooth((abs(wrapped) - 1.35) / 0.55)
     return mix(y, -0.30, back)
@@ -422,42 +443,6 @@ def build_scalp():
     return cap_shell("hair_scalp", outer, inner, nu=56, nv=18)
 
 
-def build_bang():
-    """Thick diagonal sweep from the side part across the forehead to the left
-    ear top. Thickest through the middle, thin at the lower edge, merging into
-    the cap along its top."""
-
-    def sample(u, v, outer):
-        tx, ty = polyline(BANG_TOP, u)
-        ex, ey = polyline(BANG_EDGE, u)
-        x = mix(tx, ex, v)
-        y = mix(ty, ey, v)
-        z0 = skull_front(x, y)
-        n = skull_normal(x, y, max(z0, 0.02))
-        if v < 0.40:
-            base = mix(0.08, 0.30, smooth(v / 0.40))
-        else:
-            base = mix(0.30, 0.014, smooth((v - 0.40) / 0.60) ** 0.85)
-        span = math.sin(math.pi * mix(0.06, 0.97, u)) ** 0.5
-        th = base * span
-        if u < 0.10:
-            th *= mix(0.55, 1.0, u / 0.10)
-        ridge = 1.0 + 0.10 * math.sin(v * math.pi * 2.4 + u * 1.8) * smooth(v / 0.3) * (1.0 - smooth((v - 0.7) / 0.3))
-        th *= ridge
-        clr = th if outer else 0.010
-        p = Vector((x, y, z0)) + n * clr
-        # Sweep sags slightly with gravity toward the left temple.
-        return Vector((p.x, p.y - 0.02 * u * v, p.z))
-
-    return grid_shell(
-        "hair_bang",
-        lambda u, v: sample(u, v, True),
-        lambda u, v: sample(u, v, False),
-        nu=24,
-        nv=16,
-    )
-
-
 def build_side(side):
     """One thick lock bundle per side, from under the cap to the shoulder,
     following the measured silhouette. Sits behind the ear at ear height,
@@ -477,8 +462,10 @@ def build_side(side):
         inner_edge = max(inner_edge, skull - 0.10)
         cx = (outer + inner_edge) / 2.0
         a = max(0.04, (outer - inner_edge) / 2.0)
-        cz = table([(0.60, -0.30), (0.20, -0.30), (-0.20, -0.32), (-0.80, -0.20), (-1.30, 0.04), (-1.80, 0.24), (-2.30, 0.32), (-2.88, 0.34)], y)
-        b = table([(0.60, 0.30), (0.20, 0.38), (-0.40, 0.40), (-0.90, 0.44), (-1.40, 0.48), (-2.00, 0.46), (-2.60, 0.32), (-2.88, 0.05)], y)
+        # Behind the ear at ear height (front face stays behind z=-0.10 so both
+        # pearls read from the front), then swings forward over the shoulder.
+        cz = table([(0.60, -0.42), (0.20, -0.46), (-0.20, -0.46), (-0.60, -0.36), (-0.95, -0.14), (-1.30, 0.06), (-1.80, 0.24), (-2.30, 0.32), (-2.88, 0.34)], y)
+        b = table([(0.60, 0.26), (0.20, 0.32), (-0.40, 0.34), (-0.90, 0.42), (-1.40, 0.48), (-2.00, 0.46), (-2.60, 0.32), (-2.88, 0.05)], y)
         tip = smooth((y - Y_TIP) / 0.45)
         a *= mix(0.15, 1.0, tip)
         b *= mix(0.15, 1.0, tip)
@@ -500,7 +487,7 @@ def build_occipital():
         az = math.pi + mix(-1.30, 1.30, u)
         polar = mix(0.30, 2.20, v ** 0.85)
         mid = math.sin(v * math.pi)
-        vol = mix(0.05, 0.17 + 0.10 * mid, smooth(v / 0.30))
+        vol = mix(0.05, 0.22 + 0.13 * mid, smooth(v / 0.30))
         ridge = 0.09 * math.cos(u * math.pi * 5.0 + 2.6 * math.sin(v * math.pi * 3.0)) * smooth(v / 0.25)
         wave = 0.08 * math.sin(v * math.pi * 3.0) * smooth(v)
         if u < 0.08:
@@ -578,7 +565,7 @@ def main():
     hair_mat = bpy.data.materials.get("hair")
     if hair_mat is None:
         hair_mat = lib.material("hair", (0.210, 0.145, 0.125), 0.62)
-    pieces = [build_scalp(), build_bang(), build_side(-1), build_side(1), build_occipital()]
+    pieces = [build_scalp(), build_side(-1), build_side(1), build_occipital()]
     pieces.extend(build_back())
     for obj in pieces:
         lib.assign(obj, hair_mat)

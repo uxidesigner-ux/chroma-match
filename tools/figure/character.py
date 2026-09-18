@@ -38,8 +38,8 @@ DEPTH_FRONT, DEPTH_BACK = 0.92, 1.00
 EYE_Y, EYE_X = -0.125, 0.220
 EYE_W, EYE_H, EYE_D = 0.064, 0.088, 0.016
 # Nose: a clay ball 0.21 units below the eyes, ~0.27 wide, standing proud.
-NOSE_Y = -0.340
-NOSE_HALF = (0.135, 0.105, 0.120)
+NOSE_Y = -0.395
+NOSE_HALF = (0.150, 0.118, 0.130)
 NOSE_PROUD = 0.100
 # Neck and shoulders from the sheet: a slim short neck straight under the
 # chin, a wide soft shoulder slope, and a scoop neckline that dips at the

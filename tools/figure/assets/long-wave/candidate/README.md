@@ -18,10 +18,12 @@ Visual quality is not approved.
 - Cap: parametric shell whose front rim *is* the measured hairline (exposed
   forehead right of the part, tucked under the bang left of it). No more
   vertex-culled stair edge.
-- Bang: one thick diagonal sweep from the part to the left ear top, top edge
-  buried in the cap.
-- Sides: one wave bundle per side following the sheet silhouette, behind the
-  ear at ear height.
+- Bang: not a separate piece. The cap's rim left of the part is the bang's
+  lower edge, and a swell in the cap surface makes the diagonal sweep, so
+  crown and bang are one piece of clay. Lobes radiate from a whorl at the
+  part; extra depth at the upper back.
+- Sides: one wave bundle per side following the sheet silhouette, kept
+  behind z=-0.10 at ear height so both pearls read from the front.
 - Back: three S-wave tubes sharing one phase over a flat nape tube.
 
 - Body (`character.py`): slim short neck straight under the chin, trapezius
