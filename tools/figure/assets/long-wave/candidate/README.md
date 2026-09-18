@@ -1,26 +1,28 @@
 # Long-wave candidate (not approved)
 
-Rebuild of bang, hairline, sides, and back **inside this candidate folder
-only**. Does not replace the protected original or `public/figure/hair_long_wave.glb`.
+Form refine of bang root, side/back S-wave, and joins **inside this
+candidate folder only**. Does not replace the protected original or
+`public/figure/hair_long_wave.glb`.
 
 This is **not** the representative hair. Visual quality is not approved.
 
-## What changed vs the Grab / sausage pass
+## What changed vs the previous slab candidate
 
-- Bang is a forehead shell whose lower edge is the hairline (part → left temple),
-  not an independent round blob and not an elliptical tube along the hairline.
-- Sides are rounded-rectangle slabs with front-to-back depth, not circular tubes.
-- Back is one wide mass behind the skull, not sausage end-caps.
-- Crown stays on top of the head; bang owns the forehead.
+- Bang sits on the skull. The part end is a pad on the front of the crown,
+  not a folded visor tip in the air. Diagonal hairline is kept. Upper edge
+  is wide at the crown; the fringe tapers toward the left temple.
+- Sides keep the connected large volume and now have a length-wise S:
+  tuck toward the neck below the ear, flare near the shoulders. Readable
+  from front and 3/4. Back follows the same flow.
+- Crown is a cap on the head (no floating box lid). Inner cavity in
+  hair-only view is allowed. Pieces are not fused.
 
 ## Still wrong on screen
 
-- Bang still reads as a separate leaf / visor from 3/4 and side; it is not yet
-  the front of one clay mass.
-- Part is a fold, not a groove.
-- Left temple still shows a seam / gap between bang and side.
-- Sides lack the reference S-wave; they read as columns / curtains.
-- Surface lock ridges are missing; back is a smooth volume.
+- Bang still reads as a separate forehead pad, not yet the front of one
+  clay mass. The part corner is still a bit square.
+- Crown/bang join and the nape shelf (back mass under the cap) still show.
+- Surface lock ridges are missing; volumes are smooth.
 
 Do not merge. Do not replace `public/figure/hair_long_wave.glb`.
 

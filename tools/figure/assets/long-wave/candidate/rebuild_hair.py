@@ -95,6 +95,21 @@ def sit(head, x, y, clearance, prefer_z=0.70):
     return Vector((x, y, best[1].z + clearance))
 
 
+def on_head(x, y, z, clearance):
+    """Land on the formula skull, then offset along the surface radial.
+
+    Prescribed y above the skull used to float visor / box-lid sheets.
+    """
+    r = math.sqrt(x * x + y * y + z * z) or 1.0
+    p = character.head_surface((x / r, y / r, z / r))
+    n = math.sqrt(p[0] ** 2 + p[1] ** 2 + p[2] ** 2) or 1.0
+    return Vector((
+        p[0] + p[0] / n * clearance,
+        p[1] + p[1] / n * clearance,
+        p[2] + p[2] / n * clearance,
+    ))
+
+
 def mix(a, b, t):
     return a + (b - a) * t
 
@@ -169,7 +184,7 @@ def grid_shell(name, sample_outer, sample_inner, nu, nv):
     return finish(obj, sub=2, relax=0.14)
 
 
-def sweep_box(name, sections, n_around=20, k=4.2):
+def sweep_box(name, sections, n_around=20, k=4.2, cap_start=True, cap_end=True):
     """Rounded-rectangle solid swept down y. k=2 is a tube; k>3 is a clay slab."""
     rings = []
     verts = []
@@ -196,8 +211,10 @@ def sweep_box(name, sections, n_around=20, k=4.2):
             c = rings[i + 1][(kpt + 1) % n_around]
             d = rings[i + 1][kpt]
             faces.append((a, b, c, d))
-    faces.append(tuple(reversed(rings[0])))
-    faces.append(tuple(rings[-1]))
+    if cap_start:
+        faces.append(tuple(reversed(rings[0])))
+    if cap_end:
+        faces.append(tuple(rings[-1]))
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(verts, [], faces)
     mesh.update()
@@ -225,159 +242,165 @@ def find_head():
 
 
 def _taper_cap(sections):
-    """Tiny first ring so the top cap rounds into a dome, not a cut box."""
-    y, x0, x1, z0, z1 = sections[0]
-    cx, cz = 0.5 * (x0 + x1), 0.5 * (z0 + z1)
-    cap = (
-        y + 0.08,
-        mix(cx, x0, 0.22),
-        mix(cx, x1, 0.22),
-        mix(cz, z0, 0.22),
-        mix(cz, z1, 0.22),
-    )
-    return [cap, sections[0]] + list(sections[1:])
+    return list(sections)
 
 
 def _with_sil(sections, sil, sign):
-    """Keep authored inner/front/back; outer x follows the measured silhouette."""
+    """Authored S-curve is the form. Silhouette may widen the shoulder flare only."""
     out = []
-    for y, x_in, _x_out, z_b, z_f in sections:
-        x_out = _lerp_sil(sil, y)
-        # Keep the authored outer when it is more extreme (bang reach, wave).
-        if sign < 0:
-            x_out = min(x_out, _x_out)
-        else:
-            x_out = max(x_out, _x_out)
+    for y, x_in, x_out, z_b, z_f in sections:
+        if y <= -1.15:
+            sil_x = _lerp_sil(sil, y)
+            if sign < 0:
+                x_out = min(x_out, sil_x)
+            else:
+                x_out = max(x_out, sil_x)
         out.append((y, x_in, x_out, z_b, z_f))
     return _taper_cap(out)
 
 
 def build_bang(head):
-    """Organic hairline on top of the left mass. Points stay on the head."""
+    """Diagonal fringe: wide root at the part, convex on the forehead, taper to temple.
+
+    The part end is a pad on the front of the crown, not a folded visor tip.
+    Hairline stays on the forehead; bulge is mid-fringe curvature, not extra mass.
+    """
 
     def sample(u, v, outer):
         t = smooth(u)
         vv = smooth(v)
-        x_hl = mix(0.26, -0.94, t)
-        y_hl = hairline_y(x_hl) - 0.22 * (t ** 1.35)
-        x_up = mix(0.20, -0.78, t)
-        y_up = mix(1.18, 0.55, t)
+        # Hairline: part → left temple. Diagonal kept.
+        x_hl = mix(0.30, -0.82, t)
+        y_hl = hairline_y(x_hl) - 0.03 * t
+        z_hl = 0.90
+        # Upper edge is a wide band on the front of the crown (on the skull).
+        x_up = mix(0.20, -0.58, t)
+        y_up = mix(0.99, 0.84, t) - 0.14 * smooth(max(0.0, (t - 0.58) / 0.42))
+        z_up = mix(0.14, 0.06, t)
+        # Round the part into a pad, not a lifted corner.
+        pad = (1.0 - t) ** 2
+        x_up -= 0.16 * pad
+        x_hl += 0.05 * pad
         x = mix(x_hl, x_up, vv)
         y = mix(y_hl, y_up, vv)
-        prefer_hl = mix(0.86, 0.32, t)
-        prefer_up = mix(0.28, 0.02, t)
-        prefer = mix(prefer_hl, prefer_up, vv)
-        bulge = math.sin(math.pi * min(1.0, t / 0.9)) * math.sin(vv * math.pi)
-        # Thin lip at the hairline, puff behind it so the front is a mass not a visor edge.
+        z = mix(z_hl, z_up, vv)
+        cx = math.exp(-((t - 0.28) ** 2) / 0.26)
+        cv = math.sin(math.pi * vv)
+        bulge = cx * cv
+        z += 0.08 * bulge
         if outer:
-            clearance = 0.08 + 0.10 * vv + 0.16 * bulge
+            # Thin hairline lip; mass in the middle of the fringe, not a visor wall.
+            clearance = 0.034 + 0.060 * vv + 0.040 * bulge
         else:
-            clearance = 0.04
-        return sit(head, x, y, clearance, prefer_z=prefer)
+            clearance = 0.022 + 0.010 * vv
+        return on_head(x, y, z, clearance)
 
     return grid_shell(
         "hair_bang",
         lambda u, v: sample(u, v, True),
         lambda u, v: sample(u, v, False),
-        nu=24,
-        nv=10,
+        nu=26,
+        nv=16,
     )
 
 
+def _hang_keys(sign):
+    """Connected side mass with a length-wise S: tuck to the neck, flare at the shoulder.
+
+    First ring sits beside the crown, not as a lid on top of it.
+    """
+    raw = [
+        (0.72, 0.50, 0.90, -0.40, 0.38),
+        (0.50, 0.56, 1.02, -0.78, 0.40),
+        (0.24, 0.62, 1.12, -1.00, 0.32),
+        (-0.04, 0.64, 1.12, -1.10, 0.14),
+        (-0.32, 0.46, 0.90, -1.16, -0.04),
+        (-0.58, 0.34, 0.74, -1.22, -0.10),
+        (-0.84, 0.32, 0.72, -1.16, -0.06),
+        (-1.12, 0.38, 1.12, -0.98, 0.12),
+        (-1.40, 0.44, 1.64, -0.82, 0.22),
+        (-1.70, 0.46, 1.98, -0.66, 0.24),
+        (-2.00, 0.44, 2.08, -0.48, 0.16),
+        (-2.32, 0.40, 2.02, -0.32, 0.10),
+        (-2.64, 0.38, 1.94, -0.18, 0.06),
+        (-3.04, 0.36, 1.86, -0.10, 0.04),
+    ]
+    keys = []
+    for y, x_in, x_out, z_b, z_f in raw:
+        if sign < 0:
+            keys.append((y, -x_in, -x_out, z_b, z_f))
+        else:
+            keys.append((y, x_in, x_out, z_b, z_f))
+    return keys
+
+
 def build_sides():
-    # y, x_in, x_out, z_back, z_front
-    # Left top spans part → temple IN FRONT of the forehead so the bang is
-    # the front of this mass, not a separate headband.
-    left_keys = [
-        (1.30,  0.20, -0.55, -1.02, 0.38),
-        (1.12,  0.26, -0.78, -1.14, 0.58),
-        (0.92,  0.22, -0.98, -1.20, 0.68),
-        (0.70,  0.06, -1.12, -1.22, 0.58),
-        (0.42, -0.22, -1.28, -1.18, 0.42),
-        (0.12, -0.52, -1.48, -1.14, 0.36),
-        (-0.18, -0.58, -1.58, -1.10, 0.30),
-        (-0.52, -0.50, -1.62, -1.04, 0.26),
-        (-0.88, -0.44, -1.64, -0.98, 0.22),
-        (-1.25, -0.40, -1.72, -0.90, 0.20),
-        (-1.62, -0.40, -2.00, -0.80, 0.22),
-        (-1.98, -0.42, -2.18, -0.66, 0.18),
-        (-2.32, -0.40, -2.18, -0.50, 0.12),
-        (-2.64, -0.38, -2.20, -0.34, 0.08),
-        (-3.04, -0.36, -2.22, -0.20, 0.04),
-    ]
-    right_keys = [
-        (1.30,  0.18,  0.50, -1.02, 0.28),
-        (1.12,  0.22,  0.72, -1.14, 0.42),
-        (0.92,  0.28,  0.95, -1.20, 0.48),
-        (0.70,  0.42,  1.12, -1.22, 0.44),
-        (0.42,  0.62,  1.28, -1.18, 0.38),
-        (0.12,  0.78,  1.42, -1.14, 0.32),
-        (-0.18, 0.58,  1.50, -1.10, 0.28),
-        (-0.52, 0.48,  1.52, -1.04, 0.24),
-        (-0.88, 0.42,  1.46, -0.98, 0.20),
-        (-1.25, 0.40,  1.38, -0.90, 0.18),
-        (-1.62, 0.40,  1.70, -0.80, 0.20),
-        (-1.98, 0.42,  1.92, -0.66, 0.16),
-        (-2.32, 0.40,  1.92, -0.50, 0.10),
-        (-2.64, 0.38,  1.88, -0.34, 0.06),
-        (-3.04, 0.36,  1.90, -0.20, 0.04),
-    ]
-    left = sweep_box("hair_side_l", _with_sil(left_keys, LEFT_SIL, -1), n_around=24, k=4.8)
-    right = sweep_box("hair_side_r", _with_sil(right_keys, RIGHT_SIL, 1), n_around=24, k=4.8)
+    left = sweep_box(
+        "hair_side_l",
+        _with_sil(_hang_keys(-1), LEFT_SIL, -1),
+        n_around=24,
+        k=4.8,
+        cap_start=True,
+    )
+    right = sweep_box(
+        "hair_side_r",
+        _with_sil(_hang_keys(1), RIGHT_SIL, 1),
+        n_around=24,
+        k=4.8,
+        cap_start=True,
+    )
     return [left, right]
 
 
 def build_back():
-    # Behind the skull (head back is z~-0.86). Wide enough that the back view
-    # is a mass, not a hole between two side slabs.
+    """Hanging back mass. Same S as the sides. Starts at the nape, under the crown."""
     keys = [
-        (1.30, 0.28, -1.08, -0.55),
-        (1.12, 0.70, -1.22, -0.42),
-        (0.82, 0.88, -1.28, -0.38),
-        (0.45, 0.96, -1.24, -0.32),
-        (0.05, 1.00, -1.16, -0.26),
-        (-0.40, 1.02, -1.06, -0.20),
-        (-0.90, 0.98, -0.94, -0.16),
-        (-1.40, 0.92, -0.80, -0.12),
-        (-1.90, 0.86, -0.64, -0.08),
-        (-2.35, 0.80, -0.48, -0.04),
-        (-2.75, 0.74, -0.34, 0.00),
-        (-3.05, 0.68, -0.22, 0.02),
+        (0.58, 0.48, -1.10, -0.52),
+        (0.32, 0.66, -1.16, -0.38),
+        (0.06, 0.76, -1.20, -0.32),
+        (-0.22, 0.70, -1.24, -0.34),
+        (-0.48, 0.58, -1.26, -0.36),
+        (-0.74, 0.54, -1.18, -0.30),
+        (-1.00, 0.68, -1.06, -0.18),
+        (-1.32, 0.88, -0.86, -0.06),
+        (-1.64, 1.00, -0.66, 0.00),
+        (-2.00, 0.94, -0.48, 0.04),
+        (-2.42, 0.78, -0.30, 0.04),
+        (-3.04, 0.66, -0.16, 0.04),
     ]
     sections = []
-    for i, (y, half, z_b, z_f) in enumerate(keys):
-        t = i / (len(keys) - 1)
-        wave = 0.05 * math.sin(t * math.pi * 1.15)
-        sections.append((y, -half + wave, half + wave, z_b, z_f))
-    return sweep_box("hair_back", _taper_cap(sections), n_around=24, k=4.5)
+    for y, half, z_b, z_f in keys:
+        sections.append((y, -half, half, z_b, z_f))
+    return sweep_box(
+        "hair_back",
+        _taper_cap(sections),
+        n_around=24,
+        k=3.8,
+        cap_start=True,
+    )
 
 
 def build_crown(head):
-    """Rounded top with a part. Stays on the crown; bang owns the forehead."""
+    """Skull cap on the head. Face stays open for the bang."""
 
     def sample(u, v, outer):
-        x = mix(-0.72, 0.76, u)
-        part = math.exp(-((x - 0.22) ** 2) / 0.038)
-        y_front = 0.98 + 0.04 * part
-        y_crown = 1.28 - 0.05 * part
-        y_nape = 0.62
-        if v < 0.40:
-            y = mix(y_front, y_crown, smooth(v / 0.40))
-        else:
-            y = mix(y_crown, y_nape, smooth((v - 0.40) / 0.60))
-        prefer = mix(0.08, -0.78, v)
-        groove = 0.06 * part * (1.0 if outer else 0.35)
-        clearance = (0.14 if outer else 0.055) - groove
-        p = sit(head, x, y, clearance, prefer_z=prefer)
-        if v < 0.22:
-            p.z = min(p.z, 0.18)
-        return p
+        az = math.pi + u * math.tau * 1.04
+        backness = 0.5 - 0.5 * math.cos(az)
+        polar = mix(0.05, mix(0.58, 1.48, backness), v)
+        x = math.sin(polar) * math.sin(az)
+        y = math.cos(polar)
+        z = math.sin(polar) * math.cos(az)
+        az_w = az % math.tau
+        part = math.exp(-((az_w - 0.35) ** 2) / 0.22)
+        groove = 0.014 * part * (1.0 - v)
+        clearance = (0.145 if outer else 0.052) - groove * (1.0 if outer else 0.3)
+        return on_head(x, y, z, clearance)
 
     return grid_shell(
         "hair_crown",
         lambda u, v: sample(u, v, True),
         lambda u, v: sample(u, v, False),
-        nu=18,
+        nu=22,
         nv=12,
     )
 
