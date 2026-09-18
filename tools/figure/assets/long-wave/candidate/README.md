@@ -1,45 +1,27 @@
 # Long-wave candidate (not approved)
 
-Form pass inside this candidate folder only. Does not replace the protected
-original or `public/figure/hair_long_wave.glb`.
-
-Long-length checkpoint (shoulder plate removed): `checkpoint-8fbe93b` / git
-`8fbe93b`. Plate checkpoint remains `checkpoint-b5d56d2` / git `b5d56d2`.
+Form pass from the turnaround sheet (front / 3/4 / side / back, layer guide).
+Does not replace the protected original or `public/figure/hair_long_wave.glb`.
 
 Visual quality is not approved.
 
 ## This pass
 
-Crown and bang are one wrapped surface: a wide diagonal pad from the part
-across the left forehead, thinning at the fringe. Sides are two long S-locks
-beside the face (right ear can show). Back is a separate mass that overlaps
-the cap, with a softer middle — not a shoulder plate.
-
-Four meshes (`hair_top`, `hair_left`, `hair_right`, `hair_back`). Same save
-for `.blend`, GLB, and stills.
+Open scalp plus a forehead bang pad from the side part. Front and back are
+overlapping S-locks that start under the scalp and tuck behind the ears.
+An occipital pad covers the back of the skull so the showroom back is not
+a bald head under a lid. Inner nape fill hangs with the back locks.
+Same save for `.blend`, GLB, and stills.
 
 ## Still wrong on screen
 
-- Bang is closer to a diagonal pad, but the underside crease still reads as a
-  visor in 3/4 and side.
-- Side locks show a large S, yet they still read as separate hanging straps,
-  not one clay volume with the bang.
-- Back is no longer a punctured shelf, but it still reads as a thick helmet
-  column from behind; side pieces still peel off.
+- Bang is a diagonal forehead pad, but the fringe still reads as a visor lip
+  and the scalp still sits as a separate cap with a crease.
+- Side locks have length and S-waves, but they still separate from the bang
+  at the temples more than the sheet's one clay mass.
+- Showroom back now has skull coverage; a nape gap and hanging-strip roots
+  remain versus the sheet's one wavy clay mass.
 
 Do not merge. Do not replace `public/figure/hair_long_wave.glb`.
 
 Protected original (untouched): `../hair_long_wave.blend`
-
-```
-/home/ubuntu/opt/blender-5.0.1-linux-x64/blender --background --gpu-backend opengl \
-  candidate/hair_long_wave.blend --python candidate/rebuild_hair.py
-/home/ubuntu/opt/blender-5.0.1-linux-x64/blender --background --python export_candidate.py
-/home/ubuntu/opt/blender-5.0.1-linux-x64/blender --background --python render_preview.py
-```
-
-Review attach (does not overwrite public hair):
-
-```
-http://127.0.0.1:5174/tools/figure/review/asset.html?hair=/dev/hair_long_wave_candidate.glb
-```

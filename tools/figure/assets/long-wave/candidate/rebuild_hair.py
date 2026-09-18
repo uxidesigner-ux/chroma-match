@@ -1,12 +1,11 @@
-"""Sculpt the candidate as one long-wave style.
+"""Sculpt the candidate from the long-wave turnaround sheet.
 
 Does not touch the protected original or public GLB.
-Long-length checkpoint: git 8fbe93b. Previous sculpt: git 02230ce.
 
-Form this pass must hold at once:
-- Bang is a round diagonal pad from part to left temple, not a visor lip.
-- Sides keep long length and one large S each; right ear can show.
-- Back is two masses with a valley, not a column. Pieces overlap as one style.
+Open scalp (face window, not a visor cap). Bang is a forehead pad from the
+side part to the left temple. Sides and back are overlapping S-locks that
+start on the crown and tuck behind the ears. Inner nape fill so the skull
+does not show. No voxel fuse. No crown-petal sausages.
 """
 
 from __future__ import annotations
@@ -26,16 +25,12 @@ import lib  # noqa: E402
 
 CANDIDATE = ROOT / "assets/long-wave/candidate"
 BLEND = CANDIDATE / "hair_long_wave.blend"
-Y_TIP = -3.12
-R_MAX = 1.30
+Y_TIP = -2.88
+PART = (0.26, 0.94, 0.06)
 
 
 def _auth(co):
     return Vector((co.x, co.z, -co.y))
-
-
-def _to_b(p):
-    return Vector(character.to_blender((float(p[0]), float(p[1]), float(p[2]))))
 
 
 def mix(a, b, t):
@@ -45,10 +40,6 @@ def mix(a, b, t):
 def smooth(t):
     t = 0.0 if t < 0.0 else 1.0 if t > 1.0 else t
     return t * t * (3.0 - 2.0 * t)
-
-
-def clamp(x, lo, hi):
-    return lo if x < lo else hi if x > hi else x
 
 
 def on_head(x, y, z, clearance):
@@ -62,14 +53,19 @@ def on_head(x, y, z, clearance):
     ))
 
 
-def wrap_az(az):
-    a = az % math.tau
-    if a > math.pi:
-        a -= math.tau
-    return a
+def sit(x, y, z, clearance):
+    p = on_head(x, y, z, clearance)
+    return (p.x, p.y, p.z)
 
 
-def finish(obj, sub=1, relax=0.18):
+def bang_pt(x, y, clearance, z_guess=0.78):
+    """Centreline in front of the forehead, not a radial visor rim."""
+    r = math.sqrt(x * x + y * y + z_guess * z_guess) or 1.0
+    surface = character.head_surface((x / r, y / r, z_guess / r))
+    return (x, y, surface[2] + clearance)
+
+
+def finish(obj, sub=1, relax=0.16):
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
@@ -81,62 +77,70 @@ def finish(obj, sub=1, relax=0.18):
     if sub:
         lib.subsurf(obj, sub)
     if relax:
-        lib.relax(obj, relax, 3)
+        lib.relax(obj, relax, 2)
     lib.shaded_smooth(obj)
     obj.name = obj.data.name = obj.name
     return obj
 
 
-def grid_shell(name, sample_outer, sample_inner, nu, nv, wrap_u=False):
+def grid_shell(name, sample_outer, sample_inner, nu, nv):
     verts = []
-    u_den = nu if wrap_u else (nu - 1)
     for j in range(nv):
         v = j / (nv - 1)
         for i in range(nu):
-            u = i / u_den
-            verts.append(_to_b(sample_outer(u, v)))
+            u = i / (nu - 1)
+            verts.append(Vector(character.to_blender(tuple(sample_outer(u, v)))))
     inner_off = len(verts)
     for j in range(nv):
         v = j / (nv - 1)
         for i in range(nu):
-            u = i / u_den
-            verts.append(_to_b(sample_inner(u, v)))
+            u = i / (nu - 1)
+            verts.append(Vector(character.to_blender(tuple(sample_inner(u, v)))))
     faces = []
 
     def quad(a, b, c, d):
         faces.append((a, b, c, d))
 
-    u_faces = nu if wrap_u else (nu - 1)
     for j in range(nv - 1):
-        for i in range(u_faces):
-            i2 = (i + 1) % nu if wrap_u else (i + 1)
+        for i in range(nu - 1):
             a = j * nu + i
-            a2 = j * nu + i2
-            quad(a, a + nu, a2 + nu, a2)
+            quad(a, a + nu, a + nu + 1, a + 1)
             b = inner_off + a
-            b2 = inner_off + a2
-            quad(b2, b2 + nu, b + nu, b)
-    for i in range(u_faces):
-        i2 = (i + 1) % nu if wrap_u else (i + 1)
-        a, b = i, i2
+            quad(b + 1, b + nu + 1, b + nu, b)
+    for i in range(nu - 1):
+        a, b = i, i + 1
         quad(a, b, inner_off + b, inner_off + a)
         a = (nv - 1) * nu + i
-        b = (nv - 1) * nu + i2
+        b = a + 1
         quad(b, a, inner_off + a, inner_off + b)
-    if not wrap_u:
-        for j in range(nv - 1):
-            a = j * nu
-            c = a + nu
-            quad(a, inner_off + a, inner_off + c, c)
-            a = j * nu + (nu - 1)
-            c = a + nu
-            quad(a, c, inner_off + c, inner_off + a)
+    for j in range(nv - 1):
+        a = j * nu
+        c = a + nu
+        quad(a, inner_off + a, inner_off + c, c)
+        a = j * nu + (nu - 1)
+        c = a + nu
+        quad(a, c, inner_off + c, inner_off + a)
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(verts, [], faces)
     mesh.update()
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.scene.collection.objects.link(obj)
     return finish(obj, sub=2, relax=0.16)
+
+
+def lock(name, path, widths, flatten=0.58, tilt=0.06, resolution=18):
+    obj = lib.ribbon(
+        name,
+        [character.to_blender(p) for p in path],
+        widths,
+        flatten=flatten,
+        tilt=tilt,
+        resolution=resolution,
+    )
+    obj.name = obj.data.name = name
+    lib.relax(obj, 0.18, 2)
+    lib.shaded_smooth(obj)
+    return obj
 
 
 def bounds(obj):
@@ -167,212 +171,319 @@ def find_head():
     raise SystemExit("no head mesh")
 
 
-def _bang_s(a):
-    a0, a1 = 0.36, -1.78
-    if a > a0 or a < a1:
-        return 0.0
-    return (a0 - a) / (a0 - a1)
+def _smooth_rim(obj, rounds=8, factor=0.55):
+    mesh = obj.data
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    for _ in range(rounds):
+        boundary = [v for v in bm.verts if v.is_boundary]
+        stored = {v: v.co.copy() for v in boundary}
+        for vertex in boundary:
+            linked = [
+                e.other_vert(vertex)
+                for e in vertex.link_edges
+                if e.other_vert(vertex).is_boundary
+            ]
+            if not linked:
+                continue
+            acc = stored[vertex].copy()
+            for other in linked:
+                acc += stored[other]
+            vertex.co = acc / (1 + len(linked))
+            vertex.co = vertex.co.lerp(stored[vertex], 1.0 - factor)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
 
 
-def _bang_cover(s):
-    if s <= 0.0:
-        return 0.0
-    if s < 0.78:
-        return 1.0
-    return mix(1.0, 0.58, smooth((s - 0.78) / 0.22))
+def build_scalp():
+    """Thin open cap. Forehead is a window; the bang fills it."""
+    offset = 0.088
+
+    def shape(d):
+        p = character.head_surface((d.x, d.z, -d.y))
+        r = math.sqrt(p[0] ** 2 + p[1] ** 2 + p[2] ** 2) or 1.0
+        q = (
+            p[0] + p[0] / r * offset,
+            p[1] + p[1] / r * offset,
+            p[2] + p[2] / r * offset,
+        )
+        return character.to_blender(q)
+
+    obj = lib.sphere_cage(48, 32, shape)
+    obj.name = obj.data.name = "hair_scalp"
+
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    kill = []
+    for vertex in bm.verts:
+        q = _auth(vertex.co)
+        nape = q[2] < -0.08 and q[1] > -0.22
+        crown = q[1] > 0.42
+        side = abs(q[0]) > 0.40 and q[1] > 0.16 and q[2] < 0.22
+        hairline = 0.78 + 0.12 * max(0.0, q[0])
+        face = q[2] > 0.14 and q[1] < hairline
+        if (not (nape or crown or side)) or face:
+            kill.append(vertex)
+    if kill:
+        bmesh.ops.delete(bm, geom=kill, context="VERTS")
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.update()
+
+    lib.solidify(obj, thickness=0.070, offset=1.0)
+    _smooth_rim(obj)
+    lib.relax(obj, 0.22, 1)
+    lib.shaded_smooth(obj)
+    obj.name = obj.data.name = "hair_scalp"
+    return obj
 
 
-def _bang_vol(s):
-    """Convex pad: high at the part, peak on the left forehead, still present at temple."""
-    mid = 0.34
-    if s < mid:
-        return mix(0.84, 1.0, smooth(s / mid))
-    return mix(1.0, 0.46, smooth((s - mid) / (1.0 - mid)))
-
-
-def _right_pad(a):
-    a0, a1 = 0.20, 1.52
-    if a < a0 or a > a1:
-        return 0.0
-    s = (a - a0) / (a1 - a0)
-    mid = 0.28
-    if s < mid:
-        return mix(0.70, 0.92, smooth(s / mid))
-    return mix(0.92, 0.0, smooth((s - mid) / (1.0 - mid)))
-
-
-def build_top(head):
-    """Crown and bang are one surface: wide diagonal pad, thin fringe, no visor lip."""
+def build_bang():
+    """Wide diagonal forehead pad. Overlaps the scalp rim; sits on the skin."""
 
     def sample(u, v, outer):
-        az = math.pi + u * math.tau
-        a = wrap_az(az)
-        backness = 0.5 - 0.5 * math.cos(az)
-        s = _bang_s(a)
-        cover = _bang_cover(s)
-        vol = _bang_vol(s)
-        right = _right_pad(a)
-        face = max(cover * vol, right)
-
-        # Bang polar covers the forehead as an area, not a rim. Back polar
-        # reaches the hang roots so the cap is not a skull lid.
-        polar_bang = mix(1.08, 1.56, smooth(s))
-        polar_rim = mix(0.62, 1.22, backness)
-        polar_rim = mix(polar_rim, polar_bang, cover)
-        polar_rim += 0.22 * right
-        polar = mix(0.050, polar_rim, v ** (0.50 if cover > 0.04 else 0.78))
-
-        along = math.sin(v * math.pi)
-        crown_thick = 0.145
-        pad = 0.14 + 0.18 * face * along
-        fringe = smooth((v - 0.62) / 0.38) if v > 0.62 else 0.0
-        pad = mix(pad, 0.030, fringe * max(cover, right * 0.6))
-        thick = mix(crown_thick, pad, face)
-        inner = min(thick * 0.38, thick - 0.026)
-        inner = max(0.022, inner)
-        clr = thick if outer else inner
-        # Only the fringe sits on the skull. The pad middle stays a convex volume.
-        sit = mix(1.0, 0.18, cover * fringe)
-        clr *= sit
-        part = math.exp(-(a - 0.30) ** 2 / 0.16) * (1.0 - 0.50 * v)
-        clr -= 0.012 * part * (1.0 if outer else 0.30)
+        az = mix(0.88, -1.58, u)
+        polar_fringe = mix(0.84, 1.32, smooth(u))
+        polar = mix(0.24, polar_fringe, v ** 0.62)
+        mid = math.sin(max(0.0, v - 0.04) * math.pi / 0.96) * math.sin(
+            math.pi * mix(0.10, 0.96, u)
+        )
+        vol = 0.070 + 0.150 * mid
+        if u < 0.10:
+            vol *= mix(0.48, 1.0, u / 0.10)
+        if u > 0.88:
+            vol *= mix(1.0, 0.50, (u - 0.88) / 0.12)
+        fringe = smooth((v - 0.58) / 0.42) if v > 0.58 else 0.0
+        vol = mix(vol, 0.008, fringe ** 0.65)
+        inner = max(0.006, vol * 0.30)
+        clr = vol if outer else inner
+        if v > 0.90:
+            meet = (v - 0.90) / 0.10
+            inner = mix(inner, 0.006, meet)
+            clr = 0.006 if not outer else mix(clr, 0.006, meet)
+        part = math.exp(-((az - 0.30) ** 2) / 0.12) * (1.0 - 0.40 * v)
+        clr = max(0.006, clr - 0.028 * part)
         p = on_head(
             math.sin(polar) * math.sin(az),
             math.cos(polar),
             math.sin(polar) * math.cos(az),
-            max(0.028, clr),
+            clr,
         )
-        drop = cover * v * mix(0.04, 0.12, s)
-        wrap = cover * v * s
-        p = Vector((
-            p.x - 0.10 * wrap,
-            p.y - drop,
-            p.z - 0.06 * wrap,
-        ))
-        return p
+        puff = mid * (1.0 - fringe) * 0.055
+        wrap = u * v
+        return Vector((p.x - 0.07 * wrap, p.y - 0.05 * wrap, p.z + puff - 0.02 * wrap))
 
     return grid_shell(
-        "hair_top",
+        "hair_bang",
         lambda u, v: sample(u, v, True),
         lambda u, v: sample(u, v, False),
-        nu=32,
-        nv=18,
-        wrap_u=True,
+        nu=20,
+        nv=14,
     )
 
 
-def _hang_sample(u, v, outer, az0, az1, phase, sx, ear_show, valley):
-    """One hanging clay mass. u across the mass, v along length."""
-    tip = smooth(max(0.0, (v - 0.74) / 0.26))
-    uu = mix(u, 0.5, tip * 0.32)
-    side_u = abs(uu - 0.5) * 2.0
-    mid_u = 1.0 - side_u
-
-    if ear_show:
-        # Root stays behind the ear; the hanging length comes forward.
-        az_f = mix(az0 + 0.38, az0 - 0.18, smooth(v))
-        az_b = az1
-    else:
-        az_f, az_b = az0, az1
-    az_root = mix(az_f, az_b, uu)
-
-    if valley:
-        v_leave = mix(0.22, 0.34, mid_u)
-        polar0 = mix(0.32, 0.16, mid_u)
-        polar1 = mix(1.20, 1.32, side_u)
-    else:
-        v_leave = mix(0.20, 0.30, uu)
-        polar0 = mix(0.88 if ear_show else 1.18, 0.42, uu)
-        polar1 = mix(1.22, 1.28, uu)
-
-    thick = mix(0.30, 0.14, smooth(max(0.0, (v - 0.48) / 0.52)))
-    if valley:
-        thick *= mix(0.72, 1.0, side_u)
-    clr = thick if outer else max(0.040, thick * 0.38)
-
-    tv_head = min(1.0, v / max(1e-6, v_leave))
-    if v < v_leave and not valley:
-        # Side roots sit under the cap so they are not a separate strap.
-        clr *= mix(0.50, 1.0, tv_head)
-    polar = mix(polar0, polar1, smooth(tv_head))
-    head_p = on_head(
-        math.sin(polar) * math.sin(az_root),
-        math.cos(polar),
-        math.sin(polar) * math.cos(az_root),
-        clr,
+def build_front():
+    """전면 레이어: temple roots (no crown horns), tuck behind ears, long S."""
+    left = lock(
+        "hair_front_l",
+        [
+            sit(-0.22, 0.72, 0.08, 0.06),
+            sit(-0.42, 0.52, 0.28, 0.10),
+            sit(-0.74, 0.14, -0.12, 0.12),
+            (-0.94, -0.40, 0.06),
+            (-0.74, -1.00, 0.20),
+            (-1.04, -1.60, 0.00),
+            (-0.82, -2.16, 0.14),
+            (-0.92, Y_TIP, 0.00),
+        ],
+        [0.34, 0.72, 0.98, 1.00, 0.88, 0.72, 0.46, 0.16],
+        flatten=0.58,
+        tilt=[0.06, 0.10, 0.08, 0.12, 0.06, 0.04, 0.02],
     )
-    if v <= v_leave:
-        return head_p
-
-    t = (v - v_leave) / (1.0 - v_leave)
-    wave = math.sin(t * math.tau * 0.92 + phase)
-    depth = math.cos(t * math.tau * 0.92 + phase)
-    # Wave out along the side, not across the face.
-    az = az_root + (0.16 * sx) * wave * mix(1.0, 0.35, uu)
-
-    y = mix(head_p.y, Y_TIP, t)
-    r0 = math.hypot(head_p.x, head_p.z)
-    if valley:
-        r_side = r0 + 0.03 + 0.10 * wave
-        r_mid = mix(r0 * 0.94, 0.84, smooth(min(1.0, t * 1.05)))
-        r = mix(r_side, r_mid, mid_u ** 1.05)
-    else:
-        r = r0 + 0.05 * math.sin(t * math.pi) + 0.14 * wave * mix(1.0, 0.40, uu)
-    r = clamp(r, 0.62, R_MAX)
-    if not outer:
-        r = max(0.38, r - thick)
-
-    x = r * math.sin(az)
-    z = r * math.cos(az)
-    x += 0.16 * sx * wave * mix(1.0, 0.28, uu if not valley else side_u)
-    z += 0.10 * depth * mix(0.45, 1.0, 1.0 - uu if not valley else side_u)
-    return Vector((x, y, z))
-
-
-def build_left():
-    """Viewer's left: covers the ear, overlaps the bang, one large S."""
-
-    def sample(u, v, outer):
-        return _hang_sample(u, v, outer, -0.78, -2.36, 0.32, -1.0, False, False)
-
-    return grid_shell(
-        "hair_left",
-        lambda u, v: sample(u, v, True),
-        lambda u, v: sample(u, v, False),
-        nu=14,
-        nv=24,
+    left2 = lock(
+        "hair_front_l2",
+        [
+            sit(-0.40, 0.58, -0.04, 0.08),
+            sit(-0.70, 0.16, -0.20, 0.12),
+            (-0.90, -0.48, -0.02),
+            (-0.72, -1.08, 0.12),
+            (-0.98, -1.66, -0.04),
+            (-0.78, -2.20, 0.10),
+            (-0.86, Y_TIP + 0.06, -0.02),
+        ],
+        [0.28, 0.62, 0.82, 0.74, 0.58, 0.34, 0.12],
+        flatten=0.60,
+        tilt=0.06,
     )
-
-
-def build_right():
-    """Viewer's right: root behind the ear, large S beside the face."""
-
-    def sample(u, v, outer):
-        return _hang_sample(u, v, outer, 0.82, 2.36, 0.28, 1.0, True, False)
-
-    return grid_shell(
-        "hair_right",
-        lambda u, v: sample(u, v, True),
-        lambda u, v: sample(u, v, False),
-        nu=14,
-        nv=24,
+    right = lock(
+        "hair_front_r",
+        [
+            sit(0.32, 0.68, -0.10, 0.06),
+            sit(0.58, 0.46, 0.12, 0.10),
+            sit(0.82, 0.12, -0.16, 0.12),
+            (0.96, -0.40, -0.02),
+            (0.76, -1.00, 0.16),
+            (1.04, -1.60, -0.04),
+            (0.82, -2.16, 0.12),
+            (0.92, Y_TIP, -0.02),
+        ],
+        [0.30, 0.66, 0.92, 0.94, 0.82, 0.66, 0.42, 0.14],
+        flatten=0.58,
+        tilt=[0.06, 0.10, 0.08, 0.12, 0.06, 0.04, 0.02],
     )
+    right2 = lock(
+        "hair_front_r2",
+        [
+            sit(0.44, 0.58, -0.08, 0.08),
+            sit(0.76, 0.16, -0.24, 0.12),
+            (0.92, -0.48, -0.06),
+            (0.74, -1.08, 0.10),
+            (0.98, -1.66, -0.06),
+            (0.80, -2.20, 0.08),
+            (0.86, Y_TIP + 0.06, -0.04),
+        ],
+        [0.26, 0.58, 0.78, 0.70, 0.54, 0.32, 0.12],
+        flatten=0.60,
+        tilt=0.06,
+    )
+    return [left, left2, right, right2]
+
+
+def build_mid():
+    """중간 레이어: same S phase, rooted behind the ears."""
+    left = lock(
+        "hair_mid_l",
+        [
+            sit(-0.36, 0.58, -0.28, 0.14),
+            sit(-0.66, 0.18, -0.18, 0.13),
+            (-0.86, -0.36, -0.04),
+            (-0.68, -0.96, 0.14),
+            (-0.94, -1.56, -0.04),
+            (-0.74, -2.12, 0.12),
+            (-0.84, Y_TIP + 0.04, 0.00),
+        ],
+        [0.60, 0.84, 0.92, 0.82, 0.66, 0.42, 0.14],
+        flatten=0.62,
+    )
+    right = lock(
+        "hair_mid_r",
+        [
+            sit(0.42, 0.58, -0.30, 0.14),
+            sit(0.72, 0.18, -0.22, 0.13),
+            (0.90, -0.36, -0.08),
+            (0.72, -0.96, 0.12),
+            (0.96, -1.56, -0.06),
+            (0.76, -2.12, 0.10),
+            (0.86, Y_TIP + 0.04, -0.02),
+        ],
+        [0.56, 0.80, 0.88, 0.78, 0.62, 0.40, 0.14],
+        flatten=0.62,
+    )
+    return [left, right]
 
 
 def build_back():
-    """Crown-to-length back: valley down the middle, sides join the locks."""
+    """후면 레이어: shared Z-phase S so ridges read, not a column or zipper."""
+    specs = [
+        (
+            "hair_back_l",
+            [
+                sit(-0.38, 0.90, -0.38, 0.16),
+                (-0.52, 0.36, -0.86),
+                (-0.34, -0.24, -0.48),
+                (-0.60, -0.88, -0.90),
+                (-0.40, -1.48, -0.46),
+                (-0.56, -2.06, -0.78),
+                (-0.44, -2.52, -0.38),
+                (-0.50, Y_TIP, -0.24),
+            ],
+            [0.82, 1.08, 1.16, 1.10, 0.94, 0.74, 0.46, 0.16],
+        ),
+        (
+            "hair_back_c",
+            [
+                sit(0.02, 0.92, -0.40, 0.16),
+                (0.04, 0.38, -0.90),
+                (-0.02, -0.22, -0.50),
+                (0.06, -0.86, -0.94),
+                (0.00, -1.46, -0.48),
+                (0.06, -2.04, -0.82),
+                (0.02, -2.52, -0.40),
+                (0.02, Y_TIP, -0.22),
+            ],
+            [0.96, 1.22, 1.28, 1.20, 1.04, 0.82, 0.50, 0.18],
+        ),
+        (
+            "hair_back_r",
+            [
+                sit(0.40, 0.90, -0.38, 0.16),
+                (0.54, 0.36, -0.86),
+                (0.36, -0.24, -0.48),
+                (0.62, -0.88, -0.90),
+                (0.42, -1.48, -0.46),
+                (0.58, -2.06, -0.78),
+                (0.46, -2.52, -0.38),
+                (0.52, Y_TIP, -0.24),
+            ],
+            [0.82, 1.08, 1.16, 1.10, 0.94, 0.74, 0.46, 0.16],
+        ),
+    ]
+    out = []
+    for name, path, widths in specs:
+        out.append(lock(name, path, widths, flatten=0.66, tilt=0.04, resolution=18))
+    return out
+
+
+def build_occipital():
+    """Back-of-head clay pad so the showroom back is not a bald skull under a lid."""
 
     def sample(u, v, outer):
-        az0 = math.pi - 1.32
-        az1 = math.pi + 1.32
-        return _hang_sample(u, v, outer, az0, az1, 1.05, 1.0, False, True)
+        az = math.pi + mix(-1.28, 1.28, u)
+        polar = mix(0.28, 2.18, v ** 0.82)
+        mid = math.sin(v * math.pi)
+        vol = 0.12 + 0.07 * mid
+        wave = 0.10 * math.sin(v * math.pi * 3.0) * smooth(v)
+        if u < 0.08:
+            vol *= mix(0.55, 1.0, u / 0.08)
+        if u > 0.92:
+            vol *= mix(1.0, 0.55, (u - 0.92) / 0.08)
+        inner = max(0.022, vol * 0.34)
+        clr = vol if outer else inner
+        p = on_head(
+            math.sin(polar) * math.sin(az),
+            math.cos(polar),
+            math.sin(polar) * math.cos(az),
+            clr,
+        )
+        return Vector((p.x, p.y, p.z - wave))
 
     return grid_shell(
-        "hair_back",
+        "hair_occipital",
         lambda u, v: sample(u, v, True),
         lambda u, v: sample(u, v, False),
-        nu=16,
-        nv=22,
+        nu=18,
+        nv=12,
+    )
+
+
+def build_inner():
+    """내부 볼륨(뒷면): wide nape mass in the same S, fills lock gaps."""
+    return lock(
+        "hair_inner",
+        [
+            sit(0.02, 0.86, -0.32, 0.14),
+            (0.02, 0.32, -0.72),
+            (0.00, -0.28, -0.46),
+            (0.04, -0.92, -0.78),
+            (0.00, -1.52, -0.42),
+            (0.04, -2.10, -0.68),
+            (0.02, Y_TIP + 0.04, -0.28),
+        ],
+        [1.12, 1.42, 1.52, 1.44, 1.22, 0.86, 0.38],
+        flatten=0.72,
+        tilt=0.03,
+        resolution=18,
     )
 
 
@@ -382,7 +493,10 @@ def main():
     hair_mat = bpy.data.materials.get("hair")
     if hair_mat is None:
         hair_mat = lib.material("hair", (0.210, 0.145, 0.125), 0.62)
-    pieces = [build_top(head), build_left(), build_right(), build_back()]
+    pieces = [build_scalp(), build_bang(), build_occipital(), build_inner()]
+    pieces.extend(build_front())
+    pieces.extend(build_mid())
+    pieces.extend(build_back())
     for obj in pieces:
         lib.assign(obj, hair_mat)
         b = bounds(obj)
@@ -412,6 +526,8 @@ def main():
         f"{min(ys):.2f}:{max(ys):.2f}",
         "z",
         f"{min(zs):.2f}:{max(zs):.2f}",
+        "pieces",
+        len(pieces),
     )
     CANDIDATE.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(BLEND))
