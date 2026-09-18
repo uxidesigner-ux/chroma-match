@@ -1,26 +1,25 @@
 # Long-wave candidate (not approved)
 
-Form refine of bang root, side/back S-wave, and joins **inside this
-candidate folder only**. Does not replace the protected original or
-`public/figure/hair_long_wave.glb`.
+Rebuild of hanging volume **inside this candidate folder only**. Does not
+replace the protected original or `public/figure/hair_long_wave.glb`.
 
-This is **not** the representative hair. Visual quality is not approved.
+The previous plate candidate is kept as checkpoint `b5d56d2` (also copied on
+disk at `checkpoint-b5d56d2/`). Visual quality is not approved.
 
-## What changed vs the previous saved candidate
+## What changed vs the plate checkpoint
 
-- Bang root is on the skull: diagonal kept, crown connection is a band not a
-  square sticker, fringe tapers to the temple. Still a separate pad vs one mass.
-- Sides keep the connected volume and the length-wise S (neck tuck, shoulder
-  flare). Back follows the same flow. Nape mass sits lower under the crown.
-- Crown remains a cap on the head (no box lid). Pieces are not fused.
+Plate rules are gone: no `sweep_box` y-slices, no `_with_sil` widening to the
+clothes/shoulder outline, no no-op `_taper_cap`. Side/back volume is a hanging
+mass parameterized along length, radial size capped near the head (~1.16, not
+the shoulder cape at ~2.17). Bang is a thick diagonal lock from the part, not
+a skull-stuck band. Face-side locks stay beside the cheek down the length.
 
 ## Still wrong on screen
 
-- Bang still reads as a separate forehead lock, not the front of one clay mass.
-- Part corner and bang–crown rim still show.
-- Nape shelf (back mass under the cap) still reads from behind.
-
-Do not merge. Do not replace `public/figure/hair_long_wave.glb`.
+- Bang still reads as a separate lock on the forehead, not one clay mass.
+- Piece seams (crown / bang / hang / face locks) still show.
+- Back is one column from crown to length, but the outline is still too even.
+- Not visual-approved. Do not merge. Do not replace the public GLB.
 
 Protected original (untouched): `../hair_long_wave.blend`
 
