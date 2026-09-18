@@ -122,7 +122,7 @@ export class Showroom {
     this.scene.background = new Color(options.look.backdrop)
     const pmrem = new PMREMGenerator(this.renderer)
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.05).texture
-    this.scene.environmentIntensity = 0.30
+    this.scene.environmentIntensity = 0.18
     pmrem.dispose()
 
     this.camera = new PerspectiveCamera(24, options.width / options.height, 0.4, 60)
@@ -154,7 +154,8 @@ export class Showroom {
     this.materials.set('hair', new MeshPhysicalMaterial({ roughness: 0.56, clearcoat: 0.0 }))
     this.materials.set('cloth', new MeshPhysicalMaterial({ roughness: 0.94, sheen: 0.30, sheenRoughness: 0.80 }))
     this.materials.set('eye', new MeshPhysicalMaterial({
-      color: new Color(EYE_COLOUR), roughness: 0.28, clearcoat: 0.8, clearcoatRoughness: 0.16,
+      color: new Color(EYE_COLOUR), roughness: 0.85, clearcoat: 0.0, clearcoatRoughness: 1.0,
+      metalness: 0.0, envMapIntensity: 0.0,
     }))
     this.recolour(options.look)
   }
@@ -333,10 +334,12 @@ export class Showroom {
       material.sheen = 0.30
       material.sheenRoughness = 0.80
     } else {
-      material.roughness = 0.28
-      material.clearcoat = 0.8
-      material.clearcoatRoughness = 0.16
+      material.roughness = 0.85
+      material.clearcoat = 0.0
+      material.clearcoatRoughness = 1.0
       material.sheen = 0
+      material.metalness = 0
+      material.envMapIntensity = 0
       // The eye is not part of the look, so recolour() will not put it back.
       material.color.set(EYE_COLOUR)
     }

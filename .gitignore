@@ -8,6 +8,9 @@ dist
 # Reference images copied in for side-by-side checks are the user's, not ours.
 public/dev/
 
+# Local capture scratch (canonical review page lives in tools/figure/review/).
+.tmp-d/
+
 # Python bytecode from the asset build.
 __pycache__/
 *.pyc

@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Character sculpt — large comparison</title>
+<style>
+  body { margin: 0; background: #12141a; color: #d5dae2; font: 13px/1.4 system-ui, sans-serif; padding: 18px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 6px; color: #eef1f6; }
+  h2 { font-size: 14px; font-weight: 600; margin: 22px 0 8px; color: #eef1f6; }
+  p { margin: 0 0 12px; color: #9aa3b2; max-width: 1100px; }
+  .row { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .c { text-align: center; }
+  .c h3 { margin: 0 0 6px; font-size: 12px; color: #8d94a0; font-weight: 600; letter-spacing: 0.02em; }
+  canvas { display: block; border-radius: 4px; background: #E3C4C2; }
+  .note { color: #c9a27a; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script type="module">
+import { Vector3 } from 'three'
+import { Showroom } from '/src/avatar/figure/showroom.ts'
+
+const out = document.getElementById('out')
+const LOOK = { skin: '#F0B894', hair: '#4A382F', cloth: '#23232A', backdrop: '#E3C4C2' }
+
+function title(t, sub) {
+  const h = document.createElement('h1')
+  h.textContent = t
+  out.append(h)
+  if (sub) {
+    const p = document.createElement('p')
+    p.textContent = sub
+    out.append(p)
+  }
+}
+function section(t) {
+  const h = document.createElement('h2')
+  h.textContent = t
+  out.append(h)
+}
+function row() {
+  const r = document.createElement('div')
+  r.className = 'row'
+  out.append(r)
+  return r
+}
+function shot(parent, label, s, w, h) {
+  const d = document.createElement('div')
+  d.className = 'c'
+  const t = document.createElement('h3')
+  t.textContent = label
+  const c = document.createElement('canvas')
+  c.style.width = w + 'px'
+  c.style.height = h + 'px'
+  d.append(t, c)
+  parent.append(d)
+  s.capture(c, w, h)
+}
+
+title(
+  'Representative character — large form check',
+  'First two rows are the judgment: front-near and three-quarter, large. Side / back / turn come after. Visual quality is decided here, not by mesh connectivity or test pass.',
+)
+
+const W = 520
+const H = 640
+const s = new Showroom({ url: '/figure/character.glb', look: LOOK, width: W, height: H })
+await s.load()
+
+// Bust framing matched to prior eye-line work: centre near the eyes, height
+// covering crown through upper chest so hair-to-face ratio is visible.
+const bustCentre = new Vector3(0, -0.15, 0)
+const bustHeight = 3.35
+
+section('1. Front — near reference framing')
+{
+  const r = row()
+  s.frameOn(bustCentre, bustHeight)
+  s.orbit(0, 0.02)
+  s.setNeutral(true)
+  shot(r, 'neutral clay — front', s, W, H)
+  s.setNeutral(false)
+  shot(r, 'coloured — front', s, W, H)
+}
+
+section('2. Three-quarter — same framing')
+{
+  const r = row()
+  s.frameOn(bustCentre, bustHeight)
+  s.orbit(0.55, 0.06)
+  s.setNeutral(true)
+  shot(r, 'neutral clay — 3/4', s, W, H)
+  s.setNeutral(false)
+  shot(r, 'coloured — 3/4', s, W, H)
+}
+
+section('3. Side and back (back is designed — no reference)')
+{
+  const r = row()
+  const smallW = 360
+  const smallH = 440
+  s.frameOn(bustCentre, bustHeight)
+  s.orbit(1.15, 0.04)
+  s.setNeutral(true)
+  shot(r, 'side', s, smallW, smallH)
+  s.orbit(Math.PI, 0.02)
+  shot(r, 'back (designed)', s, smallW, smallH)
+  s.orbit(-0.55, 0.06)
+  shot(r, '3/4 other side', s, smallW, smallH)
+}
+
+section('4. Full figure turn — consistency')
+{
+  const r = row()
+  s.frameAll(1.06)
+  s.setNeutral(false)
+  for (const [label, yaw] of [['front', 0], ['3/4', 0.7], ['side', 1.35], ['back', Math.PI]]) {
+    s.orbit(yaw, 0.05)
+    shot(r, label, s, 240, 360)
+  }
+}
+
+// Optional: side-by-side with reference if public/dev/ref.png is present.
+try {
+  const img = new Image()
+  img.src = '/dev/ref.png'
+  await img.decode()
+  section('5. Against reference (eye-separation matched)')
+  const note = document.createElement('p')
+  note.className = 'note'
+  note.textContent = 'Reference present. Camera framed so model eye separation matches the crop.'
+  out.append(note)
+  const RW = 540
+  const y0 = 95
+  const y1 = 1105
+  const sc = RW / img.width
+  const refC = document.createElement('canvas')
+  refC.width = RW
+  refC.height = Math.round((y1 - y0) * sc)
+  refC.getContext('2d').drawImage(img, 0, y0, img.width, y1 - y0, 0, 0, refC.width, refC.height)
+  const refEyeSep = 153 * sc
+  const refEyeY = (635 - y0) * sc
+  const r = row()
+  const rd = document.createElement('div')
+  rd.className = 'c'
+  const rh = document.createElement('h3')
+  rh.textContent = 'reference'
+  rd.append(rh, refC)
+  r.append(rd)
+  const unitsPerPx = 0.496 / refEyeSep // EYE_X*2 after face unlock
+  const frameH = refC.height * unitsPerPx
+  s.frameOn(new Vector3(0, 0.015 - (refC.height / 2 - refEyeY) * unitsPerPx, 0), frameH)
+  s.orbit(0, 0)
+  s.setNeutral(true)
+  shot(r, 'current — neutral', s, RW, refC.height)
+  s.setNeutral(false)
+  shot(r, 'current — coloured', s, RW, refC.height)
+  s.orbit(0.55, 0.06)
+  s.setNeutral(true)
+  shot(r, 'current 3/4 — neutral', s, RW, refC.height)
+} catch (err) {
+  const p = document.createElement('p')
+  p.className = 'note'
+  p.textContent = 'public/dev/ref.png not found in this environment — large self views only. Drop the reference into public/dev/ref.png to enable section 5.'
+  out.append(p)
+}
+
+window.__ready = true
+</script>
+</body>
+</html>
