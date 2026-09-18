@@ -53,7 +53,7 @@ const OWNED_MATERIALS = new Set(['skin', 'hair', 'cloth', 'eye'])
 
 const SLOT_OF: { test: RegExp; slot: Slot }[] = [
   { test: /^eye/, slot: 'eye' },
-  { test: /^(hair|scalp|lock|sweep|front|side|back)/, slot: 'hair' },
+  { test: /^(hair|scalp|crown|band|lock|sweep|front|side|back)/, slot: 'hair' },
   { test: /^top/, slot: 'cloth' },
   { test: /^(head|body|ear)/, slot: 'skin' },
 ]
@@ -180,6 +180,28 @@ export class Showroom {
       this.figure.add(child)
     }
     this.frameOn(new Vector3(0, -0.35, 0), 2.6)
+  }
+
+  /**
+   * Load a second GLB into the same scene, keeping its authored materials.
+   *
+   * Used to lay the design's flow curves over the figure. They arrive with
+   * materials the showroom does not own, so the rule above leaves them alone
+   * and they keep the colours they were exported with.
+   */
+  async overlay(url: string): Promise<void> {
+    const gltf = await new GLTFLoader().loadAsync(url)
+    gltf.scene.traverse((object) => {
+      const mesh = object as Mesh
+      if (mesh.isMesh) {
+        mesh.castShadow = false
+        mesh.receiveShadow = false
+      }
+    })
+    for (const child of [...gltf.scene.children]) {
+      this.parts.set(child.name, child)
+      this.figure.add(child)
+    }
   }
 
   /** Fit the camera to a height in model units, centred on a point. */

@@ -146,25 +146,27 @@ def build_top():
 
 
 def rim_angle(phi):
-    """Polar angle of the hairline for an azimuth. High at the brow, low at the
-    temple, and low enough behind that the scalp reaches the lengths."""
+    """Polar angle of the crown patch for an azimuth. This is no longer a
+    hairline — the bands carry the hairline now — it only has to reach far
+    enough to close the gaps between them at the top."""
     front = math.cos(phi)
     side = abs(math.sin(phi))
-    return math.pi * (
-        0.455 - 0.115 * front + 0.190 * side * side + 0.260 * lib.smoothstep(0.2, -1, front)
-    )
+    return math.pi * (0.385 - 0.075 * front + 0.150 * side * side + 0.175 * lib.smoothstep(0.2, -1, front))
 
 
-def build_scalp(lift=0.058):
-    """A sheet whose rim is placed per direction, grown off the head's own
-    surface so it cannot gape at the temple."""
+def build_crown(lift=0.075):
+    """A small patch over the crown, to close between the bands.
+
+    Not a scalp. The previous one was a full cap cut at a hairline, and a cap is
+    what read as a swimming hat; this only exists where bands cross each other
+    at the top and would otherwise show skin between them."""
     import bmesh
 
-    mesh = bpy.data.meshes.new("scalp")
-    obj = bpy.data.objects.new("scalp", mesh)
+    mesh = bpy.data.meshes.new("crown")
+    obj = bpy.data.objects.new("crown", mesh)
     bpy.context.scene.collection.objects.link(obj)
     bm = bmesh.new()
-    u_steps, v_steps = 72, 26
+    u_steps, v_steps = 64, 20
     grid = []
     for j in range(v_steps + 1):
         row = []
@@ -172,19 +174,10 @@ def build_scalp(lift=0.058):
         for i in range(u_steps):
             phi = (i / u_steps) * math.tau
             theta = (v ** 0.92) * rim_angle(phi)
-            d = (
-                math.sin(theta) * math.sin(phi),
-                math.cos(theta),
-                math.sin(theta) * math.cos(phi),
-            )
+            d = (math.sin(theta) * math.sin(phi), math.cos(theta), math.sin(theta) * math.cos(phi))
             p = head_surface(d)
-            thin = 1 - v ** 3.2
-            bulk = lift * (
-                0.55
-                + 0.75 * lib.smoothstep(0.1, 0.9, math.cos(theta))
-                + 0.35 * lib.smoothstep(0.3, -0.9, math.cos(phi))
-            )
-            q = [p[k] + d[k] * bulk * thin for k in range(3)]
+            thin = 1 - v ** 3.0
+            q = [p[k] + d[k] * lift * thin for k in range(3)]
             row.append(bm.verts.new(to_blender(q)))
         grid.append(row)
     for j in range(v_steps):
@@ -197,49 +190,53 @@ def build_scalp(lift=0.058):
     bm.to_mesh(mesh)
     bm.free()
     solid = obj.modifiers.new("solid", "SOLIDIFY")
-    solid.thickness = 0.045
+    solid.thickness = 0.040
     solid.offset = -1.0
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.modifier_apply(modifier=solid.name)
     lib.subsurf(obj, 1)
     lib.shaded_smooth(obj)
-    obj.name = "scalp"
+    obj.name = "crown"
     return obj
 
 
-# The long wave, as lengths over the scalp.
+# The bands, one per designed flow.
 #
-# The last number on each row is `flatten`: the section's thickness as a
-# fraction of its width, applied inside the bevel profile. It used to be a
-# scale on the finished mesh's global Y, which in this frame is front-to-back,
-# so it moved the lock instead of thinning it — a length authored to run from
-# 0.10 to 0.42 in front of the head had its mean front position pulled to 0.086
-# at flatten 0.30. See ribbon() in lib.py.
+# The paths are the flows measured and designed in flows.py; the numbers added
+# here are half width down the length, how flat the section is, and how the
+# section is rolled about the curve so the band lies against the head rather
+# than edge-on to it.
 #
-# Two rebuilds of the large form have been tried against this and neither is
-# kept. A single continuous curtain from the parting down to the tips gave a
-# hood, because the face opening is set by the sheet's own parametrisation. A
-# closed mass with the face cut out by a boolean gave a hood as well, from the
-# opposite direction: widening the cutter far enough to clear the jaw left torn
-# edges where the cutter met the mass almost tangentially, and the mass still
-# met the face along the cheek instead of behind the ear. Both are recorded
-# here rather than in the tree.
-LOCKS = [
-    ("sweep_r", [(0.10, 0.92, 0.14), (0.50, 0.70, 0.34), (0.72, 0.14, 0.24), (0.76, -0.50, 0.06)],
-     [0.30, 0.46, 0.44, 0.30], 0.62),
-    ("sweep_l", [(-0.03, 0.95, 0.12), (-0.44, 0.76, 0.30), (-0.68, 0.22, 0.22), (-0.73, -0.42, 0.08)],
-     [0.28, 0.43, 0.41, 0.28], 0.60),
-    ("front_r", [(0.70, 0.12, 0.18), (0.86, -0.66, 0.30), (0.74, -1.52, 0.42), (0.88, -2.34, 0.30), (0.70, -3.05, 0.10)],
-     [0.36, 0.52, 0.48, 0.30, 0.05], 0.66),
-    ("front_l", [(-0.67, 0.16, 0.16), (-0.84, -0.60, 0.28), (-0.71, -1.46, 0.40), (-0.85, -2.28, 0.28), (-0.66, -2.98, 0.08)],
-     [0.35, 0.50, 0.46, 0.29, 0.05], 0.64),
-    ("side_r", [(0.66, 0.40, -0.28), (0.92, -0.58, -0.34), (1.00, -1.58, -0.24), (0.86, -2.62, -0.06)],
-     [0.40, 0.58, 0.44, 0.08], 0.70),
-    ("side_l", [(-0.64, 0.44, -0.30), (-0.90, -0.54, -0.36), (-0.98, -1.54, -0.26), (-0.82, -2.58, -0.08)],
-     [0.39, 0.56, 0.43, 0.08], 0.68),
-    ("back", [(0.0, 0.70, -0.58), (0.0, -0.26, -0.74), (0.06, -1.36, -0.66), (0.0, -2.50, -0.44)],
-     [0.58, 0.80, 0.66, 0.24], 0.72),
+# Widths are chosen against the measurement: the reference is 3.14 head units
+# across at its widest, the flows reach about x = +-1.30, so a band half width
+# near 0.30 puts the outline where the reference has it.
+# The taper value multiplies a profile of radius 0.5, so the band's half width
+# is half the number written here. The first set was authored as if the number
+# were the half width and every band came out at half the intended size: seven
+# straps with skull showing between them instead of one mass.
+BANDS = [
+    ("band_sweep",   "sweep_across",   [0.40, 0.76, 0.86, 0.76, 0.54, 0.16], 0.40, 1.57),
+    ("band_sweep_2", "sweep_across_2", [0.44, 0.80, 0.90, 0.78, 0.56, 0.16], 0.40, 1.57),
+    ("band_short",   "sweep_short",    [0.36, 0.68, 0.78, 0.68, 0.48, 0.14], 0.40, 1.57),
+    ("band_short_2", "sweep_short_2",  [0.40, 0.72, 0.82, 0.70, 0.50, 0.14], 0.40, 1.57),
+    ("band_bk_l",    "back_left",      [0.52, 0.90, 0.98, 0.86, 0.60, 0.18], 0.44, 1.57),
+    ("band_bk_r",    "back_right",     [0.52, 0.90, 0.98, 0.86, 0.60, 0.18], 0.44, 1.57),
+    ("band_bk_c",    "back_centre",    [0.64, 1.06, 1.14, 0.98, 0.68, 0.20], 0.46, 1.57),
 ]
+
+
+def build_bands():
+    from flows import FLOWS
+
+    paths = {name: path for name, _certain, path in FLOWS}
+    out = []
+    for name, flow, widths, flatten, tilt in BANDS:
+        obj = lib.ribbon(name, [to_blender(p) for p in paths[flow]], widths,
+                         flatten=flatten, tilt=tilt)
+        obj.name = name
+        lib.shaded_smooth(obj)
+        out.append(obj)
+    return out
 
 
 def build():
@@ -252,11 +249,8 @@ def build():
     lib.assign(build_head(), skin)
     lib.assign(build_body(), skin)
     lib.assign(build_top(), cloth)
-    lib.assign(build_scalp(), hair_mat)
-    for name, path, widths, flatten in LOCKS:
-        obj = lib.ribbon(name, [to_blender(p) for p in path], widths, flatten=flatten)
-        obj.name = name
-        lib.shaded_smooth(obj)
+    lib.assign(build_crown(), hair_mat)
+    for obj in build_bands():
         lib.assign(obj, hair_mat)
 
     # Eyes and ears.
