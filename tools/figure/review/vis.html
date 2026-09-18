@@ -1,0 +1,198 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Bang / eye visibility</title>
+<style>
+  body { margin: 0; background: #12141a; color: #d5dae2; font: 13px/1.4 system-ui, sans-serif; padding: 16px; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  h2 { font-size: 13px; margin: 18px 0 8px; color: #c9d0da; }
+  p, pre { color: #9aa3b2; max-width: 1400px; }
+  pre { background: #1a1d24; padding: 10px 12px; border-radius: 4px; font-size: 12px; overflow: auto; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .c { text-align: center; }
+  .c h3 { margin: 0 0 6px; font-size: 12px; color: #8d94a0; }
+  canvas { display: block; border-radius: 4px; background: #1a1d24; }
+</style>
+</head>
+<body>
+<h1>앞머리·눈 가시성 — 같은 카메라</h1>
+<p>얼굴을 끄고 / 대비색 / 정상 재질. 깊이 검사는 끄지 않는다.</p>
+<div id="out"></div>
+<pre id="log">측정 중…</pre>
+<script type="module">
+import { Vector2, Vector3, Raycaster, MeshPhysicalMaterial, Color } from 'three'
+import { Showroom } from '/src/avatar/figure/showroom.ts'
+
+const LOOK = { skin: '#F0B894', hair: '#4A382F', cloth: '#23232A', backdrop: '#E3C4C2' }
+window.__viewsReady = false
+const out = document.getElementById('out')
+const logEl = document.getElementById('log')
+const s = new Showroom({ url: '/figure/character.glb', look: LOOK, width: 640, height: 800 })
+await s.load()
+
+const names = s.partNames()
+const hairNames = names.filter((n) => /^(scalp|back_|lock_)/.test(n))
+const faceNames = names.filter((n) => n === 'head' || n.startsWith('ear'))
+const eyeNames = names.filter((n) => n.startsWith('eye'))
+
+const meshesByName = new Map()
+s.scene.traverse((obj) => {
+  if (obj.isMesh) meshesByName.set(obj.name, obj)
+})
+const authoredMat = new Map()
+for (const [name, mesh] of meshesByName) authoredMat.set(name, mesh.material)
+
+function resetMats() {
+  for (const [name, mesh] of meshesByName) {
+    const m = authoredMat.get(name)
+    if (m) mesh.material = m
+  }
+}
+
+function paint(name, hex) {
+  const mesh = meshesByName.get(name)
+  if (!mesh) return
+  mesh.material = new MeshPhysicalMaterial({
+    color: new Color(hex),
+    roughness: 0.42,
+    metalness: 0,
+    clearcoat: 0,
+  })
+}
+
+function vis(list, on) {
+  for (const n of list) s.setVisible(n, on)
+}
+
+const centres = s.eyeCentres()
+const mid = centres
+  ? centres.left.clone().add(centres.right).multiplyScalar(0.5)
+  : new Vector3(0, 0, 0)
+const target = mid.clone(); target.y -= 0.12
+const frameH = 2.5
+
+function panel(label, yaw, after, w = 420, h = 560) {
+  after()
+  s.camera.aspect = w / h
+  s.camera.updateProjectionMatrix()
+  s.orbit(yaw, 0.02)
+  s.frameOn(target, frameH)
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  c.style.width = w + 'px'
+  c.style.height = h + 'px'
+  s.capture(c, w, h)
+  const d = document.createElement('div')
+  d.className = 'c'
+  const h3 = document.createElement('h3')
+  h3.textContent = label
+  d.append(h3, c)
+  return d
+}
+
+function section(title) {
+  const h = document.createElement('h2')
+  h.textContent = title
+  out.append(h)
+}
+
+function bangOnly() {
+  resetMats()
+  s.setNeutral(true)
+  vis(names, false)
+  s.setVisible('lock_p_bang', true)
+}
+
+function facePlusGreen() {
+  resetMats()
+  s.setNeutral(true)
+  vis(names, true)
+  vis(hairNames, false)
+  s.setVisible('lock_p_bang', true)
+  vis(['body', 'top'], false)
+  paint('lock_p_bang', '#39d17b')
+}
+
+function normalColour() {
+  resetMats()
+  s.setNeutral(false)
+  vis(names, true)
+}
+
+function clayAll() {
+  resetMats()
+  s.setNeutral(true)
+  vis(names, true)
+}
+
+section('1. 얼굴 숨김 — lock_p_bang만')
+const r1 = document.createElement('div'); r1.className = 'row'
+r1.append(panel('정면 · 앞머리만', 0, bangOnly))
+r1.append(panel('사선 · 앞머리만', 0.55, bangOnly))
+r1.append(panel('측면 · 앞머리만', 1.2, bangOnly))
+out.append(r1)
+
+section('2. 얼굴 켜짐 — 앞머리 대비색 (초록)')
+const r2 = document.createElement('div'); r2.className = 'row'
+r2.append(panel('정면 · 얼굴+초록 앞머리', 0, facePlusGreen))
+r2.append(panel('사선 · 얼굴+초록 앞머리', 0.55, facePlusGreen))
+r2.append(panel('측면 · 얼굴+초록 앞머리', 1.2, facePlusGreen))
+out.append(r2)
+
+section('3. 정상 재질')
+const r3 = document.createElement('div'); r3.className = 'row'
+r3.append(panel('정면 · 최종 재질', 0, normalColour))
+r3.append(panel('사선 · 최종 재질', 0.55, normalColour))
+r3.append(panel('정면 · 중성', 0, clayAll))
+out.append(r3)
+
+section('4. 눈만 / 눈+얼굴')
+const r4 = document.createElement('div'); r4.className = 'row'
+r4.append(panel('눈만', 0, () => {
+  resetMats(); s.setNeutral(true); vis(names, false); vis(eyeNames, true)
+}, 360, 420))
+r4.append(panel('눈+얼굴 (헤어 없음)', 0, () => {
+  resetMats(); s.setNeutral(true); vis(names, false); vis(faceNames, true); vis(eyeNames, true)
+}, 360, 420))
+r4.append(panel('눈+얼굴 사선', 0.55, () => {
+  resetMats(); s.setNeutral(true); vis(names, false); vis(faceNames, true); vis(eyeNames, true)
+}, 360, 420))
+out.append(r4)
+
+// Raycast from the framed front camera through the upper-left forehead.
+clayAll()
+s.orbit(0, 0.02)
+s.frameOn(target, frameH)
+const ray = new Raycaster()
+const hits = []
+const meshes = []
+s.scene.traverse((obj) => { if (obj.isMesh) meshes.push(obj) })
+for (const [x, y] of [[-0.06, 0.40], [-0.16, 0.30], [-0.26, 0.20], [-0.36, 0.10], [0.02, 0.36], [0.10, 0.22]]) {
+  ray.setFromCamera(new Vector2(x, y), s.camera)
+  const found = ray.intersectObjects(meshes, false).slice(0, 5)
+  hits.push({
+    ndc: [x, y],
+    first: found.map((h) => `${h.object.name}@${h.distance.toFixed(3)}`),
+  })
+}
+
+const bangMesh = meshesByName.get('lock_p_bang')
+let bangBox = null
+if (bangMesh) {
+  bangMesh.geometry.computeBoundingBox()
+  const b = bangMesh.geometry.boundingBox
+  bangBox = {
+    min: [+b.min.x.toFixed(3), +b.min.y.toFixed(3), +b.min.z.toFixed(3)],
+    max: [+b.max.x.toFixed(3), +b.max.y.toFixed(3), +b.max.z.toFixed(3)],
+  }
+}
+
+const dump = { bangMesh: !!bangMesh, bangBox, hits, meshNames: [...meshesByName.keys()] }
+window.__dump = dump
+logEl.textContent = JSON.stringify(dump, null, 2)
+window.__viewsReady = true
+</script>
+</body>
+</html>

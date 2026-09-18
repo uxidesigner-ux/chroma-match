@@ -4,3 +4,16 @@ dist
 *.local
 .vite
 .claude
+
+# Reference originals — never commit, never ship. Review pages read them
+# through a local file picker, not from a public URL.
+refs/
+public/dev/
+
+# Local capture scratch (canonical review page lives in tools/figure/review/).
+.tmp-d/
+
+# Python bytecode from the asset build.
+__pycache__/
+*.pyc
+*.blend1

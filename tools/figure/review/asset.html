@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Long-wave asset — three-stage review</title>
+<style>
+  body { margin: 0; background: #12141a; color: #d5dae2; font: 13px/1.45 system-ui, sans-serif; padding: 16px; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  h2 { font-size: 13px; margin: 18px 0 8px; color: #c9d0da; }
+  p { color: #9aa3b2; max-width: 1100px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .c { text-align: center; }
+  .c h3 { margin: 0 0 6px; font-size: 12px; color: #8d94a0; }
+  canvas { display: block; border-radius: 4px; background: #1a1d24; }
+  .note { color: #c9a27a; }
+</style>
+</head>
+<body>
+<h1>긴 웨이브 자산 — 장착 / 회전 / 색</h1>
+<p>
+  1단계는 Blender 미리보기(<code>python3.11 tools/figure/preview_blender.py</code>)에서 형태를 본다.
+  형태가 틀리면 이 페이지에서 고치지 않는다. 이 페이지는 내보내기 유지와 쇼룸 장착만 확인한다.
+</p>
+<p class="note">body.glb + hair_long_wave.glb. 깊이 검사는 켜 둔다.</p>
+<div id="out"></div>
+<script type="module">
+import { Vector3 } from 'three'
+import { Showroom } from '/src/avatar/figure/showroom.ts'
+
+const LOOK = { skin: '#F0B894', hair: '#4A382F', cloth: '#23232A', backdrop: '#E3C4C2' }
+window.__viewsReady = false
+
+const out = document.getElementById('out')
+const s = new Showroom({ url: '/figure/body.glb', look: LOOK, width: 560, height: 740 })
+await s.load()
+await s.attach('/figure/hair_long_wave.glb')
+
+const names = s.partNames()
+const hairNames = names.filter((n) => n.startsWith('hair_'))
+
+const mid = s.eyeCentres()
+  ? s.eyeCentres().left.clone().add(s.eyeCentres().right).multiplyScalar(0.5)
+  : new Vector3(0, 0, 0)
+const bust = mid.clone(); bust.y -= 0.55
+const frameH = 4.6
+
+function panel(label, yaw, after, w = 400, h = 540) {
+  after()
+  s.camera.aspect = w / h
+  s.camera.updateProjectionMatrix()
+  s.orbit(yaw, 0.04)
+  s.frameOn(bust, frameH)
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  c.style.width = w + 'px'
+  c.style.height = h + 'px'
+  s.capture(c, w, h)
+  const d = document.createElement('div')
+  d.className = 'c'
+  const h3 = document.createElement('h3')
+  h3.textContent = label
+  d.append(h3, c)
+  return d
+}
+
+function section(title) {
+  const h = document.createElement('h2')
+  h.textContent = title
+  out.append(h)
+}
+
+section('2. GLB 장착 후 형태 (중성)')
+const r1 = document.createElement('div'); r1.className = 'row'
+for (const [label, yaw] of [['정면', 0], ['사선', 0.55], ['측면', 1.2], ['후면', Math.PI]]) {
+  r1.append(panel(label, yaw, () => { s.setNeutral(true); s.recolour(LOOK) }))
+}
+out.append(r1)
+
+section('2b. 헤어만 (얼굴 숨김)')
+const r1b = document.createElement('div'); r1b.className = 'row'
+r1b.append(panel('헤어만 정면', 0, () => {
+  s.setNeutral(true)
+  for (const n of names) s.setVisible(n, n.startsWith('hair_'))
+}))
+r1b.append(panel('헤어만 사선', 0.55, () => {
+  s.setNeutral(true)
+  for (const n of names) s.setVisible(n, n.startsWith('hair_'))
+}))
+out.append(r1b)
+for (const n of names) s.setVisible(n, true)
+
+section('3. 정상 재질 · 색 변경 · 복원')
+const r2 = document.createElement('div'); r2.className = 'row'
+r2.append(panel('최종 재질', 0, () => { s.setNeutral(false); s.recolour(LOOK) }))
+r2.append(panel('헤어 대비색', 0, () => { s.setNeutral(false); s.recolour({ ...LOOK, hair: '#2A8F6B' }) }))
+r2.append(panel('색 복원', 0, () => { s.setNeutral(false); s.recolour(LOOK) }))
+r2.append(panel('사선 최종', 0.55, () => { s.setNeutral(false); s.recolour(LOOK) }))
+out.append(r2)
+
+window.__dump = { parts: names, hair: hairNames, attached: hairNames.length > 0 }
+window.__viewsReady = true
+</script>
+</body>
+</html>
