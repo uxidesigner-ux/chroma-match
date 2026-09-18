@@ -679,7 +679,13 @@ float sideRoll(vec3 q, float sweep, float fat) {
   return lockField(q, a, b, c, 0.098 * fat, 0.072 * fat);
 }
 
-/** The whole sweep: four tubes, and a fifth over the short side. */
+/** One tube of the sweep on its own, for styles whose hull already has the
+ *  volume and only need the parting to show. */
+float sweepOne(vec3 q, float sweep, float fat) {
+  return smin(sweepLock(q, sweep, fat, 0.0), sideRoll(q, sweep, fat * 0.9), 0.018);
+}
+
+/** The whole sweep: three tubes, and a fourth over the short side. */
 float sweptTop(vec3 q, float sweep, float fat) {
   // Bounding this group in a box measured no faster: the head already has a
   // bounding box around it and inside that box almost every sample is near the
@@ -702,6 +708,85 @@ float templeWedge(vec3 q, float drop) {
   vec3 sv = vec3(abs(q.x), q.y, q.z);
   return sdTaperCapsule(sv, vec3(0.278, 0.14, 0.09), vec3(0.278, drop, 0.04),
                         0.062, 0.016);
+}
+
+/**
+ * How wide a head of hair is at a given height, as a fraction of its widest.
+ *
+ * This one function is the whole point of the rewrite. Every style here used
+ * to get its outline as a by-product of unioning a cap, some tubes and some
+ * ropes, and a union of parts gives a piecewise outline: it has a step wherever
+ * one part takes over from the next. Measured against a reference render the
+ * damage was specific and large. The reference gains 23% of its width over its
+ * lower half and keeps opening the whole way down; the built-up version gained
+ * 4% and then fell straight, and it reached 84% of its full width within the
+ * first quarter of its height — a near-vertical jump just under the crown,
+ * which is the step where the tubes took over from the cap. That step is what
+ * read as a beret sitting on a curtain.
+ *
+ * h runs 0 at the top of the mass to 1 at the ends. The curve is a rise that
+ * never quite finishes against a fall that starts late, so it climbs all the
+ * way to about two thirds down and then eases off. It has no steps in it
+ * because it is one expression rather than a seam between two shapes.
+ */
+float hairProfile(float h) {
+  float t = clamp(h, 0.0, 1.0);
+  // A sum of overlapping smoothsteps through measured control points. Each
+  // term is smooth and they overlap, so the result has a continuous slope
+  // everywhere — the steps this rewrite is about came from unioning solid
+  // parts, not from writing a curve in pieces.
+  //
+  // It starts well above zero rather than at nothing. The very fast opening
+  // right under the crown in the reference is the crown itself curving over,
+  // and the hull already rounds its top rim; asking the profile to do that job
+  // as well needs a slope steep enough to make the field non-conservative, and
+  // that is the bug that comes back as stripes across the figure.
+  float f = 0.34;
+  f += 0.34 * smoothstep(0.00, 0.16, t);
+  f += 0.22 * smoothstep(0.12, 0.34, t);
+  f += 0.10 * smoothstep(0.30, 0.50, t);
+  f -= 0.14 * smoothstep(0.60, 1.00, t);
+  return f;
+}
+
+/**
+ * The mass of hair: an upright elliptical column whose half width is that
+ * profile, closed top and bottom with a rounded rim.
+ *
+ * Because the radius changes with height the plain distance to the axis
+ * overestimates the true distance — the same non-conservative field that let
+ * shadow rays step through the tapered capsules and come out as stripes. The
+ * divisor is the worst slope the profile reaches, near the crown.
+ */
+float hairHull(vec3 q, float yTop, float yBot, float wMax, float deep, float rim) {
+  float h = (yTop - q.y) / max(1e-3, yTop - yBot);
+  float w = wMax * hairProfile(h);
+  // Set back a little. Hair wraps round a head from behind; a column centred
+  // on the skull reaches as far forward as it does sideways and swallows the
+  // face whole.
+  float radial = length(vec2(q.x, (q.z + 0.07) / deep)) - w;
+  float mid = 0.5 * (yTop + yBot);
+  // Not named half: that is a reserved word in GLSL and this is the third
+  // time it has silently failed the whole shader.
+  float reach = 0.5 * (yTop - yBot) - rim;
+  vec2 e = vec2(radial, abs(q.y - mid) - reach);
+  float d = min(max(e.x, e.y), 0.0) + length(max(e, 0.0)) - rim;
+  return d / 1.25;
+}
+
+/**
+ * The opening the face and the front of the body come through.
+ *
+ * The hull is solid, so without this it is a helmet with a body inside it. The
+ * cut is the part of a slab in front of the head that also lies below the
+ * hairline, which gives the opening a brow edge that follows the hairline the
+ * way every other style does and straight sides past the cheeks.
+ */
+float faceOpening(vec3 q, float lift, float wide) {
+  float slab = sdRoundBox(q - vec3(0.0, -0.55, 0.44), vec3(wide, 1.05, 0.34), 0.06);
+  // hairline() is positive on the skin side, so the region to remove is where
+  // the slab is inside AND the hairline is positive — hence the minus.
+  return max(slab, -hairline(q, lift));
 }
 
 float hairField(vec3 p) {
@@ -750,17 +835,12 @@ float hairField(vec3 p) {
     d = smin(d, ball, 0.06);
     d = max(d, -sdEllipsoid(q - vec3(0.0, -0.06, 0.30), vec3(0.225, 0.250, 0.230)));
   } else if (uStyle == 9) {   // volume — long, and full rather than flat
-    d = capField(q, -0.02, 1.35);
-    d = smin(d, sweptTop(q, -1.0, 1.05), 0.020);
-    // Lengths, and they are ropes rather than a curtain. Three a side at
-    // different depths, each fat enough to hold its own highlight: the
-    // reference long hair is four or five of these and you can count them.
-    d = smin(d, pairLock(q, vec3(0.32, 0.22, -0.02), vec3(0.50, -0.20, 0.02),
-                         vec3(0.33, -0.90, -0.04), 0.165, 0.185), 0.030);
-    d = smin(d, pairLock(q, vec3(0.25, 0.24, -0.14), vec3(0.30, -0.28, -0.18),
-                         vec3(0.46, -0.74, -0.10), 0.135, 0.160), 0.030);
-    d = smin(d, pairLock(q, vec3(0.14, 0.16, -0.26), vec3(0.24, -0.34, -0.30),
-                         vec3(0.20, -0.82, -0.22), 0.125, 0.150), 0.030);
+    d = hairHull(q, 0.50, -1.34, 0.480, 0.92, 0.16);
+    d = smin(d, sweepOne(q, -1.0, 1.00), 0.020);
+    // After the sweep, not before. Cutting the hull first and then unioning
+    // the sweep puts the tubes back over the brow and the forehead disappears
+    // again; the opening has to be the last word on where the hair stops.
+    d = max(d, -faceOpening(q, 0.060, 0.255));
     d = partedBy(d, q, -0.085, 0.020);
   } else if (uStyle == 10) {  // twin tails — the volume is out to the sides
     d = capField(q, -0.01, 0.95);
@@ -773,31 +853,23 @@ float hairField(vec3 p) {
     d = smin(d, smin(tie, tail, 0.06), 0.05);
     d = partedBy(d, q, 0.0, 0.020);
   } else {                    // bob, long, wave — lengths down the sides
-    float drop = uStyle == 5 ? -0.46 : (uStyle == 6 ? -0.98 : -0.92);
-    float flare = uStyle == 5 ? -0.040 : (uStyle == 6 ? 0.050 : 0.095);
-    d = capField(q, -0.03, 1.10);
-    // The same roll over the brow as everything else, because it is what these
-    // characters have in common — a bob is not a helmet with a face hole, it is
-    // a parting with a heavy roll on the long side and the ends turned under.
-    d = smin(d, sweptTop(q, -1.0, uStyle == 5 ? 0.98 : 1.02), 0.020);
-    // Built as a curve rather than a straight taper, so the length has a
-    // direction: a bob turns in under the jaw, a wave swings out and back.
-    float mid = uStyle == 5 ? 0.060 : (uStyle == 6 ? 0.085 : 0.165);
-    d = smin(d, pairLock(q, vec3(0.270, 0.10, -0.02),
-                         vec3(0.325 + mid, drop * 0.55, 0.00),
-                         vec3(0.305 + flare, drop, -0.04), 0.140, 0.098), 0.020);
-    // A second rope a side, set well behind and wider, so the mass has a front
-    // edge and a back edge instead of being one slab. The two were 0.065 apart
-    // with radii of 0.15 — closer than they are thick, which is one rope.
-    d = smin(d, pairLock(q, vec3(0.185, 0.14, -0.30),
-                         vec3(0.335, drop * 0.50, -0.32),
-                         vec3(0.240, drop * 0.86, -0.22), 0.130, 0.150), 0.020);
+    // One mass with the profile above, rather than a cap with ropes hung off
+    // it. Length, width and how deep it sits are the only things that differ
+    // between the three, which is what a length of hair really is.
+    // Width as well as length. Four styles that differed only in where they
+    // stopped were four of the same haircut, because the mass is wide enough
+    // now that the outline is what you read, not the hem.
+    float yBot = uStyle == 5 ? -0.60 : (uStyle == 6 ? -1.26 : -1.14);
+    float wMax = uStyle == 5 ? 0.350 : (uStyle == 6 ? 0.395 : 0.450);
+    d = hairHull(q, 0.49, yBot, wMax, 0.90, 0.16);
+    d = smin(d, sweepOne(q, -1.0, uStyle == 5 ? 0.95 : 1.00), 0.020);
+    d = max(d, -faceOpening(q, 0.060, 0.255));
     if (uStyle == 7) {
-      // The waves: a third lock a side, offset down the length, which is the
-      // only way a wave reads as a wave at this size.
-      d = smin(d, pairLock(q, vec3(0.265, 0.13, -0.13),
-                           vec3(0.455, drop * 0.44, -0.10),
-                           vec3(0.270, drop * 0.94, -0.08), 0.115, 0.130), 0.022);
+      // The wave: one rope a side riding on the outside of the mass, which is
+      // what puts a bend in an outline the profile alone keeps smooth.
+      d = smin(d, pairLock(q, vec3(0.300, 0.02, -0.06),
+                           vec3(0.520, -0.46, -0.04),
+                           vec3(0.330, -0.98, -0.06), 0.115, 0.140), 0.030);
     }
     d = smin(d, templeWedge(q, uStyle == 5 ? -0.16 : -0.20), 0.030);
     d = partedBy(d, q, -0.085, 0.020);
@@ -1050,8 +1122,25 @@ void main() {
     // and a pure hair-coloured one does not read at all.
     vec3 hv = normalize(key + normalize(eye - p));
     float lobe = max(0.0, dot(n, hv));
-    lit += uHair * pow(lobe, 3.0) * 0.46 * sh * mix(0.55, 1.0, ao);
-    lit += mix(uHair, vec3(1.0), 0.42) * pow(lobe, 22.0) * 0.52 * sh * mix(0.6, 1.0, ao);
+    lit += uHair * pow(lobe, 3.5) * 0.30 * sh * mix(0.55, 1.0, ao);
+    // The tight lobe is a band across the strands, not a dot. A round Blinn
+    // highlight is what a billiard ball has; hair has a ring, because every
+    // strand reflects into a cone about its own axis and the cones line up.
+    // Kajiya-Kay: the falloff runs on the sine of the angle to the strand, so
+    // the bright band lies perpendicular to it. Strands fall vertically down
+    // the sides and run front to back over the crown, which is all the tangent
+    // this needs — there is no combing to follow at this size.
+    // The tangent has to lie in the surface, not be a fixed world direction.
+    // A constant tangent makes the sine constant too, and the band covers the
+    // whole head in flat grey — which is exactly what the first attempt did.
+    // Projecting the flow direction onto the tangent plane makes it turn with
+    // the surface, and the band falls where the surface turns through it.
+    vec3 flow = mix(vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0),
+                    smoothstep(0.30, 0.92, n.y));
+    vec3 tangent = normalize(flow - n * dot(n, flow) + 1e-5);
+    float dTH = dot(tangent, hv);
+    float sinTH = sqrt(max(0.0, 1.0 - dTH * dTH));
+    lit += mix(uHair, vec3(1.0), 0.30) * pow(sinTH, 165.0) * 0.42 * sh * mix(0.6, 1.0, ao);
   }
 
   // Warmth bleeding through the thin parts. On an ear lit from behind this is
