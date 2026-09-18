@@ -270,29 +270,28 @@ def build_bang(head):
         t = smooth(u)
         vv = smooth(v)
         # Hairline: part → left temple. Diagonal kept.
-        x_hl = mix(0.30, -0.82, t)
-        y_hl = hairline_y(x_hl) - 0.03 * t
-        z_hl = 0.90
+        x_hl = mix(0.26, -0.80, t)
+        y_hl = hairline_y(x_hl) - 0.02 * t
+        z_hl = 0.88
         # Upper edge is a wide band on the front of the crown (on the skull).
-        x_up = mix(0.20, -0.58, t)
-        y_up = mix(0.99, 0.84, t) - 0.14 * smooth(max(0.0, (t - 0.58) / 0.42))
-        z_up = mix(0.14, 0.06, t)
-        # Round the part into a pad, not a lifted corner.
-        pad = (1.0 - t) ** 2
-        x_up -= 0.16 * pad
-        x_hl += 0.05 * pad
+        # Width is along this edge, not a square cut at the part.
+        x_up = mix(0.22, -0.56, t)
+        y_up = mix(0.98, 0.86, t) - 0.20 * smooth(max(0.0, (t - 0.55) / 0.45))
+        z_up = mix(0.10, 0.08, t)
         x = mix(x_hl, x_up, vv)
         y = mix(y_hl, y_up, vv)
         z = mix(z_hl, z_up, vv)
-        cx = math.exp(-((t - 0.28) ** 2) / 0.26)
+        # Round the part end into a lobe, not a vertical wall.
+        x += 0.07 * math.sin(math.pi * vv) * (1.0 - t) ** 2
+        cx = math.exp(-((t - 0.32) ** 2) / 0.28)
         cv = math.sin(math.pi * vv)
         bulge = cx * cv
-        z += 0.08 * bulge
+        z += 0.10 * bulge
         if outer:
-            # Thin hairline lip; mass in the middle of the fringe, not a visor wall.
-            clearance = 0.034 + 0.060 * vv + 0.040 * bulge
+            # Root matches the crown; lip is thin; convexity is mid-fringe.
+            clearance = 0.028 + 0.100 * vv + 0.045 * bulge
         else:
-            clearance = 0.022 + 0.010 * vv
+            clearance = 0.020 + 0.028 * vv
         return on_head(x, y, z, clearance)
 
     return grid_shell(
@@ -310,13 +309,13 @@ def _hang_keys(sign):
     First ring sits beside the crown, not as a lid on top of it.
     """
     raw = [
-        (0.72, 0.50, 0.90, -0.40, 0.38),
-        (0.50, 0.56, 1.02, -0.78, 0.40),
-        (0.24, 0.62, 1.12, -1.00, 0.32),
-        (-0.04, 0.64, 1.12, -1.10, 0.14),
-        (-0.32, 0.46, 0.90, -1.16, -0.04),
-        (-0.58, 0.34, 0.74, -1.22, -0.10),
-        (-0.84, 0.32, 0.72, -1.16, -0.06),
+        (0.70, 0.48, 0.88, -0.36, 0.46),
+        (0.48, 0.54, 1.00, -0.76, 0.42),
+        (0.22, 0.60, 1.10, -1.02, 0.28),
+        (-0.06, 0.58, 1.04, -1.12, 0.06),
+        (-0.34, 0.40, 0.82, -1.20, -0.12),
+        (-0.60, 0.32, 0.70, -1.24, -0.16),
+        (-0.86, 0.30, 0.68, -1.18, -0.10),
         (-1.12, 0.38, 1.12, -0.98, 0.12),
         (-1.40, 0.44, 1.64, -0.82, 0.22),
         (-1.70, 0.46, 1.98, -0.66, 0.24),
@@ -355,10 +354,10 @@ def build_sides():
 def build_back():
     """Hanging back mass. Same S as the sides. Starts at the nape, under the crown."""
     keys = [
-        (0.58, 0.48, -1.10, -0.52),
-        (0.32, 0.66, -1.16, -0.38),
-        (0.06, 0.76, -1.20, -0.32),
-        (-0.22, 0.70, -1.24, -0.34),
+        (0.36, 0.52, -1.08, -0.70),
+        (0.14, 0.64, -1.14, -0.48),
+        (-0.10, 0.72, -1.20, -0.36),
+        (-0.36, 0.64, -1.24, -0.34),
         (-0.48, 0.58, -1.26, -0.36),
         (-0.74, 0.54, -1.18, -0.30),
         (-1.00, 0.68, -1.06, -0.18),
@@ -375,7 +374,7 @@ def build_back():
         "hair_back",
         _taper_cap(sections),
         n_around=24,
-        k=3.8,
+        k=3.6,
         cap_start=True,
     )
 
@@ -386,7 +385,7 @@ def build_crown(head):
     def sample(u, v, outer):
         az = math.pi + u * math.tau * 1.04
         backness = 0.5 - 0.5 * math.cos(az)
-        polar = mix(0.05, mix(0.58, 1.48, backness), v)
+        polar = mix(0.05, mix(0.64, 1.55, backness), v)
         x = math.sin(polar) * math.sin(az)
         y = math.cos(polar)
         z = math.sin(polar) * math.cos(az)

@@ -6,23 +6,19 @@ candidate folder only**. Does not replace the protected original or
 
 This is **not** the representative hair. Visual quality is not approved.
 
-## What changed vs the previous slab candidate
+## What changed vs the previous saved candidate
 
-- Bang sits on the skull. The part end is a pad on the front of the crown,
-  not a folded visor tip in the air. Diagonal hairline is kept. Upper edge
-  is wide at the crown; the fringe tapers toward the left temple.
-- Sides keep the connected large volume and now have a length-wise S:
-  tuck toward the neck below the ear, flare near the shoulders. Readable
-  from front and 3/4. Back follows the same flow.
-- Crown is a cap on the head (no floating box lid). Inner cavity in
-  hair-only view is allowed. Pieces are not fused.
+- Bang root is on the skull: diagonal kept, crown connection is a band not a
+  square sticker, fringe tapers to the temple. Still a separate pad vs one mass.
+- Sides keep the connected volume and the length-wise S (neck tuck, shoulder
+  flare). Back follows the same flow. Nape mass sits lower under the crown.
+- Crown remains a cap on the head (no box lid). Pieces are not fused.
 
 ## Still wrong on screen
 
-- Bang still reads as a separate forehead pad, not yet the front of one
-  clay mass. The part corner is still a bit square.
-- Crown/bang join and the nape shelf (back mass under the cap) still show.
-- Surface lock ridges are missing; volumes are smooth.
+- Bang still reads as a separate forehead lock, not the front of one clay mass.
+- Part corner and bang–crown rim still show.
+- Nape shelf (back mass under the cap) still reads from behind.
 
 Do not merge. Do not replace `public/figure/hair_long_wave.glb`.
 
