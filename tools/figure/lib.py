@@ -48,12 +48,15 @@ def subsurf(obj, levels: int = 2) -> None:
     bpy.ops.object.modifier_apply(modifier=modifier.name)
 
 
-def solidify(obj, thickness: float = 0.10, offset: float = 1.0) -> None:
-    """Give an open surface real thickness, offset along its normals."""
+def solidify(obj, thickness: float = 0.10, offset: float = 1.0, even: bool = True) -> None:
+    """Give an open surface real thickness, offset along its normals.
+
+    `even=False` for surfaces with a hand-snapped rim: even offset divides by
+    the corner angle and shoots acute rim vertices off to infinity."""
     modifier = obj.modifiers.new("solid", "SOLIDIFY")
     modifier.thickness = thickness
     modifier.offset = offset
-    modifier.use_even_offset = True
+    modifier.use_even_offset = even
     modifier.use_quality_normals = True
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.modifier_apply(modifier=modifier.name)

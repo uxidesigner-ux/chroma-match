@@ -24,24 +24,33 @@ import lib  # noqa: E402
 # fixed so hair could be compared in isolation; that constraint is lifted here
 # because the hair-to-face ratio and the neck/collar join are part of the same
 # judgment as the hair itself.
-# Slightly oval clay skull — taller than it is wide, a bit smaller than a
-# bowling ball — with ears stuck on. Hair sits up on this skull; it is not
-# strapped onto a full sphere. Height stays 2.0 head units (crown to chin).
-HEAD_HALF_W = 0.700
-HEAD_HALF_D = 0.660
-SQUARENESS = 2.06
-EYE_Y, EYE_X = 0.022, 0.198
-# Flatter eyes — almost discs. Bead highlights come from protrusion + gloss.
-EYE_W, EYE_H, EYE_D = 0.084, 0.092, 0.016
-NOSE_Y, NOSE_OUT = -0.205, 0.142
+# Egg skull measured off the reference front panel (face width = 528 px,
+# crown-to-chin ~665 px -> 2.0 head units, so 1 face width = 1.56 units).
+# Widest at the cheek, well below the eyes; lower half rounds quickly to a
+# broad chin; upper half is a taller ellipse under the hair.
+HEAD_HALF_W = 0.78
+EGG_C = -0.45          # y of the widest row
+EGG_B_LO, EGG_B_HI = 0.55, 1.45
+EGG_K_LO, EGG_K_HI = 1.75, 2.2
+SECTION_K = 2.15       # horizontal cross-section roundness
+DEPTH_FRONT, DEPTH_BACK = 0.92, 1.00
+# Eyes: 0.53 face widths above the chin, 0.28 apart, tall black ovals.
+EYE_Y, EYE_X = -0.125, 0.220
+EYE_W, EYE_H, EYE_D = 0.064, 0.088, 0.016
+# Nose: a clay ball 0.21 units below the eyes, ~0.27 wide, standing proud.
+NOSE_Y = -0.340
+NOSE_HALF = (0.135, 0.105, 0.120)
+NOSE_PROUD = 0.100
 NECKLINE_Y = -1.18
 SHOULDER_HALF = 1.12
 NECK_TOP_Y = -0.98
-# Small ear blob stuck into the oval, visible from the front. Pearl on the lobe.
-EAR_HALF = (0.058, 0.142, 0.092)
-EAR_Y = -0.038
-EAR_Z = -0.052
-PEARL_R = 0.030
+# Ears: tall (0.41 units) discs stuck on at eye-to-nose height, sticking
+# ~0.15 units out from the skull. Pearl on the lobe.
+EAR_HALF = (0.085, 0.205, 0.115)
+EAR_Y = -0.190
+EAR_Z = -0.050
+EAR_PROUD = 0.060
+PEARL_R = 0.045
 
 
 def to_blender(p):
@@ -49,57 +58,73 @@ def to_blender(p):
     return (p[0], -p[2], p[1])
 
 
+def half_width(y):
+    """Skull half-width at height y (egg profile from the reference)."""
+    y = max(-1.0, min(1.0, y))
+    if y < EGG_C:
+        t, k = (EGG_C - y) / EGG_B_LO, EGG_K_LO
+    else:
+        t, k = (y - EGG_C) / EGG_B_HI, EGG_K_HI
+    t = min(1.0, t)
+    return HEAD_HALF_W * (1.0 - t ** k) ** (1.0 / k)
+
+
+def half_depth(y, front=True):
+    return half_width(y) * (DEPTH_FRONT if front else DEPTH_BACK)
+
+
 def axes_at(y):
-    # Egg, not a bowling ball: widest at the cheek, tapering to crown and chin.
-    jaw = lib.smoothstep(-0.10, -1.0, y)
-    crown = lib.smoothstep(0.28, 1.0, y)
-    cheek = lib.blob(abs(y + 0.04) / 0.40)
-    return (
-        HEAD_HALF_W * (1 - 0.145 * jaw - 0.110 * crown + 0.065 * cheek),
-        HEAD_HALF_D * (1 - 0.110 * jaw - 0.075 * crown + 0.035 * cheek),
-    )
+    return (half_width(y), half_depth(y, True))
+
+
+def front_surface_z(x, y):
+    """Front-most skull z at lateral x, height y (0 at the skull's side)."""
+    hw = half_width(y)
+    if hw <= 1e-6 or abs(x) >= hw:
+        return 0.0
+    return half_depth(y, True) * (1.0 - (abs(x) / hw) ** SECTION_K) ** (1.0 / SECTION_K)
 
 
 def ear_center(side):
-    """Stuck-on ear: centre on the oval, blob sticks out to the side."""
-    return (side * (axes_at(EAR_Y)[0] + 0.030), EAR_Y, EAR_Z)
+    """Stuck-on ear: disc centred just outside the skull at eye-to-nose height."""
+    return (side * (half_width(EAR_Y) + EAR_PROUD), EAR_Y, EAR_Z)
 
 
 def pearl_center(side):
     c = ear_center(side)
-    return (c[0] + side * 0.016, c[1] - 0.112, c[2] + 0.018)
+    return (c[0] + side * 0.010, c[1] - EAR_HALF[1] - 0.030, c[2] + 0.030)
 
 
-def super_radius(d, a, b, c, k):
-    s = max(1e-9, (abs(d[0]) / a) ** k + (abs(d[1]) / b) ** k + (abs(d[2]) / c) ** k)
-    return s ** (-1 / k)
+def nose_center(skin_z):
+    return (0.0, NOSE_Y, skin_z - NOSE_HALF[2] + NOSE_PROUD)
 
 
 def head_surface(d):
-    a, c = axes_at(d[1])
-    r = super_radius(d, a, 1.0, c, SQUARENESS)
-    p = [d[0] * r, d[1] * r, d[2] * r]
-    front = lib.smoothstep(-0.05, 0.60, d[2])
+    """Egg skull. `d` is a unit direction; its y is used as latitude."""
+    y = max(-1.0, min(1.0, d[1]))
+    h = math.hypot(d[0], d[2])
+    if h < 1e-6:
+        return [0.0, y, 0.0]
+    ux, uz = d[0] / h, d[2] / h
+    hw = half_width(y)
+    hz = half_depth(y, uz > 0)
+    if hw < 1e-6:
+        return [0.0, y, 0.0]
+    s = max(1e-9, (abs(ux) / hw) ** SECTION_K + (abs(uz) / hz) ** SECTION_K)
+    r = s ** (-1.0 / SECTION_K)
+    p = [ux * r, y, uz * r]
+    front = lib.smoothstep(-0.05, 0.60, uz)
 
-    # Simple clay head: round cheeks, a short blob nose, no brow ridge.
-    cheek = lib.blob(math.hypot((abs(p[0]) - 0.300) / 0.500, (p[1] + 0.160) / 0.380))
-    p[2] += cheek * 0.048 * front
+    # Soft cheeks and a broad chin. The nose is a separate clay ball.
+    cheek = lib.blob(math.hypot((abs(p[0]) - 0.340) / 0.460, (p[1] + 0.420) / 0.360))
+    p[2] += cheek * 0.034 * front
 
-    jaw = lib.blob(math.hypot((abs(p[0]) - 0.200) / 0.420, (p[1] + 0.500) / 0.300))
-    p[2] += jaw * 0.022 * front
-
-    chin = lib.blob(math.hypot(p[0] / 0.400, (p[1] + 0.780) / 0.320))
-    p[2] += chin * 0.048 * front
-
-    dy = p[1] - NOSE_Y
-    vy = dy / 0.155 if dy > 0 else dy / 0.110
-    nose = lib.blob(math.hypot(p[0] / 0.155, vy))
-    p[2] += nose * NOSE_OUT * front
-    p[1] -= nose * 0.008
+    chin = lib.blob(math.hypot(p[0] / 0.420, (p[1] + 0.860) / 0.300))
+    p[2] += chin * 0.030 * front
 
     # Very shallow sockets — eyes should not sit on stilts.
-    socket = lib.blob(math.hypot((abs(p[0]) - EYE_X) / 0.195, (p[1] - EYE_Y) / 0.155))
-    p[2] -= socket * 0.018 * front
+    socket = lib.blob(math.hypot((abs(p[0]) - EYE_X) / 0.190, (p[1] - EYE_Y) / 0.150))
+    p[2] -= socket * 0.014 * front
 
     return p
 
@@ -116,9 +141,9 @@ def body_axes(y):
 
 
 def build_head():
-    obj = lib.sphere_cage(40, 26, lambda d: to_blender(head_surface((d.x, d.z, -d.y))))
+    obj = lib.sphere_cage(44, 36, lambda d: to_blender(head_surface((d.x, d.z, -d.y))))
     lib.subsurf(obj, 2)
-    lib.relax(obj, 0.35, 1)
+    lib.relax(obj, 0.30, 1)
     lib.shaded_smooth(obj)
     obj.name = "head"
     obj.data.name = "head"
@@ -202,6 +227,20 @@ def build_face_parts(head, skin, eye_mat, pearl_mat):
     skin_z = front_z(head, EYE_X, EYE_Y)
     eye_front = skin_z + 0.016
     parts = []
+
+    nx, ny, nz = NOSE_HALF
+    nose = lib.sphere_cage(
+        20, 14,
+        lambda d: to_blender((d.x * nx, d.z * ny, -d.y * nz)),
+    )
+    lib.subsurf(nose, 2)
+    lib.shaded_smooth(nose)
+    nose.name = "nose"
+    nose.data.name = "nose"
+    nose.location = to_blender(nose_center(front_z(head, 0.0, NOSE_Y)))
+    lib.assign(nose, skin)
+    parts.append(nose)
+
     for side, tag in ((-1, "l"), (1, "r")):
         eye = lib.sphere_cage(
             20, 14,
