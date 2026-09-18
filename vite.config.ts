@@ -7,4 +7,10 @@ export default defineConfig({
   build: {
     target: 'es2022',
   },
+  server: {
+    fs: {
+      // Private reference originals must not be reachable as a URL.
+      deny: ['**/refs/**'],
+    },
+  },
 })

@@ -5,7 +5,9 @@ dist
 .vite
 .claude
 
-# Reference images copied in for side-by-side checks are the user's, not ours.
+# Reference originals — never commit, never ship. Review pages read them
+# through a local file picker, not from a public URL.
+refs/
 public/dev/
 
 # Local capture scratch (canonical review page lives in tools/figure/review/).

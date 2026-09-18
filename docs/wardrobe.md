@@ -3,16 +3,22 @@
 Design, not implementation. Nothing here is built yet; it is the standard the
 parts will be built to once the representative character is approved.
 
-Two references, doing different jobs. The clay render stays the bar for the
-face, the hair and the material — how good one character has to look. The
-second reference, Bondee, is used only for what a wardrobe has to do: full
-figures that read as an outfit, garments that differ in cut rather than colour,
-layering, and editing a part at a time. Its proportions are not mixed into
-ours, and it is not a reason to aim lower.
+Two references, doing different jobs — both still apply.
 
-Only its public screens and how people describe using it were looked at. How it
-is actually built or rigged is not known here and is not assumed; the rules
-below are ours.
+**Look.** The visual bar for one character (face, hair, material) is the
+top-right figure on the six-person original sheet: long wave, black knit. That
+file is private; see `tools/figure/REFERENCE.md`. Nothing in the current GLB
+is that character yet.
+
+**Assembly.** Bondee’s character and combination structure is the intended end
+state for how a figure is put together: full figures that read as an outfit,
+garments that differ in cut rather than colour, layering, and editing a part at
+a time. How Bondee is actually built or rigged is not known here and is not
+copied; the combination *rules* below are ours, pointed at that structure.
+
+The representative look is approved first. Combination rules are checked on
+that same face and body with a few real swaps — not by shipping three finished
+characters, and not by treating an unapproved sculpt as the default.
 
 ## 1. A garment is a silhouette, not a colour
 

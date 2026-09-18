@@ -253,6 +253,29 @@ export class Showroom {
     this.place()
   }
 
+  /** World-space centre of a named part, or null if it is not on the figure. */
+  partCentre(name: string): Vector3 | null {
+    const part = this.parts.get(name)
+    if (!part) return null
+    const box = new Box3().setFromObject(part)
+    if (box.isEmpty()) return null
+    return box.getCenter(new Vector3())
+  }
+
+  /**
+   * The two eyes, from the loaded mesh, not from a remembered constant.
+   *
+   * Framing a comparison against a measured crop has to use where this model
+   * actually put the eyes. A number copied out of an older script is how the
+   * last review ended up matching the wrong face size.
+   */
+  eyeCentres(): { left: Vector3; right: Vector3 } | null {
+    const left = this.partCentre('eye_l')
+    const right = this.partCentre('eye_r')
+    if (!left || !right) return null
+    return { left, right }
+  }
+
   /** The whole figure, whatever it turns out to be. */
   frameAll(margin = 1.08): void {
     const box = new Box3().setFromObject(this.figure)

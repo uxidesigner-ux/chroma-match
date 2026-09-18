@@ -2,171 +2,414 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Character sculpt — large comparison</title>
+<title>기준 비교 — original required</title>
 <style>
-  body { margin: 0; background: #12141a; color: #d5dae2; font: 13px/1.4 system-ui, sans-serif; padding: 18px; }
+  body { margin: 0; background: #12141a; color: #d5dae2; font: 13px/1.45 system-ui, sans-serif; padding: 18px; }
   h1 { font-size: 16px; font-weight: 600; margin: 0 0 6px; color: #eef1f6; }
   h2 { font-size: 14px; font-weight: 600; margin: 22px 0 8px; color: #eef1f6; }
-  p { margin: 0 0 12px; color: #9aa3b2; max-width: 1100px; }
-  .row { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  p { margin: 0 0 10px; color: #9aa3b2; max-width: 1200px; }
+  .row { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
   .c { text-align: center; }
-  .c h3 { margin: 0 0 6px; font-size: 12px; color: #8d94a0; font-weight: 600; letter-spacing: 0.02em; }
-  canvas { display: block; border-radius: 4px; background: #E3C4C2; }
+  .c h3 { margin: 0 0 6px; font-size: 12px; color: #8d94a0; font-weight: 600; }
+  canvas { display: block; border-radius: 4px; background: #1a1d24; }
+  .status { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 16px; }
+  .pill { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .ok { background: #1e3d2f; color: #8ee0b0; }
+  .wait { background: #3d3420; color: #e0c48e; }
+  .bad { background: #3d2020; color: #f0a0a0; }
+  .bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 8px 0 16px; }
+  input[type=file] { color: #d5dae2; }
+  table { border-collapse: collapse; margin: 8px 0 16px; font-size: 12px; }
+  td, th { border: 1px solid #2a303a; padding: 4px 8px; text-align: left; }
+  th { color: #8d94a0; font-weight: 600; }
+  .block { background: #2a1c1c; color: #f0b4b4; padding: 12px 14px; border-radius: 6px; max-width: 900px; }
   .note { color: #c9a27a; }
 </style>
 </head>
 <body>
+<div id="ui">
+  <h1>기준 비교 (원본 필수)</h1>
+  <p>
+    모델이 그려졌다고 비교가 끝난 것이 아니다. 첫 비교는
+    <strong>기준 원본 / 현재 모델 최종 재질 / 현재 모델 중성 재질</strong>이다.
+    원본은 이 기기에서만 연다. 저장소·라이브로 올리지 않는다.
+  </p>
+  <div class="status">
+    <span id="pill-model" class="pill wait">모델: 로딩</span>
+    <span id="pill-orig" class="pill wait">원본: 없음</span>
+    <span id="pill-compare" class="pill wait">기준 비교: 미완료</span>
+  </div>
+  <div class="bar">
+    <label>원본 시트 <input id="original-file" type="file" accept="image/png,image/jpeg,image/webp"></label>
+    <span class="note">로컬 파일만. public/ 경로로 불러오지 않는다.</span>
+  </div>
+  <div id="block" class="block">
+    원본이 아직 없다. 기준 비교를 완료로 보지 않는다. 중성/컬러만 나란히 놓은 화면은 제출하지 않는다.
+  </div>
+</div>
 <div id="out"></div>
 <script type="module">
 import { Vector3 } from 'three'
 import { Showroom } from '/src/avatar/figure/showroom.ts'
 
-const out = document.getElementById('out')
 const LOOK = { skin: '#F0B894', hair: '#4A382F', cloth: '#23232A', backdrop: '#E3C4C2' }
+const EXPECT = { width: 1536, height: 1024, cols: 3, rows: 2 }
 
-function title(t, sub) {
-  const h = document.createElement('h1')
-  h.textContent = t
-  out.append(h)
-  if (sub) {
-    const p = document.createElement('p')
-    p.textContent = sub
-    out.append(p)
+window.__modelReady = false
+window.__compareReady = false
+window.__dump = { original: null, crop: null, eyes: null, warnings: [] }
+
+const pills = {
+  model: document.getElementById('pill-model'),
+  orig: document.getElementById('pill-orig'),
+  compare: document.getElementById('pill-compare'),
+}
+function setPill(el, kind, text) {
+  el.className = 'pill ' + kind
+  el.textContent = text
+}
+
+const out = document.getElementById('out')
+const block = document.getElementById('block')
+
+function el(tag, attrs = {}, kids = []) {
+  const n = document.createElement(tag)
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') n.className = v
+    else if (k === 'text') n.textContent = v
+    else n.setAttribute(k, v)
+  }
+  for (const c of kids) n.append(c)
+  return n
+}
+
+function section(title) {
+  out.append(el('h2', { text: title }))
+}
+
+function warn(msg) {
+  window.__dump.warnings.push(msg)
+  out.append(el('p', { class: 'note', text: msg }))
+}
+
+function measureEyes(canvas) {
+  const ctx = canvas.getContext('2d')
+  const w = canvas.width
+  const h = canvas.height
+  const { data } = ctx.getImageData(0, 0, w, h)
+  const x0 = Math.floor(w * 0.22)
+  const x1 = Math.floor(w * 0.78)
+  const y0 = Math.floor(h * 0.10)
+  const y1 = Math.floor(h * 0.42)
+  const pts = []
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = (y * w + x) * 4
+      const luma = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
+      if (luma < 55) pts.push([x, y, luma])
+    }
+  }
+  if (pts.length < 20) return null
+  let cx = 0
+  let cy = 0
+  for (const [x, y] of pts) { cx += x; cy += y }
+  cx /= pts.length
+  cy /= pts.length
+  const left = []
+  const right = []
+  for (const p of pts) (p[0] < cx ? left : right).push(p)
+  if (left.length < 8 || right.length < 8) return null
+  const mean = (arr) => {
+    let x = 0, y = 0
+    for (const p of arr) { x += p[0]; y += p[1] }
+    return { x: x / arr.length, y: y / arr.length }
+  }
+  const L = mean(left)
+  const R = mean(right)
+  const sep = Math.hypot(R.x - L.x, R.y - L.y)
+  if (sep < w * 0.06 || sep > w * 0.45) return null
+  if (Math.abs(R.y - L.y) > sep * 0.45) return null
+  return {
+    left: L,
+    right: R,
+    mid: { x: (L.x + R.x) / 2, y: (L.y + R.y) / 2 },
+    sep,
+    search: { x0, y0, x1, y1 },
   }
 }
-function section(t) {
-  const h = document.createElement('h2')
-  h.textContent = t
-  out.append(h)
+
+function markEyes(ctx, eyes, color = '#39d17b') {
+  ctx.save()
+  ctx.strokeStyle = color
+  ctx.fillStyle = color
+  ctx.lineWidth = 1.5
+  for (const p of [eyes.left, eyes.right]) {
+    ctx.beginPath()
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  ctx.beginPath()
+  ctx.moveTo(eyes.left.x, eyes.left.y)
+  ctx.lineTo(eyes.right.x, eyes.right.y)
+  ctx.stroke()
+  ctx.restore()
 }
-function row() {
-  const r = document.createElement('div')
-  r.className = 'row'
-  out.append(r)
-  return r
+
+function panel(label, node) {
+  const d = el('div', { class: 'c' })
+  d.append(el('h3', { text: label }), node)
+  return d
 }
-function shot(parent, label, s, w, h) {
-  const d = document.createElement('div')
-  d.className = 'c'
-  const t = document.createElement('h3')
-  t.textContent = label
+
+let showroom = null
+
+async function loadModel() {
+  showroom = new Showroom({ url: '/figure/character.glb', look: LOOK, width: 512, height: 512 })
+  await showroom.load()
+  window.__modelReady = true
+  setPill(pills.model, 'ok', '모델: 준비됨')
+}
+
+function extractTopRight(img) {
+  const { width, height } = img
+  const layoutOk = width === EXPECT.width && height === EXPECT.height
+  const cellW = layoutOk ? width / EXPECT.cols : NaN
+  const cellH = layoutOk ? height / EXPECT.rows : NaN
+  const crop = layoutOk
+    ? {
+        x: Math.round(cellW * (EXPECT.cols - 1)),
+        y: 0,
+        w: Math.round(cellW),
+        h: Math.round(cellH),
+        reason: `${width}×${height} confirmed. 3×2 cells of ${cellW}×${cellH}. Top-right cell.`,
+      }
+    : null
+  return { layoutOk, cellW, cellH, crop }
+}
+
+function frameToEyes(s, cropW, cropH, eyes) {
+  const centres = s.eyeCentres()
+  if (!centres) return { ok: false, reason: '모델에서 eye_l / eye_r 를 찾지 못함' }
+  const mid = centres.left.clone().add(centres.right).multiplyScalar(0.5)
+  const sep = Math.abs(centres.right.x - centres.left.x)
+  if (sep < 1e-4) return { ok: false, reason: '모델 눈 간격이 0' }
+  const unitsPerPx = sep / eyes.sep
+  const frameH = cropH * unitsPerPx
+  const target = new Vector3(
+    mid.x,
+    mid.y + (cropH / 2 - eyes.mid.y) * unitsPerPx,
+    mid.z,
+  )
+  s.camera.aspect = cropW / cropH
+  s.camera.updateProjectionMatrix()
+  s.orbit(0, 0.02)
+  s.frameOn(target, frameH)
+  return {
+    ok: true,
+    modelEyeSep: sep,
+    unitsPerPx,
+    target: [target.x, target.y, target.z],
+    modelEyes: {
+      left: [centres.left.x, centres.left.y, centres.left.z],
+      right: [centres.right.x, centres.right.y, centres.right.z],
+    },
+  }
+}
+
+function captureSameSize(s, w, h, label, neutral) {
+  s.setNeutral(neutral)
   const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
   c.style.width = w + 'px'
   c.style.height = h + 'px'
-  d.append(t, c)
-  parent.append(d)
   s.capture(c, w, h)
+  return panel(label, c)
 }
 
-title(
-  'Representative character — large form check',
-  'First two rows are the judgment: front-near and three-quarter, large. Side / back / turn come after. Visual quality is decided here, not by mesh connectivity or test pass.',
-)
+async function onOriginal(file) {
+  window.__compareReady = false
+  setPill(pills.compare, 'wait', '기준 비교: 미완료')
+  out.replaceChildren()
+  const dump = { original: null, crop: null, eyes: null, warnings: [] }
+  window.__dump = dump
 
-const W = 520
-const H = 640
-const s = new Showroom({ url: '/figure/character.glb', look: LOOK, width: W, height: H })
-await s.load()
-
-// Bust framing matched to prior eye-line work: centre near the eyes, height
-// covering crown through upper chest so hair-to-face ratio is visible.
-const bustCentre = new Vector3(0, -0.15, 0)
-const bustHeight = 3.35
-
-section('1. Front — near reference framing')
-{
-  const r = row()
-  s.frameOn(bustCentre, bustHeight)
-  s.orbit(0, 0.02)
-  s.setNeutral(true)
-  shot(r, 'neutral clay — front', s, W, H)
-  s.setNeutral(false)
-  shot(r, 'coloured — front', s, W, H)
-}
-
-section('2. Three-quarter — same framing')
-{
-  const r = row()
-  s.frameOn(bustCentre, bustHeight)
-  s.orbit(0.55, 0.06)
-  s.setNeutral(true)
-  shot(r, 'neutral clay — 3/4', s, W, H)
-  s.setNeutral(false)
-  shot(r, 'coloured — 3/4', s, W, H)
-}
-
-section('3. Side and back (back is designed — no reference)')
-{
-  const r = row()
-  const smallW = 360
-  const smallH = 440
-  s.frameOn(bustCentre, bustHeight)
-  s.orbit(1.15, 0.04)
-  s.setNeutral(true)
-  shot(r, 'side', s, smallW, smallH)
-  s.orbit(Math.PI, 0.02)
-  shot(r, 'back (designed)', s, smallW, smallH)
-  s.orbit(-0.55, 0.06)
-  shot(r, '3/4 other side', s, smallW, smallH)
-}
-
-section('4. Full figure turn — consistency')
-{
-  const r = row()
-  s.frameAll(1.06)
-  s.setNeutral(false)
-  for (const [label, yaw] of [['front', 0], ['3/4', 0.7], ['side', 1.35], ['back', Math.PI]]) {
-    s.orbit(yaw, 0.05)
-    shot(r, label, s, 240, 360)
-  }
-}
-
-// Optional: side-by-side with reference if public/dev/ref.png is present.
-try {
   const img = new Image()
-  img.src = '/dev/ref.png'
-  await img.decode()
-  section('5. Against reference (eye-separation matched)')
-  const note = document.createElement('p')
-  note.className = 'note'
-  note.textContent = 'Reference present. Camera framed so model eye separation matches the crop.'
-  out.append(note)
-  const RW = 540
-  const y0 = 95
-  const y1 = 1105
-  const sc = RW / img.width
-  const refC = document.createElement('canvas')
-  refC.width = RW
-  refC.height = Math.round((y1 - y0) * sc)
-  refC.getContext('2d').drawImage(img, 0, y0, img.width, y1 - y0, 0, 0, refC.width, refC.height)
-  const refEyeSep = 153 * sc
-  const refEyeY = (635 - y0) * sc
-  const r = row()
-  const rd = document.createElement('div')
-  rd.className = 'c'
-  const rh = document.createElement('h3')
-  rh.textContent = 'reference'
-  rd.append(rh, refC)
-  r.append(rd)
-  const unitsPerPx = 0.496 / refEyeSep // EYE_X*2 after face unlock
-  const frameH = refC.height * unitsPerPx
-  s.frameOn(new Vector3(0, 0.015 - (refC.height / 2 - refEyeY) * unitsPerPx, 0), frameH)
-  s.orbit(0, 0)
-  s.setNeutral(true)
-  shot(r, 'current — neutral', s, RW, refC.height)
-  s.setNeutral(false)
-  shot(r, 'current — coloured', s, RW, refC.height)
-  s.orbit(0.55, 0.06)
-  s.setNeutral(true)
-  shot(r, 'current 3/4 — neutral', s, RW, refC.height)
-} catch (err) {
-  const p = document.createElement('p')
-  p.className = 'note'
-  p.textContent = 'public/dev/ref.png not found in this environment — large self views only. Drop the reference into public/dev/ref.png to enable section 5.'
-  out.append(p)
+  const url = URL.createObjectURL(file)
+  img.src = url
+  try {
+    await img.decode()
+  } catch (err) {
+    setPill(pills.orig, 'bad', '원본: 읽기 실패')
+    block.style.display = 'block'
+    block.textContent = '원본을 디코드하지 못했다. 기준 비교를 완료로 보지 않는다.'
+    dump.warnings.push(String(err))
+    return
+  }
+
+  dump.original = {
+    name: file.name,
+    type: file.type,
+    bytes: file.size,
+    width: img.width,
+    height: img.height,
+  }
+  setPill(pills.orig, 'ok', `원본: ${img.width}×${img.height} (${file.name})`)
+  block.style.display = 'none'
+
+  const { layoutOk, crop } = extractTopRight(img)
+  if (!layoutOk || !crop) {
+    warn(`원본 크기가 ${img.width}×${img.height} 이다. 기대는 ${EXPECT.width}×${EXPECT.height} (3×2). 과거 크롭(y0=95 등)을 쓰지 않았고, 이 파일에서 셀을 확정하지 못했다. 기준 비교 미완료.`)
+    section('실제로 읽은 원본 (셀 미확정)')
+    const sheet = document.createElement('canvas')
+    sheet.width = img.width
+    sheet.height = img.height
+    sheet.getContext('2d').drawImage(img, 0, 0)
+    sheet.style.width = Math.min(768, img.width) + 'px'
+    sheet.style.height = 'auto'
+    out.append(panel('original sheet', sheet))
+    return
+  }
+
+  dump.crop = {
+    original: { x: crop.x, y: crop.y, w: crop.w, h: crop.h },
+    resolution: { w: crop.w, h: crop.h },
+    mapping: `crop(x,y) → original(${crop.x}+x, ${crop.y}+y)`,
+    reason: crop.reason,
+    aspect: crop.w / crop.h,
+  }
+
+  section('실제로 읽은 원본')
+  const sheet = document.createElement('canvas')
+  sheet.width = img.width
+  sheet.height = img.height
+  const sctx = sheet.getContext('2d')
+  sctx.drawImage(img, 0, 0)
+  sctx.strokeStyle = '#39d17b'
+  sctx.lineWidth = 4
+  sctx.strokeRect(crop.x + 2, crop.y + 2, crop.w - 4, crop.h - 4)
+  sctx.fillStyle = 'rgba(57,209,123,0.12)'
+  sctx.fillRect(crop.x, crop.y, crop.w, crop.h)
+  sctx.strokeStyle = 'rgba(255,255,255,0.25)'
+  sctx.lineWidth = 1
+  for (let c = 1; c < EXPECT.cols; c++) {
+    sctx.beginPath()
+    sctx.moveTo(c * crop.w, 0)
+    sctx.lineTo(c * crop.w, img.height)
+    sctx.stroke()
+  }
+  sctx.beginPath()
+  sctx.moveTo(0, crop.h)
+  sctx.lineTo(img.width, crop.h)
+  sctx.stroke()
+  sheet.style.width = Math.min(768, img.width) + 'px'
+  sheet.style.height = 'auto'
+  out.append(panel(`${img.width}×${img.height} · 초록 = 오른쪽 위 셀`, sheet))
+
+  const cropCanvas = document.createElement('canvas')
+  cropCanvas.width = crop.w
+  cropCanvas.height = crop.h
+  cropCanvas.getContext('2d').drawImage(
+    img,
+    crop.x, crop.y, crop.w, crop.h,
+    0, 0, crop.w, crop.h,
+  )
+  const eyes = measureEyes(cropCanvas)
+  const cropView = document.createElement('canvas')
+  cropView.width = crop.w
+  cropView.height = crop.h
+  cropView.getContext('2d').drawImage(cropCanvas, 0, 0)
+  if (eyes) {
+    markEyes(cropView.getContext('2d'), eyes)
+    dump.eyes = {
+      inCrop: eyes,
+      inOriginal: {
+        left: { x: crop.x + eyes.left.x, y: crop.y + eyes.left.y },
+        right: { x: crop.x + eyes.right.x, y: crop.y + eyes.right.y },
+        sep: eyes.sep,
+      },
+      source: 'measured on this crop, not reused from older notes (153px / 635px)',
+    }
+  } else {
+    dump.eyes = { failed: true, source: 'no fallback to 153px / 635px' }
+    warn('이 크롭에서 눈을 측정하지 못했다. 과거 153px·635px를 재사용하지 않는다. 얼굴 크기는 맞추지 못한 채로 나란히 둔다.')
+  }
+
+  section('기준 캐릭터 추출본 (오른쪽 위 셀, 원본 해상도 유지)')
+  cropView.style.width = crop.w + 'px'
+  cropView.style.height = crop.h + 'px'
+  out.append(panel(`${crop.w}×${crop.h} px · 비율 ${ (crop.w / crop.h).toFixed(3) }`, cropView))
+
+  const table = el('table')
+  const rows = [
+    ['원본 파일', `${file.name} · ${file.size} bytes · ${file.type || 'unknown'}`],
+    ['원본 픽셀', `${img.width} × ${img.height}`],
+    ['격자', layoutOk ? `3열 × 2행, 셀 ${crop.w} × ${crop.h}` : '미확정'],
+    ['크롭 (원본 좌표)', `(${crop.x}, ${crop.y}) … (${crop.x + crop.w}, ${crop.y + crop.h})`],
+    ['크롭 해상도', `${crop.w} × ${crop.h} (스트레치 없음)`],
+    ['좌표 관계', `크롭의 (x,y) = 원본의 (${crop.x}+x, ${crop.y}+y)`],
+    ['눈 (크롭)', eyes ? `L ${eyes.left.x.toFixed(1)},${eyes.left.y.toFixed(1)}  R ${eyes.right.x.toFixed(1)},${eyes.right.y.toFixed(1)}  sep ${eyes.sep.toFixed(1)}px` : '측정 실패 — 과거 수치 미사용'],
+    ['눈 (원본)', eyes ? `L ${(crop.x + eyes.left.x).toFixed(1)},${(crop.y + eyes.left.y).toFixed(1)}  R ${(crop.x + eyes.right.x).toFixed(1)},${(crop.y + eyes.right.y).toFixed(1)}` : '—'],
+  ]
+  for (const [k, v] of rows) {
+    const tr = el('tr')
+    tr.append(el('th', { text: k }), el('td', { text: v }))
+    table.append(tr)
+  }
+  out.append(table)
+
+  if (!window.__modelReady || !showroom) {
+    warn('모델이 아직 없다. 원본은 열렸지만 기준 비교는 미완료.')
+    return
+  }
+
+  section('1. 기준 원본 / 현재 모델 최종 재질 / 현재 모델 중성 재질')
+  const r = el('div', { class: 'row' })
+  const origPanel = document.createElement('canvas')
+  origPanel.width = crop.w
+  origPanel.height = crop.h
+  origPanel.getContext('2d').drawImage(cropCanvas, 0, 0)
+  origPanel.style.width = crop.w + 'px'
+  origPanel.style.height = crop.h + 'px'
+  r.append(panel('기준 원본 (추출)', origPanel))
+
+  let framed = { ok: false, reason: 'eyes not measured' }
+  if (eyes) framed = frameToEyes(showroom, crop.w, crop.h, eyes)
+  if (!framed.ok) {
+    showroom.camera.aspect = crop.w / crop.h
+    showroom.camera.updateProjectionMatrix()
+    showroom.orbit(0, 0.02)
+    showroom.frameOn(new Vector3(0, -0.2, 0), 3.2)
+    warn(`시점·얼굴 크기를 맞추지 못했다 (${framed.reason}). 아래는 같은 픽셀 크기로만 나란히 둔 것이다.`)
+    dump.warnings.push(framed.reason)
+  } else {
+    dump.frame = framed
+    warn('카메라: 원본에서 잰 눈 간격·눈 높이에 모델 눈을 맞췄다. 원본의 고개 각도·렌즈는 모르는 값이라 남는 시점 차이는 조형 오류로 보지 않는다.')
+  }
+
+  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 최종 재질', false))
+  r.append(captureSameSize(showroom, crop.w, crop.h, '현재 모델 · 중성 재질', true))
+  out.append(r)
+
+  window.__compareReady = true
+  setPill(pills.compare, 'ok', '기준 비교: 준비됨')
 }
 
-window.__ready = true
+document.getElementById('original-file').addEventListener('change', (ev) => {
+  const file = ev.target.files && ev.target.files[0]
+  if (!file) return
+  onOriginal(file)
+})
+
+try {
+  await loadModel()
+} catch (err) {
+  setPill(pills.model, 'bad', '모델: 실패')
+  window.__dump.warnings.push(String(err))
+}
+
+// Intentionally no window.__ready. Callers must wait for __compareReady.
+window.__pageLoaded = true
 </script>
 </body>
 </html>

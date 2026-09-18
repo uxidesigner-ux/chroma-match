@@ -16,13 +16,20 @@ and re-running a script reproduces its GLB exactly.
 | `character.py` | head, body, top, eyes, ears; calls hair |
 | `hair.py` | representative hairstyle (attempt 5c — see NOTES.md) |
 | `flows.py` | earlier band-flow curves (kept for history / overlay) |
-| `NOTES.md` | measurements, attempts, what the screen showed, handoff scope |
+| `NOTES.md` | screen-first log of attempts; 5c is not approved |
+| `REFERENCE.md` | how to find, crop and measure the original — not a substitute for opening it |
+| `review/` | comparison page; original is a local file, not a public URL |
 | `checkpoints/` | editable snapshots of rejected or prior designs |
 
-Large visual check (front + three-quarter first):
+Required visual check — original is mandatory:
 
     npx vite --port 5173
-    node .tmp-d/shot.mjs http://127.0.0.1:5173/.tmp-d/compare-large.html out.png
+    # open /tools/figure/review/compare-large.html and choose the 1536×1024 sheet
 
-Drop the clay reference at `public/dev/ref.png` (gitignored) to enable the
-matched side-by-side section.
+    REF=refs/six-sheet.png node tools/figure/review/shot.mjs \
+      http://127.0.0.1:5173/tools/figure/review/compare-large.html out.png
+
+`refs/` is gitignored and blocked from the Vite file server. Never put the
+original in `public/` or in a comparison still that is committed or deployed.
+
+Do not treat `window.__modelReady` as a finished comparison.
