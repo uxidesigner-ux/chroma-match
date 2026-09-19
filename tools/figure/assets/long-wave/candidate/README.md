@@ -23,10 +23,10 @@ Visual quality is not approved.
   lower edge, and a swell in the cap surface makes the diagonal sweep, so
   crown and bang are one piece of clay. Lobes radiate from a whorl at the
   part.
-- Dome (`DOME_*`): the crown and upper back are pushed out to an egg measured
-  off the sheet's side view (top at y=1.42, mass ~1.5 units behind the skull
-  centre at ear height), back and top only, so the crown is a round dome
-  instead of a flat lid and the upper back is not pressed in.
+- Crown flow: lock ridges are the angle around the side-part whorl (`WHORL`,
+  `N_LOBE` = 8). The same field is used on the cap and the curtain, so locks
+  start at the crown (sheet top + back) and hang as S-waves. The cap is a
+  round dome with those sausages on it, not a smooth lid.
 - Sides + back (`hair_curtain`): one clay curtain, a partial ring from behind
   one ear around the back to behind the other ear. Its half-width / depth /
   centre per height come from the sheet's back and side panels (`CURTAIN`
