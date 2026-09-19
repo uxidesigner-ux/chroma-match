@@ -23,10 +23,10 @@ Visual quality is not approved.
   lower edge, and a swell in the cap surface makes the diagonal sweep, so
   crown and bang are one piece of clay. Lobes radiate from a whorl at the
   part.
-- Crown flow: lock ridges are the angle around the side-part whorl (`WHORL`,
-  `N_LOBE` = 8). The same field is used on the cap and the curtain, so locks
-  start at the crown (sheet top + back) and hang as S-waves. The cap is a
-  round dome with those sausages on it, not a smooth lid.
+- Side part: a real comb part at `PART_X` — a groove on the crown, hair
+  combed away from it (left sweeps the forehead, right goes back). Parallel
+  locks (`lock_ridge`), not a polar whorl. The curtain's centre follows the
+  sheet side's one big S.
 - Sides + back (`hair_curtain`): one clay curtain, a partial ring from behind
   one ear around the back to behind the other ear. Its half-width / depth /
   centre per height come from the sheet's back and side panels (`CURTAIN`

@@ -26,19 +26,29 @@ import lib  # noqa: E402
 CANDIDATE = ROOT / "assets/long-wave/candidate"
 BLEND = CANDIDATE / "hair_long_wave.blend"
 Y_TIP = -2.88
-PART_X = 0.19
-# Whorl on the crown at the side part. Lock ridges are the angle around
-# this point, so the same clay sausages run from the top view down the back.
-WHORL = (PART_X, 0.92, 0.10)
-N_LOBE = 8.0
+# Real side part: a line on the right of the crown. Hair is combed away
+# from it — the wide left side sweeps across the forehead, the narrow
+# right side goes back. Not a polar whorl.
+PART_X = 0.18
+N_LOCK = 5.5
 
 
-def flow_ang(x, z):
-    return math.atan2(z - WHORL[2], x - WHORL[0])
+def part_trough(x, y, z):
+    """Shallow groove along the part line, only on top of the head."""
+    across = math.exp(-((x - PART_X) ** 2) / 0.010)
+    along = smooth((y - 0.05) / 0.45) * smooth((0.55 + z) / 0.85)
+    return across * along
 
 
-def lobe_at(x, z):
-    return math.cos(N_LOBE * flow_ang(x, z))
+def lock_ridge(x, y, z, sway=0.0):
+    """Parallel locks combed away from the part, then down the back.
+    On the crown they run along Z (front→back). Down the hang they are
+    meridians. Soft, few — a real comb, not a sunburst."""
+    top = smooth((y - 0.10) / 0.55)
+    across = (x - PART_X) * math.pi / 0.95
+    az = math.atan2(x, -z + 1e-6)
+    down = N_LOCK * az
+    return math.cos(mix(down, N_LOCK * across, top) - sway)
 
 
 def _auth(co):
@@ -228,9 +238,9 @@ def _smooth_rim(obj, rounds=8, factor=0.55):
 
 # ---------------------------------------------------------------------------
 # Bang lower edge: side part on the crown -> across the forehead -> left ear top.
-BANG_EDGE = [(0.19, 0.62), (0.00, 0.14), (-0.42, -0.02), (-0.78, -0.10)]
+BANG_EDGE = [(0.18, 0.82), (0.00, 0.42), (-0.40, 0.22), (-0.78, 0.04)]
 # Exposed forehead to the right of the part, down to the right ear.
-HAIRLINE_R = [(0.19, 0.68), (0.40, 0.48), (0.60, 0.20), (0.78, -0.08), (1.00, -0.32)]
+HAIRLINE_R = [(0.18, 0.72), (0.40, 0.50), (0.60, 0.22), (0.78, -0.06), (1.00, -0.30)]
 
 
 def table(pts, x):
@@ -343,71 +353,66 @@ def cap_shell(name, outer, inner, nu, nv):
     return finish(obj, sub=2, relax=0.18)
 
 
-DOME_C = Vector((0.0, 0.12, -0.10))
-DOME_AX, DOME_AY, DOME_AZ = 1.10, 1.22, 1.24
+DOME_C = Vector((0.0, 0.02, -0.22))
+DOME_AX, DOME_AY, DOME_AZ = 1.16, 1.16, 1.38
 
 
 def cap_point(da):
-    """Cap: clay locks radiating from the side-part whorl, sitting on the egg
-    skull. The same lobe field continues down the curtain, so crown and hang
-    are one flow."""
+    """Smooth crown dome with a real side part. Hair is combed away from
+    PART_X: left side sweeps the forehead, right side goes back. Parallel
+    lock ridges, not a radial whorl."""
     p = character.head_surface(da)
     r = math.sqrt(p[0] ** 2 + p[1] ** 2 + p[2] ** 2) or 1.0
     up = max(0.0, p[1])
-    wrap = 0.11
-    pile = 0.16 * smooth(up) + 0.07 * smooth((p[1] - 0.50) / 0.40)
+    wrap = 0.12
+    # Sheet side: a high round pile sitting on the skull.
+    pile = 0.14 * smooth(up) + 0.04 * smooth((p[1] - 0.40) / 0.45)
     horiz = math.hypot(p[0], p[2])
-    spread = 0.20 * (up ** 1.25)
+    spread = 0.18 * (up ** 1.2)
     if horiz > 0.08:
         ox, oz = p[0] / horiz, p[2] / horiz
         sx = ox * spread
-        sz = oz * spread * 0.75
+        sz = oz * spread * 0.85
     else:
         ox, oz = da[0], da[2]
         sx = da[0] * spread * 2.0
-        sz = da[2] * spread * 1.2
-    # Shallow trough along the part, like the sheet top view.
-    part = math.exp(-((p[0] - PART_X) ** 2) / 0.08) * (up ** 1.1)
-    pile -= 0.018 * part * max(0.0, p[2] + 0.15)
+        sz = da[2] * spread * 1.3
+    pile -= 0.022 * part_trough(p[0], p[1], p[2])
 
-    # Clay sausages from the whorl (sheet top + back: locks start at the crown).
-    lg = lobe_at(p[0], p[2])
-    dist = math.hypot(p[2] - WHORL[2], p[0] - WHORL[0])
-    lobe_amp = 0.070 * smooth((up + 0.10) / 0.50) * smooth(dist / 0.20)
-    pile += lobe_amp * (0.45 + 0.55 * lg)
+    lg = lock_ridge(p[0], p[1], p[2])
+    lobe_amp = 0.040 * smooth((up + 0.05) / 0.40)
+    pile += lobe_amp * (0.55 + 0.45 * lg)
 
-    # Upper-back and temple depth — mass standing off the skull all around,
-    # not a back-only helmet.
-    surround = 0.10 * smooth((p[1] + 0.15) / 0.65) * (1.0 - smooth((p[1] - 0.82) / 0.28))
-    sx += ox * surround * 0.7
-    sz += oz * surround * (0.55 + 0.45 * smooth(-p[2] / 0.40))
+    # Back of the crown stands off the skull (sheet side dome).
+    back = 0.18 * smooth(-p[2] / 0.50) * smooth((p[1] + 0.10) / 0.70) * (1.0 - smooth((p[1] - 0.80) / 0.30))
+    sz += oz * back
+    sx += ox * back * 0.35
 
-    # Bang swell: the front-left lock coming off the part.
+    # Bangs: hair combed across the forehead from the part — a lip of the
+    # same dome, not a visor sitting in front of it.
     bang = 0.0
-    if p[0] < PART_X + 0.10 and p[2] > -0.15:
+    if p[0] < PART_X + 0.06 and p[2] > -0.10:
         edge = hairline(min(p[0], PART_X - 0.001))
         d = p[1] - edge
-        if 0.0 <= d <= 1.0:
-            prof = math.sin(math.pi * min(1.0, d / 1.0)) ** 0.9
-            fade_part = smooth((PART_X + 0.10 - p[0]) / 0.25)
-            fade_front = smooth((p[2] + 0.15) / 0.35)
-            bang = 0.18 * prof * fade_part * fade_front
+        if 0.0 <= d <= 0.85:
+            prof = math.sin(math.pi * min(1.0, d / 0.85))
+            fade_part = smooth((PART_X + 0.06 - p[0]) / 0.28)
+            fade_front = smooth((p[2] + 0.10) / 0.40)
+            bang = 0.10 * prof * fade_part * fade_front
     n = skull_normal(p[0], p[1], p[2])
     q = Vector((
         p[0] + p[0] / r * wrap + sx + n.x * bang,
         p[1] + p[1] / r * wrap + pile + n.y * bang,
-        p[2] + p[2] / r * wrap * 0.7 + sz + n.z * bang,
+        p[2] + p[2] / r * wrap * 0.55 + sz + n.z * bang,
     ))
     rel = q - DOME_C
     f = math.sqrt((rel.x / DOME_AX) ** 2 + (rel.y / DOME_AY) ** 2 + (rel.z / DOME_AZ) ** 2)
     if f < 1.0:
-        # Push the whole upper hemisphere out to a round dome, then put the
-        # lock lobes back on so the crown is full AND ridged.
-        w = smooth((p[1] + 0.10) / 0.45) * (1.0 - 0.70 * smooth((p[2] - 0.05) / 0.40))
+        w = smooth((p[1] + 0.05) / 0.50) * (1.0 - 0.75 * smooth((p[2] - 0.10) / 0.35))
         target = DOME_C + rel / f
         q = q.lerp(target, w)
         if rel.length > 1e-6:
-            q += rel.normalized() * (lobe_amp * lg * w)
+            q += rel.normalized() * (lobe_amp * lg * w * 0.6)
     return (q.x, q.y, q.z)
 
 
@@ -458,16 +463,15 @@ def build_scalp():
 # Side + back mass measured off the sheet's back and side panels (84.6 px per
 # head unit): x half-width A, z half-depth B, and section centre CZ by height.
 CURTAIN = [
-    #   y      A      B      CZ
-    (1.00, 0.60, 1.10, -0.10),
-    (0.60, 0.92, 1.22, -0.16),
-    (0.10, 1.16, 1.30, -0.28),
-    (-0.50, 1.40, 1.12, -0.45),
-    (-1.00, 1.32, 1.05, -0.58),
-    (-1.50, 1.46, 0.96, -0.55),
-    (-2.00, 1.64, 0.90, -0.45),
-    (-2.50, 1.62, 0.82, -0.36),
-    (-2.95, 1.25, 0.55, -0.30),
+    #   y      A      B      CZ   — thick mass, CZ is the sheet side's one S
+    (1.00, 0.72, 1.18, -0.16),
+    (0.50, 1.00, 1.28, -0.24),
+    (0.00, 1.18, 1.30, -0.42),
+    (-0.60, 1.32, 1.20, -0.68),
+    (-1.20, 1.34, 1.10, -0.52),
+    (-1.80, 1.50, 1.02, -0.18),
+    (-2.40, 1.54, 0.90, -0.42),
+    (-2.95, 1.20, 0.55, -0.32),
 ]
 
 
@@ -484,8 +488,8 @@ def build_curtain():
     down it in phase (the sheet's S-waves) and separate into tapered lock
     ends at the bottom. Top is buried under the cap."""
     y_top, y_tip = 1.00, -2.95
-    period = 1.20
-    z_front_ear = -0.24     # front edge stays behind the ear at ear height
+    period = 1.65
+    z_front_ear = -0.26
 
     def front_angle(y, B, CZ):
         # Forward wrap: behind the ear at head height, over the shoulder below.
@@ -508,12 +512,10 @@ def build_curtain():
         az = mix(-az_max, az_max, u)
         side_full = 1.0 + 0.04 * (-math.copysign(1.0, az) if abs(az) > 1e-6 else 0.0)
         A *= side_full
-        # Same lobe field as the cap: ridges are born at the whorl, not
-        # invented halfway down. S-sway is a small drift of that same field.
-        ridge = math.cos(N_LOBE * (flow_ang(math.sin(az) * 0.8, -math.cos(az) * 0.8) - sway(y0)))
-        tip = smooth((y0 - y_tip) / 0.70)          # 0 at the tip, 1 above
-        # Sheet back: ridges are strongest on the crown and hold as they hang.
-        amp = mix(0.055, 0.12, tip)
+        ridge = lock_ridge(math.sin(az) * 0.85, y0, -math.cos(az) * 0.85, sway(y0))
+        tip = smooth((y0 - y_tip) / 0.70)
+        # Side view is one mass (low amp); back view still reads 5–6 locks.
+        amp = mix(0.07, 0.10, tip)
         # Lock ends: between ridges the tip is higher (scalloped hem) and
         # every lock thins to a point.
         scallop = (0.5 - 0.5 * ridge) * 0.30 * (1.0 - tip)
@@ -550,7 +552,7 @@ def build_curtain():
                 # (sheet back view: locks flow from the whorl, no shelf).
                 n = Vector((pt.x, 0.0, pt.z - CZ))
                 if n.length > 1e-6:
-                    pt += n.normalized() * (0.080 * merge * ridge)
+                    pt += n.normalized() * (0.035 * merge * ridge)
         return pt
 
     return grid_shell(
@@ -599,7 +601,7 @@ def main():
     hair_mat = bpy.data.materials.get("hair")
     if hair_mat is None:
         hair_mat = lib.material("hair", (0.210, 0.145, 0.125), 0.62)
-    pieces = [build_scalp(), build_curtain(), build_front_lock(-1), build_front_lock(1)]
+    pieces = [build_scalp(), build_curtain()]
     for obj in pieces:
         lib.assign(obj, hair_mat)
         b = bounds(obj)
