@@ -93,9 +93,9 @@
 .home .profile-stats { display: none; }
 
 .home .quick {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
   padding: 0;
 }
 .home .quick-btn {

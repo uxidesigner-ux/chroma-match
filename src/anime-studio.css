@@ -338,6 +338,12 @@
 }
 .studio-history { margin-top: 12px; }
 .studio-history .studio-button { flex: 1 1 auto; }
+.studio-history .studio-icon,
+.studio-choice-group .studio-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
 .studio-files { border-top: 1px solid var(--line); }
 .studio-files details { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
 .studio-files summary { min-height: 44px; padding: 14px 0 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
