@@ -1,4 +1,5 @@
 import { t } from '../i18n/index.ts'
+import { myAvatar, paintAvatar } from '../avatar/store.ts'
 
 export interface OverlayContent {
   kicker: string
@@ -15,6 +16,7 @@ export interface OverlayContent {
   /** The primary button. */
   action: string
   onAction: () => void
+  celebration?: 'clear' | 'record'
   /** An optional second way out, e.g. back to the launch screen. */
   secondary?: { label: string; onAction: () => void }
   /** Shows the "post this run" form when a finished run can be submitted. */
@@ -46,12 +48,24 @@ export class Overlay {
   private name = el<HTMLInputElement>('post-name')
   private submit = el<HTMLButtonElement>('post-submit')
   private status = el('post-status')
+  private victory = el('overlay-victory')
+  private avatar = el<HTMLCanvasElement>('victory-avatar')
 
   private onAction: (() => void) | null = null
   private onSecondary: (() => void) | null = null
   private onSubmit: ((name: string) => Promise<{ ok: boolean; message: string }>) | null = null
 
   constructor() {
+    const confetti = el('victory-confetti')
+    for (let i = 0; i < 24; i++) {
+      const chip = document.createElement('i')
+      const angle = (i / 24) * Math.PI * 2
+      chip.style.setProperty('--dx', `${Math.cos(angle) * (85 + (i % 3) * 24)}px`)
+      chip.style.setProperty('--dy', `${Math.sin(angle) * 82 - 18}px`)
+      chip.style.setProperty('--turn', `${(i % 2 ? 1 : -1) * (90 + i * 17)}deg`)
+      chip.style.setProperty('--delay', `${(i % 4) * 45}ms`)
+      confetti.append(chip)
+    }
     this.action.addEventListener('click', () => {
       const run = this.onAction
       this.hide()
@@ -105,6 +119,10 @@ export class Overlay {
   }
 
   show(content: OverlayContent): void {
+    // Opt in only for actual accomplishments, not daily gifts or errors.
+    this.root.dataset.celebration = content.celebration ?? ''
+    this.victory.hidden = !content.celebration
+    if (content.celebration) paintAvatar(this.avatar, myAvatar(), 72, { round: true })
     this.kicker.textContent = content.kicker
     this.title.textContent = content.title
 
@@ -140,6 +158,8 @@ export class Overlay {
 
   hide(): void {
     this.root.hidden = true
+    this.victory.hidden = true
+    this.root.dataset.celebration = ''
     this.onAction = null
     this.onSecondary = null
     this.onSubmit = null

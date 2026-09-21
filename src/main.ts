@@ -282,6 +282,7 @@ const hooks: Partial<GameHooks> = {
       const { x, y } = renderer.centreOf(cell)
       const gem = game.grid[cell]
       effects.burst(x, y, styleFor(gem?.kind ?? kind).base, perGem)
+      if (chain >= 3) effects.impact(x, y, styleFor(gem?.kind ?? kind).base, renderer.cellSize * 0.48)
       sx += x
       sy += y
     }
@@ -337,13 +338,18 @@ const hooks: Partial<GameHooks> = {
       // Thrown from the muzzle, not from where the gems will land: these are
       // the shot being fired, and the confetti from the pop follows it.
       effects.burst(x, y, colour, blast.kind === 'point' ? 5 : 9)
+      effects.impact(x, y, colour, renderer.cellSize * 0.52)
     }
   },
-  onPowerCreated() {
+  onPowerCreated(cell) {
     reportMission('power', 1)
     sfx.power()
     haptics.power()
     renderer.hit(0.5)
+    const { x, y } = renderer.centreOf(cell)
+    const colour = styleFor(game.grid[cell]?.kind ?? 0).base
+    effects.impact(x, y, colour, renderer.cellSize * 0.6)
+    effects.burst(x, y, colour, 16)
   },
   onSwapAccepted() {
     sfx.swap()
@@ -366,6 +372,7 @@ const hooks: Partial<GameHooks> = {
     const earned = itemForLevel(level)
     overlay.show({
       kicker: t('cleared'),
+      celebration: 'clear',
       title: t('levelComplete', { level }),
       hero: {
         value: n(game.score),
@@ -398,6 +405,7 @@ const hooks: Partial<GameHooks> = {
 
     const content: OverlayContent = {
       kicker: t('outOfMoves'),
+      ...(isRecord ? { celebration: 'record' as const } : {}),
       title: t('runOver'),
       hero: {
         value: n(score),
@@ -475,6 +483,7 @@ function startRun(boosters: readonly Item[] = []): void {
   clearSuspended()
   effects.clear()
   combo.hide()
+  combo.prepare()
   tray.arm(null)
   overlay.hide()
   game.restart(seedFromUrl() ?? randomSeed())
@@ -535,6 +544,7 @@ function continueRun(): boolean {
 
   effects.clear()
   combo.hide()
+  combo.prepare()
   tray.arm(null)
   overlay.hide()
   if (!restoreRun(game, kept.record)) {
@@ -759,6 +769,8 @@ if (import.meta.env.DEV) {
       best: () => bestMove(game),
       renderer,
       effects,
+      combo,
+      overlay,
       sfx,
       screens,
       home,

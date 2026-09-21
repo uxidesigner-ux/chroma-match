@@ -5,6 +5,7 @@ import type { Effects } from './particles.ts'
 import { gemPath } from './shapes.ts'
 import { activeSkin } from './skins/index.ts'
 import { drawStrikes } from './strikes.ts'
+import { reducedMotion } from './motion.ts'
 
 interface Layout {
   /** Board origin in CSS pixels, its drawn size, and the size of one cell. */
@@ -42,12 +43,6 @@ export class Renderer {
   private height = 0
   private shake = 0
   private shakeSeed = 0
-  /**
-   * A player who has asked the platform for less motion gets the flash and the
-   * confetti, but never the camera. Read once: this is not a setting people
-   * change mid-run, and matchMedia in the draw path is a needless cost.
-   */
-  private readonly allowShake = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -117,7 +112,7 @@ export class Renderer {
    * chain's opening clear is not what the player feels at the end of it.
    */
   hit(force: number): void {
-    if (!this.allowShake) return
+    if (reducedMotion()) return
     const next = Math.max(0, Math.min(1, force))
     if (next <= this.shake) return
     this.shake = next
@@ -126,6 +121,7 @@ export class Renderer {
 
   /** Decays the hit. Called with the frame's delta, not with the clock. */
   settle(dt: number): void {
+    if (reducedMotion()) this.shake = 0
     if (this.shake <= 0) return
     this.shake = Math.max(0, this.shake - dt / SHAKE_TIME)
   }
@@ -137,7 +133,7 @@ export class Renderer {
 
     // Everything below moves together — plate, gems and confetti — because a
     // board whose contents shake independently of it reads as a rendering bug.
-    const shaking = this.shake > 0
+    const shaking = this.shake > 0 && !reducedMotion()
     if (shaking) {
       const decay = this.shake * this.shake
       const amp = SHAKE_MAX * decay
@@ -163,7 +159,7 @@ export class Renderer {
       drawStrikes(
         ctx,
         game.strikes,
-        game.phaseProgress,
+        reducedMotion() ? 0.65 : game.phaseProgress,
         this.geom,
         this.layout,
         skin.board,

@@ -1,3 +1,6 @@
+import { myAvatar, myAvatarCode, paintAvatar } from '../avatar/store.ts'
+import { t } from '../i18n/index.ts'
+
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
   if (!node) throw new Error(`Missing element #${id}`)
@@ -23,8 +26,19 @@ const LINGER = 0.9
 export class ComboMeter {
   private root = el('combo')
   private value = el('combo-x')
+  private word = el('combo-word')
+  private avatar = el<HTMLCanvasElement>('combo-avatar')
+  private portraitCode = ''
   private remaining = 0
   private shown = 0
+
+  /** Paint once when entering a run, never render a 3D scene per cascade. */
+  prepare(): void {
+    const code = myAvatarCode()
+    if (code === this.portraitCode && this.avatar.dataset.avatarState !== 'error') return
+    this.portraitCode = code
+    paintAvatar(this.avatar, myAvatar(), 30, { round: true })
+  }
 
   /** Called for every clear; anything under the floor ends the chain instead. */
   report(combo: number): void {
@@ -45,6 +59,11 @@ export class ComboMeter {
     // as progress.
     const heat = combo >= 6 ? 3 : combo >= 4 ? 2 : combo >= 3 ? 1 : 0
     this.root.dataset.heat = String(heat)
+    this.avatar.hidden = heat === 0
+    const message = heat === 3 ? 'comboLegendary'
+      : heat === 2 ? 'comboAmazing'
+      : heat === 1 ? 'comboNice' : 'chain'
+    this.word.textContent = t(message)
     this.root.hidden = false
     this.root.classList.remove('is-bump')
     void this.root.offsetWidth
@@ -63,6 +82,7 @@ export class ComboMeter {
     this.remaining = 0
     this.shown = 0
     this.root.hidden = true
+    this.avatar.hidden = true
     this.root.classList.remove('is-bump')
   }
 }
