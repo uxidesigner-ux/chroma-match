@@ -63,7 +63,7 @@ export function encodeAnime(spec: AnimeSpec): string {
   )
 }
 
-/** Reject malformed/newer styles, keeping the legacy avatar intact as a fallback. */
+/** Reject malformed/newer model data; callers can show the safe starter appearance. */
 export function decodeAnime(raw: string): AnimeSpec | undefined {
   if (!/^S[BT][NHR][NG][0-9A-F]{24}$/.test(raw)) return undefined
   return {

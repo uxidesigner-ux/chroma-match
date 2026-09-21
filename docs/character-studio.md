@@ -5,8 +5,8 @@
 One licensed Seed-san starter model: two hair silhouettes (tails shown/hidden),
 four starting palettes, optional exploration equipment, hair/eye/outfit/background colours, three expressions,
 rotation, face/full-body framing, idle breathing and blinking. Apply commits a
-draft; leaving a changed draft asks before discarding it. The Classic wardrobe
-and all v1/v2 saves still work. This is not the DropHunter outfit catalogue.
+draft; leaving a changed draft asks before discarding it. This is the only
+character editor. This is not the DropHunter outfit catalogue.
 
 ## Provenance
 
@@ -27,12 +27,15 @@ use/modification/redistribution. No permission was provided for those assets.
 
 ## Data and rendering
 
-V3 code: `3` + the entire 45-character v2 wardrobe + 28-character anime choices =
-74 alphanumeric characters. This fits existing Firestore validation without
-relaxing rules or adding user-controlled URLs. The model id and option codes are
-allowlisted. Unknown anime extensions fall back to the retained v2 wardrobe.
+V4 code: `4` + 28-character anime choices = 29 alphanumeric characters. This fits
+existing Firestore validation without relaxing rules or adding user-controlled
+URLs. The model and choices are allowlisted. Existing v3 anime payloads are read
+from their prior envelope and rewritten without unused fields. Other or malformed
+formats display the starter; no retired rendering or catalogue code is retained.
 
-The editor and Three.js/three-vrm runtime load dynamically. Lists use a generated
+The editor and Three.js/three-vrm runtime load dynamically. The starter uses a
+bundled PNG generated with `node scripts/capture-default-portrait.mjs`; it does
+not load a model or require WebGL. Customized profiles use a generated
 256px PNG; the local player's last image is cached in localStorage, with bounded
 in-memory caching for others. Missing portraits are rendered serially so a list
 does not create one WebGL context per row. Editor exit aborts loading, removes
@@ -64,7 +67,7 @@ do not assume ordinary commercial-use permission covers an avatar editor.
 
 ## Verification targets
 
-Test v1/v2/v3 compatibility and invalid data; loading/retry and context loss;
+Test v3 anime migration, v4 round trips, retired/invalid data; loading/retry and context loss;
 draft cancellation; reload persistence; mobile 375px and narrow/landscape reflow;
 keyboard tabs/rotation; reduced motion; original gameplay; Pages subpath build.
 Live account synchronization requires a signed-in test account. Do not report it
@@ -75,7 +78,7 @@ as validated solely because the payload fits the rules.
 - `npm test`: 117 tests passed, including v3 appearance round trips.
 - `npm run test:studio`: all six Chromium scenarios passed: lazy loading and
   save/reload, discard and gameplay, network/context-loss retry, keyboard/reduced
-  motion/reflow, storage failure, missing-portrait regeneration/Classic switching.
+  motion/reflow, storage failure and missing-portrait regeneration.
 - `BASE_PATH=/chroma-match/ npm run build`: TypeScript, service-worker syntax and
   production build passed. Existing Firebase and new lazy 3D chunks trigger the
   bundle-size advisory; the new renderer is approximately 187 kB gzip.

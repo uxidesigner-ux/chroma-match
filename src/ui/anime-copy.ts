@@ -1,8 +1,6 @@
 import { language } from '../i18n/index.ts'
 
 const en = {
-  classic: 'Classic',
-  anime: 'Anime 3D',
   intro: 'Make it yours.',
   description: 'Choose a look, then give it your colours.',
   looks: 'Looks',
@@ -62,8 +60,6 @@ const en = {
 }
 type Copy = Record<keyof typeof en, string>
 const ko: Copy = {
-  classic: '클래식',
-  anime: '애니메이션 3D',
   intro: '나만의 캐릭터.',
   description: '마음에 드는 스타일에 나만의 색을 더하세요.',
   looks: '스타일',
@@ -128,8 +124,6 @@ const ja: Copy = {
   gear: '探検装備',
   equipment: '装備',
   hairstyle: '髪型',
-  classic: 'クラシック',
-  anime: 'アニメ3D',
   intro: '自分らしいキャラクター。',
   description: 'スタイルを選んで、自分の色を加えよう。',
   looks: 'スタイル',
@@ -186,8 +180,6 @@ const zh: Copy = {
   gear: '探索装备',
   equipment: '装备',
   hairstyle: '发型',
-  classic: '经典',
-  anime: '动漫3D',
   intro: '打造你的角色。',
   description: '选择风格，再加上自己的色彩。',
   looks: '风格',

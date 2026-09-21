@@ -18,7 +18,6 @@ await editor.goto(baseURL)
 if (await editor.locator('#overlay-action').isVisible()) await editor.locator('#overlay-action').click()
 await editor.locator('#profile-face').click()
 await editor.locator('#profile-edit').click()
-await editor.getByRole('button', { name: '애니메이션 3D', exact: true }).click()
 await editor.locator('#anime-studio[data-state="ready"]').waitFor({ timeout: 60000 })
 // Select a licensed preset and save it through the actual editor.
 await editor.locator('.studio-apply').click()

@@ -12,6 +12,18 @@ test('release serves the pinned model, license notices and built entry assets', 
   const js = await request.get(entry![1]!)
   expect(js.ok()).toBe(true)
   expect(js.headers()['content-type']).toMatch(/javascript/)
+  expect(html).not.toContain('creator-styles')
+  expect(html).not.toContain('creator-figure')
+  const stylesheet = html.match(/<link[^>]+href="([^"]+\.css)"/)
+  expect(stylesheet).not.toBeNull()
+  const styles = await request.get(stylesheet![1]!)
+  expect(styles.ok()).toBe(true)
+  for (const removed of ['creator-styles', 'creator-option', 'profile-tab', 'profile-option', 'option-chip']) {
+    expect(await styles.text()).not.toContain(removed)
+  }
+  const portrait = await request.get('avatars/seed-v1/default-portrait.png')
+  expect(portrait.ok()).toBe(true)
+  expect(portrait.headers()['content-type']).toMatch(/image\/png/)
   const source = await request.get('avatars/seed-v1/source.json')
   expect(source.ok()).toBe(true)
   const metadata = await source.json()
@@ -41,6 +53,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
   await page.goto('licenses/anime-assets.html')
   await page.evaluate(async () => {
     await caches.open('unrelated-app-cache')
+    await caches.open('chroma-match:/chroma-match/:v1')
     localStorage.setItem('chroma-match:lang', 'en')
   })
   await page.goto('./')
@@ -48,11 +61,13 @@ test('production guest editor saves, reloads and reopens offline without touchin
     .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)))
     .toBe(true)
   expect(await page.evaluate(() => caches.has('unrelated-app-cache'))).toBe(true)
+  expect(await page.evaluate(() => caches.has('chroma-match:/chroma-match/:v1'))).toBe(false)
+  await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+  expect(await page.evaluate(() => performance.getEntriesByType('resource').some(r => r.name.endsWith('.vrm')))).toBe(false)
   const gotIt = page.getByRole('button', { name: 'Got it', exact: true })
   if (await gotIt.isVisible()) await gotIt.click()
   await page.locator('#profile-face').click()
   await page.locator('#profile-edit').click()
-  await page.getByRole('button', { name: 'Anime 3D', exact: true }).click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
   await expect(page.getByRole('button', { name: 'Full body', exact: true })).toHaveAttribute(
     'aria-pressed',
@@ -66,7 +81,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
   await page.getByRole('button', { name: 'Use this character', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   const saved = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
-  expect(saved).toMatch(/^32[a-zA-Z0-9]{72}$/)
+  expect(saved).toMatch(/^4S[BT][NHR][NG][0-9A-F]{24}$/)
   await page.reload()
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   // The first controlled online navigation warms the existing shell cache.
