@@ -125,7 +125,8 @@ test('a run that used items verifies, and a forged one does not', () => {
   // had not earned yet. The verifier does not take the client's inventory — it
   // rebuilds its own — so there is nothing to lie about.
   const forged = encodeMoves(BOARD, [{ kind: 'item', item: 'bomb', cell: BOARD.idx(3, 4) }])
-  const cheated = verifyRun({ ...record, moves: forged + record.moves }, BOARD)
+  // Keep the rules header at the start; the forged item is the first action.
+  const cheated = verifyRun({ ...record, moves: record.moves.slice(0, 2) + forged + record.moves.slice(2) }, BOARD)
   assert.equal(cheated.ok, false)
   assert.match(cheated.reason ?? '', /never had/)
   assert.equal(cheated.score, 0)

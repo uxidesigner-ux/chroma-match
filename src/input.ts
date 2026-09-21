@@ -1,5 +1,12 @@
 import type { Game } from './game/game.ts'
 import type { Renderer } from './render/renderer.ts'
+import { t } from './i18n/index.ts'
+import { gemName } from './i18n/gems.ts'
+
+const POWER_LABELS = {
+  none: 'boardNormal', rowClear: 'boardRow', colClear: 'boardColumn',
+  bomb: 'boardBomb', rainbow: 'boardPrism',
+} as const
 
 /**
  * Pointer handling for the board. A tap selects; a short drag toward a
@@ -22,6 +29,46 @@ export function attachInput(
   let startX = 0
   let startY = 0
   let dragged = false
+  let keyboardCell = 0
+  const status = document.getElementById('board-status')
+  const announce = () => {
+    const gem = game.grid[keyboardCell]
+    if (!status || !gem) return
+    status.textContent = t('boardCell', {
+      row: game.geom.rowOf(keyboardCell) + 1,
+      col: game.geom.colOf(keyboardCell) + 1,
+      gem: gemName(gem.kind),
+      power: t(POWER_LABELS[gem.power]),
+    }) + (game.selected === keyboardCell ? ` ${t('boardSelected')}` : '')
+  }
+  canvas.addEventListener('focus', () => {
+    game.press(keyboardCell)
+    announce()
+  })
+  canvas.addEventListener('blur', () => game.cancelPress())
+  canvas.addEventListener('keydown', event => {
+    const step: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+    }
+    if (!(event.key in step) && !['Enter', ' ', 'Escape'].includes(event.key)) return
+    event.preventDefault()
+    if (game.busy || event.repeat && (event.key === 'Enter' || event.key === ' ')) return
+    if (event.key === 'Escape') {
+      game.selected = null
+      game.cancelPress()
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      onFirstInput()
+      game.cancelPress()
+      if (!onAim(keyboardCell)) game.tap(keyboardCell)
+    } else {
+      const [dx, dy] = step[event.key]!
+      const c = Math.max(0, Math.min(game.geom.cols - 1, game.geom.colOf(keyboardCell) + dx))
+      const r = Math.max(0, Math.min(game.geom.rows - 1, game.geom.rowOf(keyboardCell) + dy))
+      keyboardCell = game.geom.idx(c, r)
+      game.press(keyboardCell)
+    }
+    announce()
+  })
 
   const localPoint = (e: PointerEvent): { x: number; y: number } => {
     const rect = canvas.getBoundingClientRect()
@@ -32,6 +79,7 @@ export function attachInput(
     onFirstInput()
     const { x, y } = localPoint(e)
     startCell = renderer.cellAtPoint(x, y)
+    if (startCell !== null) keyboardCell = startCell
     startX = x
     startY = y
     dragged = false

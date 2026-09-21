@@ -12,6 +12,37 @@ async function openAnime(page: Page) {
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
 }
 
+async function expectFaceCrop(page: Page, selector: string) {
+  await expect(page.locator(selector)).toHaveAttribute('data-avatar-state', 'ready')
+  const result = await page.locator(selector).evaluate(async element => {
+    const actual = element as HTMLCanvasElement
+    const saved = JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!)
+    const image = new Image()
+    image.src = saved.png
+    await image.decode()
+    const size = Number.parseFloat(actual.style.width)
+    const ratio = Math.min(3, Math.max(1, devicePixelRatio || 1))
+    const capture = (zoom: boolean) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = actual.width
+      canvas.height = actual.height
+      const ctx = canvas.getContext('2d')!
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+      ctx.beginPath()
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+      ctx.clip()
+      if (zoom) {
+        const edge = image.naturalWidth
+        const crop = edge / 1.65
+        ctx.drawImage(image, (edge - crop) / 2, edge * 0.43 - crop / 2, crop, crop, 0, 0, size, size)
+      } else ctx.drawImage(image, 0, 0, size, size)
+      return canvas.toDataURL()
+    }
+    return { isCloseup: actual.toDataURL() === capture(true), isOldFraming: actual.toDataURL() === capture(false) }
+  })
+  expect(result).toEqual({ isCloseup: true, isOldFraming: false })
+}
+
 test.beforeEach(async ({ page }) => {
   // Do not create accounts or post to production while testing a local editor.
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, (route) => route.abort())
@@ -47,15 +78,21 @@ test('3D is lazy; a saved draft reaches the profile and survives reload without 
   expect(saved).toMatch(/^32[a-zA-Z0-9]{72}$/)
   await page.locator('#creator-back').click()
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+  await expectFaceCrop(page, '#profile-avatar')
+  const cachedPortrait = await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))
   await page.reload()
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+  await expectFaceCrop(page, '#profile-avatar')
+  expect(await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))).toBe(cachedPortrait)
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
   expect(
     await page.evaluate(() =>
       performance.getEntriesByType('resource').some((e) => e.name.endsWith('.vrm')),
     ),
   ).toBe(false)
-  await openCreator(page)
+  await page.locator('#profile-face').click()
+  await expectFaceCrop(page, '#profile-preview')
+  await page.locator('#profile-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
   await page.getByRole('tab', { name: 'Details', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Short bob', exact: true })).toHaveAttribute(

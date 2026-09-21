@@ -208,6 +208,11 @@ body {
   width: min(100cqw, calc(100cqh * var(--board-ratio, 1)));
 }
 
+#board:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 4px;
+}
+
 #board {
   display: block;
   width: 100%;
@@ -635,7 +640,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 5px;
   padding: 6px 13px;
   border-radius: 999px;
@@ -645,6 +650,40 @@ body {
   /* Purely a readout. Taps belong to the board underneath it. */
   pointer-events: none;
   white-space: nowrap;
+  max-width: calc(100vw - 40px);
+  isolation: isolate;
+}
+
+.combo-avatar {
+  flex: 0 0 30px;
+  margin: -6px 3px -6px -11px;
+  border-radius: 50%;
+  outline: 1px solid var(--combo-line, var(--line));
+}
+
+.combo.is-bump .combo-avatar {
+  animation: portrait-cheer 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.combo[data-heat='2']::after,
+.combo[data-heat='3']::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 1px solid var(--combo-line);
+  border-radius: inherit;
+  z-index: -1;
+  animation: combo-wave 480ms ease-out both;
+}
+
+@keyframes combo-wave {
+  from { transform: scale(0.96); opacity: 0.8; }
+  to { transform: scale(1.18, 1.35); opacity: 0; }
+}
+
+@keyframes portrait-cheer {
+  from { transform: translateY(5px) rotate(-12deg); }
+  to { transform: translateY(0) rotate(0); }
 }
 
 .combo[hidden] {
@@ -696,10 +735,6 @@ body {
     transform: translateX(-50%) scale(0.72);
     opacity: 0;
   }
-  55% {
-    transform: translateX(-50%) scale(1.12);
-    opacity: 1;
-  }
   to {
     transform: translateX(-50%) scale(1);
     opacity: 1;
@@ -745,6 +780,89 @@ body {
   border-radius: 24px;
   padding: 32px 28px;
   animation: rise 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* One-shot celebration; all the motion stays behind the result and CTA. */
+.victory {
+  position: relative;
+  width: 100%;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  isolation: isolate;
+  margin: -8px 0 12px;
+}
+
+.victory[hidden] { display: none; }
+
+#victory-avatar {
+  position: relative;
+  border-radius: 50%;
+  outline: 2px solid var(--accent-2);
+  outline-offset: 5px;
+  animation: victory-arrive 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.victory-orbit {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  animation: victory-ring 700ms ease-out both;
+}
+
+.victory-star {
+  position: absolute;
+  left: calc(50% + 30px);
+  top: 0;
+  font-size: 28px;
+  color: var(--accent-2);
+  animation: victory-arrive 480ms 100ms ease-out both;
+}
+
+.victory-confetti {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.victory-confetti i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--accent-2);
+  animation: victory-confetti 1250ms var(--delay) cubic-bezier(0.12, 0.7, 0.3, 1) both;
+}
+
+.victory-confetti i:nth-child(3n) { background: var(--accent); }
+.victory-confetti i:nth-child(3n + 1) { background: var(--text); height: 5px; }
+
+@keyframes victory-arrive {
+  from { opacity: 0; transform: translateY(12px) scale(0.8) rotate(-8deg); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes victory-ring {
+  from { opacity: 0.8; transform: scale(0.65); }
+  to { opacity: 0; transform: scale(1.65); }
+}
+
+@keyframes victory-confetti {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  12% { opacity: 1; }
+  75% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--turn)) scale(0.5); }
+}
+
+@media (max-height: 650px) {
+  .overlay { overflow-y: auto; place-items: safe center; }
+  .overlay .card { padding: 20px; }
+  .victory { height: 76px; margin-bottom: 8px; }
 }
 
 /*
@@ -1080,6 +1198,14 @@ body {
   .combo.is-bump {
     animation: none;
   }
+
+  .combo.is-bump .combo-avatar,
+  #victory-avatar,
+  .victory-star { animation: none; }
+
+  .combo::after,
+  .victory-orbit,
+  .victory-confetti { display: none; }
 
   .btn {
     transition: background 0.15s;

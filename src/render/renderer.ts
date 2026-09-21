@@ -5,6 +5,8 @@ import type { Effects } from './particles.ts'
 import { gemPath } from './shapes.ts'
 import { activeSkin } from './skins/index.ts'
 import { drawStrikes } from './strikes.ts'
+import { reducedMotion } from './motion.ts'
+import { drawFusion } from './fusion.ts'
 
 interface Layout {
   /** Board origin in CSS pixels, its drawn size, and the size of one cell. */
@@ -42,12 +44,6 @@ export class Renderer {
   private height = 0
   private shake = 0
   private shakeSeed = 0
-  /**
-   * A player who has asked the platform for less motion gets the flash and the
-   * confetti, but never the camera. Read once: this is not a setting people
-   * change mid-run, and matchMedia in the draw path is a needless cost.
-   */
-  private readonly allowShake = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -117,7 +113,7 @@ export class Renderer {
    * chain's opening clear is not what the player feels at the end of it.
    */
   hit(force: number): void {
-    if (!this.allowShake) return
+    if (reducedMotion()) return
     const next = Math.max(0, Math.min(1, force))
     if (next <= this.shake) return
     this.shake = next
@@ -126,6 +122,7 @@ export class Renderer {
 
   /** Decays the hit. Called with the frame's delta, not with the clock. */
   settle(dt: number): void {
+    if (reducedMotion()) this.shake = 0
     if (this.shake <= 0) return
     this.shake = Math.max(0, this.shake - dt / SHAKE_TIME)
   }
@@ -137,7 +134,7 @@ export class Renderer {
 
     // Everything below moves together — plate, gems and confetti — because a
     // board whose contents shake independently of it reads as a rendering bug.
-    const shaking = this.shake > 0
+    const shaking = this.shake > 0 && !reducedMotion()
     if (shaking) {
       const decay = this.shake * this.shake
       const amp = SHAKE_MAX * decay
@@ -156,6 +153,9 @@ export class Renderer {
     ctx.clip()
     if (game.hint) this.drawHint(game.hint.a, game.hint.b, time)
     this.drawGems(game, time)
+    if (game.fusion && game.phaseKind === 'fusion') {
+      drawFusion(ctx, game.fusion, game.phaseProgress, cell => this.centreOf(cell), this.cellSize)
+    }
     // Over the gems and inside the board's clip: the shot crosses what it is
     // about to take, which is the whole reason it is drawn before the pop.
     if (game.phaseKind === 'strike') {
@@ -163,7 +163,7 @@ export class Renderer {
       drawStrikes(
         ctx,
         game.strikes,
-        game.phaseProgress,
+        reducedMotion() ? 0.65 : game.phaseProgress,
         this.geom,
         this.layout,
         skin.board,
@@ -180,6 +180,19 @@ export class Renderer {
       this.drawSelection(game.selected, time, false)
     }
     if (game.held !== null) this.drawSelection(game.held, time, true)
+
+    // Dashed rings identify eligible partners without relying on colour.
+    for (const cell of game.fusionPartners) {
+      const { x, y } = this.centreOf(cell)
+      ctx.save()
+      ctx.strokeStyle = activeSkin().board.selectRing
+      ctx.lineWidth = 2
+      ctx.setLineDash([4, 3])
+      ctx.beginPath()
+      ctx.arc(x, y, this.cellSize * 0.43, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    }
 
     effects.draw(ctx)
 
