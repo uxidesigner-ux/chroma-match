@@ -29,7 +29,8 @@ export class Lobby {
     this.canvas.setAttribute('aria-label', copy.preview)
     this.canvas.setAttribute('aria-describedby', 'lobby-hint')
     this.root.setAttribute('aria-label', copy.preview)
-    document.getElementById('lobby-hint')!.textContent = copy.rotate
+    document.getElementById('lobby-hint-fine')!.textContent = copy.rotate
+    document.getElementById('lobby-hint-coarse')!.textContent = copy.turn
     this.tools.replaceChildren()
     for (const key of ['wave', 'cheer', 'pose'] as const) {
       const button = document.createElement('button')

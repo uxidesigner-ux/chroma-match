@@ -3,7 +3,10 @@ import { enterLobby } from './boot.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
-  await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'ko'))
+  await page.addInitScript(() => {
+    localStorage.setItem('chroma-match:lang', 'ko')
+    localStorage.setItem('chroma.skin', 'paper')
+  })
   await page.goto('/?seed=3')
   await enterLobby(page)
 })
@@ -95,6 +98,7 @@ test('lobby chrome puts equal nav on top, coins under the name, and play actions
   await expect(page.locator('#splash')).toBeHidden()
   await expect(page.locator('#splash-title')).toHaveText('Chroma Match')
   await expect(page.locator('#screen-home h1')).toHaveCount(0)
+  await expect(page.locator('.lobby-head .quick')).toHaveCount(1)
   const nav = await page.locator('.home .quick-btn').evaluateAll(nodes =>
     nodes.map(node => {
       const box = node.getBoundingClientRect()
@@ -104,14 +108,24 @@ test('lobby chrome puts equal nav on top, coins under the name, and play actions
   expect(nav).toHaveLength(3)
   expect(Math.max(...nav.map(b => b.width)) - Math.min(...nav.map(b => b.width))).toBeLessThan(1)
   expect(Math.max(...nav.map(b => b.height)) - Math.min(...nav.map(b => b.height))).toBeLessThan(1)
+  const head = (await page.locator('.lobby-head').boundingBox())!
   const stage = (await page.locator('#lobby-stage').boundingBox())!
   const navBox = (await page.locator('.home .quick').boundingBox())!
   const play = (await page.locator('.lobby-play').boundingBox())!
+  expect(navBox.y).toBeGreaterThanOrEqual(head.y - 1)
+  expect(navBox.y + navBox.height).toBeLessThanOrEqual(head.y + head.height + 2)
   expect(navBox.y).toBeLessThan(stage.y)
   expect(play.y).toBeGreaterThan(stage.y + stage.height - 8)
   const name = (await page.locator('#profile-name').boundingBox())!
   const coins = (await page.locator('.profile-wallet').boundingBox())!
   expect(coins.y).toBeGreaterThan(name.y)
+  const edit = (await page.locator('#lobby-edit').boundingBox())!
+  const tools = (await page.locator('#lobby-tools').boundingBox())!
+  expect(edit.x).toBeGreaterThan(stage.x + stage.width / 2)
+  expect(edit.y).toBeGreaterThan(stage.y + stage.height / 2)
+  expect(Math.abs((edit.y + edit.height) - (tools.y + tools.height))).toBeLessThan(8)
+  await expect(page.locator('#lobby-hint-fine')).toContainText('Home')
+  await expect(page.locator('#lobby-hint-coarse')).toHaveText('드래그해서 회전')
   await page.locator('#start-game').click()
   await page.locator('#loadout-start').click()
   await expect(page.locator('#screen-game')).toBeVisible()
@@ -127,6 +141,20 @@ test('lobby chrome puts equal nav on top, coins under the name, and play actions
   await expect(page.locator('#continue-run')).toBeVisible()
   const continueBox = (await page.locator('#continue-run').boundingBox())!
   const startBox = (await page.locator('#start-game').boundingBox())!
+  const [continueBg, startBg, pageBg] = await page.evaluate(() => {
+    const probe = document.createElement('div')
+    probe.style.background = 'var(--bg)'
+    document.body.append(probe)
+    const pageFill = getComputedStyle(probe).backgroundColor
+    probe.remove()
+    return [
+      getComputedStyle(document.getElementById('continue-run')!).backgroundColor,
+      getComputedStyle(document.getElementById('start-game')!).backgroundColor,
+      pageFill,
+    ]
+  })
+  expect(startBg).not.toBe(continueBg)
+  expect(startBg).not.toBe(pageBg)
   expect(Math.abs(continueBox.y - startBox.y)).toBeLessThan(2)
   expect(Math.abs(continueBox.height - startBox.height)).toBeLessThan(2)
   expect(startBox.x).toBeGreaterThan(continueBox.x + continueBox.width - 1)
