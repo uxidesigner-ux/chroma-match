@@ -1,6 +1,8 @@
 import './style.css'
 import './anime-studio.css'
 import './play-lobby.css'
+import './play-responsive.css'
+import { attachPlayLayout } from './ui/play-layout.ts'
 import { Lobby } from './ui/lobby.ts'
 import { playCopy } from './ui/play-copy.ts'
 import { Sfx } from './audio.ts'
@@ -92,6 +94,7 @@ const NAME_KEY = 'chroma-match:name'
 // the panel treatment, so applying it after layout would cost a reflow and a
 // visible flash of the default one.
 initSkin()
+attachPlayLayout()
 
 const canvas = document.getElementById('board')
 if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #board canvas')
