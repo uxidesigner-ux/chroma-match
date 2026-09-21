@@ -1,12 +1,6 @@
 .creator [hidden] {
   display: none !important;
 }
-.creator-styles {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  flex: none;
-}
 .studio-button,
 .studio-tab,
 .studio-look {
@@ -250,8 +244,7 @@
   width: 100%;
   font-size: 13px;
 }
-.anime-studio :focus-visible,
-.creator-styles :focus-visible {
+.anime-studio :focus-visible {
   outline: 3px solid var(--accent-2);
   outline-offset: 3px;
 }
@@ -304,8 +297,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .anime-studio *,
-  .creator-styles * {
+  .anime-studio * {
     transition: none !important;
     animation: none !important;
     scroll-behavior: auto !important;

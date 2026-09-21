@@ -8,7 +8,7 @@ async function openCreator(page: Page) {
 
 async function openAnime(page: Page) {
   await openCreator(page)
-  await page.getByRole('button', { name: 'Anime 3D', exact: true }).click()
+  await expect(page.locator('#creator-styles, #creator-figure, #creator-tabs, #creator-options')).toHaveCount(0)
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
 }
 
@@ -75,7 +75,7 @@ test('3D is lazy; a saved draft reaches the profile and survives reload without 
   await page.getByRole('button', { name: 'Use this character', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   const saved = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
-  expect(saved).toMatch(/^32[a-zA-Z0-9]{72}$/)
+  expect(saved).toMatch(/^4S[BT][NHR][NG][0-9A-F]{24}$/)
   await page.locator('#creator-back').click()
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   await expectFaceCrop(page, '#profile-avatar')
@@ -124,7 +124,6 @@ test('cancel preserves the old avatar and existing gameplay still starts', async
 test('model failure is recoverable; retry uses a fresh canvas', async ({ page }) => {
   await page.route('**/seed-san.vrm', (route) => route.abort())
   await openCreator(page)
-  await page.getByRole('button', { name: 'Anime 3D', exact: true }).click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'error')
   await expect(page.getByRole('button', { name: 'Use this character', exact: true })).toBeDisabled()
   await page.unroute('**/seed-san.vrm')
@@ -194,10 +193,11 @@ test('local storage failure never reports a successful save or replaces the avat
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(before)
 })
 
-test('a missing portrait regenerates from the code and Classic can replace an anime avatar', async ({
+test('a missing custom portrait regenerates from the code and reopens the same editor', async ({
   page,
 }) => {
   await openAnime(page)
+  await page.getByRole('button', { name: 'Ember', exact: true }).click()
   await page.getByRole('button', { name: 'Use this character', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   await page.evaluate(() => localStorage.removeItem('chroma-match:anime-portrait-v1'))
@@ -210,11 +210,9 @@ test('a missing portrait regenerates from the code and Classic can replace an an
   ).toBe(true)
   await openCreator(page)
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
-  await page.getByRole('button', { name: 'Classic', exact: true }).click()
-  await expect(page.locator('#creator-stage')).toBeVisible()
-  await page.locator('#creator-options button:not(:disabled)').first().click()
+  await expect(page.getByRole('button', { name: 'Ember', exact: true })).toHaveAttribute('aria-pressed', 'true')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toMatch(
-    /^2[a-zA-Z0-9]{44}$/,
+    /^4S[BT][NHR][NG][0-9A-F]{24}$/,
   )
 })
 
@@ -264,4 +262,51 @@ test('full-body controls show every direction without changing the saved profile
     'aria-pressed',
     'true',
   )
+})
+
+test('retired profile data becomes the starter without changing scores or loading the model', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem('chroma-match:avatar', '2basbhaiavbtanaoaebxa32343C33456B5C7A5EF3F0EA')
+    localStorage.setItem('chroma-match:best', '9876')
+    localStorage.setItem('chroma-match:best-level', '7')
+    localStorage.setItem('chroma-match:name', 'Returning player')
+  })
+  await page.reload()
+  await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+  const state = await page.evaluate(() => ({
+    code: localStorage.getItem('chroma-match:avatar'), best: localStorage.getItem('chroma-match:best'),
+    level: localStorage.getItem('chroma-match:best-level'), name: localStorage.getItem('chroma-match:name'),
+    modelLoaded: performance.getEntriesByType('resource').some(r => r.name.endsWith('.vrm')),
+  }))
+  expect(state).toEqual({ code: '4STNN67B7A3A899E891ADB8202C3D', best: '9876', level: '7', name: 'Returning player', modelLoaded: false })
+  await openAnime(page)
+  await expect(page.getByRole('button', { name: 'Full body', exact: true })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('existing anime data migrates to the compact code without changing appearance', async ({ page }) => {
+  const previous = '32basbhaiavbtanaoaebxa32343C33456B5C7A5EF3F0EASTNNED9560B897ED9A8BCD352C43'
+  await page.evaluate(code => localStorage.setItem('chroma-match:avatar', code), previous)
+  await page.reload()
+  await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+  expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe('4' + previous.slice(46))
+  await openAnime(page)
+  await expect(page.getByRole('button', { name: 'Ember', exact: true })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('starter portrait remains available without WebGL or storage writes', async ({ page }) => {
+  await page.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+      if (type === 'webgl' || type === 'webgl2') return null
+      return getContext.call(this, type, ...args)
+    } as typeof HTMLCanvasElement.prototype.getContext
+    Storage.prototype.setItem = () => { throw new DOMException('Full', 'QuotaExceededError') }
+  })
+  await page.reload()
+  await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+  await openCreator(page)
+  await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'error')
+  await expect(page.getByRole('button', { name: 'Use this character', exact: true })).toBeDisabled()
+  await page.locator('#creator-back').click()
+  await expect(page.locator('#profile-avatar')).toBeVisible()
 })

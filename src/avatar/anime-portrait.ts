@@ -1,4 +1,4 @@
-import { encodeAnime } from './anime-spec.ts'
+import { DEFAULT_ANIME, encodeAnime } from './anime-spec.ts'
 import type { AnimeSpec } from './anime-spec.ts'
 import { portraitFrame } from './portrait-frame.ts'
 
@@ -53,6 +53,10 @@ function portrait(spec: AnimeSpec): Promise<HTMLImageElement> {
         }
       } catch {
         /* storage disabled */
+      }
+      // New and migrated profiles do not need to download the 11 MB model.
+      if (key === encodeAnime(DEFAULT_ANIME)) {
+        return image(`${import.meta.env.BASE_URL}avatars/seed-v1/default-portrait.png`)
       }
       const { AnimeRenderer } = await import('./anime-renderer.ts')
       const renderer = new AnimeRenderer(document.createElement('canvas'))

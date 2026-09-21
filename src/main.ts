@@ -154,7 +154,7 @@ profile.onChange(() => {
 })
 
 /**
- * What the wardrobe changed has to reach everywhere the face is.
+ * What the character editor changed has to reach everywhere the face is.
  *
  * The card behind it, the sheet it was opened from, the boards that draw a row
  * per player — and the profile document, so a friend sees the new outfit
@@ -736,7 +736,6 @@ function repaintText(): void {
   applySound(soundOn())
   settings.paint()
   hud.invalidate()
-  if (screens.active === 'creator') creator.paint()
   paintContinue()
   profile.paintCard()
 

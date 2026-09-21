@@ -36,7 +36,7 @@ export class AnimeEditor {
 
   open(): void {
     this.closed = false
-    this.draft = { ...(myAvatar().anime ?? DEFAULT_ANIME) }
+    this.draft = { ...myAvatar() }
     this.initial = encodeAnime(this.draft)
     this.build()
     void this.load()
@@ -394,7 +394,7 @@ export class AnimeEditor {
     const mine = this.generation
     try {
       const png = this.renderer.portrait()
-      if (!setMyAvatar({ ...myAvatar(), anime: { ...this.draft } })) {
+      if (!setMyAvatar({ ...this.draft })) {
         this.status.textContent = copy.storageFailed
         return
       }

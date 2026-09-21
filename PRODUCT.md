@@ -23,12 +23,13 @@ anime proportions, stylized hair, bright palettes and toon shading as one style.
 ## Anti-references
 
 The technical trait metadata and culling controls in the reference are not part
-of the player's task. Existing simple avatars remain a separate style.
+of the player's task. The product has one anime character editor and one profile format.
 
 ## Design Principles
 
 - One editor with a persistent preview and a clear Apply action.
-- Preserve old avatars until an explicitly chosen replacement is saved.
+- Preserve anime appearances until an explicitly chosen replacement is saved.
+- Retired or invalid appearance formats display the anime starter; never reintroduce removed renderers.
 - Offer only customization actually supported by the licensed starter model.
 - Load 3D on demand; use still portraits in lists and release editor resources.
 - Keep stable, versioned choices independent of rendering implementation.

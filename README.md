@@ -338,14 +338,16 @@ failing, so a fork still gets a green CI.
 
 ## Anime profile studio
 
-Profile → Edit character → Anime 3D opens an optional VRM editor adapted from
+Profile → Edit character opens the VRM editor adapted from
 M3-org/CharacterStudio. One licensed Seed-san model offers ponytail/bob visibility,
 four palettes, editable colours, expressions and an equipment toggle. Apply saves
 the character on this device and uses the existing signed-in profile publishing
-path. Classic avatars and earlier saves remain supported.
+path. Existing anime appearances migrate to the compact v4 code; retired or
+invalid profile formats display the anime starter. There is no second character style.
 
 The approximately 11 MB model and 3D runtime load on demand. A generated portrait
-is cached for profile display. This is a starter integration, not the DropHunter
+is cached for profile display; a bundled starter portrait keeps the first screen
+independent of WebGL. This is a starter integration, not the DropHunter
 asset catalogue or an arbitrary garment/model importer. See
 [architecture, licensing and limits](docs/character-studio.md).
 

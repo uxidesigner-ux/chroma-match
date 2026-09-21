@@ -125,7 +125,7 @@ test('legacy saved runs keep original rules and the next new run opts into fusio
   await clickCell(page, 45)
   expect(await page.evaluate(() => window.chroma.game.fusionPartners)).toEqual([])
   await page.locator('#pause').click()
-  await expect(page.locator('#seed')).toContainText('Classic rules')
+  await expect(page.locator('#seed')).toContainText('Original rules')
   await page.locator('#paused-keep').click()
   await page.locator('#start-game').click()
   await page.locator('#overlay-action').click() // Explicitly replace the saved run.

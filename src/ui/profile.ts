@@ -64,7 +64,7 @@ export class ProfileCard {
       }
     })
 
-    // The wardrobe is a screen of its own now; this sheet keeps the things
+    // Character editing has its own screen; this sheet keeps the things
     // that are about the account rather than about the character.
     el('profile-edit').addEventListener('click', () => {
       this.sheet.hide()

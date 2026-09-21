@@ -8,7 +8,7 @@
  */
 // Other GitHub Pages projects can share this origin. Never delete their caches.
 const PREFIX = `chroma-match:${new URL(self.registration.scope).pathname}:`
-const CACHE = `${PREFIX}v1`
+const CACHE = `${PREFIX}v2`
 
 self.addEventListener('install', () => {
   self.skipWaiting()

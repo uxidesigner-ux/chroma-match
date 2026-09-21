@@ -6,8 +6,8 @@ eyes and expression while retaining hair above the forehead in a circular mask.
 
 The crop is applied by the shared profile painter, so the home profile, profile
 sheet, friends/leaderboard rows and game reaction portraits use the same framing.
-Full-body editing, face preview, saved character codes, Classic avatars and the
-source portrait cache are unchanged. Existing cached portraits immediately use
+Full-body editing, face preview and the source portrait cache are unchanged.
+Existing cached portraits immediately use
 the new crop without downloading the VRM again. A missing cache still follows
 the existing regeneration path.
 
