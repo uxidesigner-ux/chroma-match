@@ -10,11 +10,15 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
+    "test:studio": "playwright test --config playwright.studio.config.ts",
+    "test:release": "playwright test --config playwright.release.config.ts",
     "icons": "node scripts/make-icons.mjs",
     "tune": "node scripts/tune-board.ts"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "^24.13.5",
+    "@types/three": "0.183.1",
     "typescript": "^5.9.2",
     "vite": "^7.1.5"
   },
@@ -23,6 +27,8 @@
     "node": ">=22.18"
   },
   "dependencies": {
-    "firebase": "^12.19.0"
+    "@pixiv/three-vrm": "3.5.1",
+    "firebase": "^12.19.0",
+    "three": "0.183.2"
   }
 }

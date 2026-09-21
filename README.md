@@ -336,6 +336,26 @@ key of a service account in the `chroma-match-49906` project holding the
 Firebase Rules Admin role. Without that secret the job skips instead of
 failing, so a fork still gets a green CI.
 
+## Anime profile studio
+
+Profile → Edit character → Anime 3D opens an optional VRM editor adapted from
+M3-org/CharacterStudio. One licensed Seed-san model offers ponytail/bob visibility,
+four palettes, editable colours, expressions and an equipment toggle. Apply saves
+the character on this device and uses the existing signed-in profile publishing
+path. Classic avatars and earlier saves remain supported.
+
+The approximately 11 MB model and 3D runtime load on demand. A generated portrait
+is cached for profile display. This is a starter integration, not the DropHunter
+asset catalogue or an arbitrary garment/model importer. See
+[architecture, licensing and limits](docs/character-studio.md).
+
+Run `npm test`, `npm run typecheck`, `npm run build`, and `npm run test:studio`.
+The browser suite requires `npx playwright install chromium` once.
+The deployment workflow also runs the browser suite and `npm run test:release`
+against the production build before publishing. To run release checks locally,
+first build with `BASE_PATH=/chroma-match/ npm run build`.
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Code: MIT — see [LICENSE](LICENSE). The Seed-san model has separate VRM license
+settings and attribution requirements; see [asset credits](public/licenses/anime-assets.html).

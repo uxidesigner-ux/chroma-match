@@ -1,4 +1,5 @@
 import './style.css'
+import './anime-studio.css'
 import { Sfx } from './audio.ts'
 import { Haptics } from './haptics.ts'
 import { Game, movesForLevel } from './game/game.ts'
@@ -160,13 +161,17 @@ profile.onChange(() => {
  * without either of you posting a score. That last one is the whole reason
  * publishProfile reads the avatar itself rather than taking it as an argument.
  */
-creator.onChange(() => {
+creator.onChange(async () => {
   profile.refresh()
   void home.refresh()
   if (account()?.kind === 'google') {
-    void publishProfile(readStored(NAME_KEY) || t('anonymous'), account()?.photo ?? '').catch(
-      () => {},
-    )
+    const publish = publishProfile(readStored(NAME_KEY) || t('anonymous'), account()?.photo ?? '')
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      await Promise.race([publish, new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Profile sync timeout')), 10000)
+      })])
+    } finally { clearTimeout(timer) }
   }
 })
 
@@ -564,6 +569,7 @@ function paintContinue(): void {
 }
 
 screens.onChange((name) => {
+  if (name !== 'creator') creator.close()
   // The canvas is zero-sized while the screen is hidden, so it has to be
   // re-measured on the way back in rather than waiting for a resize event.
   if (name === 'game') renderer.resize()

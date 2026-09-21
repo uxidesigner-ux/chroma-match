@@ -1,0 +1,313 @@
+.creator [hidden] {
+  display: none !important;
+}
+.creator-styles {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+}
+.studio-button,
+.studio-tab,
+.studio-look {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.studio-button:hover,
+.studio-look:hover {
+  background: var(--panel-strong);
+}
+.studio-button[aria-pressed='true'],
+.studio-look[aria-pressed='true'] {
+  border: 2px solid var(--accent-2);
+  padding: 9px 15px;
+  background: color-mix(in srgb, var(--accent-2) 12%, var(--bg));
+}
+.anime-studio {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  gap: 12px;
+  overflow-y: auto;
+}
+.studio-viewer {
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  flex: 1;
+  gap: 8px;
+}
+.studio-stage {
+  position: relative;
+  flex: 1;
+  min-height: 220px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #202c3d;
+}
+.studio-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  touch-action: pan-y;
+  cursor: grab;
+}
+.studio-stage canvas:active {
+  cursor: grabbing;
+}
+.studio-model-name {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  font-size: 11px;
+  color: #fff;
+  background: #17202ecc;
+  padding: 6px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.studio-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+  background: #202c3d;
+  color: #fff;
+  text-align: center;
+  line-height: 1.65;
+  font-size: 14px;
+}
+.studio-loading .studio-button {
+  color: #fff;
+  background: #364a65;
+  border-color: #758ba8;
+}
+.studio-toolbar {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.studio-view-switch,
+.studio-direction {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.studio-controls > .studio-button {
+  margin-top: 12px;
+}
+.studio-toolbar .studio-button {
+  padding: 8px 12px;
+}
+.studio-hint {
+  margin: 0;
+  color: var(--text);
+  opacity: 0.8;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+.studio-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.studio-heading h3 {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+.studio-heading p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--text);
+}
+.studio-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+  gap: 2px;
+}
+.studio-tab {
+  padding: 8px 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 3px solid transparent;
+  font-size: 12px;
+}
+.studio-tab[aria-selected='true'] {
+  border-bottom-color: var(--accent-2);
+  font-weight: 700;
+}
+.studio-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 0 4px;
+  min-height: 96px;
+  align-content: start;
+}
+.studio-choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+.studio-options[data-category='looks'],
+.studio-options[data-category='colours'] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.studio-look {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 4px;
+  min-width: 0;
+}
+.studio-look[aria-pressed='true'] {
+  padding: 9px 3px;
+}
+.studio-look-palette {
+  display: flex;
+  width: 44px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 6px;
+}
+.studio-look-palette i {
+  flex: 1;
+}
+.studio-colour {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.studio-colour input {
+  width: 48px;
+  height: 44px;
+  padding: 3px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.studio-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.studio-status {
+  margin: 0;
+  min-height: 20px;
+  line-height: 1.5;
+  font-size: 12px;
+  color: var(--text);
+}
+.studio-apply {
+  min-height: 48px;
+  width: 100%;
+}
+.studio-credit {
+  font-size: 10px;
+  color: var(--text);
+  line-height: 1.5;
+  text-align: center;
+  text-underline-offset: 3px;
+}
+.studio-discard {
+  padding: 12px;
+  border: 1px solid var(--accent-2);
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.studio-discard p {
+  margin: 0 0 4px;
+  width: 100%;
+  font-size: 13px;
+}
+.anime-studio :focus-visible,
+.creator-styles :focus-visible {
+  outline: 3px solid var(--accent-2);
+  outline-offset: 3px;
+}
+.studio-stage canvas:focus-visible {
+  outline-offset: -4px;
+}
+.studio-button:disabled,
+.studio-apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (min-width: 860px) {
+  .app.has-studio {
+    max-width: 1080px;
+  }
+  .has-studio .anime-studio {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(330px, 1fr);
+    gap: 32px;
+  }
+  .studio-viewer {
+    min-height: 420px;
+  }
+  .studio-edit {
+    justify-content: center;
+    padding: 20px 8px;
+  }
+  .studio-heading h3 {
+    font-size: 30px;
+  }
+  .studio-options {
+    min-height: 132px;
+  }
+}
+@media (max-width: 859px) and (min-height: 780px) {
+  .studio-viewer {
+    min-height: 330px;
+  }
+}
+@media (max-width: 859px) {
+  .studio-viewer {
+    flex: none;
+  }
+  .studio-stage {
+    flex: none;
+    height: 240px;
+  }
+  .anime-studio[data-framing='full'] .studio-stage {
+    height: 360px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anime-studio *,
+  .creator-styles * {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
