@@ -5,7 +5,7 @@ import { Haptics } from './haptics.ts'
 import { Game, movesForLevel } from './game/game.ts'
 import type { GameHooks } from './game/game.ts'
 import { randomSeed } from './game/rng.ts'
-import { recordOf, restoreRun } from './game/replay.ts'
+import { hasRunActions, recordOf, restoreRun } from './game/replay.ts'
 import { goalForLevel } from './game/goals.ts'
 import { itemForLevel } from './game/items.ts'
 import type { Item } from './game/items.ts'
@@ -260,6 +260,11 @@ function seedFromUrl(): number | null {
 // ---- game -----------------------------------------------------------------
 
 const hooks: Partial<GameHooks> = {
+  onFusion(fusion) {
+    combo.reportFusion(fusion.kind)
+    sfx.power()
+    haptics.power()
+  },
   onClear(cells, kind, chain, points) {
     sfx.clear(chain)
     haptics.clear(chain)
@@ -421,7 +426,7 @@ const hooks: Partial<GameHooks> = {
     }
 
     // A run with no accepted swaps has nothing to verify, so nothing to post.
-    if (run.moves.length > 0) {
+    if (hasRunActions(run)) {
       content.post = {
         initialName: readStored(NAME_KEY),
         onSubmit: async (name) => {
@@ -765,7 +770,7 @@ if (import.meta.env.DEV) {
   Object.assign(window, {
     chroma: {
       game,
-      moves: () => findMoves(game.geom, game.grid),
+      moves: () => findMoves(game.geom, game.grid, game.rules),
       best: () => bestMove(game),
       renderer,
       effects,
@@ -806,6 +811,7 @@ function frame(now: number): void {
     renderer.draw(game, effects, time)
     hud.update(game, displayBest())
     tray.update(game.items)
+    combo.fusionHint(!tray.armed && game.fusionPartners.length > 0)
     if (!itemUsed) tray.nudge(!tray.armed && totalHeld(game.items) > 0)
   }
 

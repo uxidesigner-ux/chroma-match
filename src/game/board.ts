@@ -1,6 +1,8 @@
 import type { Rng } from './rng.ts'
 import { at } from './types.ts'
 import type { Gem, Geom, Grid, Kind, Power } from './types.ts'
+import { canFuse, CURRENT_RULES } from './rules.ts'
+import type { RulesVersion } from './rules.ts'
 
 let nextId = 1
 
@@ -215,7 +217,9 @@ const BLAST_KINDS: Partial<Record<Power, BlastKind>> = {
  * Expands a set of seed cells into everything that actually clears, chaining
  * through any power gems caught in the blast, and reports which ones fired.
  */
-export function expandClears(geom: Geom, grid: Grid, seeds: Iterable<number>): ClearExpansion {
+export function expandClears(
+  geom: Geom, grid: Grid, seeds: Iterable<number>, consumed: ReadonlySet<number> = new Set(),
+): ClearExpansion {
   const cleared = new Set<number>()
   const blasts: Blast[] = []
   const queue: number[] = []
@@ -227,6 +231,7 @@ export function expandClears(geom: Geom, grid: Grid, seeds: Iterable<number>): C
   }
   while (queue.length > 0) {
     const i = queue.pop() as number
+    if (consumed.has(i)) continue
     const gem = at(grid, i)
     const kind = gem ? BLAST_KINDS[gem.power] : undefined
     const reach = blastRadius(geom, grid, i)
@@ -291,10 +296,11 @@ export function applyGravity(geom: Geom, grid: Grid, rng: Rng): FallResult {
 }
 
 /** True if swapping these two neighbours would produce at least one match. */
-function swapMakesMatch(geom: Geom, grid: Grid, a: number, b: number): boolean {
+function swapMakesMatch(geom: Geom, grid: Grid, a: number, b: number, rules: RulesVersion): boolean {
   const ga = at(grid, a)
   const gb = at(grid, b)
   if (!ga || !gb) return false
+  if (canFuse(ga.power, gb.power, rules)) return true
   if (ga.power === 'rainbow' || gb.power === 'rainbow') return true
   grid[a] = gb
   grid[b] = ga
@@ -315,23 +321,23 @@ export function areNeighbours(geom: Geom, a: number, b: number): boolean {
   return dc + dr === 1
 }
 
-export function isLegalSwap(geom: Geom, grid: Grid, a: number, b: number): boolean {
-  return areNeighbours(geom, a, b) && swapMakesMatch(geom, grid, a, b)
+export function isLegalSwap(geom: Geom, grid: Grid, a: number, b: number, rules = CURRENT_RULES): boolean {
+  return areNeighbours(geom, a, b) && swapMakesMatch(geom, grid, a, b, rules)
 }
 
 /** Every swap currently available to the player. */
-export function findMoves(geom: Geom, grid: Grid): Move[] {
+export function findMoves(geom: Geom, grid: Grid, rules = CURRENT_RULES): Move[] {
   const moves: Move[] = []
   for (let r = 0; r < geom.rows; r++) {
     for (let c = 0; c < geom.cols; c++) {
       const a = geom.idx(c, r)
       if (c + 1 < geom.cols) {
         const b = geom.idx(c + 1, r)
-        if (swapMakesMatch(geom, grid, a, b)) moves.push({ a, b })
+        if (swapMakesMatch(geom, grid, a, b, rules)) moves.push({ a, b })
       }
       if (r + 1 < geom.rows) {
         const b = geom.idx(c, r + 1)
-        if (swapMakesMatch(geom, grid, a, b)) moves.push({ a, b })
+        if (swapMakesMatch(geom, grid, a, b, rules)) moves.push({ a, b })
       }
     }
   }
@@ -343,7 +349,7 @@ export function findMoves(geom: Geom, grid: Grid): Move[] {
  * matches and at least one legal move. Gives up after a bounded number of
  * attempts and rebuilds the board from scratch instead of spinning.
  */
-export function shuffleBoard(geom: Geom, grid: Grid, rng: Rng): void {
+export function shuffleBoard(geom: Geom, grid: Grid, rng: Rng, rules = CURRENT_RULES): void {
   for (let attempt = 0; attempt < 200; attempt++) {
     for (let i = grid.length - 1; i > 0; i--) {
       const j = rng.int(i + 1)
@@ -351,7 +357,7 @@ export function shuffleBoard(geom: Geom, grid: Grid, rng: Rng): void {
       grid[i] = grid[j] ?? null
       grid[j] = a
     }
-    if (findMatches(geom, grid).length === 0 && findMoves(geom, grid).length > 0) return
+    if (findMatches(geom, grid).length === 0 && findMoves(geom, grid, rules).length > 0) return
   }
   fillFresh(geom, grid, rng)
 }

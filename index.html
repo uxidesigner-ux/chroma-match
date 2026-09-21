@@ -280,7 +280,9 @@
 
         <div class="stage">
           <div class="board-wrap">
-            <canvas id="board" aria-label="Game board" data-i18n-attr="aria-label:boardAria"></canvas>
+            <canvas id="board" role="application" tabindex="0" aria-label="Game board" aria-describedby="board-key-help" data-i18n-attr="aria-label:boardAria"></canvas>
+            <p class="sr-only" id="board-key-help" data-i18n="boardKeys">Arrow keys move. Enter selects or swaps. Escape cancels. Tab leaves the board.</p>
+            <p class="sr-only" id="board-status" role="status"></p>
             <!-- Announced politely: a chain is feedback, not something a
                  screen-reader user needs interrupting their move. -->
             <div class="combo" id="combo" aria-live="polite" hidden>
@@ -328,6 +330,8 @@
             board.
           </li>
           <li data-i18n="helpCascade">Cascades multiply your score, up to ×8.</li>
+          <li data-i18n="helpFusion">In new runs, swap adjacent power gems to fuse them, even across colours. Stripes make a cross; stripe + bomb clears three rows and columns; two bombs clear 5×5.</li>
+          <li data-i18n="helpPrismFusion">Prism + power fires that power from every gem of its colour. Two prisms clear the board.</li>
           <li data-i18n="helpItems">
             Finish a level to earn an item, and land a ×5 chain for a bomb. Items cost no move —
             and they are earned fresh every run, so the board is the same climb for everyone.

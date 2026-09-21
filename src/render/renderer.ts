@@ -6,6 +6,7 @@ import { gemPath } from './shapes.ts'
 import { activeSkin } from './skins/index.ts'
 import { drawStrikes } from './strikes.ts'
 import { reducedMotion } from './motion.ts'
+import { drawFusion } from './fusion.ts'
 
 interface Layout {
   /** Board origin in CSS pixels, its drawn size, and the size of one cell. */
@@ -152,6 +153,9 @@ export class Renderer {
     ctx.clip()
     if (game.hint) this.drawHint(game.hint.a, game.hint.b, time)
     this.drawGems(game, time)
+    if (game.fusion && game.phaseKind === 'fusion') {
+      drawFusion(ctx, game.fusion, game.phaseProgress, cell => this.centreOf(cell), this.cellSize)
+    }
     // Over the gems and inside the board's clip: the shot crosses what it is
     // about to take, which is the whole reason it is drawn before the pop.
     if (game.phaseKind === 'strike') {
@@ -176,6 +180,19 @@ export class Renderer {
       this.drawSelection(game.selected, time, false)
     }
     if (game.held !== null) this.drawSelection(game.held, time, true)
+
+    // Dashed rings identify eligible partners without relying on colour.
+    for (const cell of game.fusionPartners) {
+      const { x, y } = this.centreOf(cell)
+      ctx.save()
+      ctx.strokeStyle = activeSkin().board.selectRing
+      ctx.lineWidth = 2
+      ctx.setLineDash([4, 3])
+      ctx.beginPath()
+      ctx.arc(x, y, this.cellSize * 0.43, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    }
 
     effects.draw(ctx)
 

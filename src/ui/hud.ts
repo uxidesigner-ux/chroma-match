@@ -97,7 +97,7 @@ export class Hud {
       this.bar.style.width = `${Math.min(100, (progress / game.need) * 100)}%`
       l.progress = progress
     }
-    const seed = game.seed.toString(36).toUpperCase()
+    const seed = `${game.seed.toString(36).toUpperCase()} · ${t(game.rules === 1 ? 'legacyRules' : 'fusionRules')}`
     if (seed !== l.seed) {
       this.seed.textContent = `seed ${seed}`
       l.seed = seed

@@ -19,6 +19,8 @@ import type { Action } from './game.ts'
 import { ITEMS } from './items.ts'
 import type { Item } from './items.ts'
 import type { Geom } from './types.ts'
+import { FUSION_HEADER } from './rules.ts'
+import type { RulesVersion } from './rules.ts'
 
 const FRAME = 1 / 60
 /** Frames to give one swap before calling it stuck. A cascade is well under this. */
@@ -44,13 +46,24 @@ export interface RunBoard {
 
 export interface RunRecord {
   seed: number
-  /** Accepted swaps in order, two base36 characters each. */
+  /** Optional rules header, then accepted actions in order, two base36 characters each. */
   moves: string
   /** What the client believes it scored. The verifier recomputes both anyway. */
   score: number
   level: number
   /** Which board the run was played on; a run from another shape is not comparable. */
   board: RunBoard
+}
+
+export function hasRunActions(record: RunRecord): boolean {
+  return record.moves.length > (record.moves.startsWith(FUSION_HEADER) ? 2 : 0)
+}
+
+function decodeRecord(geom: Geom, record: RunRecord): { rules: RulesVersion; actions: Action[] } {
+  if (record.moves.startsWith(FUSION_HEADER)) {
+    return { rules: 2, actions: decodeMoves(geom, record.moves.slice(2)) }
+  }
+  return { rules: 1, actions: decodeMoves(geom, record.moves) }
 }
 
 export function boardOf(geom: Geom): RunBoard {
@@ -218,14 +231,15 @@ export function verifyRun(record: RunRecord, geom: Geom): VerifyResult {
   }
 
   let actions: Action[]
+  let rules: RulesVersion
   try {
-    actions = decodeMoves(geom, record.moves)
+    ;({ actions, rules } = decodeRecord(geom, record))
   } catch (error) {
     return fail(error instanceof Error ? error.message : 'move list could not be decoded')
   }
-  if (actions.length > MAX_MOVES) return fail('move list is longer than any real run')
+  if (record.moves.length > MAX_MOVES * 2) return fail('move list is longer than any real run')
 
-  const game = new Game({}, record.seed, geom)
+  const game = new Game({}, record.seed, geom, rules)
   for (let i = 0; i < actions.length; i++) {
     // The player can only have kept playing past a cleared level by continuing.
     if (game.status === 'levelComplete') game.nextLevel()
@@ -255,7 +269,7 @@ export function verifyRun(record: RunRecord, geom: Geom): VerifyResult {
       }
       // This is the load-bearing check: a fabricated move list cannot score,
       // because every swap in it has to be one the board would actually have taken.
-      if (!isLegalSwap(geom, game.grid, action.a, action.b)) {
+      if (!isLegalSwap(geom, game.grid, action.a, action.b, game.rules)) {
         return fail(`move ${i + 1} does not make a match`)
       }
       game.drag(action.a, action.b)
@@ -306,42 +320,43 @@ export function restoreRun(game: Game, record: RunRecord): boolean {
   }
 
   let actions: Action[]
+  let rules: RulesVersion
   try {
-    actions = decodeMoves(geom, record.moves)
+    ;({ actions, rules } = decodeRecord(geom, record))
   } catch {
     return false
   }
-  if (actions.length > MAX_MOVES) return false
+  if (record.moves.length > MAX_MOVES * 2) return false
 
-  game.restart(record.seed)
+  game.restart(record.seed, rules)
   for (const action of actions) {
     if (game.status === 'levelComplete') game.nextLevel()
     if (game.status !== 'playing') {
-      game.restart(record.seed)
+      game.restart(record.seed, rules)
       return false
     }
 
     if (action.kind === 'booster') {
       if (!game.addBooster(action.item, BOOSTER_LIMIT)) {
-        game.restart(record.seed)
+        game.restart(record.seed, rules)
         return false
       }
       continue
     }
     if (action.kind === 'item') {
       if (!game.useItem(action.item, action.cell)) {
-        game.restart(record.seed)
+        game.restart(record.seed, rules)
         return false
       }
     } else {
-      if (!isLegalSwap(geom, game.grid, action.a, action.b)) {
-        game.restart(record.seed)
+      if (!isLegalSwap(geom, game.grid, action.a, action.b, game.rules)) {
+        game.restart(record.seed, rules)
         return false
       }
       game.drag(action.a, action.b)
     }
     if (!settle(game)) {
-      game.restart(record.seed)
+      game.restart(record.seed, rules)
       return false
     }
   }
@@ -352,7 +367,7 @@ export function restoreRun(game: Game, record: RunRecord): boolean {
 export function recordOf(game: Game): RunRecord {
   return {
     seed: game.seed,
-    moves: encodeMoves(game.geom, game.log),
+    moves: (game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
     score: game.score,
     level: game.level,
     board: boardOf(game.geom),

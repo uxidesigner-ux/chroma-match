@@ -1,4 +1,5 @@
 import type { RunRecord } from './game/replay.ts'
+import { hasRunActions } from './game/replay.ts'
 
 /**
  * A run put down, to be picked up later.
@@ -66,7 +67,7 @@ export function suspendedRun(): Suspended | null {
 export function suspendRun(record: RunRecord): void {
   // A run with no accepted actions is a board nobody has touched. Saving it
   // would put a Continue button on the launch screen that resumes nothing.
-  if (record.moves.length === 0) {
+  if (!hasRunActions(record)) {
     clearSuspended()
     return
   }

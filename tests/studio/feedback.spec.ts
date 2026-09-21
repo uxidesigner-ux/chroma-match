@@ -24,11 +24,13 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('#board')).toBeVisible()
 })
 
-test('real legal moves reach a six-chain and clear; score/CTA are immediately available', async ({ page }) => {
+test('legacy legal moves reach a six-chain and clear; score/CTA are immediately available', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   const max = await page.evaluate(() => {
     const { game, best, effects } = window.chroma
+    // Pin the original animation regression; current-rule fusions have their own suite.
+    game.restart(18, 1)
     let heat = 0
     for (let move = 0; move < 20 && game.status === 'playing'; move++) {
       const next = best()!

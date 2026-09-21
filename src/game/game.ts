@@ -18,6 +18,10 @@ import type { Inventory, Item } from './items.ts'
 import { makeRng, randomSeed, type Rng } from './rng.ts'
 import { at, BOARD } from './types.ts'
 import type { Geom, Grid, Kind, Power } from './types.ts'
+import { CURRENT_RULES, canFuse } from './rules.ts'
+import type { RulesVersion } from './rules.ts'
+import { fusionClear } from './fusion.ts'
+import type { Fusion } from './fusion.ts'
 
 export const MOVES_PER_LEVEL = 25
 /**
@@ -70,7 +74,7 @@ const SHUFFLE_TIME = 0.5
 /** Seconds of inactivity before the board points out a move. */
 const HINT_DELAY = 4
 
-export type PhaseKind = 'idle' | 'swap' | 'revert' | 'strike' | 'clear' | 'fall' | 'shuffle'
+export type PhaseKind = 'idle' | 'swap' | 'revert' | 'fusion' | 'strike' | 'clear' | 'fall' | 'shuffle'
 export type Status = 'playing' | 'levelComplete' | 'gameOver'
 
 interface Phase {
@@ -103,6 +107,7 @@ export interface GameHooks {
   onPowerCreated(cell: number, power: Power): void
   /** Power gems have gone off and are about to take the board with them. */
   onStrike(blasts: readonly Blast[]): void
+  onFusion(fusion: Fusion): void
   onInvalidSwap(a: number, b: number): void
   onSwapAccepted(): void
   onShuffle(): void
@@ -133,6 +138,7 @@ export function movesForLevel(level: number): number {
 
 export class Game {
   readonly geom: Geom
+  rules: RulesVersion
   grid: Grid
   rng: Rng
   /**
@@ -216,6 +222,8 @@ export class Game {
   private pendingClear: { cells: number[]; kind: Kind; points: number } | null = null
   /** What is firing right now, for the renderer. Empty outside a strike. */
   strikes: readonly Blast[] = []
+  fusion: Fusion | null = null
+  private pendingFusion: ReturnType<typeof fusionClear> = null
   private idleTime = 0
   private hooks: Partial<GameHooks>
 
@@ -223,10 +231,12 @@ export class Game {
     hooks: Partial<GameHooks> = {},
     seed: number = randomSeed(),
     geom: Geom = BOARD,
+    rules: RulesVersion = CURRENT_RULES,
   ) {
     this.hooks = hooks
     this.seed = seed
     this.geom = geom
+    this.rules = rules
     this.rng = makeRng(seed)
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
     this.goal = goalForLevel(1, geom.kinds)
@@ -242,7 +252,7 @@ export class Game {
   /** How much of each gem's stored offset is still showing, 1 -> 0 over a move. */
   get offsetFactor(): number {
     const { kind, t, d } = this.phase
-    if (kind === 'idle' || kind === 'clear') return 0
+    if (kind === 'idle' || kind === 'clear' || kind === 'fusion') return 0
     return 1 - easeOutCubic(Math.min(1, d === 0 ? 1 : t / d))
   }
 
@@ -260,6 +270,22 @@ export class Game {
 
   get busy(): boolean {
     return this.phase.kind !== 'idle' || this.status !== 'playing'
+  }
+
+  /** Only adjacent partners of the current selection, never decorative suggestions. */
+  get fusionPartners(): number[] {
+    if (this.busy || this.selected === null || this.rules < 2) return []
+    const chosen = at(this.grid, this.selected)
+    if (!chosen || chosen.power === 'none') return []
+    const c = this.geom.colOf(this.selected)
+    const r = this.geom.rowOf(this.selected)
+    return [[c - 1, r], [c + 1, r], [c, r - 1], [c, r + 1]]
+      .filter(([x, y]) => this.geom.inBounds(x!, y!))
+      .map(([x, y]) => this.geom.idx(x!, y!))
+      .filter(cell => {
+        const gem = at(this.grid, cell)
+        return gem !== null && canFuse(chosen.power, gem.power, this.rules)
+      })
   }
 
   /**
@@ -414,7 +440,7 @@ export class Game {
   }
 
   private attemptSwap(a: number, b: number): void {
-    const legal = isLegalSwap(this.geom, this.grid, a, b)
+    const legal = isLegalSwap(this.geom, this.grid, a, b, this.rules)
     this.swapCells(a, b)
     this.startPhase('swap', SWAP_TIME, { a, b, doomed: !legal })
     if (legal) {
@@ -473,7 +499,7 @@ export class Game {
       if (this.status === 'playing') {
         this.idleTime += dt
         if (this.idleTime > HINT_DELAY && this.hint === null) {
-          const moves = findMoves(this.geom, this.grid)
+          const moves = findMoves(this.geom, this.grid, this.rules)
           this.hint = moves.length > 0 ? (moves[this.hintRng.int(moves.length)] ?? null) : null
         }
       }
@@ -494,6 +520,13 @@ export class Game {
       case 'strike':
         this.beginClearPhase()
         break
+      case 'fusion': {
+        const result = this.pendingFusion
+        this.pendingFusion = null
+        if (result) this.commitClear(result.cleared, [], result.b, result.blasts)
+        else this.settle()
+        break
+      }
       case 'clear':
         this.finishClear()
         break
@@ -516,6 +549,20 @@ export class Game {
       return
     }
     this.combo = 0
+    const ga = at(this.grid, a)
+    const gb = at(this.grid, b)
+    if (ga && gb && canFuse(ga.power, gb.power, this.rules)) {
+      const result = fusionClear(this.geom, this.grid, a, b)
+      if (result) {
+        this.combo = 1
+        this.bestCombo = Math.max(1, this.bestCombo)
+        this.pendingFusion = result
+        this.fusion = { kind: result.kind, a, b }
+        this.startPhase('fusion', 0.3)
+        this.hooks.onFusion?.(this.fusion)
+        return
+      }
+    }
     if (!this.resolveRainbow(a, b)) this.beginClear()
   }
 
@@ -634,6 +681,7 @@ export class Game {
     const pending = this.pendingClear
     this.pendingClear = null
     this.strikes = []
+    this.fusion = null
     if (!pending) {
       this.settle()
       return
@@ -697,14 +745,14 @@ export class Game {
       this.hooks.onGameOver?.(this.score)
       return
     }
-    if (findMoves(this.geom, this.grid).length === 0) {
+    if (findMoves(this.geom, this.grid, this.rules).length === 0) {
       for (const gem of this.grid) {
         if (gem) {
           gem.ox = 0
           gem.oy = 0
         }
       }
-      shuffleBoard(this.geom, this.grid, this.rng)
+      shuffleBoard(this.geom, this.grid, this.rng, this.rules)
       this.hooks.onShuffle?.()
       this.startPhase('shuffle', SHUFFLE_TIME)
     }
@@ -725,7 +773,8 @@ export class Game {
     this.idleTime = 0
   }
 
-  restart(seed: number = randomSeed()): void {
+  restart(seed: number = randomSeed(), rules: RulesVersion = CURRENT_RULES): void {
+    this.rules = rules
     this.seed = seed
     this.rng = makeRng(seed)
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
@@ -747,6 +796,10 @@ export class Game {
     this.hint = null
     this.clearing = []
     this.pendingPowers = []
+    this.pendingClear = null
+    this.pendingFusion = null
+    this.fusion = null
+    this.strikes = []
     this.idleTime = 0
     this.startPhase('idle', 0)
   }
