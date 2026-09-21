@@ -114,3 +114,21 @@ saved profile portraits after changing the camera. Korean front/rear/mobile
 renders were visually inspected with no uncaught browser errors. The design
 review used Impeccable's product accessibility and responsive criteria without
 changing the existing theme. Review remains direct, not independent.
+
+## Release gates — 2026-09-21
+
+CI now runs the seven editor/gameplay browser scenarios and two production smoke
+checks before uploading a Pages artifact. The production checks verify the
+pinned VRM checksum, license notices, JavaScript content type, full-body editor,
+local profile save/reload, mobile reflow and warmed offline recovery.
+
+The service-worker cache is namespaced to the application path. Activation no
+longer deletes caches owned by other projects sharing the GitHub Pages origin.
+The old unscoped cache is deliberately preserved instead of risking another
+app's data. Cache write quota failures do not prevent network responses.
+
+Run `BASE_PATH=/chroma-match/ npm run build` then `npm run test:release` locally.
+For the deployed site, set `STUDIO_BASE_URL=https://uxidesigner-ux.github.io/chroma-match/`
+when running `npm run test:release`. These checks use isolated guest browser
+contexts and block Firebase requests, so they do not create production accounts,
+scores or cloud profiles. They do not validate Google account synchronization.

@@ -351,6 +351,9 @@ asset catalogue or an arbitrary garment/model importer. See
 
 Run `npm test`, `npm run typecheck`, `npm run build`, and `npm run test:studio`.
 The browser suite requires `npx playwright install chromium` once.
+The deployment workflow also runs the browser suite and `npm run test:release`
+against the production build before publishing. To run release checks locally,
+first build with `BASE_PATH=/chroma-match/ npm run build`.
 
 ## License
 
