@@ -29,6 +29,7 @@ export function attachInput(
   let startX = 0
   let startY = 0
   let dragged = false
+  let activePointer: number | null = null
   let keyboardCell = 0
   const status = document.getElementById('board-status')
   const announce = () => {
@@ -76,6 +77,8 @@ export function attachInput(
   }
 
   canvas.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return
+    activePointer = e.pointerId
     onFirstInput()
     const { x, y } = localPoint(e)
     startCell = renderer.cellAtPoint(x, y)
@@ -98,6 +101,7 @@ export function attachInput(
   })
 
   canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== activePointer) return
     if (startCell === null || dragged) return
     const { x, y } = localPoint(e)
     const dx = x - startX
@@ -117,6 +121,7 @@ export function attachInput(
   })
 
   const end = (e: PointerEvent) => {
+    if (e.pointerId !== activePointer) return
     game.cancelPress()
     if (startCell !== null && !dragged) {
       const { x, y } = localPoint(e)
@@ -125,14 +130,26 @@ export function attachInput(
     }
     startCell = null
     dragged = false
+    activePointer = null
   }
 
   canvas.addEventListener('pointerup', end)
-  canvas.addEventListener('pointercancel', () => {
+  const cancel = () => {
     game.cancelPress()
     startCell = null
     dragged = false
-  })
+    if (activePointer !== null && canvas.hasPointerCapture(activePointer)) {
+      canvas.releasePointerCapture(activePointer)
+    }
+    activePointer = null
+  }
+  canvas.addEventListener('pointercancel', cancel)
+  canvas.addEventListener('lostpointercapture', cancel)
+  // A finger's starting coordinates belong to the old layout. Never turn a
+  // resize/fold into a swap, nor clear the player's existing tap selection.
+  new ResizeObserver(cancel).observe(canvas)
+  window.addEventListener('resize', cancel)
+  window.visualViewport?.addEventListener('resize', cancel)
 
   // Stop the browser from treating a drag on the board as a page scroll.
   canvas.style.touchAction = 'none'

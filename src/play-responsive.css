@@ -1,0 +1,56 @@
+/* Game-only shell: lobby/editor keep their established widths. No geometry
+   changes, UA sniffing or animated layout during fold/resize transitions. */
+.app:has(.game:not([hidden])) {
+  position: absolute;
+  top: var(--play-top, 0px);
+  left: var(--play-left, 0px);
+  width: var(--play-width, 100%);
+  height: var(--play-height, 100dvh);
+  max-width: none;
+  margin: 0;
+  padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+}
+.game:not([hidden]) {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding: 4px;
+  display: flex;
+  gap: 10px;
+}
+.game .stage {
+  /* Nine 44px gems + plate/aspect padding + chain space. Short windows scroll rather than
+     hide the game. On narrow phones width still bounds the square cells. */
+  display: grid;
+  flex: 1 0 450px;
+  min-height: 450px;
+  grid-area: auto;
+}
+.game .game-hud, .game > .goal, .game > .items, .game > .items-hint {
+  width: 100%;
+  max-width: 680px;
+  margin-inline: auto;
+}
+.app:not(.ignore-rotate) .game .stage { display: grid; }
+.app:not(.ignore-rotate) .game .rotate, .game .rotate { display: none; }
+
+/* Keep the three HUD regions together and in their original reading order.
+   Square unfolded displays also have room for a rail and a larger board. */
+[data-play-layout="wide"] .game:not([hidden]) {
+  display: grid;
+  grid-template-columns: minmax(300px, 38%) minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(190px, 1fr) auto auto;
+  column-gap: 24px;
+  align-content: start;
+}
+[data-play-layout="wide"] .game-hud { grid-area: 1 / 1; align-self: start; }
+[data-play-layout="wide"] .game > .goal { grid-area: 2 / 1; }
+[data-play-layout="wide"] .game .stage { grid-area: 1 / 2 / 4 / 3; }
+[data-play-layout="wide"] .game > .items { grid-area: 4 / 1 / 5 / 3; max-width: none; }
+[data-play-layout="wide"] .game > .items-hint { grid-area: 5 / 1 / 6 / 3; }
+
+@media (max-width: 360px) {
+  .app:has(.game:not([hidden])) { padding-inline: 8px; }
+  .game .items { gap: 8px; }
+  .game .item, .game .game-exit { width: 48px; height: 48px; }
+}
