@@ -63,7 +63,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
   expect(await page.evaluate(() => caches.has('unrelated-app-cache'))).toBe(true)
   expect(await page.evaluate(() => caches.has('chroma-match:/chroma-match/:v1'))).toBe(false)
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
-  expect(await page.evaluate(() => performance.getEntriesByType('resource').some(r => r.name.endsWith('.vrm')))).toBe(false)
+  await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   const gotIt = page.getByRole('button', { name: 'Got it', exact: true })
   if (await gotIt.isVisible()) await gotIt.click()
   await page.locator('#profile-face').click()

@@ -76,6 +76,11 @@ function portrait(spec: AnimeSpec): Promise<HTMLImageElement> {
   return work
 }
 
+/** Finish any missing portrait before starting the lobby's separate 3D scene. */
+export async function preparePortrait(spec: AnimeSpec): Promise<void> {
+  await portrait(spec)
+}
+
 export function invalidatePortrait(canvas: HTMLCanvasElement): void {
   requests.delete(canvas)
 }

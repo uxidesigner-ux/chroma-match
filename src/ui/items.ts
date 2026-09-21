@@ -1,17 +1,18 @@
 import { ITEMS } from '../game/items.ts'
 import type { Inventory, Item } from '../game/items.ts'
-import { t } from '../i18n/index.ts'
+import { onLanguageChange, t } from '../i18n/index.ts'
+import type { StringKey } from '../i18n/index.ts'
 
-const LABELS: Record<Item, string> = {
-  hammer: 'Hammer',
-  rocket: 'Rocket',
-  bomb: 'Bomb',
+const LABELS: Record<Item, StringKey> = {
+  hammer: 'itemHammer',
+  rocket: 'itemRocket',
+  bomb: 'itemBomb',
 }
 
-const HINTS: Record<Item, string> = {
-  hammer: 'Tap a gem to smash it',
-  rocket: 'Tap a gem to clear its row',
-  bomb: 'Tap a gem to blow up the square around it',
+const HINTS: Record<Item, StringKey> = {
+  hammer: 'itemHammerHint',
+  rocket: 'itemRocketHint',
+  bomb: 'itemBombHint',
 }
 
 /**
@@ -36,6 +37,12 @@ export class ItemTray {
     const hint = document.getElementById('items-hint')
     if (!root || !hint) throw new Error('Missing the item tray')
     this.hint = hint
+    onLanguageChange(() => {
+      const inventory = this.shown
+      this.shown = null
+      if (inventory) this.update(inventory)
+      if (this.armedItem) this.hint.textContent = t(HINTS[this.armedItem])
+    })
 
     for (const item of ITEMS) {
       const button = root.querySelector<HTMLButtonElement>(`[data-item="${item}"]`)
@@ -69,7 +76,7 @@ export class ItemTray {
       button.setAttribute('aria-pressed', String(key === item))
     }
     if (item) {
-      this.hint.textContent = HINTS[item]
+      this.hint.textContent = t(HINTS[item])
       this.hint.hidden = false
     } else {
       // Dropping the mode hands the hint line back to whatever else wants it —
@@ -99,7 +106,8 @@ export class ItemTray {
       count.textContent = String(held)
       button.disabled = held <= 0
       button.classList.toggle('is-empty', held <= 0)
-      button.setAttribute('aria-label', `${LABELS[item]}, ${held} held`)
+      button.setAttribute('aria-label', `${t(LABELS[item])}: ${held}`)
+      button.title = t(HINTS[item])
     }
 
     // Spending the last one has to drop the mode with it, or the next tap on

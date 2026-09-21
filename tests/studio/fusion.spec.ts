@@ -19,6 +19,8 @@ test.beforeEach(async ({ page }) => {
   if (await page.locator('#overlay-action').isVisible()) await page.locator('#overlay-action').click()
   await page.locator('#start-game').click()
   await page.locator('#loadout-start').click()
+  // Preserve the released v2 seeded fixture. New v3 squares have their own suite.
+  await page.evaluate(() => window.chroma.game.restart(3, 2))
 })
 
 test('earned prism + bomb: pointer selection previews without layout shift, fires once and verifies', async ({ page }) => {
@@ -130,5 +132,5 @@ test('legacy saved runs keep original rules and the next new run opts into fusio
   await page.locator('#start-game').click()
   await page.locator('#overlay-action').click() // Explicitly replace the saved run.
   await page.locator('#loadout-start').click()
-  expect(await page.evaluate(() => window.chroma.game.rules)).toBe(2)
+  expect(await page.evaluate(() => window.chroma.game.rules)).toBe(3)
 })

@@ -54,16 +54,12 @@ test.beforeEach(async ({ page }) => {
   if (await gotIt.isVisible()) await gotIt.click()
 })
 
-test('3D is lazy; a saved draft reaches the profile and survives reload without loading 3D again', async ({
+test('a saved draft reaches the profile and 3D lobby and survives reload', async ({
   page,
 }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  expect(
-    await page.evaluate(() =>
-      performance.getEntriesByType('resource').some((e) => e.name.endsWith('.vrm')),
-    ),
-  ).toBe(false)
+  await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   const old = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
   await openAnime(page)
   await page.getByRole('button', { name: 'Ember', exact: true }).click()
@@ -85,11 +81,7 @@ test('3D is lazy; a saved draft reaches the profile and survives reload without 
   await expectFaceCrop(page, '#profile-avatar')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))).toBe(cachedPortrait)
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
-  expect(
-    await page.evaluate(() =>
-      performance.getEntriesByType('resource').some((e) => e.name.endsWith('.vrm')),
-    ),
-  ).toBe(false)
+  await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   await page.locator('#profile-face').click()
   await expectFaceCrop(page, '#profile-preview')
   await page.locator('#profile-edit').click()
@@ -264,7 +256,7 @@ test('full-body controls show every direction without changing the saved profile
   )
 })
 
-test('retired profile data becomes the starter without changing scores or loading the model', async ({ page }) => {
+test('retired profile data becomes the starter without changing scores', async ({ page }) => {
   await page.evaluate(() => {
     localStorage.setItem('chroma-match:avatar', '2basbhaiavbtanaoaebxa32343C33456B5C7A5EF3F0EA')
     localStorage.setItem('chroma-match:best', '9876')
@@ -276,9 +268,8 @@ test('retired profile data becomes the starter without changing scores or loadin
   const state = await page.evaluate(() => ({
     code: localStorage.getItem('chroma-match:avatar'), best: localStorage.getItem('chroma-match:best'),
     level: localStorage.getItem('chroma-match:best-level'), name: localStorage.getItem('chroma-match:name'),
-    modelLoaded: performance.getEntriesByType('resource').some(r => r.name.endsWith('.vrm')),
   }))
-  expect(state).toEqual({ code: '4STNN67B7A3A899E891ADB8202C3D', best: '9876', level: '7', name: 'Returning player', modelLoaded: false })
+  expect(state).toEqual({ code: '4STNN67B7A3A899E891ADB8202C3D', best: '9876', level: '7', name: 'Returning player' })
   await openAnime(page)
   await expect(page.getByRole('button', { name: 'Full body', exact: true })).toHaveAttribute('aria-pressed', 'true')
 })

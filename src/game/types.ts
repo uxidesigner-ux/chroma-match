@@ -63,7 +63,8 @@ export type Kind = number
  * Powers are earned by matching more than three at once:
  *   4 in a row     -> rowClear   (clears the whole row)
  *   4 in a column  -> colClear   (clears the whole column)
- *   an L or T      -> bomb       (clears the surrounding 3x3)
+ *   an L, T or +   -> bomb       (clears the surrounding 3x3)
+ *   a 2x2 square   -> bomb       (new runs, rules v3)
  *   5 or more      -> rainbow    (swap it onto any gem to clear every gem of that colour)
  */
 export type Power = 'none' | 'rowClear' | 'colClear' | 'bomb' | 'rainbow'

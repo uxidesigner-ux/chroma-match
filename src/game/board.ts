@@ -23,11 +23,13 @@ export interface MatchGroup {
   hasVertical: boolean
   /** Orientation of the longest run — decides rowClear vs colClear. */
   longestIsHorizontal: boolean
+  square?: boolean
 }
 
 interface Run {
   cells: number[]
   horizontal: boolean
+  square?: boolean
 }
 
 function collectRuns(geom: Geom, grid: Grid): Run[] {
@@ -65,8 +67,16 @@ function collectRuns(geom: Geom, grid: Grid): Run[] {
  * Finds every match on the board, merging runs that share a cell so an L or T
  * shape is reported as one group rather than two.
  */
-export function findMatches(geom: Geom, grid: Grid): MatchGroup[] {
+export function findMatches(geom: Geom, grid: Grid, rules: RulesVersion = CURRENT_RULES): MatchGroup[] {
   const runs = collectRuns(geom, grid)
+  if (rules >= 3) {
+    for (let r = 0; r < geom.rows - 1; r++) for (let c = 0; c < geom.cols - 1; c++) {
+      const cells = [geom.idx(c, r), geom.idx(c + 1, r), geom.idx(c, r + 1), geom.idx(c + 1, r + 1)]
+      const gem = at(grid, cells[0]!)
+      if (gem && cells.every(i => at(grid, i)?.kind === gem.kind))
+        runs.push({ cells, horizontal: false, square: true })
+    }
+  }
   if (runs.length === 0) return []
 
   // Union-find over runs, joined whenever two runs share a cell.
@@ -109,8 +119,10 @@ export function findMatches(geom: Geom, grid: Grid): MatchGroup[] {
     let longestIsHorizontal = true
     let hasHorizontal = false
     let hasVertical = false
+    let square = false
     for (const run of bucket) {
       for (const cell of run.cells) cells.add(cell)
+      if (run.square) { square = true; continue }
       if (run.horizontal) hasHorizontal = true
       else hasVertical = true
       if (run.cells.length > longest) {
@@ -128,6 +140,7 @@ export function findMatches(geom: Geom, grid: Grid): MatchGroup[] {
       hasHorizontal,
       hasVertical,
       longestIsHorizontal,
+      ...(square ? { square: true } : {}),
     })
   }
   return groups
@@ -136,6 +149,7 @@ export function findMatches(geom: Geom, grid: Grid): MatchGroup[] {
 /** The power a group earns, or 'none' for a plain three. */
 export function powerFor(group: MatchGroup): Power {
   if (group.longest >= 5) return 'rainbow'
+  if (group.square) return 'bomb'
   if (group.hasHorizontal && group.hasVertical) return 'bomb'
   if (group.longest === 4) return group.longestIsHorizontal ? 'rowClear' : 'colClear'
   return 'none'
@@ -304,7 +318,7 @@ function swapMakesMatch(geom: Geom, grid: Grid, a: number, b: number, rules: Rul
   if (ga.power === 'rainbow' || gb.power === 'rainbow') return true
   grid[a] = gb
   grid[b] = ga
-  const matched = findMatches(geom, grid).length > 0
+  const matched = findMatches(geom, grid, rules).length > 0
   grid[a] = ga
   grid[b] = gb
   return matched
@@ -357,9 +371,9 @@ export function shuffleBoard(geom: Geom, grid: Grid, rng: Rng, rules = CURRENT_R
       grid[i] = grid[j] ?? null
       grid[j] = a
     }
-    if (findMatches(geom, grid).length === 0 && findMoves(geom, grid, rules).length > 0) return
+    if (findMatches(geom, grid, rules).length === 0 && findMoves(geom, grid, rules).length > 0) return
   }
-  fillFresh(geom, grid, rng)
+  fillFresh(geom, grid, rng, rules)
 }
 
 /**
@@ -368,7 +382,7 @@ export function shuffleBoard(geom: Geom, grid: Grid, rng: Rng, rules = CURRENT_R
  * board with no free matches in one pass; the retry loop only exists to reject
  * the rare layout that has no legal move.
  */
-export function fillFresh(geom: Geom, grid: Grid, rng: Rng): void {
+export function fillFresh(geom: Geom, grid: Grid, rng: Rng, rules: RulesVersion = CURRENT_RULES): void {
   const choices: Kind[] = []
   for (let attempt = 0; attempt < 100; attempt++) {
     for (let r = 0; r < geom.rows; r++) {
@@ -379,17 +393,21 @@ export function fillFresh(geom: Geom, grid: Grid, rng: Rng): void {
         const up2 = r >= 2 ? at(grid, geom.idx(c, r - 2)) : null
         const banH = left && left2 && left.kind === left2.kind ? left.kind : -1
         const banV = up && up2 && up.kind === up2.kind ? up.kind : -1
+        const corner = c > 0 && r > 0 ? at(grid, geom.idx(c - 1, r - 1)) : null
+        const banSquare = rules >= 3 && corner &&
+          at(grid, geom.idx(c - 1, r))?.kind === corner.kind &&
+          at(grid, geom.idx(c, r - 1))?.kind === corner.kind ? corner.kind : -1
         choices.length = 0
-        for (let k = 0; k < geom.kinds; k++) if (k !== banH && k !== banV) choices.push(k)
+        for (let k = 0; k < geom.kinds; k++) if (k !== banH && k !== banV && k !== banSquare) choices.push(k)
         grid[geom.idx(c, r)] = makeGem(rng.pick(choices))
       }
     }
-    if (findMoves(geom, grid).length > 0) return
+    if (findMoves(geom, grid, rules).length > 0) return
   }
 }
 
-export function createBoard(geom: Geom, rng: Rng): Grid {
+export function createBoard(geom: Geom, rng: Rng, rules: RulesVersion = CURRENT_RULES): Grid {
   const grid: Grid = new Array<Gem | null>(geom.cells).fill(null)
-  fillFresh(geom, grid, rng)
+  fillFresh(geom, grid, rng, rules)
   return grid
 }

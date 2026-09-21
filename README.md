@@ -2,7 +2,8 @@
 
 A match-3 puzzle that runs in the browser. No game engine, no sprite sheets, no
 audio files — every gem is drawn from canvas path primitives and every sound is
-synthesised from a couple of oscillators. The whole thing ships as ~9 kB gzipped.
+synthesised from a couple of oscillators. The character lobby separately loads
+a licensed 11 MB VRM model; its renderer is released when gameplay starts.
 
 **[Play it →](https://uxidesigner-ux.github.io/chroma-match/)**
 
@@ -19,12 +20,19 @@ points before you run out of moves and the next level opens up.
 | Three in a line | The gems clear |
 | Four in a row | A striped gem that clears its whole row |
 | Four in a column | A striped gem that clears its whole column |
-| An L or a T | A bomb that clears the surrounding 3×3 |
+| An L, T or + | A bomb that clears the surrounding 3×3 |
+| A 2×2 square (new runs) | A bomb that can chain with neighbouring powers |
 | Five in a line | A prism — swap it onto any colour to wipe that colour off the board |
 
 Gems that fall into a new match keep the chain going, and each step of a cascade
 multiplies the score, up to ×8. Power gems caught in someone else's blast go off
 too, so a well-placed bomb can unzip half the board.
+
+Adjacent power gems fuse even without matching colours. New runs use rules v3
+(`zx`); saved v1/v2 runs retain their original board and scoring. The game HUD
+shows the goal, an event-reactive profile and remaining moves. Home is a rotatable
+full-body lobby with breathing, blinking, wave, cheer and pose gestures.
+See [the implementation checkpoint](docs/expressive-lobby.md).
 
 ## A few decisions worth explaining
 

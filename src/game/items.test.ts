@@ -15,6 +15,7 @@ function settle(game: Game): void {
 /** Plays legal moves until the inventory holds `item`, or gives up. */
 function playUntilHeld(game: Game, item: (typeof ITEMS)[number], limit = 400): boolean {
   for (let i = 0; i < limit; i++) {
+    if (game.status === 'levelComplete') game.nextLevel()
     if (game.items[item] > 0) return true
     if (game.status === 'gameOver') return false
     if (game.status === 'levelComplete') game.nextLevel()

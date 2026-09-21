@@ -19,7 +19,7 @@ import type { Action } from './game.ts'
 import { ITEMS } from './items.ts'
 import type { Item } from './items.ts'
 import type { Geom } from './types.ts'
-import { FUSION_HEADER } from './rules.ts'
+import { FUSION_HEADER, SQUARE_HEADER } from './rules.ts'
 import type { RulesVersion } from './rules.ts'
 
 const FRAME = 1 / 60
@@ -56,10 +56,13 @@ export interface RunRecord {
 }
 
 export function hasRunActions(record: RunRecord): boolean {
-  return record.moves.length > (record.moves.startsWith(FUSION_HEADER) ? 2 : 0)
+  return record.moves.length > ([FUSION_HEADER, SQUARE_HEADER].some(h => record.moves.startsWith(h)) ? 2 : 0)
 }
 
 function decodeRecord(geom: Geom, record: RunRecord): { rules: RulesVersion; actions: Action[] } {
+  if (record.moves.startsWith(SQUARE_HEADER)) {
+    return { rules: 3, actions: decodeMoves(geom, record.moves.slice(2)) }
+  }
   if (record.moves.startsWith(FUSION_HEADER)) {
     return { rules: 2, actions: decodeMoves(geom, record.moves.slice(2)) }
   }
@@ -367,7 +370,7 @@ export function restoreRun(game: Game, record: RunRecord): boolean {
 export function recordOf(game: Game): RunRecord {
   return {
     seed: game.seed,
-    moves: (game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
+    moves: (game.rules === 3 ? SQUARE_HEADER : game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
     score: game.score,
     level: game.level,
     board: boardOf(game.geom),

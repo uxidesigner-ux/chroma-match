@@ -35,12 +35,15 @@ export class AnimeRenderer {
   private width = 256
   private canvasHeight = 256
   private onContextLoss: ((event: Event) => void) | undefined
+  private onMotionChange = (): void => {
+    if (this.reduced.matches) { this.character?.tick(0, false); this.draw() }
+  }
 
-  constructor(private canvas: HTMLCanvasElement) {
+  constructor(private canvas: HTMLCanvasElement, private transparent = false) {
     this.renderer = new WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: false,
+      alpha: transparent,
       preserveDrawingBuffer: true,
     })
     this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75))
@@ -51,6 +54,7 @@ export class AnimeRenderer {
     const fill = new DirectionalLight(0xc9e4ff, 0.8)
     fill.position.set(2, 1, -2)
     this.scene.add(fill)
+    this.reduced.addEventListener('change', this.onMotionChange)
   }
 
   async load(spec: AnimeSpec): Promise<void> {
@@ -74,7 +78,7 @@ export class AnimeRenderer {
 
   apply(spec: AnimeSpec): void {
     if (this.disposed) return
-    this.scene.background = new Color(`#${spec.backdrop}`)
+    this.scene.background = this.transparent ? null : new Color(`#${spec.backdrop}`)
     this.character?.apply(spec)
     const silhouette = `${spec.hair}:${spec.equipment}`
     if (this.character && this.silhouette !== silhouette) {
@@ -131,6 +135,11 @@ export class AnimeRenderer {
   rotate(direction: number): void {
     this.angle += direction * 0.3
     this.draw()
+  }
+  gesture(kind: 'wave' | 'cheer' | 'pose'): void {
+    this.character?.perform(kind)
+    // Explicit requests become a still pose when the player reduces motion.
+    if (this.reduced.matches) { this.character?.tick(.75, true); this.draw() }
   }
   framePortrait(portrait: boolean): void {
     this.portraitMode = portrait
@@ -227,6 +236,7 @@ export class AnimeRenderer {
     this.abort.abort()
     this.stop()
     this.observer?.disconnect()
+    this.reduced.removeEventListener('change', this.onMotionChange)
     if (this.onContextLoss) this.canvas.removeEventListener('webglcontextlost', this.onContextLoss)
     this.canvas.removeEventListener('pointerdown', this.pointerDown)
     this.canvas.removeEventListener('pointermove', this.pointerMove)

@@ -120,13 +120,13 @@ test('pre-fusion production fixture keeps its exact score, board and rules after
   game.nextLevel()
   assert.equal(game.rules, 1)
   game.restart(18)
-  assert.equal(game.rules, 2)
+  assert.equal(game.rules, 3)
 })
 
 test('naturally earned fusions replay and resume in v2, including chains and items', () => {
   let fused = 0
   for (let seed = 1; seed <= 20; seed++) {
-    const game = new Game({ onFusion: () => fused++ }, seed)
+    const game = new Game({ onFusion: () => fused++ }, seed, BOARD, 2)
     game.addBooster('bomb', 2)
     for (let turn = 0; turn < 40 && game.status !== 'gameOver'; turn++) {
       if (game.status === 'levelComplete') game.nextLevel()

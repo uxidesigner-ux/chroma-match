@@ -1,5 +1,8 @@
 import './style.css'
 import './anime-studio.css'
+import './play-lobby.css'
+import { Lobby } from './ui/lobby.ts'
+import { playCopy } from './ui/play-copy.ts'
 import { Sfx } from './audio.ts'
 import { Haptics } from './haptics.ts'
 import { Game, movesForLevel } from './game/game.ts'
@@ -118,6 +121,7 @@ const shop = new Shop()
 const loadout = new Loadout()
 const pause = new PauseSheet()
 const screens = new Screens()
+const lobby = new Lobby()
 const packs = new PackShelf()
 const today = new TodayPanel()
 const friends = new FriendsPanel()
@@ -163,6 +167,7 @@ profile.onChange(() => {
  */
 creator.onChange(async () => {
   profile.refresh()
+  hud.refreshAvatar()
   void home.refresh()
   if (account()?.kind === 'google') {
     const publish = publishProfile(readStored(NAME_KEY) || t('anonymous'), account()?.photo ?? '')
@@ -261,11 +266,13 @@ function seedFromUrl(): number | null {
 
 const hooks: Partial<GameHooks> = {
   onFusion(fusion) {
+    hud.react('fusion')
     combo.reportFusion(fusion.kind)
     sfx.power()
     haptics.power()
   },
   onClear(cells, kind, chain, points) {
+    hud.react(chain > 1 ? 'chain' : 'pop', chain)
     sfx.clear(chain)
     haptics.clear(chain)
     combo.report(chain)
@@ -306,6 +313,7 @@ const hooks: Partial<GameHooks> = {
     tray.flash(item)
   },
   onItemUsed(item, cell) {
+    hud.react('power')
     reportMission('item', 1)
     sfx.power()
     haptics.power()
@@ -326,6 +334,7 @@ const hooks: Partial<GameHooks> = {
    * along the path the beam is about to take.
    */
   onStrike(blasts) {
+    hud.react('power')
     // Sized by what is going off, so a prism sweeping the board does not feel
     // the same as a hammer on one gem.
     const weight = blasts.reduce(
@@ -368,6 +377,7 @@ const hooks: Partial<GameHooks> = {
     sfx.shuffle()
   },
   onLevelComplete(level) {
+    hud.react('clear')
     // Reaching level N+1 is what finishing level N means; a mission that asks
     // for level 6 should tick on the card that hands out level 6.
     reportMission('level', level + 1)
@@ -584,6 +594,9 @@ function paintContinue(): void {
 }
 
 screens.onChange((name) => {
+  if (name === 'home') lobby.show()
+  else lobby.hide()
+  if (name === 'game') hud.reset()
   if (name !== 'creator') creator.close()
   // The canvas is zero-sized while the screen is hidden, so it has to be
   // re-measured on the way back in rather than waiting for a resize event.
@@ -738,6 +751,7 @@ function repaintText(): void {
   hud.invalidate()
   paintContinue()
   profile.paintCard()
+  paintPlayText()
 
   today.refresh()
   shop.refresh()
@@ -745,6 +759,17 @@ function repaintText(): void {
   void home.refresh()
 }
 applyLanguage()
+function paintPlayText(): void {
+  document.querySelector('[data-i18n="helpLT"]')!.textContent = playCopy().square
+  document.getElementById('pause')!.setAttribute('aria-label', playCopy().exit)
+  document.getElementById('pause')!.title = playCopy().exit
+}
+paintPlayText()
+document.getElementById('lobby-edit')!.addEventListener('click', () => {
+  screens.show('creator')
+  creator.open()
+})
+lobby.show()
 onLanguageChange(repaintText)
 
 const observer = new ResizeObserver(() => renderer.resize())
