@@ -114,6 +114,14 @@ test('lobby chrome puts equal nav on top, coins under the name, and play actions
   expect(coins.y).toBeGreaterThan(name.y)
   await page.locator('#start-game').click()
   await page.locator('#loadout-start').click()
+  await expect(page.locator('#screen-game')).toBeVisible()
+  await page.waitForFunction(() => window.chroma.game.phaseKind === 'idle')
+  await page.evaluate(() => {
+    const g = window.chroma.game
+    const move = window.chroma.best()!
+    g.drag(move.a, move.b)
+  })
+  await page.waitForFunction(() => window.chroma.game.phaseKind === 'idle')
   await page.locator('#pause').click()
   await page.locator('#paused-keep').click()
   await expect(page.locator('#continue-run')).toBeVisible()
