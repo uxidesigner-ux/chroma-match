@@ -8,7 +8,7 @@ test('only model appearance is written, round-trips and fits deployed profile ru
     const code = encodeSpec(look)
     assert.equal(code.length, 29)
     assert.ok(code.length <= SPEC_MAX)
-    assert.match(code, /^4S[BT][NHR][NG][0-9A-F]{24}$/)
+    assert.match(code, /^[456]S[BT][NHRASU][NG1-6][0-9A-F]{24}$/)
     assert.deepEqual(decodeSpec(code), look)
     assert.equal(isKnownSpec(code), true)
   }

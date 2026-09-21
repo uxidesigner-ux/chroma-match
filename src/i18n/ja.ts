@@ -4,6 +4,9 @@ import type { Strings } from './en.ts'
 export const JA: Strings = {
   tagline: '横に6、縦に9。同じ色を3つそろえよう。',
   moreLabel: 'その他',
+  lobbyNav: 'ランキング・ミッション・ショップ',
+  walletAria: 'コイン',
+  splashReady: '準備完了',
 
   profileAria: 'プロフィール',
   defaultName: 'プレイヤー',

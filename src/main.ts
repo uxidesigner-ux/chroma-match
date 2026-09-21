@@ -4,6 +4,7 @@ import './play-lobby.css'
 import './play-responsive.css'
 import { attachPlayLayout } from './ui/play-layout.ts'
 import { Lobby } from './ui/lobby.ts'
+import { Splash } from './ui/splash.ts'
 import { playCopy } from './ui/play-copy.ts'
 import { Sfx } from './audio.ts'
 import { Haptics } from './haptics.ts'
@@ -124,7 +125,13 @@ const shop = new Shop()
 const loadout = new Loadout()
 const pause = new PauseSheet()
 const screens = new Screens()
-const lobby = new Lobby()
+const splash = new Splash()
+const lobby = new Lobby({
+  onProgress: (pct) => splash.setProgress(pct),
+  onBootSettled: (ok) => {
+    void splash.finish(ok).then(() => welcomeHome())
+  },
+})
 const packs = new PackShelf()
 const today = new TodayPanel()
 const friends = new FriendsPanel()
@@ -772,7 +779,6 @@ document.getElementById('lobby-edit')!.addEventListener('click', () => {
   screens.show('creator')
   creator.open()
 })
-lobby.show()
 onLanguageChange(repaintText)
 
 const observer = new ResizeObserver(() => renderer.resize())
@@ -885,11 +891,16 @@ paintContinue()
 paintLevel()
 void home.refresh()
 
-if (granted) {
-  // ITEM_LABELS holds getters, not strings — joining them printed the source
-  // of the arrow functions into the dialog. And the list itself does not
-  // translate by concatenation anyway: 'A hammer and a bomb' is one phrase in
-  // every language, so it is one key.
+let welcomePending = granted !== null
+
+/**
+ * The starter-kit card used to appear while the splash still covered the
+ * lobby, which meant the first thing a new player dismissed was a gift they
+ * could not see landing. It waits until the 3D character is actually on stage.
+ */
+function welcomeHome(): void {
+  if (!welcomePending || !granted) return
+  welcomePending = false
   overlay.show({
     kicker: t('welcome'),
     title: t('starterKit'),
@@ -899,4 +910,5 @@ if (granted) {
     onAction: () => {},
   })
 }
+lobby.show()
 requestAnimationFrame(frame)

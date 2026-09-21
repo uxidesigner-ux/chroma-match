@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ANIME_LOOKS, DEFAULT_ANIME, decodeAnime, encodeAnime } from './anime-spec.ts'
+import { ANIME_LOOKS, DEFAULT_ANIME, decodeAnime, encodeAnime, gearFromBits } from './anime-spec.ts'
 import { DEFAULT_SPEC, SPEC_MAX, decodeSpec, encodeSpec, isKnownSpec } from './spec.ts'
 
 test('anime appearance survives a profile round trip within live rules', () => {
@@ -29,11 +29,19 @@ test('unknown or truncated anime data uses the starter, never an arbitrary model
   }
 })
 
-test('every offered hairstyle and expression has a stable code; colours normalize', () => {
+test('mixed explorer pieces survive a profile round trip', () => {
+  const spec = { ...DEFAULT_ANIME, pack: true, visor: true, hair: 'bob' as const }
+  const code = encodeSpec(spec)
+  assert.equal(code[0], '6')
+  assert.equal(code.length, 29)
+  assert.deepEqual(decodeSpec(code), spec)
+})
+
+test('classic kit encodings round trip hair, expression and equipment', () => {
   for (const hair of ['tails', 'bob'] as const)
     for (const expression of ['neutral', 'happy', 'relaxed'] as const)
-      for (const equipment of ['none', 'gear'] as const) {
-        const spec = { ...DEFAULT_ANIME, hair, expression, equipment, hairColour: 'abc123' }
+      for (const kit of [0, 7] as const) {
+        const spec = { ...DEFAULT_ANIME, hair, expression, ...gearFromBits(kit), hairColour: 'abc123' }
         assert.deepEqual(decodeAnime(encodeAnime(spec)), { ...spec, hairColour: 'ABC123' })
       }
 })

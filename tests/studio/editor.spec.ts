@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
+import { enterLobby } from './boot.ts'
 
 async function openCreator(page: Page) {
   await page.locator('#profile-face').click()
@@ -50,8 +51,7 @@ test.beforeEach(async ({ page }) => {
     localStorage.setItem('chroma-match:lang', 'en')
   })
   await page.goto('/')
-  const gotIt = page.getByRole('button', { name: 'Got it', exact: true })
-  if (await gotIt.isVisible()) await gotIt.click()
+  await enterLobby(page)
 })
 
 test('a saved draft reaches the profile and 3D lobby and survives reload', async ({
@@ -77,6 +77,7 @@ test('a saved draft reaches the profile and 3D lobby and survives reload', async
   await expectFaceCrop(page, '#profile-avatar')
   const cachedPortrait = await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))
   await page.reload()
+  await enterLobby(page)
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   await expectFaceCrop(page, '#profile-avatar')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))).toBe(cachedPortrait)
@@ -194,6 +195,7 @@ test('a missing custom portrait regenerates from the code and reopens the same e
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   await page.evaluate(() => localStorage.removeItem('chroma-match:anime-portrait-v1'))
   await page.reload()
+  await enterLobby(page)
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   expect(
     await page.evaluate(() =>
@@ -264,6 +266,7 @@ test('retired profile data becomes the starter without changing scores', async (
     localStorage.setItem('chroma-match:name', 'Returning player')
   })
   await page.reload()
+  await enterLobby(page)
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   const state = await page.evaluate(() => ({
     code: localStorage.getItem('chroma-match:avatar'), best: localStorage.getItem('chroma-match:best'),
@@ -278,6 +281,7 @@ test('existing anime data migrates to the compact code without changing appearan
   const previous = '32basbhaiavbtanaoaebxa32343C33456B5C7A5EF3F0EASTNNED9560B897ED9A8BCD352C43'
   await page.evaluate(code => localStorage.setItem('chroma-match:avatar', code), previous)
   await page.reload()
+  await enterLobby(page)
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe('4' + previous.slice(46))
   await openAnime(page)
@@ -294,6 +298,7 @@ test('starter portrait remains available without WebGL or storage writes', async
     Storage.prototype.setItem = () => { throw new DOMException('Full', 'QuotaExceededError') }
   })
   await page.reload()
+  await enterLobby(page)
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   await openCreator(page)
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'error')

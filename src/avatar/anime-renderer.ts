@@ -59,10 +59,10 @@ export class AnimeRenderer {
     this.reduced.addEventListener('change', this.onMotionChange)
   }
 
-  async load(spec: AnimeSpec): Promise<void> {
+  async load(spec: AnimeSpec, onProgress?: (ratio: number) => void): Promise<void> {
     const timeout = setTimeout(() => this.abort.abort(), 25000)
     try {
-      const character = await StudioCharacter.load(this.abort.signal)
+      const character = await StudioCharacter.load(this.abort.signal, onProgress)
       if (this.disposed) {
         character.dispose()
         return
@@ -82,7 +82,7 @@ export class AnimeRenderer {
     if (this.disposed) return
     this.scene.background = this.transparent ? null : new Color(`#${spec.backdrop}`)
     this.character?.apply(spec)
-    const silhouette = `${spec.hair}:${spec.equipment}`
+    const silhouette = `${spec.hair}:${Number(spec.pack)}${Number(spec.arms)}${Number(spec.visor)}`
     if (this.character && this.silhouette !== silhouette) {
       this.silhouette = silhouette
       this.bounds.copy(this.measureBounds())

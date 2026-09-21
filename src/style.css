@@ -403,6 +403,11 @@ body {
   letter-spacing: -0.02em;
 }
 
+html.splash-open,
+html.splash-open body {
+  overflow: hidden;
+}
+
 .tagline {
   margin: 0;
   font-size: 13px;
@@ -754,6 +759,7 @@ body {
 .overlay {
   position: fixed;
   inset: 0;
+  z-index: 40;
   display: grid;
   place-items: center;
   background: rgba(6, 8, 18, 0.72);
@@ -1153,6 +1159,10 @@ body {
 
   .home h1 {
     font-size: 24px;
+  }
+
+  html.splash-open .splash h1 {
+    font-size: 30px;
   }
 
   .btn-play {
@@ -2154,7 +2164,7 @@ body {
   border-color: var(--line);
   color: var(--text);
   font-size: 15px;
-  padding: 13px;
+  padding: 8px 12px;
 }
 
 #continue-run:not([hidden]) ~ #start-game:hover {

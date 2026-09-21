@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import type { Power } from '../../src/game/types.ts'
+import { enterLobby } from './boot.ts'
 
 async function clickCell(page: Page, cell: number) {
   const point = await page.evaluate(cell => window.chroma.renderer.centreOf(cell), cell)
@@ -16,7 +17,7 @@ test.beforeEach(async ({ page }) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
   await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'en'))
   await page.goto('/?seed=3')
-  if (await page.locator('#overlay-action').isVisible()) await page.locator('#overlay-action').click()
+  await enterLobby(page)
   await page.locator('#start-game').click()
   await page.locator('#loadout-start').click()
   // Preserve the released v2 seeded fixture. New v3 squares have their own suite.
@@ -102,6 +103,7 @@ test('fusion run survives the real keep/reload/continue UI', async ({ page }) =>
   const saved = await page.evaluate(() => localStorage.getItem('chroma-match:suspended'))
   expect(JSON.parse(saved!).record.moves).toBe('zy3s')
   await page.reload()
+  await enterLobby(page)
   await page.locator('#continue-run').click()
   await expect(page.locator('#board')).toBeVisible()
   expect(await page.evaluate(() => window.chroma.game.rules)).toBe(2)
@@ -121,6 +123,7 @@ test('legacy saved runs keep original rules and the next new run opts into fusio
     }))
   })
   await page.reload()
+  await enterLobby(page)
   await page.locator('#continue-run').click()
   await expect(page.locator('#board')).toBeVisible()
   expect(await page.evaluate(() => window.chroma.game.rules)).toBe(1)

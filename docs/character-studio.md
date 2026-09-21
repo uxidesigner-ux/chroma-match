@@ -7,7 +7,8 @@ PNG/VRM/GLB export), see [Studio toolkit](studio-toolkit.md). Its capability tab
 distinguishes shipped player features from upstream authoring features not ported.
 
 One licensed Seed-san starter model: two hair silhouettes (tails shown/hidden),
-four starting palettes, optional exploration equipment, hair/eye/outfit/background colours, three expressions,
+eight starting palettes, independently mixed backpack / arm gear / visor,
+hair/eye/outfit/background colours, six expressions,
 rotation, face/full-body framing, idle breathing and blinking. Apply commits a
 draft; leaving a changed draft asks before discarding it. This is the only
 character editor. This is not the DropHunter outfit catalogue.
@@ -34,8 +35,9 @@ use/modification/redistribution. No permission was provided for those assets.
 V4 code: `4` + 28-character anime choices = 29 alphanumeric characters. This fits
 existing Firestore validation without relaxing rules or adding user-controlled
 URLs. The model and choices are allowlisted. Existing v3 anime payloads are read
-from their prior envelope and rewritten without unused fields. Other or malformed
-formats display the starter; no retired rendering or catalogue code is retained.
+from their prior envelope and rewritten without unused fields. Mixed explorer
+pieces (backpack, arms and visor independently) use a v6 prefix of the same
+length. Other or malformed formats display the starter; no retired rendering or catalogue code is retained.
 
 The editor and Three.js/three-vrm runtime load dynamically. The starter uses a
 bundled PNG generated with `node scripts/capture-default-portrait.mjs`; it does

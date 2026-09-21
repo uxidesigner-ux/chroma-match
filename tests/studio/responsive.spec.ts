@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test'
+import { enterLobby } from './boot.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
   await page.goto('/?seed=3')
-  if (await page.locator('#overlay-action').isVisible()) await page.locator('#overlay-action').click()
+  await enterLobby(page)
   await page.locator('#start-game').click()
   await page.locator('#loadout-start').click()
   await page.waitForFunction(() => window.chroma.game.phaseKind === 'idle')

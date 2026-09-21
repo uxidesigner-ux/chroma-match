@@ -348,9 +348,10 @@ failing, so a fork still gets a green CI.
 
 Profile → Edit character opens the VRM editor adapted from
 M3-org/CharacterStudio. One licensed Seed-san model offers ponytail/bob visibility,
-four palettes, editable colours, expressions and an equipment toggle. Apply saves
+eight palettes, editable colours, six expressions and independently mixed
+backpack, arm gear and visor pieces. Apply saves
 the character on this device and uses the existing signed-in profile publishing
-path. Existing anime appearances migrate to the compact v4 code; retired or
+path. Classic kit appearances stay on v4/v5; mixed explorer pieces use v6. Existing anime appearances migrate to the compact v4 code; retired or
 invalid profile formats display the anime starter. There is no second character style.
 
 The approximately 11 MB model and 3D runtime load on demand. A generated portrait

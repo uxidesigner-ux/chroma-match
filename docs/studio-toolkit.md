@@ -34,6 +34,7 @@ third-party character or clothing files.
 
 - Existing v3/v4 profiles load unchanged. New expressions use a 29-character v5
   code within deployed alphanumeric profile limits; old expression codes remain v4.
+  Independently mixed explorer pieces use v6 of the same length.
 - Changes, undo, redo, reset, library load and JSON restore affect the draft only.
   The existing explicit Apply action is still required for local/cloud profile changes.
 - Library stores at most 12 validated `{id,name,code}` rows. Names are plain text,
