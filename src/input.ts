@@ -30,6 +30,7 @@ export function attachInput(
   let startY = 0
   let dragged = false
   let activePointer: number | null = null
+  let pointerRect: DOMRect | null = null
   let keyboardCell = 0
   const status = document.getElementById('board-status')
   const announce = () => {
@@ -75,10 +76,17 @@ export function attachInput(
     const rect = canvas.getBoundingClientRect()
     return { x: e.clientX - rect.left, y: e.clientY - rect.top }
   }
+  const layoutShifted = () => {
+    if (!pointerRect) return false
+    const rect = canvas.getBoundingClientRect()
+    return rect.left !== pointerRect.left || rect.top !== pointerRect.top ||
+      rect.width !== pointerRect.width || rect.height !== pointerRect.height
+  }
 
   canvas.addEventListener('pointerdown', (e) => {
     if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return
     activePointer = e.pointerId
+    pointerRect = canvas.getBoundingClientRect()
     onFirstInput()
     const { x, y } = localPoint(e)
     startCell = renderer.cellAtPoint(x, y)
@@ -102,6 +110,10 @@ export function attachInput(
 
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerId !== activePointer) return
+    if (layoutShifted()) {
+      cancel()
+      return
+    }
     if (startCell === null || dragged) return
     const { x, y } = localPoint(e)
     const dx = x - startX
@@ -122,6 +134,10 @@ export function attachInput(
 
   const end = (e: PointerEvent) => {
     if (e.pointerId !== activePointer) return
+    if (layoutShifted()) {
+      cancel()
+      return
+    }
     game.cancelPress()
     if (startCell !== null && !dragged) {
       const { x, y } = localPoint(e)
@@ -131,6 +147,7 @@ export function attachInput(
     startCell = null
     dragged = false
     activePointer = null
+    pointerRect = null
   }
 
   canvas.addEventListener('pointerup', end)
@@ -142,6 +159,7 @@ export function attachInput(
       canvas.releasePointerCapture(activePointer)
     }
     activePointer = null
+    pointerRect = null
   }
   canvas.addEventListener('pointercancel', cancel)
   canvas.addEventListener('lostpointercapture', cancel)
