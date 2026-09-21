@@ -1312,11 +1312,23 @@ html.splash-open body {
  * this skin every surface is a piece of pressed card sitting above the page,
  * and a tile with no edge to it was the only flat thing left on the screen.
  */
-[data-skin='paper'] .quick-btn {
+[data-skin='paper'] .quick-btn,
+[data-skin='paper'] .circle-button,
+[data-skin='paper'] .lobby-edit,
+[data-skin='paper'] .lobby-gesture {
   box-shadow: 3px 3px 0 var(--line);
 }
 
-[data-skin='paper'] .quick-btn:active {
+[data-skin='paper'] .circle-button,
+[data-skin='paper'] .lobby-edit,
+[data-skin='paper'] .lobby-gesture {
+  border-width: 2px;
+}
+
+[data-skin='paper'] .quick-btn:active,
+[data-skin='paper'] .circle-button:active,
+[data-skin='paper'] .lobby-edit:active,
+[data-skin='paper'] .lobby-gesture:active {
   transform: translate(3px, 3px);
   box-shadow: none;
 }
@@ -2158,18 +2170,29 @@ html.splash-open body {
   font-variant-numeric: tabular-nums;
 }
 
-/* With a kept run on offer, starting fresh is the quieter of the two. */
+/* With a kept run on offer, starting fresh is the quieter of the two —
+   still a real sheet, not a hole punched in the page. */
 #continue-run:not([hidden]) ~ #start-game {
-  background: var(--panel);
+  background: var(--panel-strong);
   border-color: var(--line);
   color: var(--text);
+  box-shadow: var(--panel-shadow);
   font-size: 15px;
   padding: 8px 12px;
 }
 
 #continue-run:not([hidden]) ~ #start-game:hover {
-  background: var(--panel-strong);
+  background: var(--panel);
   filter: none;
+}
+
+[data-skin='paper'] #continue-run:not([hidden]) ~ #start-game {
+  background: #fff7e6;
+  box-shadow: 4px 4px 0 var(--line);
+}
+
+[data-skin='paper'] #continue-run:not([hidden]) ~ #start-game:hover {
+  background: #fffdf6;
 }
 
 @media (prefers-reduced-motion: reduce) {
