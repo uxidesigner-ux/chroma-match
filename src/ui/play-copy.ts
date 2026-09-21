@@ -1,0 +1,8 @@
+import { language } from '../i18n/index.ts'
+const words = {
+  en: { ready: 'Ready!', pop: 'Nice!', power: 'Power!', fusion: 'Together!', chain: 'Chain', clear: 'Cleared!', wave: 'Wave', cheer: 'Cheer', pose: 'Pose', rotate: 'Drag to turn · ← → keys · Home to face front', loading: 'Preparing your 3D lobby…', failed: '3D unavailable. You can still play.', retry: 'Retry 3D', preview: 'Your full-body character. Drag or use arrow keys to rotate.', square: 'A 2×2 square makes a bomb. L, T and + shapes also make bombs.', rules: 'Square + fusion rules', exit: 'Pause / leave game' },
+  ko: { ready: '준비 완료!', pop: '좋아!', power: '팡팡!', fusion: '함께 터져!', chain: '연쇄', clear: '성공!', wave: '손인사', cheer: '응원', pose: '포즈', rotate: '드래그로 회전 · ← → 방향키 · Home 정면', loading: '3D 로비를 준비하고 있어요…', failed: '3D를 불러오지 못했어요. 게임은 바로 할 수 있어요.', retry: '3D 다시 시도', preview: '나의 전신 캐릭터. 드래그나 방향키로 회전하세요.', square: '같은 보석 4개를 2×2 네모로 모으면 폭탄! L·T·+ 모양도 폭탄을 만들어요.', rules: '네모 + 합체 규칙', exit: '일시정지 / 게임 나가기' },
+  ja: { ready: '準備完了！', pop: 'いいね！', power: 'パワー！', fusion: '一緒に！', chain: '連鎖', clear: 'クリア！', wave: '手を振る', cheer: '応援', pose: 'ポーズ', rotate: 'ドラッグ・← →キーで回転 · Homeで正面', loading: '3Dロビーを準備中…', failed: '3Dを表示できません。ゲームはプレイできます。', retry: '3Dを再試行', preview: '全身キャラクター。ドラッグまたは矢印キーで回転。', square: '同じ宝石を2×2に並べると爆弾！L・T・＋の形も爆弾になります。', rules: '四角＋合体ルール', exit: '一時停止 / ゲームを離れる' },
+  'zh-Hans': { ready: '准备好了！', pop: '漂亮！', power: '爆发！', fusion: '一起爆破！', chain: '连锁', clear: '过关！', wave: '挥手', cheer: '加油', pose: '姿势', rotate: '拖动或 ← → 旋转 · Home 回到正面', loading: '正在准备3D大厅…', failed: '3D暂不可用，仍可开始游戏。', retry: '重试3D', preview: '全身角色。拖动或使用方向键旋转。', square: '相同宝石组成2×2方块可生成炸弹！L、T、＋形也会生成炸弹。', rules: '方块＋合体规则', exit: '暂停 / 离开游戏' },
+}
+export const playCopy = () => words[language()]

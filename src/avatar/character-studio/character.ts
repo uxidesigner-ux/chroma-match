@@ -23,6 +23,9 @@ export class StudioCharacter {
   private tails: Mesh[] = []
   private equipment: Mesh[] = []
   private time = 0
+  private gesture: 'wave' | 'cheer' | 'pose' | null = null
+  private gestureTime = 0
+  private expression: AnimeSpec['expression'] = 'neutral'
 
   private constructor(vrm: VRM) {
     this.vrm = vrm
@@ -117,6 +120,7 @@ export class StudioCharacter {
   }
 
   apply(spec: AnimeSpec): void {
+    this.expression = spec.expression
     for (const [name, hex] of [
       ['hair', spec.hairColour],
       ['eye', spec.eyeColour],
@@ -138,9 +142,18 @@ export class StudioCharacter {
     this.tick(0, false)
   }
 
+  perform(gesture: 'wave' | 'cheer' | 'pose'): void {
+    this.gesture = gesture
+    this.gestureTime = 0
+  }
+
   tick(delta: number, motion: boolean): void {
     if (motion) this.time += delta
     const sway = motion ? Math.sin(this.time * 1.5) * 0.014 : 0
+    if (motion && this.gesture) this.gestureTime += delta
+    if (this.gestureTime > 2.8) this.gesture = null
+    const envelope = motion && this.gesture
+      ? Math.min(1, this.gestureTime / .3, (2.8 - this.gestureTime) / .5) : 0
     const humanoid = this.vrm.humanoid
     // Relax the T-pose using normalized humanoid bones, shared by future packs.
     humanoid.getNormalizedBoneNode('leftUpperArm')?.rotation.set(0, 0, -1.12)
@@ -148,6 +161,22 @@ export class StudioCharacter {
     humanoid.getNormalizedBoneNode('leftLowerArm')?.rotation.set(0, 0, -0.12)
     humanoid.getNormalizedBoneNode('rightLowerArm')?.rotation.set(0, 0, 0.12)
     humanoid.getNormalizedBoneNode('chest')?.rotation.set(sway, 0, 0)
+    humanoid.getNormalizedBoneNode('spine')?.rotation.set(0, motion ? Math.sin(this.time * .65) * .025 : 0, sway * .6)
+    humanoid.getNormalizedBoneNode('head')?.rotation.set(sway * .5, motion ? Math.sin(this.time * .45) * .07 : 0, sway)
+    if (this.gesture === 'wave') {
+      humanoid.getNormalizedBoneNode('rightUpperArm')?.rotation.set(0, 0, 1.12 - envelope * 1.8)
+      humanoid.getNormalizedBoneNode('rightLowerArm')?.rotation.set(0, 0, .12 - envelope * (1 + Math.sin(this.gestureTime * 12) * .2))
+    } else if (this.gesture === 'cheer') {
+      humanoid.getNormalizedBoneNode('leftUpperArm')?.rotation.set(0, 0, -1.12 + envelope * 1.9)
+      humanoid.getNormalizedBoneNode('rightUpperArm')?.rotation.set(0, 0, 1.12 - envelope * 1.9)
+      humanoid.getNormalizedBoneNode('leftLowerArm')?.rotation.set(0, 0, -.12 + envelope * .9)
+      humanoid.getNormalizedBoneNode('rightLowerArm')?.rotation.set(0, 0, .12 - envelope * .9)
+    } else if (this.gesture === 'pose') {
+      humanoid.getNormalizedBoneNode('chest')?.rotation.set(sway, envelope * .2, envelope * .08)
+      humanoid.getNormalizedBoneNode('leftLowerArm')?.rotation.set(-envelope * .8, 0, -.12 + envelope * .9)
+      humanoid.getNormalizedBoneNode('head')?.rotation.set(0, -envelope * .2, -envelope * .1)
+    }
+    this.vrm.expressionManager?.setValue('happy', Math.max(this.expression === 'happy' ? .7 : 0, envelope * .75))
     this.blink.update(this.vrm, delta, motion)
     this.vrm.update(delta)
   }

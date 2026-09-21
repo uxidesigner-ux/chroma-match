@@ -5,6 +5,7 @@ import { cachePortrait } from '../avatar/anime-portrait.ts'
 import { account } from '../leaderboard/session.ts'
 import type { AnimeRenderer } from '../avatar/anime-renderer.ts'
 import { animeCopy } from './anime-copy.ts'
+import { playCopy } from './play-copy.ts'
 
 type Category = 'looks' | 'hair' | 'colours' | 'expression'
 
@@ -145,6 +146,15 @@ export class AnimeEditor {
       this.paintOptions()
     })
     toolbar.append(framing, direction)
+    const gestures = document.createElement('div')
+    gestures.className = 'studio-direction'
+    for (const kind of ['wave', 'cheer', 'pose'] as const) {
+      const button = this.button(playCopy()[kind], () => this.renderer?.gesture(kind))
+      button.dataset.requiresModel = ''
+      button.disabled = true
+      gestures.append(button)
+    }
+    toolbar.append(gestures)
     const hint = document.createElement('p')
     hint.id = 'studio-rotate-help'
     hint.className = 'studio-hint'

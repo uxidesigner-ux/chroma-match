@@ -51,7 +51,7 @@ test('legacy legal moves reach a six-chain and clear; score/CTA are immediately 
   await page.keyboard.press('Enter')
   await expect(page.locator('#overlay')).toBeHidden()
   expect(await page.evaluate(() => window.chroma.game.level)).toBe(2)
-  expect(await page.evaluate(() => performance.getEntriesByType('resource').some(r => r.name.endsWith('.vrm')))).toBe(false)
+  await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'idle')
   expect(errors).toEqual([])
 })
 

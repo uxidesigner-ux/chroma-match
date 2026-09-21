@@ -240,7 +240,7 @@ export class Game {
     this.rng = makeRng(seed)
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
     this.goal = goalForLevel(1, geom.kinds)
-    this.grid = createBoard(geom, this.rng)
+    this.grid = createBoard(geom, this.rng, rules)
   }
 
   // ---- read-only view helpers used by the renderer -------------------------
@@ -609,7 +609,7 @@ export class Game {
 
   /** Finds matches, reserves power gems, and starts the clear animation. */
   private beginClear(): boolean {
-    const groups = findMatches(this.geom, this.grid)
+    const groups = findMatches(this.geom, this.grid, this.rules)
     if (groups.length === 0) return false
 
     this.combo = Math.min(MAX_COMBO, this.combo + 1)
@@ -780,7 +780,7 @@ export class Game {
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
     this.log.length = 0
     this.items = emptyInventory()
-    this.grid = createBoard(this.geom, this.rng)
+    this.grid = createBoard(this.geom, this.rng, rules)
     this.score = 0
     this.level = 1
     this.levelStartScore = 0

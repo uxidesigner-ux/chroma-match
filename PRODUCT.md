@@ -31,7 +31,19 @@ of the player's task. The product has one anime character editor and one profile
 - Preserve anime appearances until an explicitly chosen replacement is saved.
 - Retired or invalid appearance formats display the anime starter; never reintroduce removed renderers.
 - Offer only customization actually supported by the licensed starter model.
-- Load 3D on demand; use still portraits in lists and release editor resources.
+- Home is a rotatable full-body 3D lobby; release its renderer when leaving home.
+- Use cached still portraits in lists and the event-reactive game HUD; release editor resources.
+- Gameplay HUD has three equal regions: goal, character reaction, remaining moves.
+- New runs support 2×2 squares as bomb matches, alongside lines, L/T/+ and power fusion.
+- Preserve previous rules when resuming/replaying saved games.
+
+## Current scope decision
+
+The user approved deferring male/female model selection and new outfit packs until
+licensed, compatible assets are available. This release uses Seed-san's real hair,
+expression, palette and explorer-equipment options, plus breathing and gestures.
+Game-specific celebratory motion is intentional; reduced-motion users receive
+text feedback and explicitly requested still poses instead of animation.
 - Keep stable, versioned choices independent of rendering implementation.
 
 ## Accessibility & Inclusion

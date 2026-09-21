@@ -28,7 +28,7 @@ export function bestMove(game: Game): Move | null {
     game.grid[move.a] = b
     game.grid[move.b] = a
     let score = 0
-    const fusion = game.rules === 2 ? fusionClear(game.geom, game.grid, move.a, move.b) : null
+    const fusion = game.rules >= 2 ? fusionClear(game.geom, game.grid, move.a, move.b) : null
     if (fusion) score = fusion.cleared.size + 8
     // Swapping a rainbow forms no line, so findMatches reports nothing for it.
     // Scoring that as zero would leave the simulated player never firing the
@@ -37,7 +37,7 @@ export function bestMove(game: Game): Move | null {
       const colour = a.power === 'rainbow' ? b.kind : a.kind
       score = game.grid.filter((g) => g && g.kind === colour).length + 4
     }
-    for (const group of fusion ? [] : findMatches(game.geom, game.grid)) {
+    for (const group of fusion ? [] : findMatches(game.geom, game.grid, game.rules)) {
       score += group.cells.length
       const power = powerFor(group)
       if (power === 'rainbow') score += 8

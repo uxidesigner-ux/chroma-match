@@ -25,11 +25,13 @@
       <!-- Launch screen                                                    -->
       <!-- ---------------------------------------------------------------- -->
       <section class="screen home" id="screen-home">
-        <div class="hero">
-          <span class="brand-mark brand-mark-lg" aria-hidden="true"></span>
+        <header class="lobby-head">
           <h1>Chroma Match</h1>
-          <p class="tagline" data-i18n="tagline">Six across, nine down. Line up three.</p>
-        </div>
+          <div class="lobby-utilities">
+            <button class="circle-button" data-action="how-to" type="button" aria-expanded="false" data-i18n-attr="aria-label:howToPlay title:howToPlay"><span aria-hidden="true">?</span></button>
+            <button class="circle-button" id="open-settings" type="button" data-i18n-attr="aria-label:settings title:settings"><span aria-hidden="true">⚙</span></button>
+          </div>
+        </header>
 
         <!--
           The one thing on this screen that is about the player rather than
@@ -62,6 +64,13 @@
           </div>
         </section>
 
+        <section class="lobby-stage" id="lobby-stage" aria-label="3D character">
+          <canvas id="lobby-canvas" tabindex="0"></canvas>
+          <div class="lobby-loading" id="lobby-loading" role="status"></div>
+        </section>
+        <p class="lobby-hint" id="lobby-hint"></p>
+        <div class="lobby-tools" id="lobby-tools"></div>
+        <button class="btn btn-ghost lobby-edit" id="lobby-edit" type="button" data-i18n="editAvatar">Edit character</button>
         <!--
           A kept run is the first thing offered, because a player who left one
           behind came back for it. Starting fresh is still one tap, and says
@@ -103,14 +112,6 @@
           here as bare switches; they are settings, they now live with the
           other settings, and the footer stops competing with Play.
         -->
-        <footer class="home-foot">
-          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false" data-i18n="howToPlay">
-            How to play
-          </button>
-          <button class="btn btn-ghost" id="open-settings" type="button" data-i18n="settings">
-            Settings
-          </button>
-        </footer>
       </section>
 
       <!-- ---------------------------------------------------------------- -->
@@ -207,27 +208,20 @@
       </section>
 
       <section class="screen game" id="screen-game" hidden>
-        <section class="stats" aria-live="polite">
-          <div class="stat stat-primary">
-            <span class="stat-label" data-i18n="statScore">Score</span>
-            <strong class="stat-value" id="score">0</strong>
+        <section class="game-hud">
+          <div class="hud-goal">
+            <span class="hud-label" id="goal-text">Score</span>
+            <div class="goal-token"><canvas id="goal-gem" width="128" height="128" aria-hidden="true"></canvas><strong id="goal-remaining">1,800</strong></div>
+            <span class="sr-only"><span id="progress">0</span> / <span id="target">1,800</span></span>
           </div>
-          <div class="stat">
+          <div class="hud-character" id="hud-character">
+            <div class="hud-face"><canvas id="hud-avatar" aria-hidden="true"></canvas><span class="hud-sparks" aria-hidden="true">✦</span></div>
+            <span class="hud-reaction" id="hud-reaction"></span>
+          </div>
+          <div class="stat hud-moves">
             <span class="stat-label" data-i18n="statMoves">Moves</span>
             <strong class="stat-value" id="moves">25</strong>
           </div>
-          <div class="stat">
-            <span class="stat-label">Best</span>
-            <strong class="stat-value" id="best">0</strong>
-          </div>
-          <!--
-            The only chrome left on the board. Everything the footer used to
-            carry — leaving, the rules, sound, the seed — is behind it, because
-            none of it belongs on screen while a gem is being dragged.
-          -->
-          <button class="pause" id="pause" type="button" aria-label="Pause" data-i18n-attr="aria-label:pauseAria">
-            <span class="pause-bars" aria-hidden="true"></span>
-          </button>
         </section>
 
         <section class="goal">
@@ -235,16 +229,6 @@
             <span class="goal-level" id="level">Level 1</span>
             <!-- What this level asks for. It changes from level to level now,
                  so it cannot be left implied by a bare pair of numbers. -->
-            <span class="goal-what" id="goal-what">
-              <!-- A colour goal names a colour the player has to recognise on
-                   the board; the name alone leaves them matching a word to a
-                   gem. Filled from the skin's palette when the goal needs it. -->
-              <span class="goal-gem" id="goal-gem" aria-hidden="true" hidden></span>
-              <span id="goal-text">Score</span>
-            </span>
-            <span class="goal-numbers"
-              ><span id="progress">0</span> / <span id="target">&mdash;</span></span
-            >
           </div>
           <div class="bar"><div class="bar-fill" id="bar"></div></div>
         </section>
@@ -303,6 +287,7 @@
             <span class="item-name" data-i18n="itemBomb">Bomb</span>
             <span class="item-count" data-count="bomb">0</span>
           </button>
+          <button class="circle-button game-exit" id="pause" type="button"><span aria-hidden="true">↗</span></button>
         </div>
         <p class="items-hint" id="items-hint" role="status" hidden></p>
 
