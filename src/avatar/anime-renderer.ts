@@ -85,14 +85,19 @@ export class AnimeRenderer {
     const silhouette = `${spec.hair}:${spec.equipment}`
     if (this.character && this.silhouette !== silhouette) {
       this.silhouette = silhouette
-      this.bounds.makeEmpty()
-      this.character.vrm.scene.updateMatrixWorld(true)
-      this.character.vrm.scene.traverseVisible((node) => {
-        if (node instanceof Mesh) this.bounds.expandByObject(node, true)
-      })
+      this.bounds.copy(this.measureBounds())
       this.height = this.bounds.max.y - this.bounds.min.y
     }
     this.draw()
+  }
+
+  private measureBounds(): Box3 {
+    const bounds = new Box3()
+    this.character?.vrm.scene.updateMatrixWorld(true)
+    this.character?.vrm.scene.traverseVisible(node => {
+      if (node instanceof Mesh) bounds.expandByObject(node, true)
+    })
+    return bounds
   }
 
   attach(stage: HTMLElement, onLost: () => void): void {
@@ -150,7 +155,11 @@ export class AnimeRenderer {
   gesture(kind: 'wave' | 'cheer' | 'pose'): void {
     this.character?.perform(kind)
     // Explicit requests become a still pose when the player reduces motion.
-    if (this.reduced.matches || this.paused) { this.character?.tick(.75, true); this.draw() }
+    if (this.reduced.matches || this.paused) {
+      this.character?.tick(.75, true)
+      this.bounds.union(this.measureBounds())
+      this.draw()
+    }
   }
   pause(value: boolean): void {
     this.paused = value
@@ -255,7 +264,8 @@ export class AnimeRenderer {
   screenshot(kind: 'face' | 'body' | 'sheet', transparent: boolean): string {
     if (!this.character || this.disposed) throw new Error('Character unavailable')
     const previous = { angle: this.angle, mode: this.portraitMode, width: this.width,
-      height: this.canvasHeight, background: this.scene.background, ratio: this.renderer.getPixelRatio() }
+      height: this.canvasHeight, background: this.scene.background, ratio: this.renderer.getPixelRatio(),
+      bounds: this.bounds.clone() }
     const width = 512, height = kind === 'face' ? 512 : 768
     const output = document.createElement('canvas')
     output.width = kind === 'sheet' ? width * 2 : width
@@ -268,6 +278,9 @@ export class AnimeRenderer {
       // Paused/reduced-motion previews already have a still pose. Re-ticking
       // constraints here would change that pose during a supposedly still capture.
       if (!this.reduced.matches && !this.paused) this.character.tick(0, false)
+      // A gesture can extend above/beyond the idle silhouette (e.g. raised hands).
+      // Measure once per capture, not every animation frame, and fit all four views.
+      if (kind !== 'face') this.bounds.copy(this.measureBounds())
       for (let index = 0; index < (kind === 'sheet' ? 4 : 1); index++) {
         this.angle = kind === 'sheet' ? index * Math.PI / 2 : previous.angle
         this.resize(width, height)
@@ -283,6 +296,7 @@ export class AnimeRenderer {
       this.angle = previous.angle
       this.portraitMode = previous.mode
       this.scene.background = previous.background
+      this.bounds.copy(previous.bounds)
       this.renderer.setPixelRatio(previous.ratio)
       this.resize(previous.width, previous.height)
     }

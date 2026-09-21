@@ -133,6 +133,31 @@ test('VRM and GLB exports load again, retain permissions and match selected pale
   }
 })
 
+test('a held cheer pose fits inside full-body PNG without clipping raised hands', async ({ page }) => {
+  await page.getByRole('button', { name: 'Cheer', exact: true }).click()
+  await page.getByText('Images & 3D model', { exact: true }).click()
+  await page.getByLabel('Transparent image background', { exact: true }).check()
+  const downloaded = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Full-body PNG', exact: true }).click()
+  const file = await downloaded
+  const bytes = await readFile((await file.path())!)
+  const edgePixels = await page.evaluate(async base64 => {
+    const image = new Image(); image.src = `data:image/png;base64,${base64}`; await image.decode()
+    const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height
+    const ctx = canvas.getContext('2d')!; ctx.drawImage(image, 0, 0)
+    const { data } = ctx.getImageData(0, 0, image.width, 768)
+    let opaqueEdges = 0, opaqueBody = 0
+    for (let y = 0; y < 768; y++) for (let x = 0; x < image.width; x++) {
+      if (data[(y * image.width + x) * 4 + 3]! < 10) continue
+      opaqueBody++
+      if (y < 8 || y >= 760 || x < 8 || x >= image.width - 8) opaqueEdges++
+    }
+    return { opaqueEdges, opaqueBody }
+  }, bytes.toString('base64'))
+  expect(edgePixels.opaqueEdges).toBe(0)
+  expect(edgePixels.opaqueBody).toBeGreaterThan(20000)
+})
+
 test('mobile library and downloads remain keyboard accessible and storage errors preserve drafts', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 })
   await page.getByRole('tab', { name: 'Looks', exact: true }).focus()
