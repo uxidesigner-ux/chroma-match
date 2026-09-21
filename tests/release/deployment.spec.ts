@@ -57,6 +57,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
     localStorage.setItem('chroma-match:lang', 'en')
   })
   await page.goto('./')
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
   await expect
     .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)))
     .toBe(true)
@@ -83,6 +84,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
   const saved = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
   expect(saved).toMatch(/^4S[BT][NHR][NG][0-9A-F]{24}$/)
   await page.reload()
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   // The first controlled online navigation warms the existing shell cache.
   await expect
@@ -90,6 +92,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
     .toBe(true)
   await context.setOffline(true)
   await page.reload()
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
   await page.locator('#profile-face').click()

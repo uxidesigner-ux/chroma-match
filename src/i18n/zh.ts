@@ -4,6 +4,9 @@ import type { Strings } from './en.ts'
 export const ZH: Strings = {
   tagline: '横六竖九，连成三个。',
   moreLabel: '更多',
+  lobbyNav: '排行、任务和商店',
+  walletAria: '金币',
+  splashReady: '准备就绪',
 
   profileAria: '我的资料',
   defaultName: '玩家',

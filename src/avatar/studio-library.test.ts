@@ -16,6 +16,15 @@ test('all six expressions round trip through profile and backup files', () => {
   }
 })
 
+test('independent explorer pieces use a v6 code and still round trip', () => {
+  const spec = { ...DEFAULT_ANIME, pack: true, visor: true, expression: 'happy' as const }
+  const code = encodeSpec(spec)
+  assert.equal(code[0], '6')
+  assert.equal(code.length, 29)
+  assert.deepEqual(decodeSpec(code), spec)
+  assert.equal(isKnownSpec(code), true)
+})
+
 test('backup parser rejects broken, oversized, arbitrary URL and future-format data', () => {
   for (const raw of ['null', '[]', '{}', '{', 'x'.repeat(16385),
     JSON.stringify({ format: 'chroma-character', version: 2, code: encodeSpec(DEFAULT_ANIME) }),

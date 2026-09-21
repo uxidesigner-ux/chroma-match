@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { readGlb } from '../../src/avatar/studio-export.ts'
+import { enterLobby } from './boot.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
   await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'en'))
   await page.goto('/')
-  if (await page.locator('#overlay-action').isVisible()) await page.locator('#overlay-action').click()
+  await enterLobby(page)
   await page.locator('#lobby-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
   await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -45,6 +46,7 @@ test('new expressions, undo/redo, saved looks and JSON restore preserve the expl
   await page.getByRole('button', { name: 'Use this character', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   await page.reload()
+  await enterLobby(page)
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(JSON.parse(backup).code)
   await page.locator('#lobby-edit').click()

@@ -70,19 +70,19 @@ export function exportSeed(source: ArrayBuffer, spec: AnimeSpec, materials: Expo
   for (const node of json.nodes) {
     if (node.mesh === undefined) continue
     if ((spec.hair === 'bob' && node.name?.startsWith('hair_tail')) ||
-      (spec.equipment === 'none' && node.name?.startsWith('robo_arm'))) {
+      (!spec.arms && node.name?.startsWith('robo_arm'))) {
       delete node.mesh
       delete node.skin
+      continue
     }
-  }
-  if (spec.equipment === 'none') {
-    // The original wear node contains separate body and equipment primitives.
-    for (const node of json.nodes) {
-      if (node.mesh === undefined) continue
-      const mesh = json.meshes[node.mesh]!
-      mesh.primitives = mesh.primitives.filter(p =>
-        !/^(backpack_|armgear_|robo_face|glass|anim_logo|green_emit)/.test(json.materials[p.material]!.name))
-    }
+    const mesh = json.meshes[node.mesh]!
+    mesh.primitives = mesh.primitives.filter(p => {
+      const name = json.materials[p.material]!.name
+      if (!spec.pack && name.startsWith('backpack_')) return false
+      if (!spec.arms && name.startsWith('armgear_')) return false
+      if (!spec.visor && /^(robo_face|glass|anim_logo)$/.test(name)) return false
+      return true
+    })
   }
   json.asset.copyright = SEED_CREDIT
   json.asset.generator = 'Chroma Match · Seed appearance export'

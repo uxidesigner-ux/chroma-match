@@ -43,7 +43,7 @@ of the player's task. The product has one anime character editor and one profile
 
 The user approved deferring male/female model selection and new outfit packs until
 licensed, compatible assets are available. This release uses Seed-san's real hair,
-expression, palette and explorer-equipment options, plus breathing and gestures.
+expression, palette and independently mixed backpack/arm/visor options, plus breathing and gestures.
 Game-specific celebratory motion is intentional; reduced-motion users receive
 text feedback and explicitly requested still poses instead of animation.
 

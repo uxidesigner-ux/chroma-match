@@ -4,6 +4,7 @@ import type { Effects } from '../../src/render/particles.ts'
 import type { Renderer } from '../../src/render/renderer.ts'
 import type { ComboMeter } from '../../src/ui/combo.ts'
 import type { Overlay } from '../../src/ui/overlay.ts'
+import { enterLobby } from './boot.ts'
 
 declare global {
   interface Window {
@@ -18,7 +19,7 @@ test.beforeEach(async ({ page }) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, (route) => route.abort())
   // URLs encode seeds in base 36: "i" is decimal 18.
   await page.goto('/?seed=i')
-  if (await page.locator('#overlay-action').isVisible()) await page.locator('#overlay-action').click()
+  await enterLobby(page)
   await page.locator('#start-game').click()
   await page.locator('#loadout-start').click()
   await expect(page.locator('#board')).toBeVisible()
@@ -93,8 +94,9 @@ for (const sample of [
       localStorage.setItem('chroma-match:lang', lang)
       localStorage.setItem('chroma.skin', skin)
     }, sample)
-    await page.reload()
-    await page.locator('#start-game').click()
+  await page.reload()
+  await enterLobby(page)
+  await page.locator('#start-game').click()
     await page.locator('#loadout-start').click()
     const before = await page.locator('#board').boundingBox()
     await page.evaluate(() => window.chroma.combo.report(6))

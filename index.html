@@ -20,98 +20,120 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23080B14'/%3E%3Ccircle cx='11' cy='11' r='5' fill='%23FF4D6D'/%3E%3Ccircle cx='21' cy='21' r='5' fill='%2334D399'/%3E%3Crect x='17' y='6' width='10' height='10' rx='3' fill='%2338BDF8'/%3E%3Cpath d='M11 26l-5-9h10z' fill='%23FFB020'/%3E%3C/svg%3E" />
   </head>
   <body>
-    <main class="app">
+    <!--
+      The product name lives here, not on the lobby. The 3D character is the
+      slow asset; this screen holds the player until it is actually ready.
+    -->
+    <div class="splash" id="splash" role="dialog" aria-modal="true" aria-labelledby="splash-title" aria-describedby="splash-status">
+      <div class="splash-inner">
+        <div class="splash-mark" aria-hidden="true">
+          <span class="splash-gem splash-gem-r"></span>
+          <span class="splash-gem splash-gem-y"></span>
+          <span class="splash-gem splash-gem-g"></span>
+          <span class="splash-gem splash-gem-b"></span>
+        </div>
+        <h1 id="splash-title">Chroma Match</h1>
+        <p class="splash-tag" data-i18n="tagline">Six across, nine down. Line up three.</p>
+        <div class="splash-load">
+          <div class="splash-meter">
+            <div
+              class="splash-track"
+              id="splash-bar"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              aria-labelledby="splash-status"
+            >
+              <div class="splash-fill" id="splash-fill"></div>
+            </div>
+            <strong class="splash-pct" id="splash-pct">0%</strong>
+          </div>
+          <p class="splash-status" id="splash-status">Preparing your 3D lobby…</p>
+        </div>
+      </div>
+    </div>
+
+    <main class="app" inert>
       <!-- ---------------------------------------------------------------- -->
       <!-- Launch screen                                                    -->
       <!-- ---------------------------------------------------------------- -->
       <section class="screen home" id="screen-home">
+        <!--
+          Identity on the left, utilities on the right. Ranks / missions / shop
+          sit in one equal-width row so they read as a single toolbar, not as
+          three differently-sized doors competing with Play.
+        -->
         <header class="lobby-head">
-          <h1>Chroma Match</h1>
+          <section class="profile" aria-labelledby="profile-name">
+            <button class="profile-face" id="profile-face" type="button" aria-label="Your profile" data-i18n-attr="aria-label:profileAria">
+              <canvas class="avatar" id="profile-avatar" aria-hidden="true"></canvas>
+              <span class="profile-pen" aria-hidden="true"></span>
+            </button>
+            <div class="profile-body">
+              <strong class="profile-name" id="profile-name">Player</strong>
+              <span class="profile-wallet" data-i18n-attr="aria-label:walletAria">
+                <span class="coin" aria-hidden="true"></span>
+                <span class="wallet-value" id="home-coins">0</span>
+              </span>
+              <div class="profile-stats">
+                <span class="pstat">
+                  <span class="pstat-label" data-i18n="statBest">Best</span>
+                  <strong class="pstat-value" id="home-best">0</strong>
+                </span>
+                <span class="pstat">
+                  <span class="pstat-label" data-i18n="statRank">Rank</span>
+                  <strong class="pstat-value" id="home-rank">&mdash;</strong>
+                </span>
+                <span class="pstat">
+                  <span class="pstat-label" data-i18n="statLevel">Level</span>
+                  <strong class="pstat-value" id="home-level">1</strong>
+                </span>
+              </div>
+            </div>
+          </section>
           <div class="lobby-utilities">
             <button class="circle-button" data-action="how-to" type="button" aria-expanded="false" data-i18n-attr="aria-label:howToPlay title:howToPlay"><span aria-hidden="true">?</span></button>
             <button class="circle-button" id="open-settings" type="button" data-i18n-attr="aria-label:settings title:settings"><span aria-hidden="true">⚙</span></button>
           </div>
         </header>
 
-        <!--
-          The one thing on this screen that is about the player rather than
-          about the game: a face, a name, and the three numbers worth carrying
-          between sessions. Everything it cannot fit — the customiser, the name
-          field, signing in — is behind it in a sheet, because a launch screen
-          that opens on an identity form is one nobody plays from.
-        -->
-        <section class="profile" aria-labelledby="profile-name">
-          <button class="profile-face" id="profile-face" type="button" aria-label="Your profile" data-i18n-attr="aria-label:profileAria">
-            <canvas class="avatar" id="profile-avatar" aria-hidden="true"></canvas>
-            <span class="profile-pen" aria-hidden="true"></span>
+        <nav class="quick" aria-label="Ranks, missions and shop" data-i18n-attr="aria-label:lobbyNav">
+          <button class="quick-btn" id="open-ranks" type="button" data-i18n-attr="aria-label:quickRanks title:quickRanks">
+            <span class="quick-icon quick-ranks" aria-hidden="true"></span>
+            <span class="quick-label sr-only" data-i18n="quickRanks">Ranks</span>
           </button>
-          <div class="profile-body">
-            <strong class="profile-name" id="profile-name">Player</strong>
-            <div class="profile-stats">
-              <span class="pstat">
-                <span class="pstat-label" data-i18n="statBest">Best</span>
-                <strong class="pstat-value" id="home-best">0</strong>
-              </span>
-              <span class="pstat">
-                <span class="pstat-label" data-i18n="statRank">Rank</span>
-                <strong class="pstat-value" id="home-rank">&mdash;</strong>
-              </span>
-              <span class="pstat">
-                <span class="pstat-label" data-i18n="statLevel">Level</span>
-                <strong class="pstat-value" id="home-level">1</strong>
-              </span>
-            </div>
-          </div>
-        </section>
+          <button class="quick-btn" id="today-row" type="button" data-i18n-attr="aria-label:quickToday title:quickToday">
+            <span class="quick-icon quick-today" aria-hidden="true"></span>
+            <span class="quick-label sr-only" data-i18n="quickToday">Today</span>
+            <span class="quick-badge" id="today-summary-badge" hidden>0</span>
+          </button>
+          <button class="quick-btn" id="open-shop" type="button" data-i18n-attr="aria-label:quickShop title:quickShop">
+            <span class="quick-icon quick-shop" aria-hidden="true"></span>
+            <span class="quick-label sr-only" data-i18n="quickShop">Shop</span>
+          </button>
+        </nav>
 
         <section class="lobby-stage" id="lobby-stage" aria-label="3D character">
           <canvas id="lobby-canvas" tabindex="0"></canvas>
           <div class="lobby-loading" id="lobby-loading" role="status"></div>
+          <button class="lobby-edit" id="lobby-edit" type="button" data-i18n-attr="aria-label:editAvatar title:editAvatar">
+            <span class="hud-ico hud-ico-edit" aria-hidden="true"></span>
+          </button>
+          <div class="lobby-tools" id="lobby-tools"></div>
         </section>
         <p class="lobby-hint" id="lobby-hint"></p>
-        <div class="lobby-tools" id="lobby-tools"></div>
-        <button class="btn btn-ghost lobby-edit" id="lobby-edit" type="button" data-i18n="editAvatar">Edit character</button>
         <!--
           A kept run is the first thing offered, because a player who left one
           behind came back for it. Starting fresh is still one tap, and says
-          what it costs.
+          what it costs. They share a row so neither is stacked under the other.
         -->
-        <button class="btn btn-primary btn-play" id="continue-run" type="button" hidden>
-          <span data-i18n="continueRun">Continue</span><span class="btn-sub" id="continue-sub"></span>
-        </button>
-        <button class="btn btn-primary btn-play" id="start-game" type="button" data-i18n="play">Play</button>
-
-        <!--
-          Everything that is not Play, at the weight it deserves. Each one is a
-          door rather than a panel: the leaderboard, the day's rewards and the
-          shop all open over this screen instead of living on it, which is what
-          let the screen go from nine stacked blocks to four.
-        -->
-        <nav class="quick" aria-label="More" data-i18n-attr="aria-label:moreLabel">
-          <button class="quick-btn" id="open-ranks" type="button">
-            <span class="quick-icon quick-ranks" aria-hidden="true"></span>
-            <span class="quick-label" data-i18n="quickRanks">Ranks</span>
+        <div class="lobby-play">
+          <button class="btn btn-primary btn-play" id="continue-run" type="button" hidden>
+            <span data-i18n="continueRun">Continue</span><span class="btn-sub" id="continue-sub"></span>
           </button>
-          <button class="quick-btn" id="today-row" type="button">
-            <span class="quick-icon quick-today" aria-hidden="true"></span>
-            <span class="quick-label" data-i18n="quickToday">Today</span>
-            <span class="quick-badge" id="today-summary-badge" hidden>0</span>
-          </button>
-          <button class="quick-btn" id="open-shop" type="button">
-            <span class="quick-icon quick-shop" aria-hidden="true"></span>
-            <span class="quick-label" data-i18n="quickShop">Shop</span>
-            <span class="quick-sub"
-              ><span class="coin" aria-hidden="true"></span
-              ><span class="wallet-value" id="home-coins">0</span></span
-            >
-          </button>
-        </nav>
-
-        <!--
-          Two doors, not five toggles. Sound and the board style used to sit
-          here as bare switches; they are settings, they now live with the
-          other settings, and the footer stops competing with Play.
-        -->
+          <button class="btn btn-primary btn-play" id="start-game" type="button" data-i18n="play">Play</button>
+        </div>
       </section>
 
       <!-- ---------------------------------------------------------------- -->
@@ -122,7 +144,9 @@
       <!-- ---------------------------------------------------------------- -->
       <section class="screen shop" id="screen-shop" hidden>
         <header class="shop-head">
-          <button class="btn btn-ghost" id="shop-back" type="button" data-i18n="back">Back</button>
+          <button class="circle-button" id="shop-back" type="button" data-i18n-attr="aria-label:back title:back">
+            <span class="hud-ico hud-ico-back" aria-hidden="true"></span>
+          </button>
           <h2 data-i18n="shopTitle">Shop</h2>
           <span class="wallet-coins">
             <span class="coin" aria-hidden="true"></span>
@@ -200,8 +224,11 @@
       -->
       <section class="screen creator" id="screen-creator" hidden>
         <header class="creator-head">
-          <button class="btn btn-ghost" id="creator-back" type="button" data-i18n="back">Back</button>
+          <button class="circle-button" id="creator-back" type="button" data-i18n-attr="aria-label:back title:back">
+            <span class="hud-ico hud-ico-back" aria-hidden="true"></span>
+          </button>
           <h2 class="creator-title" data-i18n="editAvatar">Edit character</h2>
+          <span class="creator-head-gap" aria-hidden="true"></span>
         </header>
 
         <div id="anime-studio"></div>
@@ -287,7 +314,9 @@
             <span class="item-name" data-i18n="itemBomb">Bomb</span>
             <span class="item-count" data-count="bomb">0</span>
           </button>
-          <button class="circle-button game-exit" id="pause" type="button"><span aria-hidden="true">↗</span></button>
+          <button class="circle-button game-exit" id="pause" type="button" data-i18n-attr="aria-label:pauseAria title:pauseAria">
+            <span class="hud-ico hud-ico-exit" aria-hidden="true"></span>
+          </button>
         </div>
         <p class="items-hint" id="items-hint" role="status" hidden></p>
 

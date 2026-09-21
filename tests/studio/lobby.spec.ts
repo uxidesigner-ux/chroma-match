@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test'
+import { enterLobby } from './boot.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
   await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'ko'))
   await page.goto('/?seed=3')
-  if (await page.locator('#overlay-action').isVisible()) await page.locator('#overlay-action').click()
+  await enterLobby(page)
 })
 
 test('lobby rotates with keys and gestures, releases 3D on play and returns safely', async ({ page }) => {
@@ -79,6 +80,7 @@ test('square-only pointer swap, goal countdown and reduced-motion avatar feedbac
 test('failed lobby remains playable and retry recovers without resetting profile', async ({ page }) => {
   await page.route('**/seed-san.vrm', route => route.abort())
   await page.reload()
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'error')
   await expect(page.locator('#start-game')).toBeEnabled()
   await page.unroute('**/seed-san.vrm')
@@ -87,4 +89,37 @@ test('failed lobby remains playable and retry recovers without resetting profile
   await page.locator('#lobby-edit').click()
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'idle')
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+})
+
+test('lobby chrome puts equal nav on top, coins under the name, and play actions in one row', async ({ page }) => {
+  await expect(page.locator('#splash')).toBeHidden()
+  await expect(page.locator('#splash-title')).toHaveText('Chroma Match')
+  await expect(page.locator('#screen-home h1')).toHaveCount(0)
+  const nav = await page.locator('.home .quick-btn').evaluateAll(nodes =>
+    nodes.map(node => {
+      const box = node.getBoundingClientRect()
+      return { width: box.width, height: box.height, top: box.top }
+    }),
+  )
+  expect(nav).toHaveLength(3)
+  expect(Math.max(...nav.map(b => b.width)) - Math.min(...nav.map(b => b.width))).toBeLessThan(1)
+  expect(Math.max(...nav.map(b => b.height)) - Math.min(...nav.map(b => b.height))).toBeLessThan(1)
+  const stage = (await page.locator('#lobby-stage').boundingBox())!
+  const navBox = (await page.locator('.home .quick').boundingBox())!
+  const play = (await page.locator('.lobby-play').boundingBox())!
+  expect(navBox.y).toBeLessThan(stage.y)
+  expect(play.y).toBeGreaterThan(stage.y + stage.height - 8)
+  const name = (await page.locator('#profile-name').boundingBox())!
+  const coins = (await page.locator('.profile-wallet').boundingBox())!
+  expect(coins.y).toBeGreaterThan(name.y)
+  await page.locator('#start-game').click()
+  await page.locator('#loadout-start').click()
+  await page.locator('#pause').click()
+  await page.locator('#paused-keep').click()
+  await expect(page.locator('#continue-run')).toBeVisible()
+  const continueBox = (await page.locator('#continue-run').boundingBox())!
+  const startBox = (await page.locator('#start-game').boundingBox())!
+  expect(Math.abs(continueBox.y - startBox.y)).toBeLessThan(2)
+  expect(Math.abs(continueBox.height - startBox.height)).toBeLessThan(2)
+  expect(startBox.x).toBeGreaterThan(continueBox.x + continueBox.width - 1)
 })

@@ -23,7 +23,9 @@ export class StudioCharacter {
   private blink = new BlinkManager()
   private materials = new Map<string, Toon[]>()
   private tails: Mesh[] = []
-  private equipment: Mesh[] = []
+  private pack: Mesh[] = []
+  private arms: Mesh[] = []
+  private visor: Mesh[] = []
   private time = 0
   private gesture: 'wave' | 'cheer' | 'pose' | null = null
   private gestureTime = 0
@@ -37,18 +39,18 @@ export class StudioCharacter {
     vrm.scene.traverse((node) => {
       node.frustumCulled = false
       if (!(node instanceof Mesh)) return
-      if (node.name.startsWith('hair_tail')) this.tails.push(node)
       const mats = (Array.isArray(node.material) ? node.material : [node.material]) as Toon[]
-      if (
+      const names = mats.map((mat) => mat.name)
+      if (node.name.startsWith('hair_tail')) this.tails.push(node)
+      else if (
         node.name.startsWith('robo_arm') ||
-        mats.every((mat) =>
-          /^(backpack_|armgear_|robo_face|glass|anim_logo|green_emit)/.test(mat.name),
-        )
+        names.some((name) => name.startsWith('armgear_') || name === 'arm_mat' || name === 'arm_plastic')
       )
-        this.equipment.push(node)
-      for (const material of (Array.isArray(node.material)
-        ? node.material
-        : [node.material]) as Toon[]) {
+        this.arms.push(node)
+      else if (names.some((name) => name.startsWith('backpack_'))) this.pack.push(node)
+      else if (names.some((name) => /^(robo_face|glass|anim_logo)$/.test(name))) this.visor.push(node)
+      else if (names.includes('green_emit') && !names.includes('body_bake')) this.visor.push(node)
+      for (const material of mats) {
         const list = this.materials.get(material.name) ?? []
         if (!list.includes(material)) list.push(material)
         this.materials.set(material.name, list)
@@ -97,15 +99,17 @@ export class StudioCharacter {
     for (const texture of textures.keys()) texture.dispose()
   }
 
-  static async load(signal: AbortSignal): Promise<StudioCharacter> {
+  static async load(signal: AbortSignal, onProgress?: (ratio: number) => void): Promise<StudioCharacter> {
     const url = new URL('avatars/seed-v1/seed-san.vrm', document.baseURI)
     const response = await fetch(url, { signal })
     if (!response.ok) throw new Error(`Model: HTTP ${response.status}`)
-    const bytes = await response.arrayBuffer()
+    const bytes = await readBody(response, (ratio) => onProgress?.(ratio * 0.9), signal)
+    onProgress?.(0.92)
     signal.throwIfAborted()
     const loader = new GLTFLoader()
     loader.register((parser) => new VRMLoaderPlugin(parser))
     const gltf = await loader.parseAsync(bytes, url.href.slice(0, url.href.lastIndexOf('/') + 1))
+    onProgress?.(1)
     const vrm = gltf.userData.vrm as VRM | undefined
     if (!vrm) {
       VRMUtils.deepDispose(gltf.scene)
@@ -138,8 +142,14 @@ export class StudioCharacter {
     this.tails.forEach((mesh) => {
       mesh.visible = spec.hair === 'tails'
     })
-    this.equipment.forEach((mesh) => {
-      mesh.visible = spec.equipment === 'gear'
+    this.pack.forEach((mesh) => {
+      mesh.visible = spec.pack
+    })
+    this.arms.forEach((mesh) => {
+      mesh.visible = spec.arms
+    })
+    this.visor.forEach((mesh) => {
+      mesh.visible = spec.visor
     })
     for (const name of EXPRESSIONS)
       this.vrm.expressionManager?.setValue(name, spec.expression === name ? 0.7 : 0)
@@ -216,4 +226,37 @@ export class StudioCharacter {
     this.vrm.scene.removeFromParent()
     VRMUtils.deepDispose(this.vrm.scene)
   }
+}
+
+/** Streams the model so the splash bar can track real bytes, not a guessed clock. */
+async function readBody(
+  response: Response,
+  onProgress: (ratio: number) => void,
+  signal: AbortSignal,
+): Promise<ArrayBuffer> {
+  const total = Number(response.headers.get('content-length'))
+  if (!response.body || !Number.isFinite(total) || total <= 0) {
+    const bytes = await response.arrayBuffer()
+    onProgress(1)
+    return bytes
+  }
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let loaded = 0
+  for (;;) {
+    signal.throwIfAborted()
+    const { done, value } = await reader.read()
+    if (done) break
+    if (!value) continue
+    chunks.push(value)
+    loaded += value.byteLength
+    onProgress(Math.min(1, loaded / total))
+  }
+  const out = new Uint8Array(loaded)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return out.buffer
 }
