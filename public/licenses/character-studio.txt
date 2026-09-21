@@ -3,6 +3,10 @@ Revision: 293182b (2026-05-08)
 Adapted files: src/library/blinkManager.js, src/library/load-utils.js,
 src/library/characterManager.js. The game's TypeScript adapters replace global
 managers/timers with explicitly owned loading, state, and cleanup.
+Canvas-local gaze, screenshot framing and four-view capture additionally adapt
+the approach of src/library/lookatManager.js and src/library/ScreenshotManager.js.
+The template-preserving Seed VRM/GLB exporter is a separate game implementation;
+it does not include or claim the upstream mesh/texture-atlas optimizer.
 
 MIT License
 

@@ -2,7 +2,7 @@
 export interface AnimeSpec {
   model: 'seed-v1'
   hair: 'tails' | 'bob'
-  expression: 'neutral' | 'happy' | 'relaxed'
+  expression: 'neutral' | 'happy' | 'relaxed' | 'angry' | 'sad' | 'surprised'
   equipment: 'none' | 'gear'
   hairColour: string
   eyeColour: string
@@ -48,12 +48,14 @@ export const ANIME_LOOKS: readonly AnimeSpec[] = [
 ]
 
 const colours = ['hairColour', 'eyeColour', 'outfitColour', 'backdrop'] as const
+export const EXPRESSIONS = ['neutral', 'happy', 'relaxed', 'angry', 'sad', 'surprised'] as const
+const expressionCodes = { neutral: 'N', happy: 'H', relaxed: 'R', angry: 'A', sad: 'S', surprised: 'U' } as const
 
 export function encodeAnime(spec: AnimeSpec): string {
   return (
     'S' +
     (spec.hair === 'bob' ? 'B' : 'T') +
-    ({ neutral: 'N', happy: 'H', relaxed: 'R' }[spec.expression] ?? 'N') +
+    (expressionCodes[spec.expression] ?? 'N') +
     (spec.equipment === 'gear' ? 'G' : 'N') +
     colours
       .map((key) =>
@@ -65,11 +67,11 @@ export function encodeAnime(spec: AnimeSpec): string {
 
 /** Reject malformed/newer model data; callers can show the safe starter appearance. */
 export function decodeAnime(raw: string): AnimeSpec | undefined {
-  if (!/^S[BT][NHR][NG][0-9A-F]{24}$/.test(raw)) return undefined
+  if (!/^S[BT][NHRASU][NG][0-9A-F]{24}$/.test(raw)) return undefined
   return {
     model: 'seed-v1',
     hair: raw[1] === 'B' ? 'bob' : 'tails',
-    expression: raw[2] === 'H' ? 'happy' : raw[2] === 'R' ? 'relaxed' : 'neutral',
+    expression: EXPRESSIONS.find(key => expressionCodes[key] === raw[2])!,
     equipment: raw[3] === 'G' ? 'gear' : 'none',
     hairColour: raw.slice(4, 10),
     eyeColour: raw.slice(10, 16),

@@ -2,6 +2,10 @@
 
 ## Scope
 
+For the expanded game editor (six expressions, library/history, file backup and
+PNG/VRM/GLB export), see [Studio toolkit](studio-toolkit.md). Its capability table
+distinguishes shipped player features from upstream authoring features not ported.
+
 One licensed Seed-san starter model: two hair silhouettes (tails shown/hidden),
 four starting palettes, optional exploration equipment, hair/eye/outfit/background colours, three expressions,
 rotation, face/full-body framing, idle breathing and blinking. Apply commits a
