@@ -91,3 +91,26 @@ exit, unbounded explicit portrait caching and misleading hairstyle labels.
 Live Google publishing, cross-device restoration, Safari/Firefox and physical
 mobile GPU performance remain unverified. Cross-device restoration is not part
 of this feature. Model/garment expansion requires licensed compatible assets.
+
+## Full-body follow-up — 2026-09-21
+
+Full body is now the initial view on desktop and mobile, with explicit Full body
+and Face buttons and Front/Side/Rear direction shortcuts. Camera fitting uses
+the visible, posed model bounds (including enabled equipment) and screen aspect,
+with margin for all eight corners at every yaw. Hidden equipment does not inflate
+the frame. Switching views is preview-only: profile images remain front-facing
+portraits, and the saved appearance format has not changed.
+
+On narrow screens the full-body stage is taller and the editor scrolls vertically;
+the Face mode provides a compact stage for colour/expression editing. The apply
+action remains reachable at 320px, 375px and landscape sizes. This is an explicit
+mobile tradeoff: the full-body preview is not sticky while editing below it.
+
+Acceptance checks: 119 unit tests, seven browser scenarios, TypeScript and the
+Pages-subpath production build pass. Added camera geometry tests cover wide and
+narrow screens, asymmetric equipment and 16 view angles. Added browser coverage
+checks the direction buttons, full/face state, retained equipment and identical
+saved profile portraits after changing the camera. Korean front/rear/mobile
+renders were visually inspected with no uncaught browser errors. The design
+review used Impeccable's product accessibility and responsive criteria without
+changing the existing theme. Review remains direct, not independent.

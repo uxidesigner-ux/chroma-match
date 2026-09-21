@@ -25,7 +25,7 @@ export class AnimeEditor {
   private generation = 0
   private ready = false
   private busy = false
-  private face = window.innerWidth < 860
+  private face = false
   private closed = true
 
   constructor(
@@ -95,6 +95,7 @@ export class AnimeEditor {
     heading.append(title, description)
     this.stage = document.createElement('div')
     this.stage.className = 'studio-stage'
+    this.root.dataset.framing = this.face ? 'face' : 'full'
     this.canvas = document.createElement('canvas')
     this.canvas.tabIndex = 0
     this.canvas.setAttribute('aria-label', copy.preview)
@@ -108,25 +109,49 @@ export class AnimeEditor {
     this.stage.append(this.canvas, modelName, this.loading)
     const toolbar = document.createElement('div')
     toolbar.className = 'studio-toolbar'
-    const left = this.button('↶', () => this.renderer?.rotate(-1))
-    left.setAttribute('aria-label', copy.left)
-    const right = this.button('↷', () => this.renderer?.rotate(1))
-    right.setAttribute('aria-label', copy.right)
-    const frame = this.button(this.face ? copy.full : copy.portrait, () => {
-      this.face = !this.face
-      this.renderer?.framePortrait(this.face)
-      frame.textContent = this.face ? copy.full : copy.portrait
-    })
+    const framing = document.createElement('div')
+    framing.className = 'studio-view-switch'
+    framing.setAttribute('role', 'group')
+    framing.setAttribute('aria-label', copy.framing)
+    for (const face of [false, true]) {
+      const button = this.button(face ? copy.portrait : copy.full, () => {
+        this.face = face
+        this.root.dataset.framing = face ? 'face' : 'full'
+        this.renderer?.framePortrait(face)
+        for (const item of framing.querySelectorAll('button')) {
+          item.setAttribute('aria-pressed', String(item === button))
+        }
+      })
+      button.setAttribute('aria-pressed', String(this.face === face))
+      framing.append(button)
+    }
+    const direction = document.createElement('div')
+    direction.className = 'studio-direction'
+    direction.setAttribute('role', 'group')
+    direction.setAttribute('aria-label', copy.direction)
+    for (const [label, yaw] of [
+      [copy.front, 0],
+      [copy.side, Math.PI / 2],
+      [copy.back, Math.PI],
+    ] as const) {
+      const button = this.button(label, () => this.renderer?.faceDirection(yaw))
+      button.dataset.requiresModel = ''
+      button.disabled = true
+      direction.append(button)
+    }
     const random = this.button(copy.random, () => {
       const look = ANIME_LOOKS[Math.floor(Math.random() * ANIME_LOOKS.length)]!
       this.update({ ...look, hair: Math.random() < 0.5 ? 'bob' : 'tails' })
       this.paintOptions()
     })
-    toolbar.append(left, frame, right, random)
+    toolbar.append(framing, direction)
     const hint = document.createElement('p')
     hint.id = 'studio-rotate-help'
     hint.className = 'studio-hint'
     hint.textContent = copy.rotate
+    const portraitNote = document.createElement('p')
+    portraitNote.className = 'studio-hint'
+    portraitNote.textContent = copy.portraitNote
     const controls = document.createElement('div')
     controls.className = 'studio-controls'
     this.tabs = document.createElement('div')
@@ -166,7 +191,7 @@ export class AnimeEditor {
     this.panel.id = 'studio-options'
     this.panel.className = 'studio-options'
     this.panel.setAttribute('role', 'tabpanel')
-    controls.append(this.tabs, this.panel)
+    controls.append(this.tabs, this.panel, random)
     const footer = document.createElement('div')
     footer.className = 'studio-footer'
     this.status = document.createElement('p')
@@ -188,7 +213,7 @@ export class AnimeEditor {
     credit.textContent = copy.credit
     const viewer = document.createElement('div')
     viewer.className = 'studio-viewer'
-    viewer.append(this.stage, toolbar, hint)
+    viewer.append(this.stage, toolbar, hint, portraitNote)
     const edit = document.createElement('div')
     edit.className = 'studio-edit'
     edit.append(heading, controls, this.discard, footer, credit)
@@ -227,6 +252,9 @@ export class AnimeEditor {
       this.root.dataset.state = 'ready'
       this.ready = true
       this.save.disabled = false
+      this.root.querySelectorAll<HTMLButtonElement>('[data-requires-model]').forEach((button) => {
+        button.disabled = false
+      })
     } catch (error) {
       candidate?.dispose()
       if (mine !== this.generation || this.closed) return
@@ -238,6 +266,9 @@ export class AnimeEditor {
   private failed(): void {
     this.ready = false
     this.save.disabled = true
+    this.root.querySelectorAll<HTMLButtonElement>('[data-requires-model]').forEach((button) => {
+      button.disabled = true
+    })
     this.root.dataset.state = 'error'
     this.loading.hidden = false
     const message = document.createElement('p')

@@ -3,6 +3,7 @@ import {
   Box3,
   Color,
   DirectionalLight,
+  Mesh,
   PerspectiveCamera,
   Scene,
   Vector3,
@@ -10,6 +11,7 @@ import {
 } from 'three'
 import { StudioCharacter } from './character-studio/character.ts'
 import type { AnimeSpec } from './anime-spec.ts'
+import { fitFullBody } from './anime-camera.ts'
 
 /** One renderer per editor (or serial portrait queue), never one per list row. */
 export class AnimeRenderer {
@@ -27,6 +29,8 @@ export class AnimeRenderer {
   private portraitMode = false
   private height = 1.6
   private focusY = 1.4
+  private bounds = new Box3()
+  private silhouette = ''
   private yawStart: number | null = null
   private width = 256
   private canvasHeight = 256
@@ -60,8 +64,6 @@ export class AnimeRenderer {
       this.character = character
       this.scene.add(character.vrm.scene)
       character.apply(spec)
-      const bounds = new Box3().setFromObject(character.vrm.scene)
-      this.height = bounds.max.y - bounds.min.y
       const head = character.vrm.humanoid.getNormalizedBoneNode('head')
       this.focusY = head?.getWorldPosition(new Vector3()).y ?? this.height * 0.88
       this.apply(spec)
@@ -74,6 +76,16 @@ export class AnimeRenderer {
     if (this.disposed) return
     this.scene.background = new Color(`#${spec.backdrop}`)
     this.character?.apply(spec)
+    const silhouette = `${spec.hair}:${spec.equipment}`
+    if (this.character && this.silhouette !== silhouette) {
+      this.silhouette = silhouette
+      this.bounds.makeEmpty()
+      this.character.vrm.scene.updateMatrixWorld(true)
+      this.character.vrm.scene.traverseVisible((node) => {
+        if (node instanceof Mesh) this.bounds.expandByObject(node, true)
+      })
+      this.height = this.bounds.max.y - this.bounds.min.y
+    }
     this.draw()
   }
 
@@ -126,6 +138,11 @@ export class AnimeRenderer {
     this.draw()
   }
 
+  faceDirection(yaw: number): void {
+    this.angle = yaw
+    this.draw()
+  }
+
   private resize(width: number, height: number): void {
     if (this.disposed) return
     this.width = Math.max(1, width)
@@ -138,7 +155,22 @@ export class AnimeRenderer {
     if (this.disposed) return
     this.camera.aspect = this.width / this.canvasHeight
     this.camera.updateProjectionMatrix()
-    const visibleHeight = this.portraitMode ? this.height * 0.42 : this.height * 1.16
+    if (!this.portraitMode && !this.bounds.isEmpty()) {
+      const { target, distance } = fitFullBody(
+        { min: this.bounds.min.toArray(), max: this.bounds.max.toArray() },
+        this.camera.aspect,
+        this.angle,
+      )
+      this.camera.position.set(
+        target[0] + Math.sin(this.angle) * distance,
+        target[1],
+        target[2] + Math.cos(this.angle) * distance,
+      )
+      this.camera.lookAt(...target)
+      this.renderer.render(this.scene, this.camera)
+      return
+    }
+    const visibleHeight = this.height * 0.42
     const distance =
       (visibleHeight / (2 * Math.tan(Math.PI / 12))) * Math.max(1, 0.65 / this.camera.aspect)
     const y = this.portraitMode ? this.focusY * 1.02 : this.height * 0.52

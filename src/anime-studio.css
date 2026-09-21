@@ -102,6 +102,16 @@
   justify-content: center;
   flex-wrap: wrap;
 }
+.studio-view-switch,
+.studio-direction {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.studio-controls > .studio-button {
+  margin-top: 12px;
+}
 .studio-toolbar .studio-button {
   padding: 8px 12px;
 }
@@ -279,6 +289,18 @@
 @media (max-width: 859px) and (min-height: 780px) {
   .studio-viewer {
     min-height: 330px;
+  }
+}
+@media (max-width: 859px) {
+  .studio-viewer {
+    flex: none;
+  }
+  .studio-stage {
+    flex: none;
+    height: 240px;
+  }
+  .anime-studio[data-framing='full'] .studio-stage {
+    height: 360px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

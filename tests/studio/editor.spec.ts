@@ -180,3 +180,51 @@ test('a missing portrait regenerates from the code and Classic can replace an an
     /^2[a-zA-Z0-9]{44}$/,
   )
 })
+
+test('full-body controls show every direction without changing the saved profile', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await openAnime(page)
+  const full = page.getByRole('button', { name: 'Full body', exact: true })
+  const face = page.getByRole('button', { name: 'Face', exact: true })
+  await expect(full).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('#anime-studio')).toHaveAttribute('data-framing', 'full')
+  const capture = () =>
+    page.locator('.studio-stage canvas').evaluate((c) => (c as HTMLCanvasElement).toDataURL())
+  const front = await capture()
+  await page.getByRole('button', { name: 'Side', exact: true }).click()
+  expect(await capture()).not.toBe(front)
+  await page.getByRole('button', { name: 'Rear', exact: true }).click()
+  const rear = await capture()
+  expect(rear).not.toBe(front)
+  await page.getByRole('button', { name: 'Front', exact: true }).click()
+  expect(await capture()).toBe(front)
+  await face.click()
+  await expect(face).toHaveAttribute('aria-pressed', 'true')
+  await expect(full).toHaveAttribute('aria-pressed', 'false')
+  await full.click()
+  await page.getByRole('tab', { name: 'Details', exact: true }).click()
+  await page.getByRole('button', { name: 'Explorer gear', exact: true }).click()
+  await page.getByRole('button', { name: 'Use this character', exact: true }).click()
+  await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
+  const saved = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
+  const portrait = await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))
+  await page.getByRole('button', { name: 'Rear', exact: true }).click()
+  await face.click()
+  await page.getByRole('button', { name: 'Use this character', exact: true }).click()
+  await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
+  expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
+  expect(await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))).toBe(
+    portrait,
+  )
+  await page.locator('#creator-back').click()
+  await openCreator(page)
+  await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+  await page.getByRole('tab', { name: 'Details', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Explorer gear', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+})
