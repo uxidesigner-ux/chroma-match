@@ -1,5 +1,6 @@
 import { encodeAnime } from './anime-spec.ts'
 import type { AnimeSpec } from './anime-spec.ts'
+import { portraitFrame } from './portrait-frame.ts'
 
 const KEY = 'chroma-match:anime-portrait-v1'
 const cache = new Map<string, Promise<HTMLImageElement>>()
@@ -103,7 +104,8 @@ export function paintAnimePortrait(
         ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
         ctx.clip()
       }
-      ctx.drawImage(img, 0, 0, size, size)
+      const crop = portraitFrame(img.naturalWidth)
+      ctx.drawImage(img, crop.x, crop.y, crop.size, crop.size, 0, 0, size, size)
       ctx.restore()
       canvas.dataset.avatarState = 'ready'
     })
