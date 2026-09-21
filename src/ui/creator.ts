@@ -5,6 +5,8 @@ import type { Part } from '../avatar/parts.ts'
 import { onLanguageChange, t } from '../i18n/index.ts'
 import type { StringKey } from '../i18n/index.ts'
 import { partName } from '../i18n/parts.ts'
+import { animeCopy } from './anime-copy.ts'
+import type { AnimeEditor } from './anime-editor.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -69,7 +71,11 @@ export class Creator {
   private options = el('creator-options')
   private saved = el('creator-saved')
   private slot: Slot = 'build'
-  private listeners: Array<() => void> = []
+  private listeners: Array<() => void | Promise<void>> = []
+  private anime: AnimeEditor | null = null
+  private animeMode = false
+  private opened = false
+  private styleGeneration = 0
   private savedTimer = 0
   /** The figure is sized to the space it has, not to a number chosen here. */
   private figureSize = 240
@@ -77,7 +83,10 @@ export class Creator {
   private generation = 0
 
   constructor(private onBack: () => void) {
-    el('creator-back').addEventListener('click', () => this.onBack())
+    el('creator-back').addEventListener('click', () => {
+      if (this.animeMode && this.anime) this.anime.requestLeave(() => this.leave())
+      else this.leave()
+    })
 
     for (const tab of TABS) {
       const button = document.createElement('button')
@@ -91,13 +100,14 @@ export class Creator {
       this.tabStrip.append(button)
     }
 
-    onLanguageChange(() => this.paint())
+    onLanguageChange(() => { if (this.opened) this.paintStyles(); if (!this.animeMode) this.paint() })
 
     // The stage is whatever is left after the header and the picker, and that
     // is a different number on a small phone, a large one and a rotated one.
     // A fixed preview is too small on most of them and clipped on the rest.
     const stage = el('creator-stage')
     new ResizeObserver(() => {
+      if (this.animeMode || !this.opened) return
       // Width is whichever of the two the aspect makes the binding one.
       const next = Math.max(
         150,
@@ -105,17 +115,86 @@ export class Creator {
       )
       if (Math.abs(next - this.figureSize) < 6) return
       this.figureSize = next
-      paintAvatar(this.figure, myAvatar(), next, { full: true, aspect: FULL_ASPECT })
+      const { anime: _anime, ...classic } = myAvatar()
+      paintAvatar(this.figure, classic, next, { full: true, aspect: FULL_ASPECT })
     }).observe(stage)
   }
 
   /** Fires after anything changed, so the card and the boards can repaint. */
-  onChange(listener: () => void): void {
+  onChange(listener: () => void | Promise<void>): void {
     this.listeners.push(listener)
   }
 
   open(): void {
-    this.paint()
+    this.opened = true
+    this.animeMode = Boolean(myAvatar().anime)
+    this.paintStyles()
+    void this.showStyle()
+  }
+
+  close(): void {
+    this.opened = false
+    this.styleGeneration++
+    this.anime?.close()
+    this.generation++
+    document.querySelector('.app')?.classList.remove('has-studio')
+  }
+
+  private leave(): void {
+    this.close()
+    this.onBack()
+    document.getElementById('profile-face')?.focus()
+  }
+
+  private paintStyles(): void {
+    const root = el('creator-styles')
+    root.replaceChildren()
+    for (const mode of ['classic', 'anime'] as const) {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'studio-button'
+      button.textContent = animeCopy()[mode]
+      button.setAttribute('aria-pressed', String(this.animeMode === (mode === 'anime')))
+      button.addEventListener('click', () => {
+        if (this.animeMode === (mode === 'anime')) return
+        const change = (): void => {
+          this.animeMode = mode === 'anime'
+          this.paintStyles()
+          void this.showStyle()
+        }
+        if (this.animeMode && this.anime) this.anime.requestLeave(change)
+        else change()
+      })
+      root.append(button)
+    }
+  }
+
+  private async showStyle(): Promise<void> {
+    const mine = ++this.styleGeneration
+    this.generation++
+    const root = el('anime-studio')
+    root.hidden = !this.animeMode
+    for (const id of ['creator-stage', 'creator-tabs', 'creator-options']) el(id).hidden = this.animeMode
+    this.saved.hidden = this.animeMode
+    document.querySelector('.app')?.classList.toggle('has-studio', this.animeMode)
+    if (!this.animeMode) { this.anime?.close(); this.paint(); return }
+    try {
+      const { AnimeEditor } = await import('./anime-editor.ts')
+      if (mine !== this.styleGeneration || !this.opened) return
+      this.anime ??= new AnimeEditor(root, async () => {
+        await Promise.all(this.listeners.map(listener => listener()))
+      }, () => this.leave())
+      this.anime.open()
+    } catch {
+      if (mine !== this.styleGeneration) return
+      root.textContent = animeCopy().failed
+      const retry = document.createElement('button')
+      retry.type = 'button'
+      retry.className = 'studio-button'
+      retry.textContent = animeCopy().retry
+      retry.addEventListener('click', () => void this.showStyle())
+      root.append(retry)
+    }
   }
 
   private show(slot: Slot): void {
@@ -129,7 +208,7 @@ export class Creator {
   }
 
   paint(): void {
-    const spec = myAvatar()
+    const { anime: _anime, ...spec } = myAvatar()
     paintAvatar(this.figure, spec, this.figureSize, { full: true, aspect: FULL_ASPECT })
     for (const tab of this.tabStrip.querySelectorAll<HTMLButtonElement>('.creator-tab')) {
       const on = tab.dataset.slot === this.slot
@@ -275,10 +354,18 @@ export class Creator {
   }
 
   private apply(spec: AvatarSpec): void {
-    setMyAvatar(spec)
+    const { anime: _anime, ...classic } = spec
+    if (!setMyAvatar(classic)) {
+      this.saved.textContent = animeCopy().storageFailed
+      this.saved.classList.add('is-on')
+      return
+    }
     this.paint()
     this.flagSaved()
-    for (const listener of this.listeners) listener()
+    for (const listener of this.listeners) void Promise.resolve(listener()).catch(() => {
+      this.saved.textContent = animeCopy().syncFailed
+      this.saved.classList.add('is-on')
+    })
   }
 
   /** Says it landed, then gets out of the way. */

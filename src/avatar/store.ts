@@ -2,6 +2,7 @@ import { DEFAULT_SPEC, decodeSpec, encodeSpec, randomSpec } from './spec.ts'
 import type { AvatarSpec } from './spec.ts'
 import { drawAvatar } from './draw.ts'
 import { renderAvatar } from './gl.ts'
+import { invalidatePortrait, paintAnimePortrait } from './anime-portrait.ts'
 
 /**
  * The player's own avatar, and a way to paint anyone's.
@@ -49,9 +50,10 @@ export function myAvatar(): AvatarSpec {
   return cached
 }
 
-export function setMyAvatar(spec: AvatarSpec): void {
+export function setMyAvatar(spec: AvatarSpec): boolean {
+  try { localStorage.setItem(KEY, encodeSpec(spec)) } catch { return false }
   cached = spec
-  write(encodeSpec(spec))
+  return true
 }
 
 /** The encoded form, for a profile document or a share. */
@@ -88,6 +90,7 @@ export function paintAvatar(
 ): void {
   const ratio = Math.min(3, Math.max(1, window.devicePixelRatio || 1))
   const aspect = options.aspect ?? 1
+  invalidatePortrait(canvas)
   canvas.width = Math.round(size * ratio)
   canvas.height = Math.round(size * aspect * ratio)
   canvas.style.width = `${size}px`
@@ -96,6 +99,10 @@ export function paintAvatar(
   if (!ctx) return
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
   ctx.clearRect(0, 0, size, size * aspect)
+  if (spec.anime) {
+    paintAnimePortrait(canvas, spec.anime, size, options.round === true)
+    return
+  }
   if (renderAvatar(ctx, spec, size, ratio, { full: options.full === true, aspect })) return
 
   // The drawn fallback only knows how to paint a bust — it exists for a driver

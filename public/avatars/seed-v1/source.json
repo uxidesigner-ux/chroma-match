@@ -1,0 +1,26 @@
+{
+  "source": "https://raw.githubusercontent.com/vrm-c/vrm-specification/821c11b250d8c70d5804ee13431e42bee56ea9c0/samples/Seed-san/vrm/Seed-san.vrm",
+  "revision": "821c11b250d8c70d5804ee13431e42bee56ea9c0",
+  "sha256": "624d0d554bc205bbdc33e22a68a2c3c20edebb3e573011ead8878a65e5329b23",
+  "bytes": 10917800,
+  "metadata": {
+    "allowAntisocialOrHateUsage": true,
+    "allowExcessivelySexualUsage": true,
+    "allowExcessivelyViolentUsage": true,
+    "allowPoliticalOrReligiousUsage": true,
+    "allowRedistribution": true,
+    "authors": [
+      "VirtualCast, Inc."
+    ],
+    "avatarPermission": "everyone",
+    "commercialUsage": "corporation",
+    "copyrightInformation": "VirtualCast, Inc.",
+    "creditNotation": "required",
+    "licenseUrl": "https://vrm.dev/licenses/1.0/",
+    "modification": "allowModificationRedistribution",
+    "name": "Seed-san",
+    "thumbnailImage": 14,
+    "version": "1"
+  },
+  "modifications": "None. Runtime palette, hairstyle visibility and pose edits only."
+}

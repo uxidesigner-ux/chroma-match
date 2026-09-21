@@ -4,3 +4,5 @@ dist
 *.local
 .vite
 .claude
+test-results/
+playwright-report/

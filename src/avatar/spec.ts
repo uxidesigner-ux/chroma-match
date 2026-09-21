@@ -1,3 +1,5 @@
+import { decodeAnime, encodeAnime } from './anime-spec.ts'
+import type { AnimeSpec } from './anime-spec.ts'
 import {
   ACCESSORIES,
   BACKDROPS,
@@ -37,6 +39,8 @@ import type {
  * every avatar anybody has already saved still resolves to the same face.
  */
 export interface AvatarSpec {
+  /** Optional v3 style; the original v2 choices remain available. */
+  anime?: AnimeSpec
   backdrop: string
   skin: string
   hair: string
@@ -181,7 +185,8 @@ const VERSION = '2'
 export function encodeSpec(spec: AvatarSpec): string {
   const parts = PART_SLOTS.map((slot) => resolve(slot, spec[slot]).code).join('')
   const colours = COLOUR_SLOTS.map((slot) => hexOf(spec[slot], DEFAULT_SPEC[slot]).slice(1)).join('')
-  return VERSION + parts + colours
+  const legacy = VERSION + parts + colours
+  return spec.anime ? '3' + legacy + encodeAnime(spec.anime) : legacy
 }
 
 /** The seven slots the first format had, in the order it had them. */
@@ -224,6 +229,11 @@ const V1_CLOTH: Record<string, string> = {
  */
 export function decodeSpec(raw: string): AvatarSpec {
   const text = typeof raw === 'string' ? raw.slice(0, SPEC_MAX) : ''
+  if (text.startsWith('32')) {
+    const spec = decodeV2(text.slice(1, 46))
+    const anime = decodeAnime(text.slice(46))
+    return anime ? { ...spec, anime } : spec
+  }
   return text.startsWith(VERSION) && !text.includes('-') ? decodeV2(text) : decodeV1(text)
 }
 
