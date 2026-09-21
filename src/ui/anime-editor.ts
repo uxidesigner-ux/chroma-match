@@ -1,4 +1,4 @@
-import { ANIME_LOOKS, DEFAULT_ANIME, encodeAnime } from '../avatar/anime-spec.ts'
+import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, encodeAnime } from '../avatar/anime-spec.ts'
 import type { AnimeSpec } from '../avatar/anime-spec.ts'
 import { myAvatar, setMyAvatar } from '../avatar/store.ts'
 import { cachePortrait } from '../avatar/anime-portrait.ts'
@@ -6,8 +6,11 @@ import { account } from '../leaderboard/session.ts'
 import type { AnimeRenderer } from '../avatar/anime-renderer.ts'
 import { animeCopy } from './anime-copy.ts'
 import { playCopy } from './play-copy.ts'
+import { studioToolsCopy } from './studio-tools-copy.ts'
+import { LIBRARY_LIMIT, LookHistory, lookFile, parseLookFile, readLibrary, writeLibrary } from '../avatar/studio-library.ts'
+import { decodeSpec, encodeSpec } from '../avatar/spec.ts'
 
-type Category = 'looks' | 'hair' | 'colours' | 'expression'
+type Category = 'looks' | 'hair' | 'colours' | 'expression' | 'library'
 
 /** An explicit draft: navigating away cannot silently overwrite the profile. */
 export class AnimeEditor {
@@ -28,6 +31,11 @@ export class AnimeEditor {
   private busy = false
   private face = false
   private closed = true
+  private history = new LookHistory()
+  private undo = document.createElement('button')
+  private redo = document.createElement('button')
+  private paused = false
+  private transparent = false
 
   constructor(
     private root: HTMLElement,
@@ -39,6 +47,8 @@ export class AnimeEditor {
     this.closed = false
     this.draft = { ...myAvatar() }
     this.initial = encodeAnime(this.draft)
+    this.history = new LookHistory()
+    this.paused = false
     this.build()
     void this.load()
   }
@@ -85,6 +95,7 @@ export class AnimeEditor {
 
   private build(): void {
     const copy = animeCopy()
+    const tools = studioToolsCopy()
     this.root.replaceChildren()
     this.root.className = 'anime-studio'
     const heading = document.createElement('div')
@@ -141,8 +152,11 @@ export class AnimeEditor {
       direction.append(button)
     }
     const random = this.button(copy.random, () => {
-      const look = ANIME_LOOKS[Math.floor(Math.random() * ANIME_LOOKS.length)]!
-      this.update({ ...look, hair: Math.random() < 0.5 ? 'bob' : 'tails' })
+      const pick = (): AnimeSpec => ANIME_LOOKS[Math.floor(Math.random() * ANIME_LOOKS.length)]!
+      this.update({ ...pick(), hairColour: pick().hairColour, eyeColour: pick().eyeColour,
+        outfitColour: pick().outfitColour, hair: Math.random() < 0.5 ? 'bob' : 'tails',
+        equipment: Math.random() < 0.5 ? 'none' : 'gear',
+        expression: EXPRESSIONS[Math.floor(Math.random() * EXPRESSIONS.length)]! })
       this.paintOptions()
     })
     toolbar.append(framing, direction)
@@ -155,10 +169,17 @@ export class AnimeEditor {
       gestures.append(button)
     }
     toolbar.append(gestures)
+    const pause = this.button(tools.pause, () => {
+      this.paused = !this.paused
+      pause.setAttribute('aria-pressed', String(this.paused))
+      this.renderer?.pause(this.paused)
+    })
+    pause.setAttribute('aria-pressed', 'false')
+    toolbar.append(pause)
     const hint = document.createElement('p')
     hint.id = 'studio-rotate-help'
     hint.className = 'studio-hint'
-    hint.textContent = copy.rotate
+    hint.textContent = `${copy.rotate} ${tools.gaze}`
     const portraitNote = document.createElement('p')
     portraitNote.className = 'studio-hint'
     portraitNote.textContent = copy.portraitNote
@@ -168,9 +189,9 @@ export class AnimeEditor {
     this.tabs.className = 'studio-tabs'
     this.tabs.setAttribute('role', 'tablist')
     this.tabs.setAttribute('aria-label', copy.description)
-    for (const key of ['looks', 'hair', 'colours', 'expression'] as const) {
+    for (const key of ['looks', 'hair', 'colours', 'expression', 'library'] as const) {
       const button = this.button(
-        copy[key],
+        key === 'library' ? tools.library : copy[key],
         () => {
           this.category = key
           this.paintOptions()
@@ -201,7 +222,15 @@ export class AnimeEditor {
     this.panel.id = 'studio-options'
     this.panel.className = 'studio-options'
     this.panel.setAttribute('role', 'tabpanel')
-    controls.append(this.tabs, this.panel, random)
+    const history = document.createElement('div')
+    history.className = 'studio-choice-group studio-history'
+    this.undo = this.button(tools.undo, () => this.restoreHistory(false))
+    this.redo = this.button(tools.redo, () => this.restoreHistory(true))
+    history.append(this.undo, this.redo, this.button(tools.reset, () => {
+      this.update(DEFAULT_ANIME)
+      this.paintOptions()
+    }), random)
+    controls.append(this.tabs, this.panel, history)
     const footer = document.createElement('div')
     footer.className = 'studio-footer'
     this.status = document.createElement('p')
@@ -226,7 +255,7 @@ export class AnimeEditor {
     viewer.append(this.stage, toolbar, hint, portraitNote)
     const edit = document.createElement('div')
     edit.className = 'studio-edit'
-    edit.append(heading, controls, this.discard, footer, credit)
+    edit.append(heading, controls, this.discard, footer, this.buildDownloads(), credit)
     this.root.append(viewer, edit)
     this.paintOptions()
   }
@@ -258,6 +287,7 @@ export class AnimeEditor {
       candidate.apply(this.draft)
       candidate.attach(this.stage, () => this.failed())
       candidate.framePortrait(this.face)
+      candidate.pause(this.paused)
       this.loading.hidden = true
       this.root.dataset.state = 'ready'
       this.ready = true
@@ -290,14 +320,33 @@ export class AnimeEditor {
   }
 
   private update(spec: AnimeSpec): void {
+    if (this.busy) return
+    this.history.push(this.draft, spec)
     this.draft = { ...spec }
     this.renderer?.apply(this.draft)
     this.status.textContent = animeCopy().ready
     this.discard.hidden = true
+    this.refreshHistory()
+  }
+
+  private refreshHistory(): void {
+    this.undo.disabled = this.busy || !this.history.canUndo
+    this.redo.disabled = this.busy || !this.history.canRedo
+  }
+
+  private restoreHistory(redo: boolean): void {
+    if (this.busy) return
+    this.draft = redo ? this.history.redo(this.draft) : this.history.undo(this.draft)
+    this.renderer?.apply(this.draft)
+    this.status.textContent = animeCopy().ready
+    this.discard.hidden = true
+    this.paintOptions()
   }
 
   private paintOptions(): void {
     const copy = animeCopy()
+    const tools = studioToolsCopy()
+    this.refreshHistory()
     const focused = this.panel.contains(document.activeElement)
       ? document.activeElement?.textContent
       : null
@@ -332,6 +381,8 @@ export class AnimeEditor {
         button.setAttribute('aria-pressed', String(encodeAnime(look) === encodeAnime(this.draft)))
         this.panel.append(button)
       })
+    } else if (this.category === 'library') {
+      this.paintLibrary()
     } else if (this.category === 'hair' || this.category === 'expression') {
       const group = document.createElement('div')
       group.className = 'studio-choice-group'
@@ -341,10 +392,11 @@ export class AnimeEditor {
       const options =
         this.category === 'hair'
           ? (['tails', 'bob'] as const)
-          : (['neutral', 'happy', 'relaxed'] as const)
+          : EXPRESSIONS
       for (const value of options) {
         const slot = this.category
-        const button = this.button(copy[value], () => {
+        const label = value === 'angry' || value === 'sad' || value === 'surprised' ? tools[value] : copy[value]
+        const button = this.button(label, () => {
           this.update({ ...this.draft, [slot]: value })
           this.paintOptions()
         })
@@ -389,6 +441,178 @@ export class AnimeEditor {
         ?.focus({ preventScroll: true })
   }
 
+  private paintLibrary(): void {
+    const copy = studioToolsCopy()
+    const looks = readLibrary(localStorage)
+    const note = document.createElement('p')
+    note.className = 'studio-file-note'
+    note.textContent = copy.local
+    const form = document.createElement('form')
+    form.className = 'studio-library-form'
+    const label = document.createElement('label')
+    label.textContent = copy.name
+    const input = document.createElement('input')
+    input.type = 'text'
+    input.maxLength = 32
+    input.required = true
+    input.autocomplete = 'off'
+    label.append(input)
+    const save = this.button(copy.saveLook, () => {})
+    save.type = 'submit'
+    form.append(label, save)
+    form.addEventListener('submit', event => {
+      event.preventDefault()
+      if (this.busy) return
+      const name = input.value.trim()
+      if (!name) { this.status.textContent = copy.nameRequired; input.focus(); return }
+      const current = readLibrary(localStorage)
+      if (current.length >= LIBRARY_LIMIT) { this.status.textContent = copy.full; return }
+      const next = [...current, { id: crypto.randomUUID(), name, code: encodeSpec(this.draft) }]
+      if (!writeLibrary(localStorage, next)) { this.status.textContent = animeCopy().storageFailed; return }
+      this.paintOptions()
+      this.status.textContent = copy.savedLook
+      this.panel.querySelector('input')?.focus()
+    })
+    this.panel.append(note, form)
+    if (!looks.length) {
+      const empty = document.createElement('p')
+      empty.className = 'studio-file-note'
+      empty.textContent = copy.empty
+      this.panel.append(empty)
+    }
+    const list = document.createElement('ul')
+    list.className = 'studio-saved-list'
+    for (const look of looks) {
+      const row = document.createElement('li')
+      const name = document.createElement('span')
+      name.textContent = look.name
+      const load = this.button(copy.load, () => {
+        this.update(decodeSpec(look.code))
+        this.paintOptions()
+        this.status.textContent = copy.loaded
+      })
+      load.setAttribute('aria-label', `${copy.load}: ${look.name}`)
+      const remove = this.button(copy.remove, () => {
+        if (remove.dataset.confirm !== 'true') {
+          remove.dataset.confirm = 'true'
+          remove.textContent = copy.confirm
+          remove.setAttribute('aria-label', `${copy.confirm}: ${look.name}`)
+          return
+        }
+        if (writeLibrary(localStorage, readLibrary(localStorage).filter(item => item.id !== look.id))) {
+          this.paintOptions()
+          this.status.textContent = copy.removed
+          this.panel.querySelector('input')?.focus()
+        } else this.status.textContent = animeCopy().storageFailed
+      })
+      remove.setAttribute('aria-label', `${copy.remove}: ${look.name}`)
+      row.append(name, load, remove)
+      list.append(row)
+    }
+    this.panel.append(list)
+  }
+
+  private buildDownloads(): HTMLElement {
+    const copy = studioToolsCopy()
+    const section = document.createElement('div')
+    section.className = 'studio-files'
+    const group = (title: string, note: string): HTMLDetailsElement => {
+      const details = document.createElement('details')
+      const summary = document.createElement('summary')
+      summary.textContent = title
+      const text = document.createElement('p')
+      text.className = 'studio-file-note'
+      text.textContent = note
+      details.append(summary, text)
+      section.append(details)
+      return details
+    }
+    const files = group(copy.files, copy.fileHelp)
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json,application/json'
+    input.setAttribute('aria-label', copy.importLook)
+    input.addEventListener('change', () => {
+      const file = input.files?.[0]
+      if (!file || this.busy) return
+      const mine = this.generation
+      const before = encodeSpec(this.draft)
+      void (async () => {
+        try {
+          if (file.size > 16384) throw new Error('File too large')
+          const spec = parseLookFile(await file.text())
+          if (this.closed || this.busy || mine !== this.generation || before !== encodeSpec(this.draft)) return
+          this.update(spec)
+          this.paintOptions()
+          this.status.textContent = copy.loaded
+        } catch {
+          if (!this.closed && mine === this.generation) this.status.textContent = copy.invalid
+        } finally { input.value = '' }
+      })()
+    })
+    const label = document.createElement('label')
+    label.className = 'studio-import'
+    label.append(copy.importLook, input)
+    files.append(this.button(copy.exportLook, () => void this.download('json')), label)
+    const images = group(copy.downloads, copy.modelNote)
+    const transparent = document.createElement('label')
+    transparent.className = 'studio-transparent'
+    const check = document.createElement('input')
+    check.type = 'checkbox'
+    check.checked = this.transparent
+    check.addEventListener('change', () => { this.transparent = check.checked })
+    transparent.append(check, copy.transparent)
+    images.append(transparent)
+    const actions = document.createElement('div')
+    actions.className = 'studio-choice-group'
+    for (const kind of ['face', 'body', 'sheet', 'vrm', 'glb'] as const) {
+      const button = this.button(copy[kind], () => void this.download(kind))
+      button.dataset.requiresModel = ''
+      button.disabled = true
+      actions.append(button)
+    }
+    images.append(actions)
+    return section
+  }
+
+  private async download(kind: 'json' | 'face' | 'body' | 'sheet' | 'vrm' | 'glb'): Promise<void> {
+    if (this.busy || (kind !== 'json' && (!this.ready || !this.renderer))) return
+    const copy = studioToolsCopy()
+    this.busy = true
+    this.status.textContent = copy.working
+    const controls = [...this.root.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button, input')]
+    const disabled = controls.map(control => control.disabled)
+    controls.forEach(control => { control.disabled = true })
+    const mine = this.generation
+    try {
+      await new Promise(resolve => setTimeout(resolve, 0))
+      if (this.closed || mine !== this.generation) return
+      let blob: Blob
+      let extension: string = kind
+      if (kind === 'json') blob = new Blob([lookFile(this.draft)], { type: 'application/json' })
+      else if (kind === 'vrm' || kind === 'glb') blob = new Blob([this.renderer!.exportModel(this.draft)], { type: 'model/gltf-binary' })
+      else {
+        const png = this.renderer!.screenshot(kind, this.transparent)
+        blob = new Blob([Uint8Array.from(atob(png.split(',')[1]!), c => c.charCodeAt(0))], { type: 'image/png' })
+        extension = `${kind}.png`
+      }
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `chroma-character.${extension}`
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 30000)
+      this.status.textContent = copy.downloaded
+    } catch { this.status.textContent = copy.failed }
+    finally {
+      if (mine === this.generation) {
+        this.busy = false
+        controls.forEach((control, index) => { control.disabled = disabled[index]! })
+        if (!this.ready) this.failed()
+      }
+    }
+  }
+
   private async apply(): Promise<void> {
     if (!this.ready || !this.renderer || this.busy) return
     const copy = animeCopy()
@@ -428,6 +652,8 @@ export class AnimeEditor {
             node.disabled = false
           })
         this.save.disabled = !this.ready
+        this.refreshHistory()
+        if (!this.ready) this.failed()
       }
     }
   }

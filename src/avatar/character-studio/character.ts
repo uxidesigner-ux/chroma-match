@@ -11,6 +11,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm'
 import type { VRM, MToonMaterial } from '@pixiv/three-vrm'
 import type { AnimeSpec } from '../anime-spec.ts'
+import { EXPRESSIONS } from '../anime-spec.ts'
+import { exportSeed } from '../studio-export.ts'
 import { BlinkManager } from './blink.ts'
 
 type Toon = Material &
@@ -26,8 +28,10 @@ export class StudioCharacter {
   private gesture: 'wave' | 'cheer' | 'pose' | null = null
   private gestureTime = 0
   private expression: AnimeSpec['expression'] = 'neutral'
+  private gaze = { x: 0, y: 0 }
+  private gazeTarget = { x: 0, y: 0 }
 
-  private constructor(vrm: VRM) {
+  private constructor(vrm: VRM, private source: ArrayBuffer) {
     this.vrm = vrm
     VRMUtils.rotateVRM0(vrm)
     vrm.scene.traverse((node) => {
@@ -112,7 +116,7 @@ export class StudioCharacter {
       signal.throwIfAborted()
     }
     try {
-      return new StudioCharacter(vrm)
+      return new StudioCharacter(vrm, bytes)
     } catch (error) {
       VRMUtils.deepDispose(vrm.scene)
       throw error
@@ -137,7 +141,7 @@ export class StudioCharacter {
     this.equipment.forEach((mesh) => {
       mesh.visible = spec.equipment === 'gear'
     })
-    for (const name of ['happy', 'relaxed'])
+    for (const name of EXPRESSIONS)
       this.vrm.expressionManager?.setValue(name, spec.expression === name ? 0.7 : 0)
     this.tick(0, false)
   }
@@ -145,6 +149,22 @@ export class StudioCharacter {
   perform(gesture: 'wave' | 'cheer' | 'pose'): void {
     this.gesture = gesture
     this.gestureTime = 0
+  }
+
+  /** Bounded, canvas-local equivalent of CharacterStudio's LookAtManager. */
+  look(x: number, y: number): void {
+    this.gazeTarget = { x: Math.max(-1, Math.min(1, x)), y: Math.max(-1, Math.min(1, y)) }
+  }
+
+  export(spec: AnimeSpec): ArrayBuffer {
+    const palettes = ['hair', 'eye', 'huku_bake'].map(name => {
+      const material = this.materials.get(name)?.[0]
+      if (!material?.color || !material.shadeColorFactor || !material.map) throw new Error('Missing material')
+      const canvas = material.map.image as HTMLCanvasElement
+      const png = Uint8Array.from(atob(canvas.toDataURL('image/png').split(',')[1]!), c => c.charCodeAt(0))
+      return { name, colour: material.color.toArray(), shade: material.shadeColorFactor.toArray(), png }
+    })
+    return exportSeed(this.source, spec, palettes)
   }
 
   tick(delta: number, motion: boolean): void {
@@ -176,7 +196,18 @@ export class StudioCharacter {
       humanoid.getNormalizedBoneNode('leftLowerArm')?.rotation.set(-envelope * .8, 0, -.12 + envelope * .9)
       humanoid.getNormalizedBoneNode('head')?.rotation.set(0, -envelope * .2, -envelope * .1)
     }
-    this.vrm.expressionManager?.setValue('happy', Math.max(this.expression === 'happy' ? .7 : 0, envelope * .75))
+    const cheering = envelope > .5
+    for (const name of EXPRESSIONS)
+      this.vrm.expressionManager?.setValue(name, (cheering ? name === 'happy' : name === this.expression) ? .7 : 0)
+    const smoothing = 1 - Math.exp(-delta * 8)
+    this.gaze.x = motion ? this.gaze.x + (this.gazeTarget.x - this.gaze.x) * smoothing : 0
+    this.gaze.y = motion ? this.gaze.y + (this.gazeTarget.y - this.gaze.y) * smoothing : 0
+    const head = humanoid.getNormalizedBoneNode('head')
+    if (head) { head.rotation.y += this.gaze.x * .16; head.rotation.x += this.gaze.y * .08 }
+    for (const [name, value] of [
+      ['lookLeft', Math.max(0, this.gaze.x) * .2], ['lookRight', Math.max(0, -this.gaze.x) * .2],
+      ['lookDown', Math.max(0, this.gaze.y) * .15], ['lookUp', Math.max(0, -this.gaze.y) * .15],
+    ] as const) this.vrm.expressionManager?.setValue(name, value)
     this.blink.update(this.vrm, delta, motion)
     this.vrm.update(delta)
   }

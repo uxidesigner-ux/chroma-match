@@ -36,6 +36,8 @@ of the player's task. The product has one anime character editor and one profile
 - Gameplay HUD has three equal regions: goal, character reaction, remaining moves.
 - New runs support 2×2 squares as bomb matches, alongside lines, L/T/+ and power fusion.
 - Preserve previous rules when resuming/replaying saved games.
+- Keep stable, versioned choices independent of rendering implementation.
+- Library, undo and file restore edit a draft; only explicit Apply changes the profile.
 
 ## Current scope decision
 
@@ -44,7 +46,12 @@ licensed, compatible assets are available. This release uses Seed-san's real hai
 expression, palette and explorer-equipment options, plus breathing and gestures.
 Game-specific celebratory motion is intentional; reduced-motion users receive
 text feedback and explicitly requested still poses instead of animation.
-- Keep stable, versioned choices independent of rendering implementation.
+
+The studio toolkit adds six expressions, pointer gaze, pause, 12 named local
+looks, undo/redo, JSON backup/restore and PNG/VRM/GLB downloads. The upstream
+capability mapping and authoring-tool boundaries are in `docs/studio-toolkit.md`.
+MIT code reuse does not replace per-asset permissions. No unlicensed models,
+arbitrary uploads, account storage or paid authoring services are introduced.
 
 ## Accessibility & Inclusion
 

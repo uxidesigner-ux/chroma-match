@@ -12,6 +12,7 @@ import {
 import { StudioCharacter } from './character-studio/character.ts'
 import type { AnimeSpec } from './anime-spec.ts'
 import { fitFullBody } from './anime-camera.ts'
+import { SEED_CREDIT } from './studio-library.ts'
 
 /** One renderer per editor (or serial portrait queue), never one per list row. */
 export class AnimeRenderer {
@@ -34,6 +35,7 @@ export class AnimeRenderer {
   private yawStart: number | null = null
   private width = 256
   private canvasHeight = 256
+  private paused = false
   private onContextLoss: ((event: Event) => void) | undefined
   private onMotionChange = (): void => {
     if (this.reduced.matches) { this.character?.tick(0, false); this.draw() }
@@ -43,7 +45,7 @@ export class AnimeRenderer {
     this.renderer = new WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: transparent,
+      alpha: true,
       preserveDrawingBuffer: true,
     })
     this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75))
@@ -107,6 +109,7 @@ export class AnimeRenderer {
     this.canvas.addEventListener('pointermove', this.pointerMove)
     this.canvas.addEventListener('pointerup', this.pointerUp)
     this.canvas.addEventListener('pointercancel', this.pointerUp)
+    this.canvas.addEventListener('pointerleave', this.pointerLeave)
     this.canvas.addEventListener('keydown', this.keyDown)
     this.start()
   }
@@ -116,7 +119,14 @@ export class AnimeRenderer {
     this.canvas.setPointerCapture(e.pointerId)
   }
   private pointerMove = (e: PointerEvent): void => {
-    if (this.yawStart === null) return
+    if (this.yawStart === null) {
+      if (e.pointerType === 'mouse' && !this.reduced.matches && !this.paused) {
+        const rect = this.canvas.getBoundingClientRect()
+        this.character?.look((e.clientX - rect.left) / rect.width * 2 - 1, (e.clientY - rect.top) / rect.height * 2 - 1)
+      }
+      return
+    }
+    this.character?.look(0, 0)
     this.angle += (e.clientX - this.yawStart) * 0.012
     this.yawStart = e.clientX
     this.draw()
@@ -124,6 +134,7 @@ export class AnimeRenderer {
   private pointerUp = (): void => {
     this.yawStart = null
   }
+  private pointerLeave = (): void => { this.character?.look(0, 0) }
   private keyDown = (e: KeyboardEvent): void => {
     if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(e.key)) return
     e.preventDefault()
@@ -139,7 +150,12 @@ export class AnimeRenderer {
   gesture(kind: 'wave' | 'cheer' | 'pose'): void {
     this.character?.perform(kind)
     // Explicit requests become a still pose when the player reduces motion.
-    if (this.reduced.matches) { this.character?.tick(.75, true); this.draw() }
+    if (this.reduced.matches || this.paused) { this.character?.tick(.75, true); this.draw() }
+  }
+  pause(value: boolean): void {
+    this.paused = value
+    this.character?.tick(0, false)
+    this.draw()
   }
   framePortrait(portrait: boolean): void {
     this.portraitMode = portrait
@@ -194,7 +210,7 @@ export class AnimeRenderer {
       const delta = Math.min(0.05, Math.max(0, (time - this.lastTime) / 1000))
       if (!document.hidden && time - this.lastTime >= 32) {
         this.lastTime = time
-        if (!this.reduced.matches) {
+        if (!this.reduced.matches && !this.paused) {
           this.character?.tick(delta, true)
           this.draw()
         }
@@ -230,6 +246,48 @@ export class AnimeRenderer {
     return data
   }
 
+  exportModel(spec: AnimeSpec): ArrayBuffer {
+    if (!this.character || this.disposed) throw new Error('Character unavailable')
+    return this.character.export(spec)
+  }
+
+  /** Bounded screenshot/turntable export. Always restore the interactive camera. */
+  screenshot(kind: 'face' | 'body' | 'sheet', transparent: boolean): string {
+    if (!this.character || this.disposed) throw new Error('Character unavailable')
+    const previous = { angle: this.angle, mode: this.portraitMode, width: this.width,
+      height: this.canvasHeight, background: this.scene.background, ratio: this.renderer.getPixelRatio() }
+    const width = 512, height = kind === 'face' ? 512 : 768
+    const output = document.createElement('canvas')
+    output.width = kind === 'sheet' ? width * 2 : width
+    output.height = (kind === 'sheet' ? height * 2 : height) + 36
+    const ctx = output.getContext('2d')!
+    try {
+      this.renderer.setPixelRatio(1)
+      if (transparent) this.scene.background = null
+      this.portraitMode = kind === 'face'
+      // Paused/reduced-motion previews already have a still pose. Re-ticking
+      // constraints here would change that pose during a supposedly still capture.
+      if (!this.reduced.matches && !this.paused) this.character.tick(0, false)
+      for (let index = 0; index < (kind === 'sheet' ? 4 : 1); index++) {
+        this.angle = kind === 'sheet' ? index * Math.PI / 2 : previous.angle
+        this.resize(width, height)
+        ctx.drawImage(this.canvas, (index % 2) * width, Math.floor(index / 2) * height, width, height)
+      }
+      ctx.fillStyle = '#17202e'
+      ctx.fillRect(0, output.height - 36, output.width, 36)
+      ctx.fillStyle = '#ffffff'
+      ctx.font = '10px sans-serif'
+      ctx.fillText(SEED_CREDIT, 8, output.height - 14, output.width - 16)
+      return output.toDataURL('image/png')
+    } finally {
+      this.angle = previous.angle
+      this.portraitMode = previous.mode
+      this.scene.background = previous.background
+      this.renderer.setPixelRatio(previous.ratio)
+      this.resize(previous.width, previous.height)
+    }
+  }
+
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
@@ -242,6 +300,7 @@ export class AnimeRenderer {
     this.canvas.removeEventListener('pointermove', this.pointerMove)
     this.canvas.removeEventListener('pointerup', this.pointerUp)
     this.canvas.removeEventListener('pointercancel', this.pointerUp)
+    this.canvas.removeEventListener('pointerleave', this.pointerLeave)
     this.canvas.removeEventListener('keydown', this.keyDown)
     this.character?.dispose()
     this.renderer.dispose()

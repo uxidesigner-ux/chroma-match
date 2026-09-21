@@ -136,7 +136,7 @@
 }
 .studio-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   border-bottom: 1px solid var(--line);
   gap: 2px;
 }
@@ -256,6 +256,24 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+.studio-history { margin-top: 12px; }
+.studio-history .studio-button { flex: 1 1 auto; }
+.studio-files { border-top: 1px solid var(--line); }
+.studio-files details { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.studio-files summary { min-height: 44px; padding: 14px 0 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.studio-file-note { font-size: 12px; line-height: 1.6; margin: 0 0 12px; }
+.studio-import { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; font-size: 12px; }
+.studio-import input { width: 100%; min-width: 0; min-height: 44px; font: inherit; }
+.studio-import input::file-selector-button { min-height: 44px; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; cursor: pointer; }
+.studio-transparent { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 12px; }
+.studio-transparent input { width: 20px; height: 20px; accent-color: var(--accent-2); }
+.studio-options[data-category='library'] { display: block; }
+.studio-library-form { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; }
+.studio-library-form label { display: flex; flex: 1; flex-direction: column; gap: 6px; font-size: 12px; min-width: 130px; }
+.studio-library-form input { width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
+.studio-saved-list { list-style: none; padding: 0; margin: 12px 0 0; }
+.studio-saved-list li { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+.studio-saved-list li > span { flex: 1 1 100px; overflow-wrap: anywhere; font-size: 13px; }
 @media (min-width: 860px) {
   .app.has-studio {
     max-width: 1080px;
