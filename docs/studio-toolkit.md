@@ -49,6 +49,8 @@ third-party character or clothing files.
   viewers may differ when they do not implement MToon. Preview expression/gesture
   is not baked into the exported rest-pose model; appearance code is in asset extras.
 - Camera, dimensions, background and pixel ratio are restored after PNG capture.
+- Full-body capture fits the actual held pose, including raised hands. Explicit
+  reduced-motion/paused gestures also expand their preview bounds to remain visible.
 - Keyboard tabs, focus, mobile reflow, four languages, pause, reduced motion,
   load/retry/context-loss handling and prior game rules remain supported.
 
