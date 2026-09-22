@@ -50,9 +50,19 @@ const CHEST_HIGH = 1.29
  * and the sideways part only rounds the edges, which is the shape wanted.
  */
 const BUST_Y = 1.155
-const BUST_X = 0.06
+const BUST_X = 0.062
 const BUST_ANCHOR_Z = -0.11
-const BUST_REACH = 0.085
+/*
+ * How wide each side reaches, and how much further it reaches downward.
+ *
+ * The width matters more than it looks: a dome as tall as it is wide comes to a
+ * point, so the base is kept well over half again the height the amount can add.
+ * Below the centre the distance counts for less, which carries the shape on
+ * down and lets it run out into the ribcage rather than stopping on a rim — a
+ * breast is not symmetric about its own middle.
+ */
+const BUST_REACH = 0.105
+const BUST_UNDER = 1.6
 /*
  * The body, the clothing on it, and the badge printed on that clothing — which
  * has to ride the surface it sits on or it tears a hole through the front.
@@ -400,20 +410,45 @@ export class StudioCharacter {
     const field = (x: number, y: number, z: number, out: number[]): number => {
       out[0] = out[1] = out[2] = 0
       if (amount <= 0 || z <= 0) return 0
+      // Below the centre the distance counts for less, so the shape carries on
+      // down and runs out into the ribcage instead of ending on a rim.
+      const dy = y - BUST_Y
+      const rise = dy < 0 ? dy / BUST_UNDER : dy
       let strongest = 0
       for (const side of [-BUST_X, BUST_X]) {
-        const across = Math.hypot(x - side, y - BUST_Y)
+        const across = Math.hypot(x - side, rise)
         if (across >= BUST_REACH) continue
         const t = 1 - across / BUST_REACH
-        const fall = t * t * (3 - 2 * t)
+        /*
+         * Smoothstep squared. Plain smoothstep is already flat at the peak, but
+         * it sheds height too quickly on the way out and leaves a shape that
+         * reads as a cone; squaring it holds the top rounder and spends the
+         * falloff over the outer half, which is where a breast actually curves.
+         */
+        const smooth = t * t * (3 - 2 * t)
+        /*
+         * And held back over the breastbone, which does not come forward on
+         * anybody. Without this the neckline's own slit is pulled open from
+         * inside and shows two gaps through the front of the shirt.
+         */
+        const inner = Math.min(1, Math.abs(x) / BUST_X)
+        const sternum = 0.3 + 0.7 * inner * inner * (3 - 2 * inner)
+        const fall = smooth * smooth * (3 - 2 * smooth) * sternum
+        /*
+         * The nearer side wins rather than the two being added. Summed, the
+         * pair merge into one shelf across the sternum; taken one at a time
+         * they stay two, with the valley between them that makes them read as
+         * two.
+         */
+        if (fall <= strongest) continue
+        strongest = fall
         let ox = x - side
-        let oy = y - BUST_Y
+        let oy = dy
         let oz = z - BUST_ANCHOR_Z
         const reach = Math.hypot(ox, oy, oz) || 1
-        out[0] += (ox / reach) * amount * fall
-        out[1] += (oy / reach) * amount * fall
-        out[2] += (oz / reach) * amount * fall
-        strongest = Math.max(strongest, fall)
+        out[0] = (ox / reach) * amount * fall
+        out[1] = (oy / reach) * amount * fall
+        out[2] = (oz / reach) * amount * fall
       }
       return strongest
     }
@@ -455,7 +490,7 @@ export class StudioCharacter {
          * shape that is there in the silhouette and invisible from the front.
          */
         const length = Math.hypot(move[0]!, move[1]!, move[2]!) || 1
-        const lean = fall * 1.8
+        const lean = fall * 1.4
         let nx = normal[o]! + (move[0]! / length) * lean
         let ny = normal[o + 1]! + (move[1]! / length) * lean
         let nz = normal[o + 2]! + (move[2]! / length) * lean

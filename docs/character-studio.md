@@ -50,6 +50,14 @@ alike, and the model carries no morph target for it — its forty-three are all
 facial. It is therefore sculpted: vertices in front of the spine move away from
 a point set back inside the ribcage, by an amount falling off with distance from
 the centre of each side, over skin, clothing and the badge printed on it alike.
+
+Four things shape it rather than merely size it. The base is kept well wider
+than the height the amount can add, because a dome as tall as it is wide comes
+to a point. Below the centre, distance counts for less, so the underside runs
+out into the ribcage instead of ending on a rim. The nearer side wins rather
+than the two being summed, or the pair merge into one shelf across the sternum.
+And the amount is held back over the breastbone itself, which comes forward on
+nobody and whose neckline slit is otherwise pulled open from inside.
 The backpack straps cross the same space (576 and 528 vertices) and are left
 alone, because gear that swells with the body under it reads as a fault. Every
 pass rewrites from the model's own vertices, so male restores the shipped mesh.

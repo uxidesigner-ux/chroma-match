@@ -97,7 +97,22 @@ function silhouetteOf(page: Page) {
           lit += data[i]! * 0.2126 + data[i + 1]! * 0.7152 + data[i + 2]! * 0.0722
           ink++
         }
-      return { height: bottom - top, profile, span, light: ink ? lit / ink : 0, area: ink / ((bottom - top) ** 2) }
+      /*
+       * The chest sampled far more finely than the whole-body profile, because
+       * the shape of the bust — where it peaks and how it runs out above and
+       * below — lives inside four of that profile's rows.
+       */
+      const chest: number[] = []
+      for (let i = 0; i < 61; i++)
+        chest.push(rowSpan(Math.round(top + (bottom - top) * (0.14 + (0.26 * i) / 60))) / (bottom - top))
+      return {
+        height: bottom - top,
+        profile,
+        span,
+        chest,
+        light: ink ? lit / ink : 0,
+        area: ink / ((bottom - top) ** 2),
+      }
     })
 }
 
@@ -273,4 +288,64 @@ test('the ponytail is hidden, worn, or worn long, and each draws a different hea
   const long = await wearing('긴 포니테일')
   expect(tail, 'the ponytail added nothing to the silhouette').toBeGreaterThan(bob * 1.01)
   expect(long, 'the long ponytail is no longer than the short one').toBeGreaterThan(tail * 1.01)
+})
+
+test('the bust is rounded at the front and runs out further below than above', async ({ page }) => {
+  await openStudio(page, '체형')
+  const silhouette = silhouetteOf(page)
+  await page.getByRole('button', { name: '측면', exact: true }).click()
+  const evened = async () => {
+    await page.getByRole('button', { name: '기본', exact: true }).click()
+    return silhouette()
+  }
+  await page.getByRole('button', { name: '남성', exact: true }).click()
+  const male = await evened()
+  expect(male, 'nothing was drawn to measure').not.toBeNull()
+  await page.getByRole('button', { name: '여성', exact: true }).click()
+  await page.getByRole('button', { name: '가슴 7', exact: true }).click()
+  const female = await evened()
+
+  /*
+   * What the sculpt alone adds at each height: the female depth less the male
+   * depth at the same row, both already read against the character's own
+   * height. Everything below is about the shape of that curve, not its size.
+   */
+  const added = female!.chest.map((depth, row) => depth - male!.chest[row]!)
+  const peak = added.indexOf(Math.max(...added))
+  const top = added[peak]!
+  expect(top, 'the sculpt added no depth to measure').toBeGreaterThan(0.01)
+
+  /*
+   * How many rows either side of the peak stay above half its depth. The rows
+   * are a fixed fraction of the character's own height apart, so these are
+   * lengths along the body and comparable with the depth itself.
+   */
+  const ROW = 0.26 / 60
+  // The furthest such row, not the first dip: a single noisy row in the middle
+  // of the shape should not report it as ending there.
+  const reach = (step: number) => {
+    let far = 0
+    for (let row = peak; added[row] !== undefined; row += step)
+      if (added[row]! > top * 0.5) far = Math.abs(row - peak)
+    return far
+  }
+  const above = reach(-1)
+  const below = reach(1)
+
+  /*
+   * Rounded, not pointed. What makes a shape read as a point is being tall for
+   * its width, so that is what is measured: how broad it stays at half its
+   * depth, against how far it comes forward. Reading the rows either side of
+   * the apex instead says nothing — a cone and a dome both hold their maximum
+   * over a row or two at this scale, and both score one.
+   */
+  const broadness = ((above + below) * ROW) / top
+  expect(broadness, 'the bust is tall for its width, which reads as a point').toBeGreaterThan(2.4)
+
+  /*
+   * And softer underneath than on top: the run from the peak down to half its
+   * depth is half again the run up, which is what carries the underside into
+   * the ribcage instead of ending it on a rim.
+   */
+  expect(below / above, 'the underside is no softer than the top').toBeGreaterThan(1.6)
 })
