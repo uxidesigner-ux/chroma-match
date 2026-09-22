@@ -534,10 +534,16 @@ export class AnimeEditor {
 
       /*
        * The one choice above the builds, because it is the only one that
-       * changes what the body can do rather than how much of it there is. It
-       * seeds a matching build so the pick reads immediately; every row under
-       * it stays free afterwards, on either.
+       * changes what the body can do rather than how much of it there is.
+       *
+       * It seeds a matching build so that one tap produces a character rather
+       * than a setting — but only over a figure that is still one of the four
+       * builds. A figure somebody has set row by row is theirs, and swapping
+       * character should not throw it away to make a point.
        */
+      const ownFigure = !Object.values(FIGURE_PRESETS).some((build) =>
+        FIGURE_AXES.every((axis) => this.draft[axis] === build[axis]),
+      )
       const sexes = document.createElement('div')
       sexes.className = 'studio-choice-group'
       sexes.setAttribute('role', 'group')
@@ -547,7 +553,7 @@ export class AnimeEditor {
         ['female', copy.female, FIGURE_PRESETS.curved],
       ] as const) {
         const button = this.button(label, () => {
-          this.update({ ...this.draft, sex, ...build })
+          this.update({ ...this.draft, sex, ...(ownFigure ? {} : build) })
           this.paintOptions()
         }, 'studio-button studio-figure-preset')
         button.setAttribute('aria-pressed', String(this.draft.sex === sex))
