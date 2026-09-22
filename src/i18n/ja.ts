@@ -177,6 +177,7 @@ export const JA: Strings = {
   removeFriend: '削除',
 
   todayTitle: 'きょう',
+  studioFilesTitle: 'ファイル・書き出し',
   dailyReward: '{day}日目の報酬',
   dailyClaimed: '{day}日目 受取済み',
   dailySub: 'コイン{coins}枚{item}',

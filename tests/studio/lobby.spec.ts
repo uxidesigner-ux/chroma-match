@@ -291,3 +291,50 @@ test('accent chips clear WCAG AA on every skin, and the discard prompt is a real
   await expect(dialog).not.toBeVisible()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
 })
+
+test('the paper skin\'s shadows and the mission badge survive the scroll box', async ({ page }) => {
+  // `overflow-y: auto` clips on both axes. The first pass at this only padded
+  // the inline one, so the Play row's 4px drop shadow was sliced off the
+  // bottom and the mission count — pinned 3px above its nav button — off the
+  // top, on any width where the header does not wrap to two rows.
+  for (const width of [360, 390, 430, 620]) {
+    await page.setViewportSize({ width, height: 844 })
+    const fit = await page.evaluate(() => {
+      const home = document.querySelector('.home') as HTMLElement
+      const badge = document.getElementById('today-summary-badge')!
+      badge.hidden = false
+      badge.textContent = '3'
+      // Overflow clips at the padding box, so that — not the content edge — is
+      // the line both of these have to stay inside. The padding is the room.
+      const box = home.getBoundingClientRect()
+      const shadow = getComputedStyle(document.getElementById('start-game')!).boxShadow
+      const drop = Number(shadow.match(/(-?\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px/)?.[2] ?? 0)
+      const play = document.querySelector('.lobby-play')!.getBoundingClientRect()
+      const mark = badge.getBoundingClientRect()
+      badge.hidden = true
+      return {
+        badgeAbove: +(box.top - mark.top).toFixed(1),
+        shadowBelow: +(play.bottom + drop - box.bottom).toFixed(1),
+      }
+    })
+    expect(fit.badgeAbove, `badge clipped at ${width}px`).toBeLessThanOrEqual(0)
+    expect(fit.shadowBelow, `play shadow clipped at ${width}px`).toBeLessThanOrEqual(0)
+  }
+})
+
+test('the skin reaches the status bar before the first paint', async ({ page }) => {
+  // The module that applies the remembered skin is deferred behind the whole
+  // import graph; until it ran, the browser tinted the standalone window's
+  // chrome from index.html's near-black default while the Paper page came up
+  // cream, which reads as black bands at the top and bottom of the screen.
+  await page.addInitScript(() => localStorage.setItem('chroma.skin', 'paper'))
+  await page.goto('/?seed=3')
+  const early = await page.evaluate(() => ({
+    skin: document.documentElement.dataset.skin,
+    theme: document.querySelector('meta[name="theme-color"]')!.getAttribute('content'),
+    bg: document.documentElement.style.getPropertyValue('--bg'),
+  }))
+  expect(early.skin).toBe('paper')
+  expect(early.theme?.toLowerCase()).toBe('#f2ecde')
+  expect(early.bg.toLowerCase()).toBe('#f2ecde')
+})

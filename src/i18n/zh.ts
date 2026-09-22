@@ -174,6 +174,7 @@ export const ZH: Strings = {
   removeFriend: '移除',
 
   todayTitle: '今天',
+  studioFilesTitle: '文件与导出',
   dailyReward: '第{day}天奖励',
   dailyClaimed: '第{day}天已领取',
   dailySub: '{coins}金币{item}',

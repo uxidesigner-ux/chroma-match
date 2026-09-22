@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { MAX_KINDS } from '../../game/types.ts'
 import { GLASS } from './glass.ts'
@@ -76,4 +77,29 @@ test('skins are visually distinct from one another', () => {
   assert.equal(new Set(backgrounds).size, backgrounds.length)
   const firstColours = SKINS.map((skin) => skin.palette[0]?.base)
   assert.equal(new Set(firstColours).size, firstColours.length)
+})
+
+test("index.html's first-paint bootstrap carries every skin's real background", () => {
+  // The browser tints the status bar and the standalone window from
+  // `theme-color`, and this module is deferred behind the whole import graph —
+  // so index.html applies the remembered skin's ground itself, before the
+  // first paint, from a copy of these three values. A skin renamed or
+  // recoloured here without that copy following would put a stale colour in
+  // the safe areas of every launch. This is that check.
+  const html = readFileSync(new URL('../../../index.html', import.meta.url), 'utf8')
+  const literal = html.match(/var bg = \{([^}]*)\}/)
+  assert.ok(literal, 'index.html has no first-paint skin map')
+  const bootstrap = new Map<string, string>()
+  for (const entry of literal[1]!.split(',')) {
+    const pair = entry.match(/\s*([a-z0-9-]+):\s*'(#[0-9a-f]{6})'\s*/)
+    if (pair) bootstrap.set(pair[1]!, pair[2]!)
+  }
+  assert.equal(bootstrap.size, SKINS.length)
+  for (const skin of SKINS) {
+    assert.equal(
+      bootstrap.get(skin.id),
+      skin.css.bg.toLowerCase(),
+      `index.html's first-paint colour for "${skin.id}" does not match the skin`,
+    )
+  }
 })

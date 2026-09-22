@@ -438,10 +438,20 @@
   flex: none;
   min-width: 56px;
 }
-.studio-files { border-top: 1px solid var(--line); }
-.studio-files details { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
-.studio-files summary { min-height: 44px; padding: 14px 0 8px; cursor: pointer; font-size: var(--text-md); font-weight: 600; }
-.studio-file-note { font-size: var(--text-sm); line-height: 1.6; margin: 0 0 12px; }
+/* The one button that stands in for the file tools, at the foot of the editor. */
+.studio-files-open {
+  display: flex;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.studio-files-open .studio-button { flex: 1; }
+
+/* Inside the sheet: plain sections, since the sheet is the disclosure. */
+.studio-files { display: flex; flex-direction: column; gap: 20px; }
+.studio-file-group { display: flex; flex-direction: column; gap: 8px; }
+.studio-file-group + .studio-file-group { border-top: 1px solid var(--line); padding-top: 20px; }
+.studio-file-group h3 { margin: 0; font-size: var(--text-md); font-weight: 700; }
+.studio-file-note { font-size: var(--text-sm); line-height: 1.6; margin: 0; color: var(--muted); }
 .studio-import { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; font-size: var(--text-sm); }
 .studio-import input { width: 100%; min-width: 0; min-height: 44px; font: inherit; }
 .studio-import input::file-selector-button { min-height: 44px; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: var(--radius-sm); cursor: pointer; }
