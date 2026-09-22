@@ -2,10 +2,11 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { DEFAULT_ANIME, gearFromBits } from './anime-spec.ts'
+import { bustAmount } from './body-shape.ts'
 import { exportSeed, readGlb } from './studio-export.ts'
 
 const bytes = readFileSync(new URL('../../public/avatars/seed-v1/seed-san.vrm', import.meta.url))
-const source = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+const source = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
 const original = readGlb(source)
 
 test('export preserves permissions, rig and expression extension while applying visibility', () => {
@@ -50,4 +51,115 @@ test('mixed explorer pieces strip only the hidden primitives', () => {
   assert.equal(materials.includes('backpack_plastic'), true)
   assert.equal(materials.includes('robo_face'), true)
   assert.equal(materials.includes('armgear_mat') || materials.some(name => name.startsWith('armgear_')), false)
+})
+
+/**
+ * Every vertex of the largest primitive drawn with this material.
+ *
+ * Largest, not first: the hair mesh carries forty vertices of the outfit
+ * material as well, and the body's several thousand are the ones in question.
+ */
+function positions(glb: ReturnType<typeof readGlb>, material: string): Float32Array {
+  const index = glb.json.materials.findIndex((mat) => mat.name === material)
+  const wanted = glb.json.meshes
+    .flatMap((mesh) => mesh.primitives)
+    .filter((primitive) => primitive.material === index)
+    .sort((a, b) => glb.json.accessors[b.attributes.POSITION!]!.count - glb.json.accessors[a.attributes.POSITION!]!.count)[0]
+  for (const primitive of wanted ? [wanted] : [])
+    {
+      const accessor = glb.json.accessors[primitive.attributes.POSITION!]!
+      const view = glb.json.bufferViews[accessor.bufferView]!
+      const data = new DataView(glb.binary.buffer, glb.binary.byteOffset)
+      const base = (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0)
+      const stride = view.byteStride ?? 12
+      const out = new Float32Array(accessor.count * 3)
+      for (let i = 0; i < accessor.count; i++) {
+        const at = base + i * stride
+        out[i * 3] = data.getFloat32(at, true)
+        out[i * 3 + 1] = data.getFloat32(at + 4, true)
+        out[i * 3 + 2] = data.getFloat32(at + 8, true)
+      }
+      return out
+    }
+  throw new Error(`no primitive uses ${material}`)
+}
+
+const bone = (glb: ReturnType<typeof readGlb>, name: 'hips' | 'chest' | 'head' | 'leftShoulder') =>
+  glb.json.nodes[glb.json.extensions.VRMC_vrm.humanoid.humanBones[name]!.node]!
+
+test('an exported avatar carries the figure it was drawn with', () => {
+  const spec = { ...DEFAULT_ANIME, hip: 6 as const, waist: 0 as const, shoulder: 6 as const, head: 6 as const }
+  const out = readGlb(exportSeed(source, spec, []))
+  const shipped = original
+
+  // The hips widen, and the head grows, exactly as the studio draws them.
+  assert.ok(bone(out, 'hips').scale![0]! > 1.2, 'the hips did not widen')
+  assert.equal(bone(out, 'hips').scale![1], 1, 'the figure changed the height')
+  assert.ok(bone(out, 'head').scale![0]! > 1.15, 'the head did not grow')
+  // The shoulder moves out from the spine, and only sideways.
+  const restShoulder = bone(shipped, 'leftShoulder').translation!
+  const movedShoulder = bone(out, 'leftShoulder').translation!
+  assert.ok(Math.abs(movedShoulder[0]) > Math.abs(restShoulder[0]) * 1.3, 'the shoulder did not move out')
+  assert.equal(movedShoulder[1], restShoulder[1], 'the shoulder changed height')
+})
+
+test('a male export is the shipped mesh, and a female export carries the bust', () => {
+  const male = readGlb(exportSeed(source, { ...DEFAULT_ANIME, sex: 'male' }, []))
+  const female = readGlb(exportSeed(source, { ...DEFAULT_ANIME, sex: 'female', bust: 6 }, []))
+  assert.equal(bustAmount({ ...DEFAULT_ANIME, sex: 'male' }), 0)
+
+  const shipped = positions(original, 'huku_bake')
+  assert.deepEqual(Array.from(positions(male, 'huku_bake')), Array.from(shipped),
+    'a male export moved vertices its author did not')
+
+  // The chest comes forward, and only the chest.
+  const sculpted = positions(female, 'huku_bake')
+  assert.equal(sculpted.length, shipped.length)
+  let chest = 0
+  for (let i = 0; i < shipped.length; i += 3) {
+    const moved = Math.hypot(
+      sculpted[i]! - shipped[i]!,
+      sculpted[i + 1]! - shipped[i + 1]!,
+      sculpted[i + 2]! - shipped[i + 2]!,
+    )
+    if (moved <= 1e-6) continue
+    chest++
+    /*
+     * The shape's own reach: a centre at 1.155 and a base of 0.105, which
+     * counts for a sixth again more below the centre than above so the
+     * underside runs out into the ribcage. Nothing outside that may move.
+     */
+    assert.ok(
+      shipped[i + 1]! > 1.155 - 0.105 * 1.6 && shipped[i + 1]! < 1.155 + 0.105,
+      `a vertex at y=${shipped[i + 1]} moved, which is outside the bust`,
+    )
+    assert.ok(shipped[i + 2]! > 0, 'a vertex behind the spine moved')
+  }
+  assert.ok(chest > 50, `only ${chest} vertices moved; the bust is not in the file`)
+})
+
+test('an exported avatar carries its skin tone, and white leaves the material alone', () => {
+  const shipped = original.json.materials.find((mat) => mat.name === 'body_bake')!
+  const pale = readGlb(exportSeed(source, { ...DEFAULT_ANIME, skinColour: 'FFFFFF' }, []))
+    .json.materials.find((mat) => mat.name === 'body_bake')!
+  const deep = readGlb(exportSeed(source, { ...DEFAULT_ANIME, skinColour: '6F4530' }, []))
+    .json.materials.find((mat) => mat.name === 'body_bake')!
+
+  for (let i = 0; i < 3; i++) {
+    assert.ok(Math.abs(pale.pbrMetallicRoughness.baseColorFactor![i]! - 1) < 1e-6, 'white tinted the skin')
+    assert.ok(deep.pbrMetallicRoughness.baseColorFactor![i]! < 0.7, 'the deep tone did not reach the file')
+  }
+  // The warm falloff its author gave it survives, multiplied rather than replaced.
+  const rest = shipped.extensions!.VRMC_materials_mtoon!.shadeColorFactor!
+  const tinted = deep.extensions!.VRMC_materials_mtoon!.shadeColorFactor!
+  assert.ok(tinted[0]! / rest[0]! > tinted[2]! / rest[2]!, 'the skin shade lost its warmth')
+})
+
+test('the ponytail is exported at the length it was worn', () => {
+  const tail = (hair: 'tails' | 'long') => {
+    const glb = readGlb(exportSeed(source, { ...DEFAULT_ANIME, hair }, []))
+    return glb.json.nodes.find((node) => node.name === 'hair_tail_1')!.scale?.[0] ?? 1
+  }
+  assert.equal(tail('tails'), 1)
+  assert.ok(tail('long') > 1.2, 'the long ponytail exported at its short length')
 })

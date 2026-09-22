@@ -349,3 +349,31 @@ test('the bust is rounded at the front and runs out further below than above', a
    */
   expect(below / above, 'the underside is no softer than the top').toBeGreaterThan(1.6)
 })
+
+test('picking a character seeds a build, and keeps a figure set row by row', async ({ page }) => {
+  await openStudio(page, '체형')
+  const pressed = (name: string) =>
+    expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true')
+
+  // From one of the four builds, picking the other character swaps the build:
+  // one tap has to produce a character rather than a setting.
+  await page.getByRole('button', { name: '여성', exact: true }).click()
+  await page.getByRole('button', { name: '곡선', exact: true }).click()
+  await page.getByRole('button', { name: '남성', exact: true }).click()
+  await pressed('어깨 7')
+  await pressed('남성')
+
+  /*
+   * But a figure somebody set row by row is theirs. Swapping character after
+   * that changes the character and nothing else — the old behaviour threw the
+   * whole figure away to make its point.
+   */
+  // Neither of these is what the female build would set, so a figure that came
+  // back matching it would be the build overwriting the rows, not keeping them.
+  await page.getByRole('button', { name: '어깨 4', exact: true }).click()
+  await page.getByRole('button', { name: '엉덩이 2', exact: true }).click()
+  await page.getByRole('button', { name: '여성', exact: true }).click()
+  await pressed('여성')
+  await pressed('어깨 4')
+  await pressed('엉덩이 2')
+})

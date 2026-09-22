@@ -39,6 +39,21 @@ body naming Rhinox 3D as its author. Publishing this repository redistributes
 whatever `public/` holds, so those files stay out of it. Character variety comes
 from reproportioning the one model that permits it.
 
+## One rule, two backends
+
+The figure and the bust are defined once, in `src/avatar/body-shape.ts`,
+against the smallest interface either side can satisfy. The studio applies them
+to three.js nodes and buffer attributes; the exporter applies them to glTF JSON
+and a binary chunk. Neither knows how the other stores a vertex, and a
+downloaded avatar that did not match the one on screen would be worse than one
+that could not be downloaded at all.
+
+Exported files therefore carry the figure (node scale and translation), the
+ponytail's length, the skin tone (material factors, converted from the swatch's
+sRGB to the linear values glTF stores) and the bust (new position and normal
+accessors appended, leaving the originals valid for anything still pointing at
+them). A male export is the shipped mesh, vertex for vertex.
+
 ## What the one model does and does not allow
 
 The figure axes are bone work. Shoulder width is translation rather than scale,
