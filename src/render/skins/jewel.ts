@@ -53,7 +53,10 @@ export const JEWEL: Skin = {
     muted: '#838cb4',
     accent: '#8b8bff',
     'accent-2': '#38bdf8',
+    'on-accent': '#080b14',
+    'radius-sm': '10px',
     radius: '16px',
+    'radius-lg': '20px',
   },
 
   paintBody(ctx, p) {

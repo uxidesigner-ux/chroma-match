@@ -71,7 +71,10 @@ export const GLASS: Skin = {
     muted: '#a3aad0',
     accent: '#c4b5fd',
     'accent-2': '#7dd3fc',
+    'on-accent': '#060818',
+    'radius-sm': '14px',
     radius: '22px',
+    'radius-lg': '26px',
   },
 
   paintBody(ctx, p) {

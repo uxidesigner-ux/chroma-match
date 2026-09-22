@@ -25,7 +25,7 @@ export class AnimeEditor {
   private tabs = document.createElement('div')
   private status = document.createElement('p')
   private save = document.createElement('button')
-  private discard = document.createElement('div')
+  private discard = document.createElement('dialog')
   private generation = 0
   private ready = false
   private busy = false
@@ -54,6 +54,7 @@ export class AnimeEditor {
   }
 
   close(): void {
+    if (this.discard.open) this.discard.close()
     this.closed = true
     this.busy = false
     this.generation++
@@ -62,6 +63,13 @@ export class AnimeEditor {
     this.ready = false
   }
 
+  /**
+   * The one question in the editor that can lose work, asked as a real dialog.
+   *
+   * It used to be a div unhidden in the middle of the scrolling column: no
+   * focus trap, no Escape, and the editor stayed live behind it, so the player
+   * could keep changing the character they had just been asked about.
+   */
   requestLeave(leave: () => void = this.exit): void {
     if (encodeAnime(this.draft) === this.initial) {
       leave()
@@ -71,12 +79,12 @@ export class AnimeEditor {
     this.discard.replaceChildren()
     const message = document.createElement('p')
     message.textContent = copy.discard
-    const keep = this.button(copy.keep, () => {
-      this.discard.hidden = true
-      this.save.focus()
-    })
-    this.discard.append(message, keep, this.button(copy.leave, leave))
-    this.discard.hidden = false
+    const keep = this.button(copy.keep, () => this.discard.close())
+    const actions = document.createElement('div')
+    actions.className = 'studio-discard-actions'
+    actions.append(keep, this.button(copy.leave, leave, 'studio-button studio-discard-leave'))
+    this.discard.append(message, actions)
+    this.discard.showModal()
     keep.focus()
   }
 
@@ -188,6 +196,8 @@ export class AnimeEditor {
         }
       }, 'studio-control')
       button.setAttribute('aria-pressed', String(this.face === face))
+      button.dataset.requiresModel = ''
+      button.disabled = true
       framing.append(button)
     }
     const direction = document.createElement('div')
@@ -236,14 +246,28 @@ export class AnimeEditor {
     pause.setAttribute('aria-pressed', 'false')
     pause.classList.add('studio-hud-pause')
     random.classList.add('studio-hud-shuffle', 'studio-control')
-    toolbar.append(framing, direction, gestures, pause, random)
+    for (const button of [pause, random]) {
+      button.dataset.requiresModel = ''
+      button.disabled = true
+    }
+    /*
+     * Direction sits under the preview rather than on it.
+     *
+     * Ten floating controls covered roughly a quarter of a 240px stage, which
+     * is a lot of the character to hide behind buttons. Turning the model is
+     * also what dragging already does, so of the ten these are the three that
+     * lose least by moving off the figure and gain a caption by doing it.
+     */
+    toolbar.append(framing, gestures, pause, random)
     this.stage.append(toolbar)
     const hint = document.createElement('p')
     hint.id = 'studio-rotate-help'
     hint.className = 'studio-hint'
     hint.textContent = `${copy.rotate} ${tools.gaze}`
+    // Written long ago and never put on screen: the one line that says the
+    // framing buttons move the camera and not what gets saved.
     const portraitNote = document.createElement('p')
-    portraitNote.className = 'studio-hint'
+    portraitNote.className = 'studio-hint studio-note'
     portraitNote.textContent = copy.portraitNote
     const controls = document.createElement('div')
     controls.className = 'studio-controls'
@@ -312,10 +336,11 @@ export class AnimeEditor {
     this.save = this.button(copy.apply, () => void this.apply(), 'btn btn-primary studio-apply')
     this.save.disabled = true
     footer.append(this.status, this.save)
-    this.discard = document.createElement('div')
+    this.discard = document.createElement('dialog')
     this.discard.className = 'studio-discard'
-    this.discard.setAttribute('role', 'group')
-    this.discard.hidden = true
+    this.discard.addEventListener('close', () => {
+      if (!this.save.disabled) this.save.focus()
+    })
     const credit = document.createElement('a')
     credit.href = new URL('licenses/anime-assets.html', document.baseURI).href
     credit.target = '_blank'
@@ -324,7 +349,9 @@ export class AnimeEditor {
     credit.textContent = copy.credit
     const viewer = document.createElement('div')
     viewer.className = 'studio-viewer'
-    viewer.append(this.stage, hint)
+    direction.classList.remove('studio-hud-cluster', 'studio-hud-orbit')
+    direction.classList.add('studio-below-stage')
+    viewer.append(this.stage, direction, hint, portraitNote)
     const edit = document.createElement('div')
     edit.className = 'studio-edit'
     edit.append(heading, controls, this.discard, footer, this.buildDownloads(), credit)
@@ -397,7 +424,7 @@ export class AnimeEditor {
     this.draft = { ...spec }
     this.renderer?.apply(this.draft)
     this.status.textContent = animeCopy().ready
-    this.discard.hidden = true
+    if (this.discard.open) this.discard.close()
     this.refreshHistory()
   }
 
@@ -411,7 +438,7 @@ export class AnimeEditor {
     this.draft = redo ? this.history.redo(this.draft) : this.history.undo(this.draft)
     this.renderer?.apply(this.draft)
     this.status.textContent = animeCopy().ready
-    this.discard.hidden = true
+    if (this.discard.open) this.discard.close()
     this.paintOptions()
   }
 
@@ -729,7 +756,7 @@ export class AnimeEditor {
       }
       cachePortrait(this.draft, png)
       this.initial = encodeAnime(this.draft)
-      this.discard.hidden = true
+      if (this.discard.open) this.discard.close()
       const online = account()?.kind === 'google'
       this.status.textContent = online ? copy.syncing : copy.saved
       await this.changed()

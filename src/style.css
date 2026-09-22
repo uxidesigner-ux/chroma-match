@@ -17,6 +17,7 @@
   --muted: #838cb4;
   --accent: #8b8bff;
   --accent-2: #38bdf8;
+  --on-accent: #080b14;
   --radius: 16px;
   color-scheme: dark;
 }
@@ -42,6 +43,24 @@ body {
   overscroll-behavior: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+:root {
+  /*
+   * The type scale.
+   *
+   * Sizes had accumulated to twenty-four distinct values, three of them under
+   * 10px — small enough that a label is guessed at rather than read. These are
+   * the steps the design uses; a new size should be one of these or a reason.
+   */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --text-3xl: 30px;
+  --text-4xl: 46px;
 }
 
 .app {
@@ -88,7 +107,7 @@ body {
 
 .brand h1 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 650;
   letter-spacing: 0.02em;
 }
@@ -96,7 +115,7 @@ body {
 .brand-mark {
   width: 18px;
   height: 18px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: conic-gradient(#ff4d6d, #ffb020, #34d399, #38bdf8, #818cf8, #e879f9, #ff4d6d);
 }
 
@@ -123,14 +142,14 @@ body {
 }
 
 .stat-label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .stat-value {
-  font-size: 22px;
+  font-size: var(--text-2xl);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -152,7 +171,7 @@ body {
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .goal-level {
@@ -166,7 +185,7 @@ body {
 
 .bar {
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.07);
   overflow: hidden;
 }
@@ -244,13 +263,13 @@ body {
 
 .rotate-card h2 {
   margin: 14px 0 8px;
-  font-size: 18px;
+  font-size: var(--text-xl);
   font-weight: 700;
 }
 
 .rotate-card p {
   margin: 0 0 18px;
-  font-size: 13px;
+  font-size: var(--text-md);
   line-height: 1.6;
   color: var(--muted);
 }
@@ -260,7 +279,7 @@ body {
   width: 26px;
   height: 40px;
   border: 2px solid var(--muted);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   transform: rotate(-90deg);
   animation: tip 2.4s ease-in-out infinite;
 }
@@ -296,12 +315,12 @@ body {
   border: 1px solid var(--line);
   background: var(--panel);
   color: var(--text);
-  border-radius: 12px;
+  border-radius: var(--radius);
   -webkit-backdrop-filter: var(--panel-blur);
   backdrop-filter: var(--panel-blur);
   padding: 9px 16px;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-md);
   font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
@@ -335,9 +354,9 @@ body {
 .btn-primary {
   background: linear-gradient(135deg, var(--accent-2), var(--accent));
   border-color: transparent;
-  color: #0a0d18;
+  color: var(--on-accent);
   padding: 11px 22px;
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 /*
@@ -352,7 +371,7 @@ body {
 
 .seed {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: rgba(131, 140, 180, 0.7);
   font-variant-numeric: tabular-nums;
 }
@@ -366,7 +385,7 @@ body {
   -webkit-backdrop-filter: var(--panel-blur);
   backdrop-filter: var(--panel-blur);
   padding: 4px 18px;
-  font-size: 13px;
+  font-size: var(--text-md);
   line-height: 1.65;
   color: var(--muted);
 }
@@ -393,12 +412,12 @@ body {
 .brand-mark-lg {
   width: 54px;
   height: 54px;
-  border-radius: 17px;
+  border-radius: var(--radius);
 }
 
 .home h1 {
   margin: 0;
-  font-size: 29px;
+  font-size: var(--text-3xl);
   font-weight: 750;
   letter-spacing: -0.02em;
 }
@@ -410,7 +429,7 @@ html.splash-open body {
 
 .tagline {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-md);
   color: var(--muted);
 }
 
@@ -426,13 +445,13 @@ html.splash-open body {
   justify-content: center;
   align-items: baseline;
   gap: 10px;
-  font-size: 13px;
+  font-size: var(--text-md);
   color: var(--muted);
 }
 
 .hero-stat-value {
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--text-lg);
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
@@ -444,9 +463,9 @@ html.splash-open body {
 .btn-play {
   width: 100%;
   padding: 18px;
-  font-size: 18px;
+  font-size: var(--text-xl);
   font-weight: 700;
-  border-radius: 16px;
+  border-radius: var(--radius);
   /* The only heavy element above the board, and spaced so it reads that way. */
   margin: 4px 0 2px;
 }
@@ -476,12 +495,12 @@ html.splash-open body {
 
 .ranks-head h2 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-md);
   font-weight: 650;
 }
 
 .ranks-note {
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -504,8 +523,8 @@ html.splash-open body {
   align-items: baseline;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
 }
 
 /* The player's own row, so they can find themselves without reading names. */
@@ -515,7 +534,7 @@ html.splash-open body {
 
 .rank-pos {
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
   text-align: right;
 }
@@ -537,7 +556,7 @@ html.splash-open body {
  */
 .rank-check {
   width: 12px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   text-align: center;
   color: transparent;
 }
@@ -548,14 +567,14 @@ html.splash-open body {
 
 .rank-level {
   margin-left: 6px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 400;
   color: var(--muted);
 }
 
 .ranks-empty {
   padding: 22px 14px;
-  font-size: 13px;
+  font-size: var(--text-md);
   line-height: 1.6;
   color: var(--muted);
   text-align: center;
@@ -580,7 +599,7 @@ html.splash-open body {
 .post-label {
   display: block;
   margin-bottom: 6px;
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
@@ -597,11 +616,11 @@ html.splash-open body {
   appearance: none;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 11px 12px;
   color: var(--text);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .post-input:focus-visible {
@@ -612,7 +631,7 @@ html.splash-open body {
 .post-status {
   margin: 9px 0 0;
   min-height: 1.3em;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.4;
   color: var(--muted);
 }
@@ -648,7 +667,7 @@ html.splash-open body {
   align-items: center;
   gap: 5px;
   padding: 6px 13px;
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   background: var(--combo-bg, var(--panel-strong));
   border: 1px solid var(--combo-line, var(--line));
   color: var(--combo-text, #fff);
@@ -696,14 +715,14 @@ html.splash-open body {
 }
 
 .combo-x {
-  font-size: 19px;
+  font-size: var(--text-xl);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
 .combo-word {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 650;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -783,7 +802,7 @@ html.splash-open body {
   text-align: center;
   background: #10162c;
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: var(--radius-lg);
   padding: 32px 28px;
   animation: rise 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -881,9 +900,9 @@ html.splash-open body {
 #overlay-action {
   width: 100%;
   padding: 16px;
-  font-size: 17px;
+  font-size: var(--text-xl);
   font-weight: 700;
-  border-radius: 16px;
+  border-radius: var(--radius);
   margin-top: 14px;
 }
 
@@ -921,7 +940,7 @@ html.splash-open body {
 }
 
 .card-hero-value {
-  font-size: 46px;
+  font-size: var(--text-4xl);
   line-height: 1.05;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -929,7 +948,7 @@ html.splash-open body {
 }
 
 .card-hero-caption {
-  font-size: 12px;
+  font-size: var(--text-sm);
   letter-spacing: 0.06em;
   color: var(--muted);
 }
@@ -937,13 +956,13 @@ html.splash-open body {
 .card-flair {
   margin-top: 8px;
   padding: 4px 11px;
-  border-radius: 999px;
-  font-size: 11px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #0a0d18;
+  background: var(--accent-2);
+  color: var(--on-accent);
 }
 
 .card-flair[hidden] {
@@ -969,7 +988,7 @@ html.splash-open body {
 
 .card-kicker {
   margin: 0 0 6px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--accent);
@@ -984,7 +1003,7 @@ html.splash-open body {
 .card-body {
   margin: 0 0 22px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.6;
 }
 
@@ -1031,7 +1050,7 @@ html.splash-open body {
 
   .stat-value,
   .stat-primary .stat-value {
-    font-size: 18px;
+    font-size: var(--text-xl);
   }
 
   .goal {
@@ -1050,7 +1069,7 @@ html.splash-open body {
   }
 
   .brand h1 {
-    font-size: 14px;
+    font-size: var(--text-md);
   }
 
   .stage {
@@ -1108,16 +1127,16 @@ html.splash-open body {
   }
 
   .seed {
-    font-size: 10px;
+    font-size: var(--text-xs);
   }
 
   .stat {
     padding: 8px 11px;
-    border-radius: 13px;
+    border-radius: var(--radius);
   }
 
   .stat-value {
-    font-size: 19px;
+    font-size: var(--text-xl);
   }
 
   .stat-primary .stat-value {
@@ -1129,7 +1148,7 @@ html.splash-open body {
   }
 
   .help {
-    font-size: 12px;
+    font-size: var(--text-sm);
     padding: 2px 14px;
   }
 }
@@ -1154,7 +1173,7 @@ html.splash-open body {
   .brand-mark-lg {
     width: 42px;
     height: 42px;
-    border-radius: 13px;
+    border-radius: var(--radius);
   }
 
   .home h1 {
@@ -1162,7 +1181,7 @@ html.splash-open body {
   }
 
   html.splash-open .splash h1 {
-    font-size: 30px;
+    font-size: var(--text-3xl);
   }
 
   .btn-play {
@@ -1178,15 +1197,15 @@ html.splash-open body {
   }
 
   .stat-label {
-    font-size: 9px;
+    font-size: var(--text-xs);
   }
 
   .stat-value {
-    font-size: 17px;
+    font-size: var(--text-xl);
   }
 
   .stat-primary .stat-value {
-    font-size: 21px;
+    font-size: var(--text-2xl);
   }
 
   .goal-row {
@@ -1361,8 +1380,15 @@ html.splash-open body {
 }
 
 /* Ink on a colour, not dark text on a light gradient. */
+/*
+ * A deeper red than the brand's, for this one surface.
+ *
+ * Cream on the poster red scored 3.68:1, and the button's label is 15px — too
+ * small to take the large-text allowance. Darkening only the button keeps the
+ * brand red everywhere it carries no text.
+ */
 [data-skin='paper'] .btn-primary {
-  background: var(--accent);
+  background: #c53129;
   border-color: var(--line);
   color: #fff7e6;
   box-shadow: 4px 4px 0 var(--line);
@@ -1462,7 +1488,7 @@ html.splash-open body {
 }
 
 .item-name {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1479,10 +1505,10 @@ html.splash-open body {
   right: -4px;
   min-width: 19px;
   padding: 1px 5px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #0a0d18;
-  font-size: 11px;
+  border-radius: var(--radius-lg);
+  background: var(--accent-2);
+  color: var(--on-accent);
+  font-size: var(--text-xs);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -1591,7 +1617,7 @@ html.splash-open body {
 .items-hint {
   margin: 0;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--accent-2);
 }
 
@@ -1689,13 +1715,13 @@ html.splash-open body {
 }
 
 .wallet-value {
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .wallet-shop {
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1718,13 +1744,13 @@ html.splash-open body {
 .shop-head h2 {
   flex: 1;
   margin: 0;
-  font-size: 19px;
+  font-size: var(--text-xl);
   font-weight: 750;
 }
 
 .shop-note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.55;
   color: var(--muted);
 }
@@ -1759,17 +1785,17 @@ html.splash-open body {
 }
 
 .shop-name {
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 700;
 }
 
 .shop-desc {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 
 .shop-owned {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1799,7 +1825,7 @@ html.splash-open body {
 .shop-foot {
   margin-top: auto;
   padding-top: 12px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.55;
   color: var(--muted);
   text-align: center;
@@ -1808,7 +1834,7 @@ html.splash-open body {
 .shop-status {
   margin: 0;
   min-height: 1.3em;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 
@@ -1868,7 +1894,7 @@ html.splash-open body {
 }
 
 .loadout-name {
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 650;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1880,14 +1906,14 @@ html.splash-open body {
 }
 
 .loadout-have {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
 .loadout-empty {
   margin: 14px 0 4px;
-  font-size: 13px;
+  font-size: var(--text-md);
   line-height: 1.55;
   color: var(--muted);
 }
@@ -1899,9 +1925,9 @@ html.splash-open body {
 #loadout-start {
   width: 100%;
   padding: 16px;
-  font-size: 17px;
+  font-size: var(--text-xl);
   font-weight: 700;
-  border-radius: 16px;
+  border-radius: var(--radius);
   margin-top: 14px;
 }
 
@@ -1923,7 +1949,7 @@ html.splash-open body {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2112,9 +2138,9 @@ html.splash-open body {
 #paused-resume {
   width: 100%;
   padding: 16px;
-  font-size: 17px;
+  font-size: var(--text-xl);
   font-weight: 700;
-  border-radius: 16px;
+  border-radius: var(--radius);
   margin-top: 14px;
 }
 
@@ -2142,7 +2168,7 @@ html.splash-open body {
   display: block;
   margin: 12px 0 0;
   text-align: center;
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 /* ---- continue ------------------------------------------------------------ */
@@ -2164,7 +2190,7 @@ html.splash-open body {
 }
 
 .btn-sub {
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 600;
   opacity: 0.72;
   font-variant-numeric: tabular-nums;
@@ -2177,7 +2203,7 @@ html.splash-open body {
   border-color: var(--line);
   color: var(--text);
   box-shadow: var(--panel-shadow);
-  font-size: 15px;
+  font-size: var(--text-lg);
   padding: 8px 12px;
 }
 
@@ -2302,7 +2328,7 @@ html.splash-open body {
 }
 
 .profile-name {
-  font-size: 19px;
+  font-size: var(--text-xl);
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2330,14 +2356,14 @@ html.splash-open body {
 }
 
 .pstat-label {
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .pstat-value {
-  font-size: 19px;
+  font-size: var(--text-xl);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
@@ -2379,7 +2405,7 @@ html.splash-open body {
 }
 
 .quick-label {
-  font-size: 13px;
+  font-size: var(--text-md);
   font-weight: 650;
 }
 
@@ -2387,7 +2413,7 @@ html.splash-open body {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -2401,10 +2427,10 @@ html.splash-open body {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #fff;
-  font-size: 10px;
+  border-radius: var(--radius-lg);
+  background: var(--accent-2);
+  color: var(--on-accent);
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
@@ -2437,7 +2463,7 @@ html.splash-open body {
 .editor-name .post-input {
   width: 100%;
   text-align: center;
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 650;
 }
 
@@ -2445,7 +2471,7 @@ html.splash-open body {
 .profile-code {
   margin: -10px 0 12px;
   text-align: center;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   letter-spacing: 0.08em;
@@ -2522,7 +2548,7 @@ html.splash-open body {
   overflow-y: auto;
   text-align: left;
   border-bottom: none;
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: 10px 20px max(18px, env(safe-area-inset-bottom));
   margin: 0;
   transform: translateY(100%);
@@ -2541,20 +2567,20 @@ html.splash-open body {
   width: 36px;
   height: 4px;
   margin: 6px auto 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   background: var(--line);
 }
 
 .sheet-title {
   margin: 0 0 12px;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 700;
   text-align: center;
 }
 
 .sheet-sub {
   margin: 4px 0 18px;
-  font-size: 13px;
+  font-size: var(--text-md);
   color: var(--muted);
   text-align: center;
   line-height: 1.4;
@@ -2598,7 +2624,7 @@ html.splash-open body {
   flex: none;
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(135deg, var(--accent-2), var(--accent));
   position: relative;
 }
@@ -2625,28 +2651,28 @@ html.splash-open body {
 }
 
 .daily-name {
-  font-size: 13px;
+  font-size: var(--text-md);
   font-weight: 650;
 }
 
 .daily-sub {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 
 .daily-take {
   flex: none;
   padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
   font-weight: 650;
   background: var(--panel-strong);
   color: var(--muted);
 }
 
 .daily.is-ready .daily-take {
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #fff;
+  background: var(--accent-2);
+  color: var(--on-accent);
 }
 
 .missions {
@@ -2664,7 +2690,7 @@ html.splash-open body {
   gap: 10px;
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--panel);
 }
 
@@ -2685,12 +2711,12 @@ html.splash-open body {
 }
 
 .mission-ask {
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
 .mission-count {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -2723,7 +2749,7 @@ html.splash-open body {
   flex: none;
   min-width: 52px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2733,25 +2759,25 @@ html.splash-open body {
   display: flex;
   gap: 2px;
   padding: 2px;
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   background: var(--panel-strong);
 }
 
 .ranks-tab {
   padding: 5px 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
 }
 
 .ranks-tab.is-on {
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #fff;
+  background: var(--accent-2);
+  color: var(--on-accent);
 }
 
 .friends-tools {
@@ -2775,7 +2801,7 @@ html.splash-open body {
   gap: 6px;
   padding: 6px 10px;
   border: 1px dashed var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -2788,7 +2814,7 @@ html.splash-open body {
 }
 
 .code-label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -2799,7 +2825,7 @@ html.splash-open body {
    one, and tracking fixes both. */
 .code-value {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 13px;
+  font-size: var(--text-md);
   letter-spacing: 0.16em;
 }
 
@@ -2815,11 +2841,11 @@ html.splash-open body {
   min-width: 0;
   padding: 7px 10px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--panel-strong);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-md);
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2834,13 +2860,13 @@ html.splash-open body {
 .friend-add .btn {
   flex: none;
   padding: 7px 14px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .friend-status {
   flex-basis: 100%;
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
   min-height: 14px;
 }
@@ -2857,7 +2883,7 @@ html.splash-open body {
 
 .shop-sub {
   margin: 18px 0 4px;
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
@@ -2896,13 +2922,13 @@ html.splash-open body {
   top: -8px;
   right: 12px;
   padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 9px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #fff;
+  background: var(--accent-2);
+  color: var(--on-accent);
 }
 
 /* Three stacked discs: the pile is the only thing distinguishing one pack row
@@ -2927,19 +2953,19 @@ html.splash-open body {
 }
 
 .pack-amount {
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 650;
 }
 
 .pack-note {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 
 .pack-buy {
   flex: none;
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: var(--text-md);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3005,13 +3031,13 @@ html.splash-open body {
 
 .set-title {
   margin: 0 0 2px;
-  font-size: 13px;
+  font-size: var(--text-md);
   font-weight: 700;
 }
 
 .set-sub {
   margin: 0 0 10px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
   line-height: 1.4;
 }
@@ -3031,19 +3057,19 @@ html.splash-open body {
   flex: none;
   padding: 8px 14px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   background: var(--panel);
   color: var(--muted);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-md);
   font-weight: 600;
   cursor: pointer;
 }
 
 .set-chip.is-on {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #fff;
+  background: var(--accent-2);
+  color: var(--on-accent);
 }
 
 .set-row {
@@ -3081,12 +3107,12 @@ html.splash-open body {
 }
 
 .set-row-name {
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
 .set-row-sub {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
   line-height: 1.35;
 }
@@ -3101,7 +3127,7 @@ html.splash-open body {
   flex: none;
   width: 44px;
   height: 26px;
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   background: var(--line);
   transition: background 140ms ease;
 }
@@ -3161,7 +3187,7 @@ html.splash-open body {
 .creator-title {
   flex: 1;
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 700;
   text-align: center;
 }

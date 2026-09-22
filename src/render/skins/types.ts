@@ -110,7 +110,27 @@ export const SKIN_VARS = [
   'muted',
   'accent',
   'accent-2',
+  /**
+   * What reads on top of the accent colours.
+   *
+   * It was white, hardcoded, on every badge and chip painted in the accent —
+   * and all three skins put a light colour there, so white on white scored
+   * between 1.67:1 and 2.14:1 against a 4.5:1 floor. Only the skin knows which
+   * end of its own range will read.
+   */
+  'on-accent',
+  /**
+   * Corner rounding, in three steps.
+   *
+   * There was one `radius`, and it reached eleven selectors out of the sixty-odd
+   * rounded surfaces in the sheet — every button, the studio and the whole lobby
+   * carried a literal instead, so switching skins moved the panels and left the
+   * controls alone. A skin that wants softer corners has to be able to say so
+   * once and have it land everywhere.
+   */
+  'radius-sm',
   'radius',
+  'radius-lg',
 ] as const
 
 export type SkinVar = (typeof SKIN_VARS)[number]

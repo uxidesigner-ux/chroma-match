@@ -73,7 +73,10 @@ export const PAPER: Skin = {
     muted: '#7a6a55',
     accent: '#e8453c',
     'accent-2': '#f2a81c',
+    'on-accent': '#241e16',
+    'radius-sm': '8px',
     radius: '14px',
+    'radius-lg': '18px',
   },
 
   paintBody(ctx, p) {
