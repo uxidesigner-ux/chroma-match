@@ -64,7 +64,7 @@ test('a saved draft reaches the profile and 3D lobby and survives reload', async
   await openAnime(page)
   await page.getByRole('button', { name: 'Ember', exact: true }).click()
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(old)
-  await page.getByRole('tab', { name: 'Details', exact: true }).click()
+  await page.getByRole('tab', { name: 'Hair', exact: true }).click()
   await page.getByRole('button', { name: 'Short bob', exact: true }).click()
   await page.getByRole('tab', { name: 'Expression', exact: true }).click()
   await page.getByRole('button', { name: 'Happy', exact: true }).click()
@@ -87,7 +87,7 @@ test('a saved draft reaches the profile and 3D lobby and survives reload', async
   await expectFaceCrop(page, '#profile-preview')
   await page.locator('#profile-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
-  await page.getByRole('tab', { name: 'Details', exact: true }).click()
+  await page.getByRole('tab', { name: 'Hair', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Short bob', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -139,8 +139,8 @@ test('keyboard tabs, rotation, mobile reflow and reduced motion', async ({ page 
   await openAnime(page)
   await page.getByRole('tab', { name: 'Looks', exact: true }).focus()
   await page.keyboard.press('ArrowRight')
-  await expect(page.getByRole('tab', { name: 'Details', exact: true })).toBeFocused()
-  await expect(page.getByRole('tab', { name: 'Details', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('tab', { name: 'Hair', exact: true })).toBeFocused()
+  await expect(page.getByRole('tab', { name: 'Hair', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   )
@@ -234,7 +234,7 @@ test('full-body controls show every direction without changing the saved profile
   await expect(face).toHaveAttribute('aria-pressed', 'true')
   await expect(full).toHaveAttribute('aria-pressed', 'false')
   await full.click()
-  await page.getByRole('tab', { name: 'Details', exact: true }).click()
+  await page.getByRole('tab', { name: 'Equipment', exact: true }).click()
   await page.getByRole('button', { name: 'Explorer gear', exact: true }).click()
   await page.getByRole('button', { name: 'Use this character', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
@@ -251,7 +251,7 @@ test('full-body controls show every direction without changing the saved profile
   await page.locator('#creator-back').click()
   await openCreator(page)
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
-  await page.getByRole('tab', { name: 'Details', exact: true }).click()
+  await page.getByRole('tab', { name: 'Equipment', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Explorer gear', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',

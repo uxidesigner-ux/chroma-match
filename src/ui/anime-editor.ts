@@ -10,7 +10,7 @@ import { studioToolsCopy } from './studio-tools-copy.ts'
 import { LIBRARY_LIMIT, LookHistory, lookFile, parseLookFile, readLibrary, writeLibrary } from '../avatar/studio-library.ts'
 import { decodeSpec, encodeSpec } from '../avatar/spec.ts'
 
-type Category = 'looks' | 'hair' | 'colours' | 'expression' | 'library'
+type Category = 'looks' | 'hair' | 'gear' | 'colours' | 'expression' | 'library'
 
 /** An explicit draft: navigating away cannot silently overwrite the profile. */
 export class AnimeEditor {
@@ -109,6 +109,43 @@ export class AnimeEditor {
     return button
   }
 
+  /**
+   * An icon with its name under it.
+   *
+   * The editor used to be eighteen unlabelled circles: every control carried
+   * its name in `title`, which a touch device never shows, so on a phone the
+   * whole screen was guesswork. Anything the player has to understand before
+   * pressing it says what it is on the button.
+   */
+  private labelled(
+    label: string,
+    icon: string,
+    action: () => void,
+    className = 'studio-button studio-icon',
+  ): HTMLButtonElement {
+    const button = this.icon(label, icon, action, `${className} studio-labelled`)
+    const text = document.createElement('span')
+    text.className = 'studio-button-label'
+    text.textContent = label
+    button.append(text)
+    return button
+  }
+
+  /**
+   * A stage control with no glyph at all.
+   *
+   * Framing and direction are the two clusters where a 20px icon could not
+   * carry the distinction — front, side and back were one head-and-shoulders
+   * silhouette separated by a five-pixel line, and the framing face was the
+   * same drawing as the expression tab. Two Korean characters fit the same
+   * 44px circle and are unambiguous.
+   */
+  private word(label: string, action: () => void, className = ''): HTMLButtonElement {
+    const button = this.button(label, action, `studio-button studio-word ${className}`.trim())
+    button.title = label
+    return button
+  }
+
   private build(): void {
     const copy = animeCopy()
     const tools = studioToolsCopy()
@@ -142,14 +179,14 @@ export class AnimeEditor {
     framing.setAttribute('role', 'group')
     framing.setAttribute('aria-label', copy.framing)
     for (const face of [false, true]) {
-      const button = this.icon(face ? copy.portrait : copy.full, face ? 'face' : 'body', () => {
+      const button = this.word(face ? copy.portrait : copy.full, () => {
         this.face = face
         this.root.dataset.framing = face ? 'face' : 'full'
         this.renderer?.framePortrait(face)
         for (const item of framing.querySelectorAll('button')) {
           item.setAttribute('aria-pressed', String(item === button))
         }
-      })
+      }, 'studio-control')
       button.setAttribute('aria-pressed', String(this.face === face))
       framing.append(button)
     }
@@ -157,12 +194,12 @@ export class AnimeEditor {
     direction.className = 'studio-direction studio-hud-cluster studio-hud-orbit'
     direction.setAttribute('role', 'group')
     direction.setAttribute('aria-label', copy.direction)
-    for (const [label, icon, yaw] of [
-      [copy.front, 'front', 0],
-      [copy.side, 'side', Math.PI / 2],
-      [copy.back, 'rear', Math.PI],
+    for (const [label, yaw] of [
+      [copy.front, 0],
+      [copy.side, Math.PI / 2],
+      [copy.back, Math.PI],
     ] as const) {
-      const button = this.icon(label, icon, () => this.renderer?.faceDirection(yaw))
+      const button = this.word(label, () => this.renderer?.faceDirection(yaw), 'studio-control')
       button.dataset.requiresModel = ''
       button.disabled = true
       direction.append(button)
@@ -186,7 +223,7 @@ export class AnimeEditor {
     const gestures = document.createElement('div')
     gestures.className = 'studio-direction studio-hud-cluster studio-hud-gestures'
     for (const kind of ['wave', 'cheer', 'pose'] as const) {
-      const button = this.icon(playCopy()[kind], kind, () => this.renderer?.gesture(kind))
+      const button = this.word(playCopy()[kind], () => this.renderer?.gesture(kind), 'studio-control')
       button.dataset.requiresModel = ''
       button.disabled = true
       gestures.append(button)
@@ -195,10 +232,10 @@ export class AnimeEditor {
       this.paused = !this.paused
       pause.setAttribute('aria-pressed', String(this.paused))
       this.renderer?.pause(this.paused)
-    })
+    }, 'studio-button studio-icon studio-control')
     pause.setAttribute('aria-pressed', 'false')
     pause.classList.add('studio-hud-pause')
-    random.classList.add('studio-hud-shuffle')
+    random.classList.add('studio-hud-shuffle', 'studio-control')
     toolbar.append(framing, direction, gestures, pause, random)
     this.stage.append(toolbar)
     const hint = document.createElement('p')
@@ -214,9 +251,22 @@ export class AnimeEditor {
     this.tabs.className = 'studio-tabs'
     this.tabs.setAttribute('role', 'tablist')
     this.tabs.setAttribute('aria-label', copy.description)
-    for (const key of ['looks', 'hair', 'colours', 'expression', 'library'] as const) {
-      const label = key === 'library' ? tools.library : copy[key]
-      const button = this.icon(label, key, () => {
+    /*
+     * Equipment used to live inside the hair tab, behind a hairstyle glyph and
+     * no text — the backpack, arm gear and visor were unreachable unless you
+     * pressed a picture of hair on the off chance. They get their own tab, and
+     * every tab says its name.
+     */
+    const tabs: ReadonlyArray<readonly [Category, string, string]> = [
+      ['looks', 'looks', copy.looks],
+      ['hair', 'hair', copy.hair],
+      ['gear', 'pack', copy.equipment],
+      ['colours', 'colours', copy.colours],
+      ['expression', 'expression', copy.expression],
+      ['library', 'library', tools.library],
+    ]
+    for (const [key, icon, label] of tabs) {
+      const button = this.labelled(label, icon, () => {
         this.category = key
         this.paintOptions()
       }, 'studio-tab studio-icon')
@@ -246,9 +296,9 @@ export class AnimeEditor {
     this.panel.setAttribute('role', 'tabpanel')
     const history = document.createElement('div')
     history.className = 'studio-choice-group studio-history'
-    this.undo = this.icon(tools.undo, 'undo', () => this.restoreHistory(false))
-    this.redo = this.icon(tools.redo, 'redo', () => this.restoreHistory(true))
-    history.append(this.undo, this.redo, this.icon(tools.reset, 'reset', () => {
+    this.undo = this.labelled(tools.undo, 'undo', () => this.restoreHistory(false))
+    this.redo = this.labelled(tools.redo, 'redo', () => this.restoreHistory(true))
+    history.append(this.undo, this.redo, this.labelled(tools.reset, 'reset', () => {
       this.update(DEFAULT_ANIME)
       this.paintOptions()
     }))
@@ -420,50 +470,49 @@ export class AnimeEditor {
       for (const value of options) {
         const slot = this.category
         const label = value === 'angry' || value === 'sad' || value === 'surprised' ? tools[value] : copy[value]
-        const button = this.icon(label, value, () => {
+        const button = this.labelled(label, value, () => {
           this.update({ ...this.draft, [slot]: value })
           this.paintOptions()
         }, 'studio-button studio-icon studio-trait')
         button.setAttribute('aria-pressed', String(this.draft[slot] === value))
         group.append(button)
       }
-      if (this.category === 'hair') {
-        const traitGroup = document.createElement('div')
-        traitGroup.className = 'studio-choice-group studio-traits'
-        traitGroup.setAttribute('role', 'group')
-        traitGroup.setAttribute('aria-label', copy.equipment)
-        for (const [key, icon] of [
-          ['pack', 'pack'],
-          ['arms', 'arms'],
-          ['visor', 'visor'],
-        ] as const) {
-          const on = this.draft[key]
-          const button = this.icon(copy[key], icon, () => {
-            this.update({ ...this.draft, [key]: !on })
-            this.paintOptions()
-          }, 'studio-button studio-icon studio-trait')
-          button.setAttribute('aria-pressed', String(on))
-          traitGroup.append(button)
-        }
-        const kit = document.createElement('div')
-        kit.className = 'studio-choice-group'
-        kit.setAttribute('role', 'group')
-        kit.setAttribute('aria-label', copy.equipment)
-        const allOn = this.draft.pack && this.draft.arms && this.draft.visor
-        const allOff = !this.draft.pack && !this.draft.arms && !this.draft.visor
-        for (const [label, icon, next] of [
-          [copy.none, 'none', { pack: false, arms: false, visor: false }],
-          [copy.gear, 'gear', { pack: true, arms: true, visor: true }],
-        ] as const) {
-          const button = this.icon(label, icon, () => {
-            this.update({ ...this.draft, ...next })
-            this.paintOptions()
-          }, 'studio-button studio-icon studio-trait')
-          button.setAttribute('aria-pressed', String(icon === 'gear' ? allOn : allOff))
-          kit.append(button)
-        }
-        this.panel.append(traitGroup, kit)
+    } else if (this.category === 'gear') {
+      const traitGroup = document.createElement('div')
+      traitGroup.className = 'studio-choice-group studio-traits'
+      traitGroup.setAttribute('role', 'group')
+      traitGroup.setAttribute('aria-label', copy.equipment)
+      for (const [key, icon] of [
+        ['pack', 'pack'],
+        ['arms', 'arms'],
+        ['visor', 'visor'],
+      ] as const) {
+        const on = this.draft[key]
+        const button = this.labelled(copy[key], icon, () => {
+          this.update({ ...this.draft, [key]: !on })
+          this.paintOptions()
+        }, 'studio-button studio-icon studio-trait')
+        button.setAttribute('aria-pressed', String(on))
+        traitGroup.append(button)
       }
+      const kit = document.createElement('div')
+      kit.className = 'studio-choice-group'
+      kit.setAttribute('role', 'group')
+      kit.setAttribute('aria-label', copy.equipment)
+      const allOn = this.draft.pack && this.draft.arms && this.draft.visor
+      const allOff = !this.draft.pack && !this.draft.arms && !this.draft.visor
+      for (const [label, icon, next] of [
+        [copy.none, 'none', { pack: false, arms: false, visor: false }],
+        [copy.gear, 'gear', { pack: true, arms: true, visor: true }],
+      ] as const) {
+        const button = this.labelled(label, icon, () => {
+          this.update({ ...this.draft, ...next })
+          this.paintOptions()
+        }, 'studio-button studio-icon studio-trait')
+        button.setAttribute('aria-pressed', String(icon === 'gear' ? allOn : allOff))
+        kit.append(button)
+      }
+      this.panel.append(traitGroup, kit)
     } else {
       for (const key of ['hairColour', 'eyeColour', 'outfitColour', 'backdrop'] as const) {
         const label = document.createElement('label')
