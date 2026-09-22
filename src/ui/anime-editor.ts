@@ -1,4 +1,4 @@
-import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, FIGURE_AXES, FIGURE_PRESETS, encodeAnime } from '../avatar/anime-spec.ts'
+import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, FIGURE_AXES, FIGURE_PRESETS, SKIN_TONES, encodeAnime } from '../avatar/anime-spec.ts'
 import type { AnimeSpec, FigureAxis, FigureStep } from '../avatar/anime-spec.ts'
 import { myAvatar, setMyAvatar } from '../avatar/store.ts'
 import { cachePortrait } from '../avatar/anime-portrait.ts'
@@ -232,6 +232,19 @@ export class AnimeEditor {
         hairColour: pick().hairColour,
         eyeColour: pick().eyeColour,
         outfitColour: pick().outfitColour,
+        skinColour: SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)]!,
+        // A build, then a nudge on each axis: random figures that are still
+        // bodies, rather than five independent numbers that rarely agree.
+        ...(() => {
+          const builds = Object.values(FIGURE_PRESETS)
+          const build = builds[Math.floor(Math.random() * builds.length)]!
+          return Object.fromEntries(
+            FIGURE_AXES.map((axis) => [
+              axis,
+              Math.max(0, Math.min(6, build[axis] + Math.floor(Math.random() * 3) - 1)) as FigureStep,
+            ]),
+          ) as Record<FigureAxis, FigureStep>
+        })(),
         hair: Math.random() < 0.5 ? 'bob' : 'tails',
         pack: kit.pack,
         arms: kit.arms,
@@ -523,7 +536,12 @@ export class AnimeEditor {
       presets.className = 'studio-choice-group'
       presets.setAttribute('role', 'group')
       presets.setAttribute('aria-label', copy.figure)
-      for (const [key, label] of [['even', copy.figureEven], ['full', copy.figureFull]] as const) {
+      for (const [key, label] of [
+        ['even', copy.figureEven],
+        ['broad', copy.figureBroad],
+        ['curved', copy.figureCurved],
+        ['young', copy.figureYoung],
+      ] as const) {
         const shape = FIGURE_PRESETS[key]
         const button = this.button(label, () => {
           this.update({ ...this.draft, ...shape })
@@ -537,8 +555,10 @@ export class AnimeEditor {
       }
       this.panel.append(presets)
 
-      // A preset is a starting point; each axis still moves on its own.
-      for (const axis of FIGURE_AXES) {
+      // A preset is a starting point; each axis still moves on its own. The
+      // rows read top-down like a body, which is not the order the axes are
+      // saved in — that one has to stay as it is for old codes to decode.
+      for (const axis of ['shoulder', 'bust', 'waist', 'hip', 'head'] as const) {
         this.panel.append(this.figureRow(axis, copy[axis]))
       }
     } else if (this.category === 'gear') {
@@ -578,7 +598,7 @@ export class AnimeEditor {
       }
       this.panel.append(traitGroup, kit)
     } else {
-      for (const key of ['hairColour', 'eyeColour', 'outfitColour', 'backdrop'] as const) {
+      for (const key of ['hairColour', 'eyeColour', 'outfitColour', 'backdrop', 'skinColour'] as const) {
         const label = document.createElement('label')
         label.className = 'studio-colour'
         const name = document.createElement('span')
@@ -591,7 +611,30 @@ export class AnimeEditor {
           this.update({ ...this.draft, [key]: input.value.slice(1).toUpperCase() }),
         )
         label.append(name, input)
-        this.panel.append(label)
+        if (key !== 'skinColour') {
+          this.panel.append(label)
+          continue
+        }
+        // Picking a skin tone out of a colour wheel is a job nobody wants, so
+        // the six tints sit next to the picker rather than replacing it.
+        const tones = document.createElement('div')
+        tones.className = 'studio-swatch-row'
+        tones.setAttribute('role', 'group')
+        tones.setAttribute('aria-label', copy[key])
+        for (const hex of SKIN_TONES) {
+          const swatch = this.button('', () => {
+            this.update({ ...this.draft, skinColour: hex })
+            this.paintOptions()
+          }, 'studio-button studio-swatch')
+          swatch.style.background = `#${hex}`
+          swatch.setAttribute('aria-label', `${copy[key]} #${hex}`)
+          swatch.setAttribute('aria-pressed', String(this.draft.skinColour.toUpperCase() === hex))
+          tones.append(swatch)
+        }
+        const skin = document.createElement('div')
+        skin.className = 'studio-skin'
+        skin.append(label, tones)
+        this.panel.append(skin)
       }
     }
     if (focused)

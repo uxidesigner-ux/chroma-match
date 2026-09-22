@@ -7,7 +7,7 @@ test('anime appearance survives a profile round trip within live rules', () => {
   for (const look of ANIME_LOOKS) {
     const spec = look
     const code = encodeSpec(spec)
-    assert.equal(code.length, 32)
+    assert.equal(code.length, 40)
     assert.ok(code.length <= SPEC_MAX)
     assert.match(code, /^[a-zA-Z0-9-]+$/)
     assert.deepEqual(decodeSpec(code), spec)
@@ -33,7 +33,7 @@ test('mixed explorer pieces survive a profile round trip', () => {
   const spec = { ...DEFAULT_ANIME, pack: true, visor: true, hair: 'bob' as const }
   const code = encodeSpec(spec)
   assert.equal(code[0], '6')
-  assert.equal(code.length, 32)
+  assert.equal(code.length, 40)
   assert.deepEqual(decodeSpec(code), spec)
 })
 
@@ -46,32 +46,74 @@ test('classic kit encodings round trip hair, expression and equipment', () => {
       }
 })
 
-test('a code saved before figures existed still reads, and comes back stated', () => {
-  // The three figure digits are appended, so every appearance anyone had saved
-  // is still a valid code. It decodes to the proportions the model shipped
-  // with — which is what it was drawing — and re-encodes saying so.
-  const before = 'STNN67B7A3A899E891ADB8202C3D'
-  assert.equal(before.length, 28)
-  const spec = decodeAnime(before)
-  assert.ok(spec)
-  assert.deepEqual({ bust: spec.bust, waist: spec.waist, hip: spec.hip }, FIGURE_PRESETS.even)
-  assert.equal(encodeAnime(spec), before + '333')
+test('every earlier code still reads, and comes back stating what it left out', () => {
+  // Each stage of the code is a prefix of the next, so every appearance anyone
+  // has saved is still valid. What it stops short of decodes to the model as it
+  // ships — which is what it was drawing — and re-encodes saying so.
+  const head = 'STNN67B7A3A899E891ADB8202C3D'
+  assert.equal(head.length, 28)
+  for (const [before, filled] of [
+    [head, '33333FFFFFF'],
+    [head + '513', '33FFFFFF'],
+    [head + '51362', 'FFFFFF'],
+  ] as const) {
+    const spec = decodeAnime(before)
+    assert.ok(spec, `${before} should decode`)
+    assert.equal(encodeAnime(spec), before + filled)
+  }
+  // The three axes a shorter code does carry are its own, not the default.
+  assert.deepEqual(decodeAnime(head + '513'), {
+    ...decodeAnime(head),
+    bust: 5,
+    waist: 1,
+    hip: 3,
+  })
+  const plain = decodeAnime(head)
+  assert.ok(plain)
+  assert.deepEqual(
+    { bust: plain.bust, waist: plain.waist, hip: plain.hip, shoulder: plain.shoulder, head: plain.head },
+    FIGURE_PRESETS.even,
+  )
+  assert.equal(plain.skinColour, 'FFFFFF')
 })
 
-test('every figure the studio can set survives a round trip and the profile rule', () => {
+test('every figure and skin the studio can set survives a round trip and the profile rule', () => {
   for (const bust of [0, 3, 6] as const)
     for (const waist of [0, 3, 6] as const)
-      for (const hip of [0, 3, 6] as const) {
-        const spec = { ...DEFAULT_ANIME, bust, waist, hip }
-        const code = encodeSpec(spec)
-        assert.ok(code.length <= SPEC_MAX, `${code} exceeds the profile rule`)
-        assert.match(code, /^[a-zA-Z0-9-]+$/)
-        assert.deepEqual(decodeSpec(code), spec)
-      }
+      for (const hip of [0, 3, 6] as const)
+        for (const shoulder of [0, 6] as const)
+          for (const head of [0, 6] as const)
+            for (const skinColour of ['FFFFFF', '6F4530']) {
+              const spec = { ...DEFAULT_ANIME, bust, waist, hip, shoulder, head, skinColour }
+              const code = encodeSpec(spec)
+              assert.ok(code.length <= SPEC_MAX, `${code} exceeds the profile rule`)
+              assert.match(code, /^[a-zA-Z0-9-]+$/)
+              assert.deepEqual(decodeSpec(code), spec)
+            }
 })
 
-test('a figure outside the range is refused rather than stored', () => {
-  for (const raw of ['STNN67B7A3A899E891ADB8202C3D7' + '33', 'STNN67B7A3A899E891ADB8202C3D33', 'STNN67B7A3A899E891ADB8202C3D3333']) {
+test('every build the studio offers is a distinct, legal figure', () => {
+  const codes = new Set<string>()
+  for (const build of Object.values(FIGURE_PRESETS)) {
+    const spec = { ...DEFAULT_ANIME, ...build }
+    assert.deepEqual(decodeAnime(encodeAnime(spec)), spec)
+    codes.add(encodeAnime(spec))
+  }
+  assert.equal(codes.size, Object.keys(FIGURE_PRESETS).length)
+})
+
+test('a figure or skin outside the range is refused rather than stored', () => {
+  const head = 'STNN67B7A3A899E891ADB8202C3D'
+  for (const raw of [
+    head + '733',
+    head + '33',
+    head + '3333',
+    // Five axes are either followed by a full skin colour or by nothing.
+    head + '33333FFFFF',
+    head + '33333FFFFFFF',
+    head + '33333GGGGGG',
+    head + '37333FFFFFF',
+  ]) {
     assert.equal(decodeAnime(raw), undefined, `${raw} should not decode`)
   }
 })

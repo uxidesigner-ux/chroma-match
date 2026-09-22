@@ -6,9 +6,11 @@ For the expanded game editor (six expressions, library/history, file backup and
 PNG/VRM/GLB export), see [Studio toolkit](studio-toolkit.md). Its capability table
 distinguishes shipped player features from upstream authoring features not ported.
 
-One licensed Seed-san starter model: two hair silhouettes (tails shown/hidden),
-eight starting palettes, independently mixed backpack / arm gear / visor,
-hair/eye/outfit/background colours, six expressions,
+One licensed Seed-san starter model, reproportioned rather than swapped: five
+figure axes (shoulders, chest, waist, hips, head size) at seven steps each, four
+builds as starting points, two hair silhouettes (tails shown/hidden), eight
+starting palettes, independently mixed backpack / arm gear / visor,
+hair/eye/skin/outfit/background colours, six expressions,
 rotation, face/full-body framing, idle breathing and blinking. Apply commits a
 draft; leaving a changed draft asks before discarding it. This is the only
 character editor. This is not the DropHunter outfit catalogue.
@@ -29,15 +31,25 @@ Attribution and the license link are visible in the editor and distributed build
 
 DropHunter and Anata were inspected but not included: embedded metadata restricts
 use/modification/redistribution. No permission was provided for those assets.
+Re-checked against `M3-org/loot-assets` at `anata/{female,male}/Body`, `0N1/Body`
+and `tubbycats/Body`: every body but one reads `licenseName:
+Redistribution_Prohibited`, `allowedUserName: OnlyAuthor` and
+`commercialUssageName: Disallow` in its own VRM 0.x metadata, the female Anata
+body naming Rhinox 3D as its author. Publishing this repository redistributes
+whatever `public/` holds, so those files stay out of it. Character variety comes
+from reproportioning the one model that permits it.
 
 ## Data and rendering
 
-V4 code: `4` + 28-character anime choices = 29 alphanumeric characters. This fits
+V4 code: `4` + 39-character anime choices = 40 alphanumeric characters. This fits
 existing Firestore validation without relaxing rules or adding user-controlled
 URLs. The model and choices are allowlisted. Existing v3 anime payloads are read
 from their prior envelope and rewritten without unused fields. Mixed explorer
 pieces (backpack, arms and visor independently) use a v6 prefix of the same
-length. Other or malformed formats display the starter; no retired rendering or catalogue code is retained.
+length. The figure and the skin are appended rather than woven in, and each
+earlier code is a prefix of a later one: a code that stops after the colours,
+after three axes, or after five decodes to the model as it ships for everything
+it does not state, so no saved appearance changes shape when the studio grows. Other or malformed formats display the starter; no retired rendering or catalogue code is retained.
 
 The editor and Three.js/three-vrm runtime load dynamically. The starter uses a
 bundled PNG generated with `node scripts/capture-default-portrait.mjs`; it does
