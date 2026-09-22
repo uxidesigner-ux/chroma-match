@@ -262,3 +262,68 @@ test('a level transition applies both halves of the curve', () => {
   }
   assert.ok(game.moves > startMoves, 'twelve levels in, the budget should have grown')
 })
+
+test('a rejected swap leaves no offset behind for the next move to drag along', () => {
+  // `offsetFactor` is one multiplier over the whole board, so a gem still
+  // holding an offset from a phase that has ended is drawn a full cell away
+  // the moment any other phase starts, and slides home again — which on screen
+  // is a pair of gems jumping when the player touches something else entirely.
+  const game = newGame(9)
+  settle(game)
+
+  // Find two neighbours whose swap matches nothing, so the board reverts and
+  // no gravity pass runs to tidy up after it.
+  const legal = new Set(findMoves(game.geom, game.grid).map(move => `${move.a}:${move.b}`))
+  let rejected: [number, number] | null = null
+  for (let i = 0; i < game.geom.cells && !rejected; i++) {
+    const right = i + 1
+    if (game.geom.rowOf(i) !== game.geom.rowOf(right)) continue
+    if (legal.has(`${i}:${right}`) || legal.has(`${right}:${i}`)) continue
+    rejected = [i, right]
+  }
+  assert.ok(rejected, 'no rejected swap available on this board')
+
+  const before = game.grid.map(gem => gem && { id: gem.id, kind: gem.kind })
+  game.drag(rejected[0], rejected[1])
+  settle(game, 'after a rejected swap')
+
+  // The revert put every gem back where it started...
+  const after = game.grid.map(gem => gem && { id: gem.id, kind: gem.kind })
+  assert.deepEqual(after, before)
+  // ...and left nothing for the next phase to animate.
+  const stranded = game.grid.filter(gem => gem && (gem.ox !== 0 || gem.oy !== 0))
+  assert.deepEqual(stranded, [], 'a finished phase left offsets on the board')
+})
+
+test('no phase ever begins with an offset it did not set', () => {
+  // The guarantee the renderer needs, checked across a whole run rather than
+  // one hand-picked case: whenever a phase starts, the only gems displaced are
+  // the ones that phase is about.
+  const game = newGame(4)
+  settle(game)
+  let kind = game.phaseKind
+  for (let frame = 0; frame < 3000; frame++) {
+    game.update(FRAME)
+    if (game.phaseKind !== kind) {
+      kind = game.phaseKind
+      if (kind === 'swap' || kind === 'revert') {
+        const moved = game.grid.filter(gem => gem && (gem.ox !== 0 || gem.oy !== 0))
+        assert.ok(moved.length <= 2, `${kind} began with ${moved.length} displaced gems`)
+      }
+    }
+    if (game.phaseKind === 'idle') {
+      const moves = findMoves(game.geom, game.grid)
+      if (moves.length === 0) break
+      const move = moves[frame % moves.length]!
+      // Alternate a real move with a rejected one, which is the pairing that
+      // strands an offset.
+      if (frame % 2 === 0) game.drag(move.a, move.b)
+      else game.drag(move.a, move.b === move.a + 1 ? move.a - 1 : move.a + 1)
+    }
+  }
+  // The loop can stop mid-animation, where an offset is the running phase's
+  // own and entirely correct. Let the board come to rest before asking.
+  settle(game, 'at the end of the run')
+  const stranded = game.grid.filter(gem => gem && (gem.ox !== 0 || gem.oy !== 0))
+  assert.deepEqual(stranded, [], 'the run ended with offsets still on the board')
+})

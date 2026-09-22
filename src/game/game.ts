@@ -509,6 +509,28 @@ export class Game {
     this.phase.t += dt
     if (this.phase.t < this.phase.d) return
 
+    /*
+     * A gem's offset belongs to the phase that put it there.
+     *
+     * `offsetFactor` is one multiplier over the whole board, and it is zero
+     * only while idle, clearing or fusing — so a gem still carrying an offset
+     * from a finished phase is drawn a full cell away the instant any other
+     * phase begins, and slides home again. A rejected swap is where it showed:
+     * the pair keeps the offset its revert leg used, nothing clears it (only
+     * gravity and a shuffle do, and neither runs), and the player's next swap
+     * anywhere on the board drags those two along with it.
+     *
+     * Clearing here rather than in `startPhase` is deliberate: `swapCells` and
+     * `applyGravity` set their offsets before starting a phase, so this is the
+     * one point where no phase owns an offset.
+     */
+    for (const gem of this.grid) {
+      if (gem) {
+        gem.ox = 0
+        gem.oy = 0
+      }
+    }
+
     switch (this.phase.kind) {
       case 'swap':
         this.finishSwap()
