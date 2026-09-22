@@ -6,12 +6,12 @@ For the expanded game editor (six expressions, library/history, file backup and
 PNG/VRM/GLB export), see [Studio toolkit](studio-toolkit.md). Its capability table
 distinguishes shipped player features from upstream authoring features not ported.
 
-One licensed Seed-san starter model, reproportioned rather than swapped: five
-figure axes (shoulders, chest, waist, hips, head size) at seven steps each, four
-builds as starting points, two hair silhouettes (tails shown/hidden), eight
-starting palettes, independently mixed backpack / arm gear / visor,
-hair/eye/skin/outfit/background colours, six expressions,
-rotation, face/full-body framing, idle breathing and blinking. Apply commits a
+One licensed Seed-san starter model, reproportioned rather than swapped: a male
+or female character, five figure axes (shoulders, chest, waist, hips, head size)
+at seven steps each, four builds as starting points, three hair silhouettes
+(ponytail hidden, worn, worn long), eight starting palettes, independently mixed
+backpack / arm gear / visor, hair/eye/skin/outfit/background colours, six
+expressions, rotation, face/full-body framing, idle breathing and blinking. Apply commits a
 draft; leaving a changed draft asks before discarding it. This is the only
 character editor. This is not the DropHunter outfit catalogue.
 
@@ -39,17 +39,45 @@ body naming Rhinox 3D as its author. Publishing this repository redistributes
 whatever `public/` holds, so those files stay out of it. Character variety comes
 from reproportioning the one model that permits it.
 
+## What the one model does and does not allow
+
+The figure axes are bone work. Shoulder width is translation rather than scale,
+because scaling a bone shears the arm hanging off it; head size is the only
+scale allowed to carry down, so the hair and eyes grow with it.
+
+A bust is not bone work. Scaling the chest widens the ribcage front and back
+alike, and the model carries no morph target for it — its forty-three are all
+facial. It is therefore sculpted: vertices in front of the spine move away from
+a point set back inside the ribcage, by an amount falling off with distance from
+the centre of each side, over skin, clothing and the badge printed on it alike.
+The backpack straps cross the same space (576 and 528 vertices) and are left
+alone, because gear that swells with the body under it reads as a fault. Every
+pass rewrites from the model's own vertices, so male restores the shipped mesh.
+
+Hairstyles are limited to three by the asset, not by the code. The hair is a
+single mesh weighted 4902 of 5145 to the head bone itself; the eleven strand
+chains hanging off it carry between fourteen and thirty-six each and exist to
+let the tips swing, so scaling them changes nothing visible. The ponytail is the
+one part rigged to move — its own 156-vertex mesh on its own six-bone chain —
+and can be hidden, worn, or lengthened. Distinct cuts would need hair geometry
+this model does not carry.
+
 ## Data and rendering
 
-V4 code: `4` + 39-character anime choices = 40 alphanumeric characters. This fits
+V4 code: `4` + 40-character anime choices = 41 alphanumeric characters. This fits
 existing Firestore validation without relaxing rules or adding user-controlled
 URLs. The model and choices are allowlisted. Existing v3 anime payloads are read
 from their prior envelope and rewritten without unused fields. Mixed explorer
 pieces (backpack, arms and visor independently) use a v6 prefix of the same
 length. The figure and the skin are appended rather than woven in, and each
 earlier code is a prefix of a later one: a code that stops after the colours,
-after three axes, or after five decodes to the model as it ships for everything
-it does not state, so no saved appearance changes shape when the studio grows. Other or malformed formats display the starter; no retired rendering or catalogue code is retained.
+after three axes, after five, or after the skin decodes to the model as it ships
+for everything it does not state, so no saved appearance changes shape when the
+studio grows. The character letter is read by position rather than as a suffix,
+because `F` is also a hex digit and a skin colour ending in `F` would otherwise
+be misread. The hairstyle is the one widened field rather than an appended one:
+it is a fixed position, so adding letters to its alphabet leaves `B` and `T`
+meaning what they always meant. Other or malformed formats display the starter; no retired rendering or catalogue code is retained.
 
 The editor and Three.js/three-vrm runtime load dynamically. The starter uses a
 bundled PNG generated with `node scripts/capture-default-portrait.mjs`; it does

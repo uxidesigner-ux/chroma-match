@@ -97,7 +97,7 @@ function silhouetteOf(page: Page) {
           lit += data[i]! * 0.2126 + data[i + 1]! * 0.7152 + data[i + 2]! * 0.0722
           ink++
         }
-      return { height: bottom - top, profile, span, light: ink ? lit / ink : 0 }
+      return { height: bottom - top, profile, span, light: ink ? lit / ink : 0, area: ink / ((bottom - top) ** 2) }
     })
 }
 
@@ -215,4 +215,62 @@ test('a skin tone darkens the character and white leaves the model as drawn', as
   await page.getByRole('button', { name: '피부 #FFFFFF', exact: true }).click()
   const back = await silhouette()
   expect(Math.abs(back!.light - pale!.light), 'white did not restore the model').toBeLessThan(0.5)
+})
+
+test('a female character carries a bust a male one does not, and going back takes it off', async ({ page }) => {
+  await openStudio(page, '체형')
+  const silhouette = silhouetteOf(page)
+  // Read from the side: a bust is depth, and from the front it is shading.
+  await page.getByRole('button', { name: '측면', exact: true }).click()
+
+  /*
+   * Picking a character also seeds a build, which moves four bones. Landing
+   * back on the even build after each pick strips that away, so what is left
+   * between the two shots is the sculpt and nothing else.
+   */
+  const evened = async () => {
+    await page.getByRole('button', { name: '기본', exact: true }).click()
+    return silhouette()
+  }
+  await page.getByRole('button', { name: '남성', exact: true }).click()
+  const male = await evened()
+  expect(male, 'nothing was drawn to measure').not.toBeNull()
+  await page.getByRole('button', { name: '여성', exact: true }).click()
+  const female = await evened()
+  await page.getByRole('button', { name: '남성', exact: true }).click()
+  const back = await evened()
+
+  const chest = (shot: Shot) => mean(band(shot, 0.20, 0.28, 'span'))
+  const waist = (shot: Shot) => mean(band(shot, 0.33, 0.41, 'span'))
+  expect(chest(female!) / chest(male!), 'the chest gained no depth').toBeGreaterThan(1.06)
+  // The shape is bounded: nothing below the ribs is touched by it.
+  expect(waist(female!) / waist(male!), 'the sculpt reached past the ribs').toBeGreaterThan(0.97)
+  expect(waist(female!) / waist(male!), 'the sculpt reached past the ribs').toBeLessThan(1.03)
+  /*
+   * Every pass rewrites from the model's own vertices, so going back has to
+   * land on the mesh exactly, not merely near it — otherwise switching twice
+   * would leave a character no code could describe.
+   */
+  expect(chest(back!) / chest(male!), 'the chest did not go back').toBeGreaterThan(0.995)
+  expect(chest(back!) / chest(male!), 'the chest did not go back').toBeLessThan(1.005)
+})
+
+test('the ponytail is hidden, worn, or worn long, and each draws a different head of hair', async ({ page }) => {
+  await openStudio(page, '헤어')
+  const silhouette = silhouetteOf(page)
+  await page.getByRole('button', { name: '측면', exact: true }).click()
+
+  const wearing = async (style: string) => {
+    await page.getByRole('button', { name: style, exact: true }).click()
+    const shot = await silhouette()
+    expect(shot, `${style} drew nothing`).not.toBeNull()
+    // Ink against the character's own height squared, so the camera pulling
+    // back to frame a longer tail does not read as a shorter one.
+    return shot!.area
+  }
+  const bob = await wearing('단발')
+  const tail = await wearing('포니테일')
+  const long = await wearing('긴 포니테일')
+  expect(tail, 'the ponytail added nothing to the silhouette').toBeGreaterThan(bob * 1.01)
+  expect(long, 'the long ponytail is no longer than the short one').toBeGreaterThan(tail * 1.01)
 })

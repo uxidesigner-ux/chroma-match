@@ -71,7 +71,7 @@ test('a saved draft reaches the profile and 3D lobby and survives reload', async
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   const saved = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
-  expect(saved).toMatch(/^4S[BT][NHR][NG][0-9A-F]{24}[0-6]{5}[0-9A-F]{6}$/)
+  expect(saved).toMatch(/^4S[BT][NHR][NG][0-9A-F]{24}[0-6]{5}[0-9A-F]{6}[MF]$/)
   await page.locator('#creator-back').click()
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   await expectFaceCrop(page, '#profile-avatar')
@@ -206,7 +206,7 @@ test('a missing custom portrait regenerates from the code and reopens the same e
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
   await expect(page.getByRole('button', { name: 'Ember', exact: true })).toHaveAttribute('aria-pressed', 'true')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toMatch(
-    /^4S[BT][NHR][NG][0-9A-F]{24}[0-6]{5}[0-9A-F]{6}$/,
+    /^4S[BT][NHR][NG][0-9A-F]{24}[0-6]{5}[0-9A-F]{6}[MF]$/,
   )
 })
 
@@ -272,7 +272,7 @@ test('retired profile data becomes the starter without changing scores', async (
     code: localStorage.getItem('chroma-match:avatar'), best: localStorage.getItem('chroma-match:best'),
     level: localStorage.getItem('chroma-match:best-level'), name: localStorage.getItem('chroma-match:name'),
   }))
-  expect(state).toEqual({ code: '4STNN67B7A3A899E891ADB8202C3D33333FFFFFF', best: '9876', level: '7', name: 'Returning player' })
+  expect(state).toEqual({ code: '4STNN67B7A3A899E891ADB8202C3D33333FFFFFFM', best: '9876', level: '7', name: 'Returning player' })
   await openAnime(page)
   await expect(page.getByRole('button', { name: 'Full body', exact: true })).toHaveAttribute('aria-pressed', 'true')
 })
@@ -283,7 +283,7 @@ test('existing anime data migrates to the compact code without changing appearan
   await page.reload()
   await enterLobby(page)
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
-  expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe('4' + previous.slice(46) + '33333FFFFFF')
+  expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe('4' + previous.slice(46) + '33333FFFFFFM')
   await openAnime(page)
   await expect(page.getByRole('button', { name: 'Ember', exact: true })).toHaveAttribute('aria-pressed', 'true')
 })

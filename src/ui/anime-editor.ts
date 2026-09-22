@@ -1,5 +1,5 @@
-import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, FIGURE_AXES, FIGURE_PRESETS, SKIN_TONES, encodeAnime } from '../avatar/anime-spec.ts'
-import type { AnimeSpec, FigureAxis, FigureStep } from '../avatar/anime-spec.ts'
+import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, FIGURE_AXES, FIGURE_PRESETS, HAIR_STYLES, SKIN_TONES, encodeAnime } from '../avatar/anime-spec.ts'
+import type { AnimeSpec, FigureAxis, FigureStep, HairStyle } from '../avatar/anime-spec.ts'
 import { myAvatar, setMyAvatar } from '../avatar/store.ts'
 import { cachePortrait } from '../avatar/anime-portrait.ts'
 import { account } from '../leaderboard/session.ts'
@@ -245,7 +245,7 @@ export class AnimeEditor {
             ]),
           ) as Record<FigureAxis, FigureStep>
         })(),
-        hair: Math.random() < 0.5 ? 'bob' : 'tails',
+        hair: (Object.keys(HAIR_STYLES) as HairStyle[])[Math.floor(Math.random() * Object.keys(HAIR_STYLES).length)]!,
         pack: kit.pack,
         arms: kit.arms,
         visor: kit.visor,
@@ -514,7 +514,7 @@ export class AnimeEditor {
       this.panel.append(group)
       const options =
         this.category === 'hair'
-          ? (['tails', 'bob'] as const)
+          ? (Object.keys(HAIR_STYLES) as HairStyle[])
           : EXPRESSIONS
       for (const value of options) {
         const slot = this.category
@@ -531,6 +531,29 @@ export class AnimeEditor {
       note.className = 'studio-file-note'
       note.textContent = copy.figureNote
       this.panel.append(note)
+
+      /*
+       * The one choice above the builds, because it is the only one that
+       * changes what the body can do rather than how much of it there is. It
+       * seeds a matching build so the pick reads immediately; every row under
+       * it stays free afterwards, on either.
+       */
+      const sexes = document.createElement('div')
+      sexes.className = 'studio-choice-group'
+      sexes.setAttribute('role', 'group')
+      sexes.setAttribute('aria-label', copy.sex)
+      for (const [sex, label, build] of [
+        ['male', copy.male, FIGURE_PRESETS.broad],
+        ['female', copy.female, FIGURE_PRESETS.curved],
+      ] as const) {
+        const button = this.button(label, () => {
+          this.update({ ...this.draft, sex, ...build })
+          this.paintOptions()
+        }, 'studio-button studio-figure-preset')
+        button.setAttribute('aria-pressed', String(this.draft.sex === sex))
+        sexes.append(button)
+      }
+      this.panel.append(sexes)
 
       const presets = document.createElement('div')
       presets.className = 'studio-choice-group'
