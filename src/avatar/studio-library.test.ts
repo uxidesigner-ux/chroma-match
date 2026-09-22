@@ -8,7 +8,7 @@ test('all six expressions round trip through profile and backup files', () => {
   for (const expression of EXPRESSIONS) {
     const spec = { ...DEFAULT_ANIME, expression }
     const code = encodeSpec(spec)
-    assert.equal(code.length, 29)
+    assert.equal(code.length, 32)
     assert.equal(isKnownSpec(code), true)
     assert.deepEqual(decodeSpec(code), spec)
     assert.deepEqual(parseLookFile(lookFile(spec)), spec)
@@ -20,7 +20,7 @@ test('independent explorer pieces use a v6 code and still round trip', () => {
   const spec = { ...DEFAULT_ANIME, pack: true, visor: true, expression: 'happy' as const }
   const code = encodeSpec(spec)
   assert.equal(code[0], '6')
-  assert.equal(code.length, 29)
+  assert.equal(code.length, 32)
   assert.deepEqual(decodeSpec(code), spec)
   assert.equal(isKnownSpec(code), true)
 })
