@@ -92,7 +92,7 @@ test('PNG downloads have real pixels, transparent backgrounds and camera restora
 
 test('VRM and GLB exports load again, retain permissions and match selected palette/visibility', async ({ page }) => {
   await page.getByRole('button', { name: 'Ember', exact: true }).click()
-  await page.getByRole('tab', { name: 'Details', exact: true }).click()
+  await page.getByRole('tab', { name: 'Hair', exact: true }).click()
   await page.getByRole('button', { name: 'Short bob', exact: true }).click()
   await page.getByText('Images & 3D model', { exact: true }).click()
   for (const label of ['Avatar (.vrm)', '3D model (.glb)']) {

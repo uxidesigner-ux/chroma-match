@@ -2414,56 +2414,6 @@ html.splash-open body {
   display: none;
 }
 
-/* Icons, built from stacked background layers rather than a clip path.
- *
- * A CSS `polygon()` is one polygon: listing a second shape's points after the
- * first does not draw two shapes, it draws one shape that visits all of them,
- * which is how the first attempt at these turned a podium into a mountain.
- * Layered gradients have no such problem — each layer is its own rectangle —
- * and it is the same trick the daily reward's gift box already uses.
- */
-.quick-icon {
-  width: 26px;
-  height: 26px;
-  position: relative;
-  --ink: var(--muted);
-}
-
-/* Three bars of different heights: a podium. */
-.quick-ranks {
-  background:
-    linear-gradient(var(--ink), var(--ink)) left 2px bottom 1px / 6px 13px no-repeat,
-    linear-gradient(var(--ink), var(--ink)) center bottom 1px / 6px 21px no-repeat,
-    linear-gradient(var(--ink), var(--ink)) right 2px bottom 1px / 6px 9px no-repeat;
-}
-
-/* A lid band and a ribbon: a wrapped box. */
-.quick-today {
-  background:
-    linear-gradient(var(--ink), var(--ink)) center top 4px / 24px 5px no-repeat,
-    linear-gradient(var(--ink), var(--ink)) center bottom 2px / 20px 15px no-repeat,
-    linear-gradient(var(--bg), var(--bg)) center bottom 2px / 3px 15px no-repeat;
-}
-
-/* A bag: a body, and an arch above it for the handle. */
-.quick-shop {
-  background: linear-gradient(var(--ink), var(--ink)) center bottom 2px / 21px 15px no-repeat;
-  border-radius: 0 0 4px 4px;
-}
-
-.quick-shop::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 2px;
-  width: 12px;
-  height: 10px;
-  transform: translateX(-50%);
-  border: 2px solid var(--ink);
-  border-bottom: 0;
-  border-radius: 5px 5px 0 0;
-}
-
 /* ---- the profile sheet: name, face and the customiser ------------------- */
 
 .editor {

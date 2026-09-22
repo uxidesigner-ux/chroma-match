@@ -15,23 +15,71 @@
   cursor: pointer;
 }
 .studio-icon {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   display: grid;
   place-items: center;
   border-radius: 50%;
 }
+
+/*
+ * A control that names itself: the glyph over a caption, in one hit area. Used
+ * for the tabs and for every option the player picks from, which is everywhere
+ * an icon alone was leaving them to guess.
+ */
+.studio-labelled {
+  width: auto;
+  min-width: 44px;
+  height: auto;
+  min-height: 56px;
+  gap: 3px;
+  padding: 6px 6px 5px;
+  border-radius: 12px;
+  grid-auto-flow: row;
+}
+.studio-button-label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Two Korean characters in a 44px circle. Framing and direction read faster as
+ * words than as the near-identical silhouettes they used to be.
+ */
+.studio-word {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
 .studio-icon.studio-button[aria-pressed='true'],
 .studio-icon.studio-look[aria-pressed='true'] {
   padding: 0;
 }
+.studio-labelled.studio-button[aria-pressed='true'],
+.studio-tab.studio-labelled[aria-selected='true'] {
+  padding: 5px 5px 4px;
+}
+.studio-tab.studio-labelled[aria-selected='true'] {
+  padding: 6px 1px 3px;
+}
+.studio-word.studio-button[aria-pressed='true'] {
+  padding: 0 7px;
+}
 .studio-tab.studio-icon {
   width: auto;
   min-width: 0;
-  height: 44px;
+  height: auto;
+  min-height: 56px;
   border-radius: 10px 10px 0 0;
 }
 .studio-button:hover,
@@ -44,6 +92,13 @@
   padding: 9px 15px;
   background: color-mix(in srgb, var(--accent-2) 12%, var(--bg));
 }
+/*
+ * `overflow-y: auto` makes `overflow-x` compute to `auto` too — the pair cannot
+ * be split — so this column clips horizontally whether it was asked to or not,
+ * and the Paper skin's hard offset shadow was being sliced off the full-width
+ * Apply button. The padding gives the shadow somewhere to live; the negative
+ * margin gives the width straight back. Same trick, same reason, as `.home`.
+ */
 .anime-studio {
   display: flex;
   flex: 1;
@@ -51,6 +106,8 @@
   min-height: 0;
   gap: 12px;
   overflow-y: auto;
+  padding-inline: 8px;
+  margin-inline: -8px;
 }
 .studio-viewer {
   display: flex;
@@ -65,7 +122,7 @@
   min-height: 220px;
   overflow: hidden;
   border-radius: 16px;
-  background: #202c3d;
+  background: var(--panel-strong);
 }
 .studio-stage canvas {
   display: block;
@@ -84,8 +141,9 @@
   left: 14px;
   top: 14px;
   font-size: 11px;
-  color: #fff;
-  background: #17202ecc;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  border: 1px solid var(--line);
   padding: 6px 10px;
   border-radius: 6px;
   pointer-events: none;
@@ -99,16 +157,16 @@
   justify-content: center;
   align-items: center;
   padding: 30px;
-  background: #202c3d;
-  color: #fff;
+  background: var(--bg);
+  color: var(--text);
   text-align: center;
   line-height: 1.65;
   font-size: 14px;
 }
 .studio-loading .studio-button {
-  color: #fff;
-  background: #364a65;
-  border-color: #758ba8;
+  color: var(--text);
+  background: var(--panel-strong);
+  border-color: var(--line);
 }
 .studio-toolbar {
   display: flex;
@@ -139,6 +197,7 @@
   left: 50%;
   bottom: 10px;
   transform: translateX(-50%);
+  max-width: calc(100% - 130px);
 }
 .studio-hud-gestures {
   position: absolute;
@@ -156,14 +215,20 @@
   right: 10px;
   bottom: 10px;
 }
-.studio-hud .studio-icon {
-  background: color-mix(in srgb, #17202e 72%, transparent);
-  color: #fff;
-  border-color: #758ba8;
+/*
+ * The stage chrome floats over a 3D backdrop the player chose, so it carries a
+ * scrim rather than a flat panel — but the scrim is the page's own background,
+ * not a constant. It used to be a hardcoded navy, which left the whole editor a
+ * dark island once the Paper skin turned the rest of the app to paper.
+ */
+.studio-hud .studio-control {
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  color: var(--text);
+  border-color: var(--line);
 }
-.studio-hud .studio-icon[aria-pressed='true'] {
+.studio-hud .studio-control[aria-pressed='true'] {
   border-color: var(--accent-2);
-  background: color-mix(in srgb, var(--accent-2) 28%, #17202e);
+  background: color-mix(in srgb, var(--accent-2) 30%, var(--bg));
 }
 .studio-view-switch,
 .studio-direction {
@@ -205,7 +270,7 @@
 }
 .studio-tabs {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   border-bottom: 1px solid var(--line);
   gap: 2px;
 }
@@ -219,6 +284,8 @@
 }
 .studio-tab.studio-icon {
   border-bottom: 3px solid transparent;
+  border-radius: 10px 10px 0 0;
+  padding: 7px 2px 4px;
 }
 .studio-tab[aria-selected='true'] {
   border-bottom-color: var(--accent-2);
@@ -243,8 +310,7 @@
 }
 .studio-traits .studio-icon,
 .studio-history .studio-icon {
-  width: 44px;
-  height: 44px;
+  min-width: 56px;
 }
 .studio-options[data-category='looks'],
 .studio-options[data-category='colours'] {
@@ -341,8 +407,7 @@
 .studio-history .studio-icon,
 .studio-choice-group .studio-icon {
   flex: none;
-  width: 44px;
-  height: 44px;
+  min-width: 56px;
 }
 .studio-files { border-top: 1px solid var(--line); }
 .studio-files details { border-bottom: 1px solid var(--line); padding-bottom: 8px; }

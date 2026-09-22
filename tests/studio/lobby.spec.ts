@@ -28,8 +28,11 @@ test('lobby rotates with keys and gestures, releases 3D on play and returns safe
     await page.getByRole('button', { name: label, exact: true }).click()
     await expect(page.locator('#lobby-stage')).toHaveAttribute('data-gesture', key!)
   }
-  await expect(page.getByRole('button', { name: '설정', exact: true })).toHaveText('⚙')
-  await expect(page.getByRole('button', { name: '게임 방법', exact: true })).toHaveText('?')
+  for (const [label, glyph] of [['설정', 'gear'], ['게임 방법', 'help']]) {
+    const button = page.getByRole('button', { name: label, exact: true })
+    await expect(button).toHaveText('')
+    await expect(button.locator(`.hud-ico.hud-ico-${glyph}`)).toHaveCount(1)
+  }
   await expect(page.locator('#start-game')).toBeInViewport()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.locator('#start-game').click(); await page.locator('#loadout-start').click()
@@ -158,4 +161,61 @@ test('lobby chrome puts equal nav on top, coins under the name, and play actions
   expect(Math.abs(continueBox.y - startBox.y)).toBeLessThan(2)
   expect(Math.abs(continueBox.height - startBox.height)).toBeLessThan(2)
   expect(startBox.x).toBeGreaterThan(continueBox.x + continueBox.width - 1)
+})
+
+test('lobby and studio chrome hold a 44px target on narrow phones, and the studio follows the skin', async ({ page }) => {
+  // The suite runs on the Paper skin, so the studio's own colours are the test:
+  // it used to paint itself from hardcoded navy and stayed dark while the rest
+  // of the app turned to paper.
+  for (const [width, height] of [[360, 780], [320, 568], [390, 844]]) {
+    await page.setViewportSize({ width: width!, height: height! })
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+      .toBe(true)
+    const chrome = page.locator('.lobby-head .quick-btn, .lobby-head .circle-button, #lobby-edit, #lobby-tools button')
+    for (const button of await chrome.all()) {
+      const box = (await button.boundingBox())!
+      expect(box.width).toBeGreaterThanOrEqual(44)
+      expect(box.height).toBeGreaterThanOrEqual(44)
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.locator('#lobby-edit').click()
+  await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+
+  for (const button of await page.locator('.studio-hud button').all()) {
+    const box = (await button.boundingBox())!
+    expect(box.width).toBeGreaterThanOrEqual(44)
+    expect(box.height).toBeGreaterThanOrEqual(44)
+  }
+
+  // Every tab names itself; the equipment that used to hide behind the hair
+  // glyph is a destination of its own.
+  await expect(page.getByRole('tab')).toHaveCount(6)
+  for (const name of ['스타일', '헤어', '장비', '색상', '표정', '보관함']) {
+    await expect(page.getByRole('tab', { name, exact: true })).toHaveText(name)
+  }
+  await page.getByRole('tab', { name: '장비', exact: true }).click()
+  await expect(page.getByRole('button', { name: '배낭', exact: true })).toHaveText('배낭')
+
+  // The stage HUD takes its scrim from the page, not from a constant.
+  const stageInk = await page.locator('.studio-stage').evaluate(
+    node => getComputedStyle(node).backgroundColor,
+  )
+  const pageInk = await page.evaluate(
+    () => getComputedStyle(document.documentElement).getPropertyValue('--panel-strong').trim(),
+  )
+  expect(stageInk).not.toBe('rgb(32, 44, 61)')
+  expect(pageInk).not.toBe('')
+
+  // Paper hangs a hard offset shadow off the Apply button; the scroll box has
+  // to leave room for it rather than slicing it at the edge.
+  const overflow = await page.locator('#anime-studio').evaluate(node => ({
+    scroll: node.scrollWidth,
+    client: node.clientWidth,
+    pad: getComputedStyle(node).paddingRight,
+  }))
+  expect(overflow.scroll).toBeLessThanOrEqual(overflow.client)
+  expect(parseFloat(overflow.pad)).toBeGreaterThanOrEqual(8)
 })
