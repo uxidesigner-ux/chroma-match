@@ -9,9 +9,9 @@
   border: 1px solid var(--line);
   background: var(--panel);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-md);
   cursor: pointer;
 }
 .studio-icon {
@@ -37,11 +37,11 @@
   min-height: 56px;
   gap: 3px;
   padding: 6px 6px 5px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   grid-auto-flow: row;
 }
 .studio-button-label {
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
   line-height: 1.25;
   text-align: center;
@@ -56,8 +56,8 @@
   min-width: 44px;
   min-height: 44px;
   padding: 0 8px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
   font-weight: 650;
   white-space: nowrap;
 }
@@ -80,7 +80,7 @@
   min-width: 0;
   height: auto;
   min-height: 56px;
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 .studio-button:hover,
 .studio-look:hover {
@@ -121,7 +121,7 @@
   flex: 1;
   min-height: 220px;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: var(--radius);
   background: var(--panel-strong);
 }
 .studio-stage canvas {
@@ -140,12 +140,12 @@
   position: absolute;
   left: 14px;
   top: 14px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--text);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   border: 1px solid var(--line);
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   pointer-events: none;
 }
 .studio-loading {
@@ -161,7 +161,7 @@
   color: var(--text);
   text-align: center;
   line-height: 1.65;
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 .studio-loading .studio-button {
   color: var(--text);
@@ -180,6 +180,11 @@
   z-index: 2;
   pointer-events: none;
 }
+.anime-studio:not([data-state='ready']) .studio-hud,
+.anime-studio:not([data-state='ready']) .studio-below-stage {
+  opacity: 0.35;
+  pointer-events: none;
+}
 .studio-hud > * {
   pointer-events: auto;
 }
@@ -192,23 +197,22 @@
   top: 10px;
   right: 10px;
 }
-.studio-hud-orbit {
-  position: absolute;
-  left: 50%;
-  bottom: 10px;
-  transform: translateX(-50%);
-  max-width: calc(100% - 130px);
+/* Direction moved below the preview; these three hold the stage. */
+.studio-below-stage {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
 }
 .studio-hud-gestures {
   position: absolute;
   left: 10px;
   bottom: 10px;
-  flex-direction: column;
 }
 .studio-hud-pause {
   position: absolute;
-  right: 10px;
-  bottom: 58px;
+  right: 62px;
+  bottom: 10px;
 }
 .studio-hud-shuffle {
   position: absolute;
@@ -243,11 +247,14 @@
 .studio-toolbar .studio-button {
   padding: 8px 12px;
 }
+.studio-note {
+  opacity: 0.85;
+}
 .studio-hint {
   margin: 0;
   color: var(--text);
   opacity: 0.8;
-  font-size: 11px;
+  font-size: var(--text-xs);
   line-height: 1.5;
   text-align: center;
 }
@@ -263,7 +270,7 @@
   margin: 0 0 4px;
 }
 .studio-heading p {
-  font-size: 13px;
+  font-size: var(--text-md);
   line-height: 1.5;
   margin: 0;
   color: var(--text);
@@ -280,11 +287,11 @@
   border: 0;
   border-radius: 0;
   border-bottom: 3px solid transparent;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .studio-tab.studio-icon {
   border-bottom: 3px solid transparent;
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   padding: 7px 2px 4px;
 }
 .studio-tab[aria-selected='true'] {
@@ -333,7 +340,7 @@
   width: 44px;
   height: 28px;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 .studio-look-palette i {
   flex: 1;
@@ -343,7 +350,7 @@
   align-items: center;
   flex-direction: column;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .studio-colour input {
   width: 48px;
@@ -351,7 +358,7 @@
   padding: 3px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 .studio-footer {
@@ -363,7 +370,7 @@
   margin: 0;
   min-height: 20px;
   line-height: 1.5;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--text);
 }
 .studio-apply {
@@ -371,24 +378,46 @@
   width: 100%;
 }
 .studio-credit {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--text);
   line-height: 1.5;
   text-align: center;
   text-underline-offset: 3px;
 }
 .studio-discard {
-  padding: 12px;
-  border: 1px solid var(--accent-2);
-  border-radius: 10px;
+  margin: auto;
+  width: min(340px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-strong);
+  color: var(--text);
+  box-shadow: var(--panel-shadow);
+}
+.studio-discard::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+.studio-discard p {
+  margin: 0 0 16px;
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+.studio-discard-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-.studio-discard p {
-  margin: 0 0 4px;
-  width: 100%;
-  font-size: 13px;
+.studio-discard-actions .studio-button {
+  flex: 1 1 auto;
+}
+/* Losing the work is the weightier of the two, and says so. */
+.studio-discard-leave {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+[data-skin='paper'] .studio-discard-leave {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .anime-studio :focus-visible {
   outline: 3px solid var(--accent-2);
@@ -411,20 +440,20 @@
 }
 .studio-files { border-top: 1px solid var(--line); }
 .studio-files details { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
-.studio-files summary { min-height: 44px; padding: 14px 0 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
-.studio-file-note { font-size: 12px; line-height: 1.6; margin: 0 0 12px; }
-.studio-import { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; font-size: 12px; }
+.studio-files summary { min-height: 44px; padding: 14px 0 8px; cursor: pointer; font-size: var(--text-md); font-weight: 600; }
+.studio-file-note { font-size: var(--text-sm); line-height: 1.6; margin: 0 0 12px; }
+.studio-import { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; font-size: var(--text-sm); }
 .studio-import input { width: 100%; min-width: 0; min-height: 44px; font: inherit; }
-.studio-import input::file-selector-button { min-height: 44px; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; cursor: pointer; }
-.studio-transparent { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 12px; }
+.studio-import input::file-selector-button { min-height: 44px; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: var(--radius-sm); cursor: pointer; }
+.studio-transparent { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: var(--text-sm); }
 .studio-transparent input { width: 20px; height: 20px; accent-color: var(--accent-2); }
 .studio-options[data-category='library'] { display: block; }
 .studio-library-form { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; }
-.studio-library-form label { display: flex; flex: 1; flex-direction: column; gap: 6px; font-size: 12px; min-width: 130px; }
-.studio-library-form input { width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
+.studio-library-form label { display: flex; flex: 1; flex-direction: column; gap: 6px; font-size: var(--text-sm); min-width: 130px; }
+.studio-library-form input { width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); color: var(--text); font: inherit; }
 .studio-saved-list { list-style: none; padding: 0; margin: 12px 0 0; }
 .studio-saved-list li { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
-.studio-saved-list li > span { flex: 1 1 100px; overflow-wrap: anywhere; font-size: 13px; }
+.studio-saved-list li > span { flex: 1 1 100px; overflow-wrap: anywhere; font-size: var(--text-md); }
 @media (min-width: 860px) {
   .app.has-studio {
     max-width: 1080px;
@@ -442,7 +471,7 @@
     padding: 20px 8px;
   }
   .studio-heading h3 {
-    font-size: 30px;
+    font-size: var(--text-3xl);
   }
   .studio-options {
     min-height: 132px;

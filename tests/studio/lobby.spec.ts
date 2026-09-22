@@ -219,3 +219,71 @@ test('lobby and studio chrome hold a 44px target on narrow phones, and the studi
   expect(overflow.scroll).toBeLessThanOrEqual(overflow.client)
   expect(parseFloat(overflow.pad)).toBeGreaterThanOrEqual(8)
 })
+
+test('accent chips clear WCAG AA on every skin, and the discard prompt is a real modal', async ({ page }) => {
+  const contrast = (a: string, b: string) => {
+    const rgb = (c: string) => c.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number)
+    const lum = (c: string) =>
+      rgb(c)
+        .map(v => (v /= 255) <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))
+        .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i]!, 0)
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
+    return (hi! + 0.05) / (lo! + 0.05)
+  }
+
+  // Every skin puts a light colour in --accent, so the white that used to sit
+  // on these chips scored between 1.67:1 and 2.14:1.
+  for (const skin of ['jewel', 'glass', 'paper']) {
+    await page.goto(`/?seed=3&skin=${skin}`)
+    await enterLobby(page)
+    const pair = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement)
+      const probe = document.createElement('span')
+      probe.className = 'quick-badge'
+      document.body.append(probe)
+      const style = getComputedStyle(probe)
+      const read = { fg: style.color, bg: style.backgroundColor }
+      probe.remove()
+      return { ...read, onAccent: root.getPropertyValue('--on-accent').trim() }
+    })
+    expect(pair.onAccent).not.toBe('')
+    expect(contrast(pair.fg, pair.bg)).toBeGreaterThanOrEqual(4.5)
+  }
+  await page.goto('/?seed=3')
+  await enterLobby(page)
+
+  // Nothing under 11px, and the scale is tokens rather than literals.
+  const tiny = await page.evaluate(() =>
+    [...document.querySelectorAll('*')]
+      .map(n => parseFloat(getComputedStyle(n).fontSize))
+      .filter(px => px > 0 && px < 11).length,
+  )
+  expect(tiny).toBe(0)
+
+  // Gestures lie across the stage instead of stacking down one edge.
+  const stage = (await page.locator('#lobby-stage').boundingBox())!
+  const tools = (await page.locator('#lobby-tools').boundingBox())!
+  expect(tools.width).toBeGreaterThan(tools.height)
+  expect(tools.height / stage.height).toBeLessThan(0.35)
+
+  await page.locator('#lobby-edit').click()
+  await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+
+  // Direction moved off the character; the stage keeps seven controls, not ten.
+  expect(await page.locator('.studio-hud button').count()).toBe(7)
+  await expect(page.locator('.studio-below-stage button')).toHaveCount(3)
+  // The line explaining that framing is a camera, not a save setting, is on screen.
+  await expect(page.locator('.studio-note')).toBeVisible()
+
+  await page.getByRole('button', { name: '랜덤 스타일', exact: true }).click()
+  await page.locator('#creator-back').click()
+  const dialog = page.locator('dialog.studio-discard')
+  await expect(dialog).toBeVisible()
+  expect(await dialog.evaluate(node => node.matches(':modal'))).toBe(true)
+  expect(await page.evaluate(() =>
+    document.querySelector('dialog.studio-discard')!.contains(document.activeElement),
+  )).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(dialog).not.toBeVisible()
+  await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+})
