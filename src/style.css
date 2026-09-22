@@ -2388,6 +2388,12 @@ html.splash-open body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /*
+   * The label inside these is screen-reader-only, so it is out of flow and the
+   * icon was the column's only item — with nothing saying otherwise it packed
+   * to the top, sitting 11px above the middle of a 44px circle.
+   */
+  justify-content: center;
   gap: 7px;
   padding: 16px 6px 14px;
   border: 1px solid var(--line);

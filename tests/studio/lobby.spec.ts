@@ -158,6 +158,10 @@ test('lobby chrome puts equal nav on top, coins under the name, and play actions
   })
   expect(startBg).not.toBe(continueBg)
   expect(startBg).not.toBe(pageBg)
+  // The kept run is the stronger offer and takes the wider half. Both sat at
+  // flex: 1, so the row read as two equal choices and the whole hierarchy
+  // rested on that background difference.
+  expect(continueBox.width).toBeGreaterThan(startBox.width * 1.3)
   expect(Math.abs(continueBox.y - startBox.y)).toBeLessThan(2)
   expect(Math.abs(continueBox.height - startBox.height)).toBeLessThan(2)
   expect(startBox.x).toBeGreaterThan(continueBox.x + continueBox.width - 1)
