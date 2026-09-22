@@ -82,7 +82,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   const saved = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
-  expect(saved).toMatch(/^4S[BT][NHR][NG][0-9A-F]{24}[0-6]{5}[0-9A-F]{6}$/)
+  expect(saved).toMatch(/^4S[BT][NHR][NG][0-9A-F]{24}[0-6]{5}[0-9A-F]{6}[MF]$/)
   await page.reload()
   await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')

@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ANIME_LOOKS, DEFAULT_ANIME, FIGURE_PRESETS, decodeAnime, encodeAnime, gearFromBits } from './anime-spec.ts'
+import { ANIME_LOOKS, DEFAULT_ANIME, FIGURE_PRESETS, HAIR_STYLES, decodeAnime, encodeAnime, gearFromBits } from './anime-spec.ts'
 import { DEFAULT_SPEC, SPEC_MAX, decodeSpec, encodeSpec, isKnownSpec } from './spec.ts'
 
 test('anime appearance survives a profile round trip within live rules', () => {
   for (const look of ANIME_LOOKS) {
     const spec = look
     const code = encodeSpec(spec)
-    assert.equal(code.length, 40)
+    assert.equal(code.length, 41)
     assert.ok(code.length <= SPEC_MAX)
     assert.match(code, /^[a-zA-Z0-9-]+$/)
     assert.deepEqual(decodeSpec(code), spec)
@@ -33,7 +33,7 @@ test('mixed explorer pieces survive a profile round trip', () => {
   const spec = { ...DEFAULT_ANIME, pack: true, visor: true, hair: 'bob' as const }
   const code = encodeSpec(spec)
   assert.equal(code[0], '6')
-  assert.equal(code.length, 40)
+  assert.equal(code.length, 41)
   assert.deepEqual(decodeSpec(code), spec)
 })
 
@@ -53,9 +53,9 @@ test('every earlier code still reads, and comes back stating what it left out', 
   const head = 'STNN67B7A3A899E891ADB8202C3D'
   assert.equal(head.length, 28)
   for (const [before, filled] of [
-    [head, '33333FFFFFF'],
-    [head + '513', '33FFFFFF'],
-    [head + '51362', 'FFFFFF'],
+    [head, '33333FFFFFFM'],
+    [head + '513', '33FFFFFFM'],
+    [head + '51362', 'FFFFFFM'],
   ] as const) {
     const spec = decodeAnime(before)
     assert.ok(spec, `${before} should decode`)
@@ -108,12 +108,41 @@ test('a figure or skin outside the range is refused rather than stored', () => {
     head + '733',
     head + '33',
     head + '3333',
-    // Five axes are either followed by a full skin colour or by nothing.
+    // Five axes are either followed by a full skin colour or by nothing, and
+    // the skin by one letter naming the character or by nothing.
     head + '33333FFFFF',
-    head + '33333FFFFFFF',
+    head + '33333FFFFFFFF',
+    head + '33333FFFFFFX',
     head + '33333GGGGGG',
     head + '37333FFFFFF',
   ]) {
     assert.equal(decodeAnime(raw), undefined, `${raw} should not decode`)
   }
+})
+
+test('a skin colour ending in F is not mistaken for a female character', () => {
+  // 'F' is a hex digit as well as the letter for one of the two characters, so
+  // a code written before the character was a choice, whose skin happens to end
+  // in F, has to come back exactly as it was drawn.
+  const before = 'STNN67B7A3A899E891ADB8202C3D33333FFFFFF'
+  assert.equal(before.length, 39)
+  const spec = decodeAnime(before)
+  assert.ok(spec)
+  assert.equal(spec.sex, 'male')
+  assert.equal(spec.skinColour, 'FFFFFF')
+  assert.equal(encodeAnime(spec), before + 'M')
+})
+
+test('both characters and every hairstyle survive a round trip', () => {
+  for (const sex of ['male', 'female'] as const)
+    for (const hair of Object.keys(HAIR_STYLES) as (keyof typeof HAIR_STYLES)[]) {
+      const spec = { ...DEFAULT_ANIME, sex, hair }
+      const code = encodeSpec(spec)
+      assert.ok(code.length <= SPEC_MAX, `${code} exceeds the profile rule`)
+      assert.match(code, /^[a-zA-Z0-9-]+$/)
+      assert.deepEqual(decodeSpec(code), spec)
+    }
+  // The two letters that existed before still name the styles they named.
+  assert.equal(decodeAnime('SBNN67B7A3A899E891ADB8202C3D')?.hair, 'bob')
+  assert.equal(decodeAnime('STNN67B7A3A899E891ADB8202C3D')?.hair, 'tails')
 })

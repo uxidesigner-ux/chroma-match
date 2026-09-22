@@ -97,7 +97,22 @@ function silhouetteOf(page: Page) {
           lit += data[i]! * 0.2126 + data[i + 1]! * 0.7152 + data[i + 2]! * 0.0722
           ink++
         }
-      return { height: bottom - top, profile, span, light: ink ? lit / ink : 0 }
+      /*
+       * The chest sampled far more finely than the whole-body profile, because
+       * the shape of the bust — where it peaks and how it runs out above and
+       * below — lives inside four of that profile's rows.
+       */
+      const chest: number[] = []
+      for (let i = 0; i < 61; i++)
+        chest.push(rowSpan(Math.round(top + (bottom - top) * (0.14 + (0.26 * i) / 60))) / (bottom - top))
+      return {
+        height: bottom - top,
+        profile,
+        span,
+        chest,
+        light: ink ? lit / ink : 0,
+        area: ink / ((bottom - top) ** 2),
+      }
     })
 }
 
@@ -215,4 +230,122 @@ test('a skin tone darkens the character and white leaves the model as drawn', as
   await page.getByRole('button', { name: '피부 #FFFFFF', exact: true }).click()
   const back = await silhouette()
   expect(Math.abs(back!.light - pale!.light), 'white did not restore the model').toBeLessThan(0.5)
+})
+
+test('a female character carries a bust a male one does not, and going back takes it off', async ({ page }) => {
+  await openStudio(page, '체형')
+  const silhouette = silhouetteOf(page)
+  // Read from the side: a bust is depth, and from the front it is shading.
+  await page.getByRole('button', { name: '측면', exact: true }).click()
+
+  /*
+   * Picking a character also seeds a build, which moves four bones. Landing
+   * back on the even build after each pick strips that away, so what is left
+   * between the two shots is the sculpt and nothing else.
+   */
+  const evened = async () => {
+    await page.getByRole('button', { name: '기본', exact: true }).click()
+    return silhouette()
+  }
+  await page.getByRole('button', { name: '남성', exact: true }).click()
+  const male = await evened()
+  expect(male, 'nothing was drawn to measure').not.toBeNull()
+  await page.getByRole('button', { name: '여성', exact: true }).click()
+  const female = await evened()
+  await page.getByRole('button', { name: '남성', exact: true }).click()
+  const back = await evened()
+
+  const chest = (shot: Shot) => mean(band(shot, 0.20, 0.28, 'span'))
+  const waist = (shot: Shot) => mean(band(shot, 0.33, 0.41, 'span'))
+  expect(chest(female!) / chest(male!), 'the chest gained no depth').toBeGreaterThan(1.06)
+  // The shape is bounded: nothing below the ribs is touched by it.
+  expect(waist(female!) / waist(male!), 'the sculpt reached past the ribs').toBeGreaterThan(0.97)
+  expect(waist(female!) / waist(male!), 'the sculpt reached past the ribs').toBeLessThan(1.03)
+  /*
+   * Every pass rewrites from the model's own vertices, so going back has to
+   * land on the mesh exactly, not merely near it — otherwise switching twice
+   * would leave a character no code could describe.
+   */
+  expect(chest(back!) / chest(male!), 'the chest did not go back').toBeGreaterThan(0.995)
+  expect(chest(back!) / chest(male!), 'the chest did not go back').toBeLessThan(1.005)
+})
+
+test('the ponytail is hidden, worn, or worn long, and each draws a different head of hair', async ({ page }) => {
+  await openStudio(page, '헤어')
+  const silhouette = silhouetteOf(page)
+  await page.getByRole('button', { name: '측면', exact: true }).click()
+
+  const wearing = async (style: string) => {
+    await page.getByRole('button', { name: style, exact: true }).click()
+    const shot = await silhouette()
+    expect(shot, `${style} drew nothing`).not.toBeNull()
+    // Ink against the character's own height squared, so the camera pulling
+    // back to frame a longer tail does not read as a shorter one.
+    return shot!.area
+  }
+  const bob = await wearing('단발')
+  const tail = await wearing('포니테일')
+  const long = await wearing('긴 포니테일')
+  expect(tail, 'the ponytail added nothing to the silhouette').toBeGreaterThan(bob * 1.01)
+  expect(long, 'the long ponytail is no longer than the short one').toBeGreaterThan(tail * 1.01)
+})
+
+test('the bust is rounded at the front and runs out further below than above', async ({ page }) => {
+  await openStudio(page, '체형')
+  const silhouette = silhouetteOf(page)
+  await page.getByRole('button', { name: '측면', exact: true }).click()
+  const evened = async () => {
+    await page.getByRole('button', { name: '기본', exact: true }).click()
+    return silhouette()
+  }
+  await page.getByRole('button', { name: '남성', exact: true }).click()
+  const male = await evened()
+  expect(male, 'nothing was drawn to measure').not.toBeNull()
+  await page.getByRole('button', { name: '여성', exact: true }).click()
+  await page.getByRole('button', { name: '가슴 7', exact: true }).click()
+  const female = await evened()
+
+  /*
+   * What the sculpt alone adds at each height: the female depth less the male
+   * depth at the same row, both already read against the character's own
+   * height. Everything below is about the shape of that curve, not its size.
+   */
+  const added = female!.chest.map((depth, row) => depth - male!.chest[row]!)
+  const peak = added.indexOf(Math.max(...added))
+  const top = added[peak]!
+  expect(top, 'the sculpt added no depth to measure').toBeGreaterThan(0.01)
+
+  /*
+   * How many rows either side of the peak stay above half its depth. The rows
+   * are a fixed fraction of the character's own height apart, so these are
+   * lengths along the body and comparable with the depth itself.
+   */
+  const ROW = 0.26 / 60
+  // The furthest such row, not the first dip: a single noisy row in the middle
+  // of the shape should not report it as ending there.
+  const reach = (step: number) => {
+    let far = 0
+    for (let row = peak; added[row] !== undefined; row += step)
+      if (added[row]! > top * 0.5) far = Math.abs(row - peak)
+    return far
+  }
+  const above = reach(-1)
+  const below = reach(1)
+
+  /*
+   * Rounded, not pointed. What makes a shape read as a point is being tall for
+   * its width, so that is what is measured: how broad it stays at half its
+   * depth, against how far it comes forward. Reading the rows either side of
+   * the apex instead says nothing — a cone and a dome both hold their maximum
+   * over a row or two at this scale, and both score one.
+   */
+  const broadness = ((above + below) * ROW) / top
+  expect(broadness, 'the bust is tall for its width, which reads as a point').toBeGreaterThan(2.4)
+
+  /*
+   * And softer underneath than on top: the run from the peak down to half its
+   * depth is half again the run up, which is what carries the underside into
+   * the ribcage instead of ending it on a rim.
+   */
+  expect(below / above, 'the underside is no softer than the top').toBeGreaterThan(1.6)
 })

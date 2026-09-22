@@ -35,12 +35,19 @@ export const FIGURE_PRESETS = {
 
 export interface AnimeSpec {
   model: 'seed-v1'
+  /*
+   * Which of the two the character is read as. It decides the one thing the
+   * bones cannot do — whether the chest is sculpted — and seeds a matching
+   * build when it is picked. It gates nothing: every axis, every hairstyle and
+   * every colour stays available on either.
+   */
+  sex: 'male' | 'female'
   bust: FigureStep
   waist: FigureStep
   hip: FigureStep
   shoulder: FigureStep
   head: FigureStep
-  hair: 'tails' | 'bob'
+  hair: HairStyle
   expression: 'neutral' | 'happy' | 'relaxed' | 'angry' | 'sad' | 'surprised'
   pack: boolean
   arms: boolean
@@ -54,6 +61,8 @@ export interface AnimeSpec {
 
 export const DEFAULT_ANIME: AnimeSpec = {
   model: 'seed-v1',
+  // The model as it ships, so nothing saved before this existed changes shape.
+  sex: 'male',
   ...FIGURE_PRESETS.even,
   hair: 'tails',
   expression: 'neutral',
@@ -143,6 +152,24 @@ export const ANIME_LOOKS: readonly AnimeSpec[] = [
  */
 export const SKIN_TONES = ['FFFFFF', 'FFE0C8', 'F0C39B', 'D19A6E', 'A9714B', '6F4530'] as const
 
+/*
+ * The hairstyles, and the one letter each is saved as.
+ *
+ * This is a short list because the asset allows a short one. The model's hair
+ * is a single mesh weighted 4902 of 5145 to the head bone itself — the eleven
+ * strand chains hanging off it carry between fourteen and thirty-six each, and
+ * exist to let the tips swing, not to shape a cut. Scaling them changes nothing
+ * anyone can see. The ponytail is the one part rigged to move: its own mesh on
+ * its own six-bone chain, which can be hidden or lengthened.
+ *
+ * More than this needs hair geometry the model does not carry.
+ *
+ * Bob and ponytail keep the letters they have always had, so every code saved
+ * before the long ponytail existed still names the style it named.
+ */
+export const HAIR_STYLES = { tails: 'T', bob: 'B', long: 'L' } as const
+export type HairStyle = keyof typeof HAIR_STYLES
+
 const colours = ['hairColour', 'eyeColour', 'outfitColour', 'backdrop'] as const
 export const EXPRESSIONS = ['neutral', 'happy', 'relaxed', 'angry', 'sad', 'surprised'] as const
 const expressionCodes = { neutral: 'N', happy: 'H', relaxed: 'R', angry: 'A', sad: 'S', surprised: 'U' } as const
@@ -168,7 +195,7 @@ const figureStep = (value: number): FigureStep =>
 export function encodeAnime(spec: AnimeSpec): string {
   return (
     'S' +
-    (spec.hair === 'bob' ? 'B' : 'T') +
+    (HAIR_STYLES[spec.hair] ?? 'T') +
     (expressionCodes[spec.expression] ?? 'N') +
     gearChar(spec) +
     colours
@@ -182,18 +209,23 @@ export function encodeAnime(spec: AnimeSpec): string {
      * runs out early and decodes to the shape and skin the model already had.
      */
     FIGURE_AXES.map((axis) => String(figureStep(spec[axis]))).join('') +
-    (/^[0-9a-f]{6}$/i.test(spec.skinColour) ? spec.skinColour.toUpperCase() : DEFAULT_ANIME.skinColour)
+    (/^[0-9a-f]{6}$/i.test(spec.skinColour) ? spec.skinColour.toUpperCase() : DEFAULT_ANIME.skinColour) +
+    (spec.sex === 'female' ? 'F' : 'M')
   )
 }
 
 /*
- * Everything after the fixed head is optional, and each stage is a prefix of
- * the next: no tail at all, the three axes the studio first shipped, all five,
- * then the skin. Anything else — a truncated tail, a longer one from a build
- * that does not exist yet — fails, and the caller shows the safe starter.
+ * The hairstyle letter is a fixed position rather than an appended one, so
+ * widening its alphabet costs nothing: B and T still mean what they meant, and
+ * a code carrying L simply could not be written before. Everything after the
+ * head is optional, and each stage is a prefix of
+ * the next — no tail, the three axes the studio first shipped, all five, the
+ * skin, then which of the two the character is.
  */
-const CODE =
-  /^S[BT][NHRASU][NG1-6][0-9A-F]{24}(?:[0-6]{3}(?:[0-6]{2}(?:[0-9A-F]{6})?)?)?$/
+const CODE = new RegExp(
+  `^S[${Object.values(HAIR_STYLES).join('')}][NHRASU][NG1-6][0-9A-F]{24}` +
+    '(?:[0-6]{3}(?:[0-6]{2}(?:[0-9A-F]{6}[MF]?)?)?)?$',
+)
 
 /** Reject malformed/newer model data; callers can show the safe starter appearance. */
 export function decodeAnime(raw: string): AnimeSpec | undefined {
@@ -212,13 +244,21 @@ export function decodeAnime(raw: string): AnimeSpec | undefined {
   return {
     model: 'seed-v1',
     ...figure,
-    hair: raw[1] === 'B' ? 'bob' : 'tails',
+    hair: (Object.keys(HAIR_STYLES) as HairStyle[]).find((key) => HAIR_STYLES[key] === raw[1]) ?? 'tails',
     expression: EXPRESSIONS.find((key) => expressionCodes[key] === raw[2])!,
     ...gearFromBits(bits),
     hairColour: raw.slice(4, 10),
     eyeColour: raw.slice(10, 16),
     outfitColour: raw.slice(16, 22),
-    skinColour: tail.length > FIGURE_AXES.length ? tail.slice(FIGURE_AXES.length) : DEFAULT_ANIME.skinColour,
+    skinColour: tail.length > FIGURE_AXES.length
+      ? tail.slice(FIGURE_AXES.length, FIGURE_AXES.length + 6)
+      : DEFAULT_ANIME.skinColour,
+    /*
+     * Read by position, never by suffix. 'F' is also a hex digit, so a code
+     * written before the character was a choice and carrying a skin colour
+     * ending in F would otherwise come back female.
+     */
+    sex: tail[FIGURE_AXES.length + 6] === 'F' ? 'female' : 'male',
     backdrop: raw.slice(22, 28),
   }
 }
