@@ -6,17 +6,31 @@
  * replaces wallet/manifest globals with a fixed, versioned licensed catalogue.
  */
 import { CanvasTexture, Color, Mesh, SRGBColorSpace } from 'three'
+import type { Object3D } from 'three'
 import type { Material, Texture } from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm'
 import type { VRM, MToonMaterial } from '@pixiv/three-vrm'
-import type { AnimeSpec } from '../anime-spec.ts'
+import type { AnimeSpec, FigureStep } from '../anime-spec.ts'
 import { EXPRESSIONS } from '../anime-spec.ts'
 import { exportSeed } from '../studio-export.ts'
 import { BlinkManager } from './blink.ts'
 
 type Toon = Material &
   Partial<Pick<MToonMaterial, 'color' | 'shadeColorFactor' | 'map' | 'shadeMultiplyTexture'>>
+
+
+/**
+ * How wide a figure axis draws, as a multiplier on the bone's own width.
+ *
+ * Step 3 is exactly 1, so a character saved before the studio could change a
+ * figure comes back the shape it was. The range is deliberately modest — this
+ * is one body reproportioned, and a bone scaled much past a quarter either way
+ * starts to tear the clothing mesh away from the skin under it.
+ */
+function figureScale(step: FigureStep, reach: number): number {
+  return 1 + ((step - 3) / 3) * reach
+}
 
 export class StudioCharacter {
   readonly vrm: VRM
@@ -153,7 +167,42 @@ export class StudioCharacter {
     })
     for (const name of EXPRESSIONS)
       this.vrm.expressionManager?.setValue(name, spec.expression === name ? 0.7 : 0)
+    this.shape(spec)
     this.tick(0, false)
+  }
+
+  /**
+   * Reproportions the one body along three axes.
+   *
+   * The torso is a single chain — hips, spine, chest — and a bone's scale
+   * carries down to everything under it, so widening the hips would widen the
+   * legs and the whole upper body with them. Each bone therefore gets the
+   * scale its own region needs divided by whatever it has already inherited,
+   * and the parts that should not change shape — thighs, neck and head,
+   * shoulders and arms, the backpack — are divided back out to one.
+   *
+   * Only width and depth move. Nothing here changes how tall the character is,
+   * which keeps the camera framing and every exported image the size it was.
+   */
+  private shape(spec: AnimeSpec): void {
+    const raw = (name: Parameters<typeof this.vrm.humanoid.getRawBoneNode>[0]) =>
+      this.vrm.humanoid.getRawBoneNode(name)
+    const hip = figureScale(spec.hip, 0.26)
+    const waist = figureScale(spec.waist, 0.22)
+    const bust = figureScale(spec.bust, 0.24)
+
+    const flat = (node: Object3D | null | undefined, value: number) => node?.scale.set(value, 1, value)
+
+    const hips = raw('hips')
+    const spine = raw('spine')
+    const chest = raw('chest')
+    flat(hips, hip)
+    flat(chest, bust / waist)
+    // Whatever hangs off a widened bone is divided back out to its own shape,
+    // by walking the children rather than naming them: the legs under the
+    // hips, and the neck, both shoulders and the backpack under the chest.
+    for (const child of hips?.children ?? []) flat(child, child === spine ? waist / hip : 1 / hip)
+    for (const child of chest?.children ?? []) flat(child, 1 / bust)
   }
 
   perform(gesture: 'wave' | 'cheer' | 'pose'): void {

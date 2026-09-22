@@ -68,10 +68,10 @@ test('a saved draft reaches the profile and 3D lobby and survives reload', async
   await page.getByRole('button', { name: 'Short bob', exact: true }).click()
   await page.getByRole('tab', { name: 'Expression', exact: true }).click()
   await page.getByRole('button', { name: 'Happy', exact: true }).click()
-  await page.getByRole('button', { name: 'Use this character', exact: true }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   const saved = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
-  expect(saved).toMatch(/^4S[BT][NHR][NG][0-9A-F]{24}$/)
+  expect(saved).toMatch(/^4S[BT][NHR][NG][0-9A-F]{24}[0-6]{3}$/)
   await page.locator('#creator-back').click()
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   await expectFaceCrop(page, '#profile-avatar')
@@ -118,7 +118,7 @@ test('model failure is recoverable; retry uses a fresh canvas', async ({ page })
   await page.route('**/seed-san.vrm', (route) => route.abort())
   await openCreator(page)
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'error')
-  await expect(page.getByRole('button', { name: 'Use this character', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   await page.unroute('**/seed-san.vrm')
   await page.getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
@@ -139,8 +139,8 @@ test('keyboard tabs, rotation, mobile reflow and reduced motion', async ({ page 
   await openAnime(page)
   await page.getByRole('tab', { name: 'Looks', exact: true }).focus()
   await page.keyboard.press('ArrowRight')
-  await expect(page.getByRole('tab', { name: 'Hair', exact: true })).toBeFocused()
-  await expect(page.getByRole('tab', { name: 'Hair', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('tab', { name: 'Figure', exact: true })).toBeFocused()
+  await expect(page.getByRole('tab', { name: 'Figure', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   )
@@ -161,10 +161,10 @@ test('keyboard tabs, rotation, mobile reflow and reduced motion', async ({ page 
     await page.setViewportSize(viewport)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page
-      .getByRole('button', { name: 'Use this character', exact: true })
+      .getByRole('button', { name: 'Save', exact: true })
       .scrollIntoViewIfNeeded()
     await expect(
-      page.getByRole('button', { name: 'Use this character', exact: true }),
+      page.getByRole('button', { name: 'Save', exact: true }),
     ).toBeInViewport()
   }
 })
@@ -181,7 +181,7 @@ test('local storage failure never reports a successful save or replaces the avat
       return original.call(this, key, value)
     }
   })
-  await page.getByRole('button', { name: 'Use this character', exact: true }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.locator('.studio-status')).toContainText('could not save')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(before)
 })
@@ -191,7 +191,7 @@ test('a missing custom portrait regenerates from the code and reopens the same e
 }) => {
   await openAnime(page)
   await page.getByRole('button', { name: 'Ember', exact: true }).click()
-  await page.getByRole('button', { name: 'Use this character', exact: true }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   await page.evaluate(() => localStorage.removeItem('chroma-match:anime-portrait-v1'))
   await page.reload()
@@ -206,7 +206,7 @@ test('a missing custom portrait regenerates from the code and reopens the same e
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
   await expect(page.getByRole('button', { name: 'Ember', exact: true })).toHaveAttribute('aria-pressed', 'true')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toMatch(
-    /^4S[BT][NHR][NG][0-9A-F]{24}$/,
+    /^4S[BT][NHR][NG][0-9A-F]{24}[0-6]{3}$/,
   )
 })
 
@@ -236,13 +236,13 @@ test('full-body controls show every direction without changing the saved profile
   await full.click()
   await page.getByRole('tab', { name: 'Equipment', exact: true }).click()
   await page.getByRole('button', { name: 'Explorer gear', exact: true }).click()
-  await page.getByRole('button', { name: 'Use this character', exact: true }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   const saved = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
   const portrait = await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))
   await page.getByRole('button', { name: 'Rear', exact: true }).click()
   await face.click()
-  await page.getByRole('button', { name: 'Use this character', exact: true }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))).toBe(
@@ -272,7 +272,7 @@ test('retired profile data becomes the starter without changing scores', async (
     code: localStorage.getItem('chroma-match:avatar'), best: localStorage.getItem('chroma-match:best'),
     level: localStorage.getItem('chroma-match:best-level'), name: localStorage.getItem('chroma-match:name'),
   }))
-  expect(state).toEqual({ code: '4STNN67B7A3A899E891ADB8202C3D', best: '9876', level: '7', name: 'Returning player' })
+  expect(state).toEqual({ code: '4STNN67B7A3A899E891ADB8202C3D333', best: '9876', level: '7', name: 'Returning player' })
   await openAnime(page)
   await expect(page.getByRole('button', { name: 'Full body', exact: true })).toHaveAttribute('aria-pressed', 'true')
 })
@@ -283,7 +283,7 @@ test('existing anime data migrates to the compact code without changing appearan
   await page.reload()
   await enterLobby(page)
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
-  expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe('4' + previous.slice(46))
+  expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe('4' + previous.slice(46) + '333')
   await openAnime(page)
   await expect(page.getByRole('button', { name: 'Ember', exact: true })).toHaveAttribute('aria-pressed', 'true')
 })
@@ -302,7 +302,7 @@ test('starter portrait remains available without WebGL or storage writes', async
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   await openCreator(page)
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'error')
-  await expect(page.getByRole('button', { name: 'Use this character', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   await page.locator('#creator-back').click()
   await expect(page.locator('#profile-avatar')).toBeVisible()
 })

@@ -77,7 +77,6 @@
 }
 .studio-tab.studio-icon {
   width: auto;
-  min-width: 0;
   height: auto;
   min-height: 56px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
@@ -108,6 +107,24 @@
   overflow-y: auto;
   padding-inline: 8px;
   margin-inline: -8px;
+  /*
+   * Room to scroll past the end, and a soft edge on the way there.
+   *
+   * The column ended exactly on its own clip line, so the last row of options
+   * was sliced in half against the bottom of the screen with nothing to say
+   * whether that was the end or the middle. The padding lets the final row
+   * come fully clear; the mask fades the last stretch instead of guillotining
+   * it, which is what makes a cut read as "more below" rather than as broken.
+   */
+  padding-block-end: 28px;
+  scroll-padding-block-end: 28px;
+  /*
+   * Only the bottom is softened. The top of this column is the preview stage —
+   * a panel with its own edge and its own colour — and fading that would read
+   * as the panel being broken rather than as content running on.
+   */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
 }
 .studio-viewer {
   display: flex;
@@ -275,11 +292,30 @@
   margin: 0;
   color: var(--text);
 }
+/*
+ * The tabs scroll rather than divide.
+ *
+ * Seven of them split across a phone gave each about forty pixels, which is
+ * narrower than the glyph inside it and far narrower than its name. They keep
+ * a legible width and the strip slides instead, which also leaves room for the
+ * next one without squeezing the rest.
+ */
 .studio-tabs {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  display: flex;
   border-bottom: 1px solid var(--line);
   gap: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.studio-tabs::-webkit-scrollbar {
+  display: none;
+}
+.studio-tabs > .studio-tab {
+  flex: 0 0 auto;
+  min-width: 64px;
+  scroll-snap-align: center;
 }
 .studio-tab {
   padding: 8px 2px;
@@ -318,6 +354,38 @@
 .studio-traits .studio-icon,
 .studio-history .studio-icon {
   min-width: 56px;
+}
+.studio-options[data-category='figure'] {
+  display: block;
+}
+.studio-figure-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.studio-figure-name {
+  flex: none;
+  width: 4.5em;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+/* Seven steps that share the row, so a thumb can land on any of them. */
+.studio-figure-steps {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.studio-figure-step {
+  min-width: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.studio-figure-preset {
+  flex: 1;
 }
 .studio-options[data-category='looks'],
 .studio-options[data-category='colours'] {
@@ -510,4 +578,17 @@
     animation: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Save sits in the screen header, opposite the back button. */
+.creator-head-actions {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 44px;
+}
+.creator-head-actions .studio-apply {
+  width: auto;
+  min-height: 40px;
+  padding: 8px 18px;
+  white-space: nowrap;
 }

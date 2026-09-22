@@ -196,8 +196,8 @@ test('lobby and studio chrome hold a 44px target on narrow phones, and the studi
 
   // Every tab names itself; the equipment that used to hide behind the hair
   // glyph is a destination of its own.
-  await expect(page.getByRole('tab')).toHaveCount(6)
-  for (const name of ['스타일', '헤어', '장비', '색상', '표정', '보관함']) {
+  await expect(page.getByRole('tab')).toHaveCount(7)
+  for (const name of ['스타일', '체형', '헤어', '장비', '색상', '표정', '보관함']) {
     await expect(page.getByRole('tab', { name, exact: true })).toHaveText(name)
   }
   await page.getByRole('tab', { name: '장비', exact: true }).click()
@@ -276,9 +276,12 @@ test('accent chips clear WCAG AA on every skin, and the discard prompt is a real
   // Direction moved off the character; the stage keeps seven controls, not ten.
   expect(await page.locator('.studio-hud button').count()).toBe(7)
   await expect(page.locator('.studio-below-stage button')).toHaveCount(3)
-  // The line explaining that framing is a camera, not a save setting, is on screen.
-  await expect(page.locator('.studio-note')).toBeVisible()
+  // The rotate hint no longer takes a line under the preview, but it is still
+  // what the canvas points at, so the description survives the tidy-up.
+  await expect(page.locator('.studio-stage canvas')).toHaveAttribute('aria-describedby', 'studio-rotate-help')
+  await expect(page.locator('#studio-rotate-help')).toHaveClass(/sr-only/)
 
+  await expect(page.locator('#creator-actions .studio-apply')).toBeVisible()
   await page.getByRole('button', { name: '랜덤 스타일', exact: true }).click()
   await page.locator('#creator-back').click()
   const dialog = page.locator('dialog.studio-discard')

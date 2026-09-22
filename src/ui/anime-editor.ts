@@ -1,5 +1,5 @@
-import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, encodeAnime } from '../avatar/anime-spec.ts'
-import type { AnimeSpec } from '../avatar/anime-spec.ts'
+import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, FIGURE_AXES, FIGURE_PRESETS, encodeAnime } from '../avatar/anime-spec.ts'
+import type { AnimeSpec, FigureAxis, FigureStep } from '../avatar/anime-spec.ts'
 import { myAvatar, setMyAvatar } from '../avatar/store.ts'
 import { cachePortrait } from '../avatar/anime-portrait.ts'
 import { account } from '../leaderboard/session.ts'
@@ -11,7 +11,7 @@ import { LIBRARY_LIMIT, LookHistory, lookFile, parseLookFile, readLibrary, write
 import { decodeSpec, encodeSpec } from '../avatar/spec.ts'
 import { Sheet } from './sheet.ts'
 
-type Category = 'looks' | 'hair' | 'gear' | 'colours' | 'expression' | 'library'
+type Category = 'looks' | 'figure' | 'hair' | 'gear' | 'colours' | 'expression' | 'library'
 
 /** An explicit draft: navigating away cannot silently overwrite the profile. */
 export class AnimeEditor {
@@ -176,13 +176,6 @@ export class AnimeEditor {
     const tools = studioToolsCopy()
     this.root.replaceChildren()
     this.root.className = 'anime-studio'
-    const heading = document.createElement('div')
-    heading.className = 'studio-heading'
-    const title = document.createElement('h3')
-    title.textContent = copy.intro
-    const description = document.createElement('p')
-    description.textContent = copy.description
-    heading.append(title, description)
     this.stage = document.createElement('div')
     this.stage.className = 'studio-stage'
     this.root.dataset.framing = this.face ? 'face' : 'full'
@@ -279,13 +272,8 @@ export class AnimeEditor {
     this.stage.append(toolbar)
     const hint = document.createElement('p')
     hint.id = 'studio-rotate-help'
-    hint.className = 'studio-hint'
+    hint.className = 'sr-only'
     hint.textContent = `${copy.rotate} ${tools.gaze}`
-    // Written long ago and never put on screen: the one line that says the
-    // framing buttons move the camera and not what gets saved.
-    const portraitNote = document.createElement('p')
-    portraitNote.className = 'studio-hint studio-note'
-    portraitNote.textContent = copy.portraitNote
     const controls = document.createElement('div')
     controls.className = 'studio-controls'
     this.tabs = document.createElement('div')
@@ -300,6 +288,7 @@ export class AnimeEditor {
      */
     const tabs: ReadonlyArray<readonly [Category, string, string]> = [
       ['looks', 'looks', copy.looks],
+      ['figure', 'figure', copy.figure],
       ['hair', 'hair', copy.hair],
       ['gear', 'pack', copy.equipment],
       ['colours', 'colours', copy.colours],
@@ -352,7 +341,10 @@ export class AnimeEditor {
     this.status.textContent = copy.ready
     this.save = this.button(copy.apply, () => void this.apply(), 'btn btn-primary studio-apply')
     this.save.disabled = true
-    footer.append(this.status, this.save)
+    // The one committing action belongs with the title, not at the foot of a
+    // column the player has to scroll back through to find it.
+    document.getElementById('creator-actions')?.replaceChildren(this.save)
+    footer.append(this.status)
     this.discard = document.createElement('dialog')
     this.discard.className = 'studio-discard'
     this.discard.addEventListener('close', () => {
@@ -368,10 +360,10 @@ export class AnimeEditor {
     viewer.className = 'studio-viewer'
     direction.classList.remove('studio-hud-cluster', 'studio-hud-orbit')
     direction.classList.add('studio-below-stage')
-    viewer.append(this.stage, direction, hint, portraitNote)
+    viewer.append(this.stage, direction, hint)
     const edit = document.createElement('div')
     edit.className = 'studio-edit'
-    edit.append(heading, controls, this.discard, footer, this.buildFilesButton(), credit)
+    edit.append(controls, this.discard, footer, this.buildFilesButton(), credit)
     this.root.append(viewer, edit)
     this.paintOptions()
   }
@@ -521,6 +513,34 @@ export class AnimeEditor {
         button.setAttribute('aria-pressed', String(this.draft[slot] === value))
         group.append(button)
       }
+    } else if (this.category === 'figure') {
+      const note = document.createElement('p')
+      note.className = 'studio-file-note'
+      note.textContent = copy.figureNote
+      this.panel.append(note)
+
+      const presets = document.createElement('div')
+      presets.className = 'studio-choice-group'
+      presets.setAttribute('role', 'group')
+      presets.setAttribute('aria-label', copy.figure)
+      for (const [key, label] of [['even', copy.figureEven], ['full', copy.figureFull]] as const) {
+        const shape = FIGURE_PRESETS[key]
+        const button = this.button(label, () => {
+          this.update({ ...this.draft, ...shape })
+          this.paintOptions()
+        }, 'studio-button studio-figure-preset')
+        button.setAttribute(
+          'aria-pressed',
+          String(FIGURE_AXES.every((axis) => this.draft[axis] === shape[axis])),
+        )
+        presets.append(button)
+      }
+      this.panel.append(presets)
+
+      // A preset is a starting point; each axis still moves on its own.
+      for (const axis of FIGURE_AXES) {
+        this.panel.append(this.figureRow(axis, copy[axis]))
+      }
     } else if (this.category === 'gear') {
       const traitGroup = document.createElement('div')
       traitGroup.className = 'studio-choice-group studio-traits'
@@ -660,6 +680,38 @@ export class AnimeEditor {
    * same move the launch screen made with the daily reward — so the editor
    * reads as a character editor and the file tools are still one tap away.
    */
+
+  /**
+   * One axis of the figure, as a labelled row of seven steps.
+   *
+   * A slider would read the value back as a number nobody wants; seven buttons
+   * say where the shape is and let a thumb land on any of them, and the middle
+   * one is the model exactly as it ships.
+   */
+  private figureRow(axis: FigureAxis, label: string): HTMLElement {
+    const row = document.createElement('div')
+    row.className = 'studio-figure-row'
+    const name = document.createElement('span')
+    name.className = 'studio-figure-name'
+    name.textContent = label
+    const steps = document.createElement('div')
+    steps.className = 'studio-figure-steps'
+    steps.setAttribute('role', 'group')
+    steps.setAttribute('aria-label', label)
+    for (let step = 0 as FigureStep; step <= 6; step = (step + 1) as FigureStep) {
+      const value = step
+      const button = this.button(String(value + 1), () => {
+        this.update({ ...this.draft, [axis]: value })
+        this.paintOptions()
+      }, 'studio-button studio-figure-step')
+      button.setAttribute('aria-label', `${label} ${value + 1}`)
+      button.setAttribute('aria-pressed', String(this.draft[axis] === value))
+      steps.append(button)
+    }
+    row.append(name, steps)
+    return row
+  }
+
   private buildFilesButton(): HTMLElement {
     const tools = studioToolsCopy()
     this.files ??= new Sheet('sheet-studio-files')

@@ -1,6 +1,28 @@
 /** Seed v1 is immutable: a saved appearance must never refer to a different asset. */
+/**
+ * A figure axis, 0 to 6.
+ *
+ * 3 is the model exactly as it ships, so an appearance saved before these
+ * existed decodes to a character that has not moved. Below 3 narrows, above 3
+ * fills out; the studio pairs them into presets and also lets them be set one
+ * at a time, because a body is not two options.
+ */
+export type FigureStep = 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+export const FIGURE_AXES = ['bust', 'waist', 'hip'] as const
+export type FigureAxis = (typeof FIGURE_AXES)[number]
+
+/** What the studio offers as a starting point, not the only two shapes. */
+export const FIGURE_PRESETS = {
+  even: { bust: 3, waist: 3, hip: 3 },
+  full: { bust: 5, waist: 1, hip: 5 },
+} as const satisfies Record<string, Record<FigureAxis, FigureStep>>
+
 export interface AnimeSpec {
   model: 'seed-v1'
+  bust: FigureStep
+  waist: FigureStep
+  hip: FigureStep
   hair: 'tails' | 'bob'
   expression: 'neutral' | 'happy' | 'relaxed' | 'angry' | 'sad' | 'surprised'
   pack: boolean
@@ -14,6 +36,7 @@ export interface AnimeSpec {
 
 export const DEFAULT_ANIME: AnimeSpec = {
   model: 'seed-v1',
+  ...FIGURE_PRESETS.even,
   hair: 'tails',
   expression: 'neutral',
   pack: false,
@@ -105,6 +128,9 @@ function gearChar(spec: AnimeSpec): string {
   return String(bits)
 }
 
+const figureStep = (value: number): FigureStep =>
+  (Number.isInteger(value) && value >= 0 && value <= 6 ? value : 3) as FigureStep
+
 export function encodeAnime(spec: AnimeSpec): string {
   return (
     'S' +
@@ -115,17 +141,29 @@ export function encodeAnime(spec: AnimeSpec): string {
       .map((key) =>
         /^[0-9a-f]{6}$/i.test(spec[key]) ? spec[key].toUpperCase() : DEFAULT_ANIME[key],
       )
-      .join('')
+      .join('') +
+    /*
+     * The figure is appended rather than woven in, so every appearance saved
+     * before it existed is still a valid code — it simply has no figure on the
+     * end and decodes to the shape the model already had.
+     */
+    FIGURE_AXES.map((axis) => String(figureStep(spec[axis]))).join('')
   )
 }
 
 /** Reject malformed/newer model data; callers can show the safe starter appearance. */
 export function decodeAnime(raw: string): AnimeSpec | undefined {
-  if (!/^S[BT][NHRASU][NG1-6][0-9A-F]{24}$/.test(raw)) return undefined
+  // The figure suffix is optional: without it, a code from before figures
+  // existed reads as the model's own proportions, which is what it drew.
+  if (!/^S[BT][NHRASU][NG1-6][0-9A-F]{24}([0-6]{3})?$/.test(raw)) return undefined
   const mark = raw[3]!
   const bits = mark === 'G' ? 7 : mark === 'N' ? 0 : Number(mark)
+  const figure = raw.slice(28)
   return {
     model: 'seed-v1',
+    ...(figure.length === 3
+      ? { bust: figureStep(Number(figure[0])), waist: figureStep(Number(figure[1])), hip: figureStep(Number(figure[2])) }
+      : FIGURE_PRESETS.even),
     hair: raw[1] === 'B' ? 'bob' : 'tails',
     expression: EXPRESSIONS.find((key) => expressionCodes[key] === raw[2])!,
     ...gearFromBits(bits),
