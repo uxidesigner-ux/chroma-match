@@ -199,6 +199,7 @@ export const EN = {
 
   /* ---- today ---------------------------------------------------------- */
   todayTitle: 'Today',
+  studioFilesTitle: 'Files & exports',
   dailyReward: 'Day {day} reward',
   dailyClaimed: 'Day {day} claimed',
   dailySub: '{coins} coins{item}',

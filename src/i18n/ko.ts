@@ -183,6 +183,7 @@ export const KO: Strings = {
   removeFriend: '삭제',
 
   todayTitle: '오늘',
+  studioFilesTitle: '파일 · 내보내기',
   dailyReward: '{day}일차 보상',
   dailyClaimed: '{day}일차 받음',
   dailySub: '코인 {coins}개{item}',

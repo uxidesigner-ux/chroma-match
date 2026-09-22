@@ -3006,6 +3006,16 @@ html.splash-open body {
    */
   padding-inline: 8px;
   margin-inline: -8px;
+  /*
+   * And the same on the other axis, which the first pass missed.
+   *
+   * `overflow-y: auto` clips top and bottom too. The Play row sits flush with
+   * the bottom of this box and hangs a 4px shadow past it, and the mission
+   * count pokes 3px above the nav button it is pinned to — both were being
+   * sliced off. Same trick: pad the scroll box, take the space back.
+   */
+  padding-block: 8px;
+  margin-block: -8px;
 }
 
 .home > * {

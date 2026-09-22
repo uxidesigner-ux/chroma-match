@@ -9,6 +9,7 @@ import { playCopy } from './play-copy.ts'
 import { studioToolsCopy } from './studio-tools-copy.ts'
 import { LIBRARY_LIMIT, LookHistory, lookFile, parseLookFile, readLibrary, writeLibrary } from '../avatar/studio-library.ts'
 import { decodeSpec, encodeSpec } from '../avatar/spec.ts'
+import { Sheet } from './sheet.ts'
 
 type Category = 'looks' | 'hair' | 'gear' | 'colours' | 'expression' | 'library'
 
@@ -36,6 +37,8 @@ export class AnimeEditor {
   private redo = document.createElement('button')
   private paused = false
   private transparent = false
+  private files: Sheet | null = null
+  private filesBody: HTMLElement = document.createElement('div')
 
   constructor(
     private root: HTMLElement,
@@ -54,6 +57,7 @@ export class AnimeEditor {
   }
 
   close(): void {
+    this.files?.hide()
     if (this.discard.open) this.discard.close()
     this.closed = true
     this.busy = false
@@ -152,6 +156,19 @@ export class AnimeEditor {
     const button = this.button(label, action, `studio-button studio-word ${className}`.trim())
     button.title = label
     return button
+  }
+
+  /**
+   * Every control the editor owns, including the ones that moved into the
+   * sheet. The export buttons wait on the model and are disabled during a
+   * download, and both of those used to be a query rooted at the editor — which
+   * stopped finding them the moment they left it.
+   */
+  private everyControl<T extends HTMLElement>(selector: string): T[] {
+    return [
+      ...this.root.querySelectorAll<T>(selector),
+      ...this.filesBody.querySelectorAll<T>(selector),
+    ]
   }
 
   private build(): void {
@@ -354,7 +371,7 @@ export class AnimeEditor {
     viewer.append(this.stage, direction, hint, portraitNote)
     const edit = document.createElement('div')
     edit.className = 'studio-edit'
-    edit.append(heading, controls, this.discard, footer, this.buildDownloads(), credit)
+    edit.append(heading, controls, this.discard, footer, this.buildFilesButton(), credit)
     this.root.append(viewer, edit)
     this.paintOptions()
   }
@@ -391,9 +408,9 @@ export class AnimeEditor {
       this.root.dataset.state = 'ready'
       this.ready = true
       this.save.disabled = false
-      this.root.querySelectorAll<HTMLButtonElement>('[data-requires-model]').forEach((button) => {
+      for (const button of this.everyControl<HTMLButtonElement>('[data-requires-model]')) {
         button.disabled = false
-      })
+      }
     } catch (error) {
       candidate?.dispose()
       if (mine !== this.generation || this.closed) return
@@ -405,9 +422,9 @@ export class AnimeEditor {
   private failed(): void {
     this.ready = false
     this.save.disabled = true
-    this.root.querySelectorAll<HTMLButtonElement>('[data-requires-model]').forEach((button) => {
+    for (const button of this.everyControl<HTMLButtonElement>('[data-requires-model]')) {
       button.disabled = true
-    })
+    }
     this.root.dataset.state = 'error'
     this.loading.hidden = false
     const message = document.createElement('p')
@@ -634,20 +651,43 @@ export class AnimeEditor {
     this.panel.append(list)
   }
 
+  /**
+   * One button where nine controls used to sit.
+   *
+   * Exporting a .vrm, restoring a .json, deciding whether a PNG keeps its
+   * background: real features, and all of them below the fold of what someone
+   * came here to do, which is choose a face. They live in a sheet now — the
+   * same move the launch screen made with the daily reward — so the editor
+   * reads as a character editor and the file tools are still one tap away.
+   */
+  private buildFilesButton(): HTMLElement {
+    const tools = studioToolsCopy()
+    this.files ??= new Sheet('sheet-studio-files')
+    this.filesBody = document.getElementById('studio-files-body') as HTMLElement
+    this.filesBody.replaceChildren(this.buildDownloads())
+    const row = document.createElement('div')
+    row.className = 'studio-files-open'
+    row.append(this.button(tools.openFiles, () => this.files?.show()))
+    return row
+  }
+
   private buildDownloads(): HTMLElement {
     const copy = studioToolsCopy()
     const section = document.createElement('div')
     section.className = 'studio-files'
-    const group = (title: string, note: string): HTMLDetailsElement => {
-      const details = document.createElement('details')
-      const summary = document.createElement('summary')
-      summary.textContent = title
+    // The sheet is already the disclosure; a second one inside it would make a
+    // player open two things to reach one button.
+    const group = (title: string, note: string): HTMLElement => {
+      const block = document.createElement('section')
+      block.className = 'studio-file-group'
+      const heading = document.createElement('h3')
+      heading.textContent = title
       const text = document.createElement('p')
       text.className = 'studio-file-note'
       text.textContent = note
-      details.append(summary, text)
-      section.append(details)
-      return details
+      block.append(heading, text)
+      section.append(block)
+      return block
     }
     const files = group(copy.files, copy.fileHelp)
     const input = document.createElement('input')
@@ -702,7 +742,7 @@ export class AnimeEditor {
     const copy = studioToolsCopy()
     this.busy = true
     this.status.textContent = copy.working
-    const controls = [...this.root.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button, input')]
+    const controls = this.everyControl<HTMLButtonElement | HTMLInputElement>('button, input')
     const disabled = controls.map(control => control.disabled)
     controls.forEach(control => { control.disabled = true })
     const mine = this.generation

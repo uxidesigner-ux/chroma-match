@@ -1,7 +1,23 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { readGlb } from '../../src/avatar/studio-export.ts'
 import { enterLobby } from './boot.ts'
+
+/** The file tools live behind one button in a sheet; open it if it is not up. */
+async function openFiles(page: Page): Promise<void> {
+  const sheet = page.locator('#sheet-studio-files')
+  if (await sheet.isHidden()) {
+    await page.getByRole('button', { name: 'Files & exports', exact: true }).click()
+  }
+  await expect(sheet).toBeVisible()
+}
+
+/** Close it again: it covers the editor while it is up, as a sheet should. */
+async function closeFiles(page: Page): Promise<void> {
+  const sheet = page.locator('#sheet-studio-files')
+  if (await sheet.isVisible()) await page.keyboard.press('Escape')
+  await expect(sheet).toBeHidden()
+}
 
 test.beforeEach(async ({ page }) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
@@ -32,13 +48,16 @@ test('new expressions, undo/redo, saved looks and JSON restore preserve the expl
   await page.getByRole('button', { name: 'Save this look', exact: true }).click()
   await expect(page.locator('.studio-saved-list li')).toHaveCount(1)
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(initial)
-  await page.getByText('Save files & restore', { exact: true }).click()
+  await openFiles(page)
   const downloaded = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Character file (.json)', exact: true }).click()
   const file = await downloaded
   const backup = await readFile((await file.path())!, 'utf8')
   expect(JSON.parse(backup).code).toMatch(/^5STUN/)
+  await closeFiles(page)
   await page.getByRole('button', { name: 'Reset look', exact: true }).click()
+  // `setInputFiles` reaches an attached input without needing it on screen, so
+  // the restore half does not have to reopen the sheet.
   await page.getByLabel('Restore character file', { exact: true }).setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{}') })
   await expect(page.locator('.studio-status')).toContainText('not a supported')
   await page.getByLabel('Restore character file', { exact: true }).setInputFiles({ name: 'look.json', mimeType: 'application/json', buffer: Buffer.from(backup) })
@@ -62,7 +81,7 @@ test('new expressions, undo/redo, saved looks and JSON restore preserve the expl
 test('PNG downloads have real pixels, transparent backgrounds and camera restoration', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
-  await page.getByText('Images & 3D model', { exact: true }).click()
+  await openFiles(page)
   await page.getByLabel('Transparent image background', { exact: true }).check()
   const before = await page.locator('.studio-stage canvas').evaluate(e => (e as HTMLCanvasElement).toDataURL())
   for (const [label, width, height] of [['Face PNG', 512, 548], ['Full-body PNG', 512, 804], ['4-view sheet PNG', 1024, 1572]] as const) {
@@ -94,7 +113,7 @@ test('VRM and GLB exports load again, retain permissions and match selected pale
   await page.getByRole('button', { name: 'Ember', exact: true }).click()
   await page.getByRole('tab', { name: 'Hair', exact: true }).click()
   await page.getByRole('button', { name: 'Short bob', exact: true }).click()
-  await page.getByText('Images & 3D model', { exact: true }).click()
+  await openFiles(page)
   for (const label of ['Avatar (.vrm)', '3D model (.glb)']) {
     const downloaded = page.waitForEvent('download')
     await page.getByRole('button', { name: label, exact: true }).click()
@@ -137,7 +156,7 @@ test('VRM and GLB exports load again, retain permissions and match selected pale
 
 test('a held cheer pose fits inside full-body PNG without clipping raised hands', async ({ page }) => {
   await page.getByRole('button', { name: 'Cheer', exact: true }).click()
-  await page.getByText('Images & 3D model', { exact: true }).click()
+  await openFiles(page)
   await page.getByLabel('Transparent image background', { exact: true }).check()
   const downloaded = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Full-body PNG', exact: true }).click()
@@ -172,8 +191,7 @@ test('mobile library and downloads remain keyboard accessible and storage errors
   await page.getByRole('button', { name: 'Save this look', exact: true }).click()
   await expect(page.locator('.studio-status')).toContainText('could not save')
   await expect(page.locator('.studio-saved-list li')).toHaveCount(0)
-  await page.getByText('Save files & restore', { exact: true }).click()
-  await page.getByText('Images & 3D model', { exact: true }).click()
+  await openFiles(page)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await expect(page.getByRole('button', { name: 'Use this character', exact: true })).toBeEnabled()
 })
