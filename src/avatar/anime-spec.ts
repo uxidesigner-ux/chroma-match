@@ -9,13 +9,28 @@
  */
 export type FigureStep = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
-export const FIGURE_AXES = ['bust', 'waist', 'hip'] as const
+/*
+ * Encoding order, not reading order. The first three are the axes the studio
+ * shipped with, so a code saved then is exactly a prefix of a code saved now
+ * and decodes without a special case. The editor lays the rows out top-down.
+ */
+export const FIGURE_AXES = ['bust', 'waist', 'hip', 'shoulder', 'head'] as const
 export type FigureAxis = (typeof FIGURE_AXES)[number]
 
-/** What the studio offers as a starting point, not the only two shapes. */
+/**
+ * What the studio offers as a starting point, not the only shapes.
+ *
+ * One skeleton, read the four ways a silhouette usually is: even, shoulders
+ * wider than hips, hips wider than shoulders, or slight under a large head.
+ * They are a fast way in, not a claim about who may pick which — every axis
+ * stays free afterwards, and a character that sits between two of them is the
+ * normal outcome rather than an edge case.
+ */
 export const FIGURE_PRESETS = {
-  even: { bust: 3, waist: 3, hip: 3 },
-  full: { bust: 5, waist: 1, hip: 5 },
+  even: { shoulder: 3, bust: 3, waist: 3, hip: 3, head: 3 },
+  broad: { shoulder: 6, bust: 4, waist: 4, hip: 2, head: 2 },
+  curved: { shoulder: 1, bust: 5, waist: 1, hip: 5, head: 3 },
+  young: { shoulder: 1, bust: 2, waist: 2, hip: 2, head: 6 },
 } as const satisfies Record<string, Record<FigureAxis, FigureStep>>
 
 export interface AnimeSpec {
@@ -23,6 +38,8 @@ export interface AnimeSpec {
   bust: FigureStep
   waist: FigureStep
   hip: FigureStep
+  shoulder: FigureStep
+  head: FigureStep
   hair: 'tails' | 'bob'
   expression: 'neutral' | 'happy' | 'relaxed' | 'angry' | 'sad' | 'surprised'
   pack: boolean
@@ -31,6 +48,7 @@ export interface AnimeSpec {
   hairColour: string
   eyeColour: string
   outfitColour: string
+  skinColour: string
   backdrop: string
 }
 
@@ -45,6 +63,12 @@ export const DEFAULT_ANIME: AnimeSpec = {
   hairColour: '67B7A3',
   eyeColour: 'A899E8',
   outfitColour: '91ADB8',
+  /*
+   * White is not a skin tone; it is no tint at all, which is the model's own
+   * baked skin. Every other value multiplies that texture, so the default is
+   * also what an appearance saved before this existed decodes back to.
+   */
+  skinColour: 'FFFFFF',
   backdrop: '202C3D',
 }
 
@@ -109,6 +133,16 @@ export const ANIME_LOOKS: readonly AnimeSpec[] = [
   }),
 ]
 
+/*
+ * Six tints for the one baked skin, light to deep.
+ *
+ * They are offered as swatches because picking a skin tone out of a colour
+ * wheel is a job nobody wants; the free picker stays next to them, so this is
+ * a shortcut rather than the whole range. White is first because it is the
+ * model untouched, not a tone.
+ */
+export const SKIN_TONES = ['FFFFFF', 'FFE0C8', 'F0C39B', 'D19A6E', 'A9714B', '6F4530'] as const
+
 const colours = ['hairColour', 'eyeColour', 'outfitColour', 'backdrop'] as const
 export const EXPRESSIONS = ['neutral', 'happy', 'relaxed', 'angry', 'sad', 'surprised'] as const
 const expressionCodes = { neutral: 'N', happy: 'H', relaxed: 'R', angry: 'A', sad: 'S', surprised: 'U' } as const
@@ -143,33 +177,48 @@ export function encodeAnime(spec: AnimeSpec): string {
       )
       .join('') +
     /*
-     * The figure is appended rather than woven in, so every appearance saved
-     * before it existed is still a valid code — it simply has no figure on the
-     * end and decodes to the shape the model already had.
+     * The figure and the skin are appended rather than woven in, so every
+     * appearance saved before either existed is still a valid code — it simply
+     * runs out early and decodes to the shape and skin the model already had.
      */
-    FIGURE_AXES.map((axis) => String(figureStep(spec[axis]))).join('')
+    FIGURE_AXES.map((axis) => String(figureStep(spec[axis]))).join('') +
+    (/^[0-9a-f]{6}$/i.test(spec.skinColour) ? spec.skinColour.toUpperCase() : DEFAULT_ANIME.skinColour)
   )
 }
 
+/*
+ * Everything after the fixed head is optional, and each stage is a prefix of
+ * the next: no tail at all, the three axes the studio first shipped, all five,
+ * then the skin. Anything else — a truncated tail, a longer one from a build
+ * that does not exist yet — fails, and the caller shows the safe starter.
+ */
+const CODE =
+  /^S[BT][NHRASU][NG1-6][0-9A-F]{24}(?:[0-6]{3}(?:[0-6]{2}(?:[0-9A-F]{6})?)?)?$/
+
 /** Reject malformed/newer model data; callers can show the safe starter appearance. */
 export function decodeAnime(raw: string): AnimeSpec | undefined {
-  // The figure suffix is optional: without it, a code from before figures
-  // existed reads as the model's own proportions, which is what it drew.
-  if (!/^S[BT][NHRASU][NG1-6][0-9A-F]{24}([0-6]{3})?$/.test(raw)) return undefined
+  if (!CODE.test(raw)) return undefined
   const mark = raw[3]!
   const bits = mark === 'G' ? 7 : mark === 'N' ? 0 : Number(mark)
-  const figure = raw.slice(28)
+  const tail = raw.slice(28)
+  // An axis the code stops short of keeps the model's own proportion, so a
+  // three-axis code widens nothing it never knew about.
+  const figure = Object.fromEntries(
+    FIGURE_AXES.map((axis, index) => [
+      axis,
+      index < tail.length ? figureStep(Number(tail[index])) : DEFAULT_ANIME[axis],
+    ]),
+  ) as Record<FigureAxis, FigureStep>
   return {
     model: 'seed-v1',
-    ...(figure.length === 3
-      ? { bust: figureStep(Number(figure[0])), waist: figureStep(Number(figure[1])), hip: figureStep(Number(figure[2])) }
-      : FIGURE_PRESETS.even),
+    ...figure,
     hair: raw[1] === 'B' ? 'bob' : 'tails',
     expression: EXPRESSIONS.find((key) => expressionCodes[key] === raw[2])!,
     ...gearFromBits(bits),
     hairColour: raw.slice(4, 10),
     eyeColour: raw.slice(10, 16),
     outfitColour: raw.slice(16, 22),
+    skinColour: tail.length > FIGURE_AXES.length ? tail.slice(FIGURE_AXES.length) : DEFAULT_ANIME.skinColour,
     backdrop: raw.slice(22, 28),
   }
 }

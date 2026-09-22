@@ -384,13 +384,43 @@
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }
+/* Four builds squeezed into one row break their own labels across lines, so
+ * they take the width they need and fall to a second row when it runs out. */
 .studio-figure-preset {
-  flex: 1;
+  flex: 1 1 128px;
 }
-.studio-options[data-category='looks'],
+.studio-options[data-category='looks'] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .studio-options[data-category='colours'] {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+/*
+ * The skin keeps its swatches beside it on one full-width row. Sitting them
+ * under the grid instead would leave them under whichever picker happened to
+ * land above them, which says they belong to that one.
+ */
+.studio-skin {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.studio-swatch-row {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+/* The colour is the label, so the button carries no text and needs its own height. */
+.studio-swatch,
+.studio-swatch.studio-button[aria-pressed='true'] {
+  min-width: 0;
+  height: 36px;
+  padding: 0;
 }
 .studio-look {
   display: flex;

@@ -5,7 +5,7 @@
  * Preserves VRM/MToon loading, per-material palette changes and disposal;
  * replaces wallet/manifest globals with a fixed, versioned licensed catalogue.
  */
-import { CanvasTexture, Color, Mesh, SRGBColorSpace } from 'three'
+import { CanvasTexture, Color, Mesh, SRGBColorSpace, Vector3 } from 'three'
 import type { Object3D } from 'three'
 import type { Material, Texture } from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
@@ -46,6 +46,14 @@ export class StudioCharacter {
   private expression: AnimeSpec['expression'] = 'neutral'
   private gaze = { x: 0, y: 0 }
   private gazeTarget = { x: 0, y: 0 }
+  /*
+   * The shoulders move by translation rather than scale, so their own resting
+   * offsets have to be kept: applying a figure is idempotent only if each pass
+   * starts from the model's numbers instead of the previous pass's.
+   */
+  private restShoulder: { node: Object3D; rest: Vector3; lengthwise: boolean }[] = []
+  /** Seed-san's skin is shaded warm, not grey; a tint multiplies that rather than replacing it. */
+  private restSkinShade = new Map<Toon, [number, number, number]>()
 
   private constructor(vrm: VRM, private source: ArrayBuffer) {
     this.vrm = vrm
@@ -70,6 +78,23 @@ export class StudioCharacter {
         this.materials.set(material.name, list)
       }
     })
+    /*
+     * Shoulder width is two offsets, not one. The shoulder joint sits out to
+     * the side of the spine, and the collarbone under it runs from there to
+     * the arm — in this rig along its own axis rather than along X, so it is
+     * lengthened as a whole vector while the joint moves sideways only.
+     */
+    for (const [name, lengthwise] of [
+      ['leftShoulder', false],
+      ['rightShoulder', false],
+      ['leftUpperArm', true],
+      ['rightUpperArm', true],
+    ] as const) {
+      const node = vrm.humanoid.getRawBoneNode(name)
+      if (node) this.restShoulder.push({ node, rest: node.position.clone(), lengthwise })
+    }
+    for (const mat of this.materials.get('body_bake') ?? [])
+      this.restSkinShade.set(mat, (mat.shadeColorFactor?.toArray() ?? [1, 1, 1]) as [number, number, number])
     // Preserve texture shading while removing the original green hue so an
     // orange swatch really produces orange. These generated maps are owned.
     const textures = new Map<Texture, CanvasTexture>()
@@ -153,6 +178,17 @@ export class StudioCharacter {
         mat.shadeColorFactor?.copy(new Color(`#${hex}`).multiplyScalar(0.8))
       }
     }
+    /*
+     * Skin is a tint, not a repaint. The texture keeps its baked detail and the
+     * material keeps the warm falloff it ships with, both multiplied by the
+     * chosen colour — so white leaves the model exactly as its author drew it,
+     * which is what every appearance saved before this existed asks for.
+     */
+    const skin = new Color(`#${/^[0-9a-f]{6}$/i.test(spec.skinColour) ? spec.skinColour : 'FFFFFF'}`)
+    for (const [mat, rest] of this.restSkinShade) {
+      mat.color?.copy(skin)
+      mat.shadeColorFactor?.set(rest[0] * skin.r, rest[1] * skin.g, rest[2] * skin.b)
+    }
     this.tails.forEach((mesh) => {
       mesh.visible = spec.hair === 'tails'
     })
@@ -172,7 +208,7 @@ export class StudioCharacter {
   }
 
   /**
-   * Reproportions the one body along three axes.
+   * Reproportions the one body along five axes.
    *
    * The torso is a single chain — hips, spine, chest — and a bone's scale
    * carries down to everything under it, so widening the hips would widen the
@@ -181,8 +217,14 @@ export class StudioCharacter {
    * and the parts that should not change shape — thighs, neck and head,
    * shoulders and arms, the backpack — are divided back out to one.
    *
-   * Only width and depth move. Nothing here changes how tall the character is,
-   * which keeps the camera framing and every exported image the size it was.
+   * Shoulder width is the exception: an arm scaled sideways bends wrongly, so
+   * the shoulders are moved apart instead, along the one axis that separates
+   * them. Head size is the other, and it is the only scale allowed to carry
+   * down, because the hair and the eyes under it should grow with it.
+   *
+   * Only width, depth and the head move. Nothing here changes how tall the
+   * character stands, which keeps the camera framing and every exported image
+   * the size it was.
    */
   private shape(spec: AnimeSpec): void {
     const raw = (name: Parameters<typeof this.vrm.humanoid.getRawBoneNode>[0]) =>
@@ -203,6 +245,16 @@ export class StudioCharacter {
     // hips, and the neck, both shoulders and the backpack under the chest.
     for (const child of hips?.children ?? []) flat(child, child === spine ? waist / hip : 1 / hip)
     for (const child of chest?.children ?? []) flat(child, 1 / bust)
+
+    // The chest already carries the shoulders outward as it widens, so this is
+    // the amount on top of that, which is what makes the two axes separable.
+    // It reaches further than the scaled axes because moving a joint does not
+    // pull the clothing mesh off the skin the way widening a bone does.
+    const shoulder = figureScale(spec.shoulder, 0.45)
+    for (const { node, rest, lengthwise } of this.restShoulder)
+      if (lengthwise) node.position.copy(rest).multiplyScalar(shoulder)
+      else node.position.set(rest.x * shoulder, rest.y, rest.z)
+    raw('head')?.scale.setScalar(figureScale(spec.head, 0.2))
   }
 
   perform(gesture: 'wave' | 'cheer' | 'pose'): void {

@@ -6,9 +6,9 @@ import { DEFAULT_SPEC, SPEC_MAX, decodeSpec, encodeSpec, isKnownSpec } from './s
 test('only model appearance is written, round-trips and fits deployed profile rules', () => {
   for (const look of ANIME_LOOKS) {
     const code = encodeSpec(look)
-    assert.equal(code.length, 32)
+    assert.equal(code.length, 40)
     assert.ok(code.length <= SPEC_MAX)
-    assert.match(code, /^[456]S[BT][NHRASU][NG1-6][0-9A-F]{24}[0-6]{3}$/)
+    assert.match(code, /^[456]S[BT][NHRASU][NG1-6][0-9A-F]{24}[0-6]{5}[0-9A-F]{6}$/)
     assert.deepEqual(decodeSpec(code), look)
     assert.equal(isKnownSpec(code), true)
   }
@@ -19,7 +19,7 @@ test('an existing v3 anime profile retains every appearance choice when rewritte
   assert.deepEqual(decodeSpec(saved), ANIME_LOOKS[1])
   // Rewriting an older profile keeps every choice it carried and states the
   // figure it always had, rather than leaving it to be inferred again.
-  assert.equal(encodeSpec(decodeSpec(saved)), '4' + saved.slice(46) + '333')
+  assert.equal(encodeSpec(decodeSpec(saved)), '4' + saved.slice(46) + '33333FFFFFF')
   // The old envelope is fixed width and only ever carried the 28 characters
   // that existed when it was written, so it is read with the figure the model
   // had then — which is the one these looks still use.
