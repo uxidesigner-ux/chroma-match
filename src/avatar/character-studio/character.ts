@@ -5,8 +5,7 @@
  * Preserves VRM/MToon loading, per-material palette changes and disposal;
  * replaces wallet/manifest globals with a fixed, versioned licensed catalogue.
  */
-import { CanvasTexture, Color, Mesh, SRGBColorSpace, Vector3 } from 'three'
-import type { BufferGeometry } from 'three'
+import { BufferAttribute, BufferGeometry, CanvasTexture, Color, Mesh, SRGBColorSpace, Vector3 } from 'three'
 import type { Object3D } from 'three'
 import type { Material, Texture } from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
@@ -16,6 +15,7 @@ import type { AnimeSpec } from '../anime-spec.ts'
 import { EXPRESSIONS } from '../anime-spec.ts'
 import { CHEST_HIGH, CHEST_LOW, HAIR_SHAPE, RIGID, SCULPTED, applyFigure, bustAmount, sculptChest } from '../body-shape.ts'
 import type { ShapeNode, ShapedBone } from '../body-shape.ts'
+import { hairStrands, mirror, normalsFor, straighten, strandRotation } from '../hair-strands.ts'
 import { exportSeed } from '../studio-export.ts'
 import { BlinkManager } from './blink.ts'
 
@@ -47,6 +47,11 @@ export class StudioCharacter {
   private restSkinShade = new Map<Toon, [number, number, number]>()
   /** The root of the ponytail chain — the one part of the hair that is rigged to move. */
   private tailBone: Object3D | null = null
+  /** The ponytail baked upright, and its mirror, which longer hair is built from. */
+  private strandGeometry: [BufferGeometry, BufferGeometry] | null = null
+  /** The strands standing on the head right now, and the style they are. */
+  private strands: Mesh[] = []
+  private strandStyle: string | null = null
   /** Every node the figure moves, as the model shipped it. */
   private restPose = new Map<Object3D, [number, number, number]>()
   /*
@@ -238,6 +243,7 @@ export class StudioCharacter {
       mesh.visible = hair.ponytail
     })
     this.tailBone?.scale.setScalar(hair.tail)
+    this.standHair(spec.hair)
     this.pack.forEach((mesh) => {
       mesh.visible = spec.pack
     })
@@ -307,7 +313,19 @@ export class StudioCharacter {
       const png = Uint8Array.from(atob(canvas.toDataURL('image/png').split(',')[1]!), c => c.charCodeAt(0))
       return { name, colour: material.color.toArray(), shade: material.shadeColorFactor.toArray(), png }
     })
-    return exportSeed(this.source, spec, palettes)
+    /*
+     * The strand the file will carry is the one the preview baked, so what is
+     * saved is what was on the screen. Baked here if the style on show never
+     * asked for it, because the style being exported may be a different one.
+     */
+    this.strandGeometry ??= this.bakeStrand()
+    const upright = this.strandGeometry?.[0]
+    const strand = upright && {
+      positions: upright.getAttribute('position').array as Float32Array,
+      uv: (upright.getAttribute('uv')?.array as Float32Array | undefined) ?? null,
+      index: Uint32Array.from(upright.getIndex()?.array ?? []),
+    }
+    return exportSeed(this.source, spec, palettes, strand)
   }
 
   tick(delta: number, motion: boolean): void {
@@ -355,7 +373,86 @@ export class StudioCharacter {
     this.vrm.update(delta)
   }
 
+  /**
+   * The ponytail, baked upright in the head bone's own space.
+   *
+   * Taken once and kept: it is the same 156 vertices whatever the character
+   * wears, and every strand of longer hair is a copy of it standing somewhere
+   * else. Skinned positions rather than raw ones, so it is where the model
+   * actually holds it and not where the file happens to store it.
+   */
+  private bakeStrand(): [BufferGeometry, BufferGeometry] | null {
+    const head = this.vrm.humanoid.getRawBoneNode('head')
+    const tail = this.tails.find((mesh) => 'applyBoneTransform' in mesh) as
+      | (Mesh & { applyBoneTransform(index: number, target: Vector3): Vector3 })
+      | undefined
+    if (!head || !tail) return null
+    this.vrm.scene.updateMatrixWorld(true)
+    const source = tail.geometry.getAttribute('position')
+    const local = new Float32Array(source.count * 3)
+    const point = new Vector3()
+    for (let i = 0; i < source.count; i++) {
+      point.fromBufferAttribute(source as BufferAttribute, i)
+      tail.applyBoneTransform(i, point)
+      tail.localToWorld(point)
+      head.worldToLocal(point)
+      local.set([point.x, point.y, point.z], i * 3)
+    }
+    const upright = straighten(local)
+    const index = Uint32Array.from(tail.geometry.getIndex()?.array ?? [])
+    const uv = tail.geometry.getAttribute('uv')
+    const build = (positions: Float32Array, order: Uint32Array): BufferGeometry => {
+      const geometry = new BufferGeometry()
+      geometry.setAttribute('position', new BufferAttribute(positions, 3))
+      geometry.setAttribute('normal', new BufferAttribute(normalsFor(positions, order), 3))
+      if (uv) geometry.setAttribute('uv', (uv as BufferAttribute).clone())
+      geometry.setIndex(new BufferAttribute(order, 1))
+      return geometry
+    }
+    const flipped = mirror(upright, index)
+    return [build(upright, index), build(flipped.positions, flipped.index)]
+  }
+
+  /**
+   * Stands this style's strands around the head, and takes down the last lot.
+   *
+   * Rebuilt only when the style changes: apply() runs on every drag of every
+   * slider, and seventeen meshes torn down and stood back up sixty times a
+   * second is work for nothing.
+   */
+  private standHair(style: AnimeSpec['hair']): void {
+    if (style === this.strandStyle) return
+    this.strandStyle = style
+    for (const mesh of this.strands) mesh.removeFromParent()
+    this.strands = []
+    const strands = hairStrands(style)
+    if (!strands.length) return
+    const head = this.vrm.humanoid.getRawBoneNode('head')
+    const tail = this.tails[0]
+    if (!head || !tail) return
+    this.strandGeometry ??= this.bakeStrand()
+    if (!this.strandGeometry) return
+    // One material, not the array the loader hands back: a Mesh given an array
+    // draws only the groups its geometry declares, and a baked strand has none.
+    const paint = Array.isArray(tail.material) ? tail.material[0]! : tail.material
+    for (const strand of strands) {
+      const mesh = new Mesh(this.strandGeometry[strand.flip ? 1 : 0], paint)
+      // The head can turn to look at a pointer; hair that culled itself on its
+      // own untouched bounds would blink out as it did.
+      mesh.frustumCulled = false
+      mesh.position.set(strand.at[0], strand.at[1], strand.at[2])
+      mesh.quaternion.fromArray(strandRotation(strand))
+      mesh.scale.set(1, strand.length, 1)
+      head.add(mesh)
+      this.strands.push(mesh)
+    }
+  }
+
   dispose(): void {
+    for (const mesh of this.strands) mesh.removeFromParent()
+    this.strands = []
+    for (const geometry of this.strandGeometry ?? []) geometry.dispose()
+    this.strandGeometry = null
     this.vrm.scene.removeFromParent()
     VRMUtils.deepDispose(this.vrm.scene)
   }

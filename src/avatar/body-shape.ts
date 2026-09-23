@@ -287,14 +287,18 @@ export function sculptChest(
  * Whether the ponytail is drawn, and how long it runs as a multiple of the
  * length the model ships with.
  *
- * The rest of the hair cannot be styled from here: it is one mesh weighted
- * almost entirely to the head bone, so scaling the strand chains around it
- * moves a few dozen vertices at the tips and nothing else. Only the ponytail is
- * rigged to be moved, and only these three are offered because only these three
- * are real.
+ * The cap cannot be styled from here: it is one mesh weighted almost entirely
+ * to the head bone, so scaling the strand chains around it moves a few dozen
+ * vertices at the tips and nothing else. What each style adds around the cap
+ * lives in hair-strands.ts; this is only the ponytail the model already has.
+ *
+ * Long hair used to be the ponytail at one and a half times its length, which
+ * was the longest the model could be asked for. It has a curtain of its own
+ * now, and a ponytail inside that curtain is a strand nobody can see, so the
+ * style that swings is the one named for it and no other.
  */
 export const HAIR_SHAPE: Record<HairStyle, { tail: number; ponytail: boolean }> = {
   tails: { tail: 1, ponytail: true },
   bob: { tail: 1, ponytail: false },
-  long: { tail: 1.5, ponytail: true },
+  long: { tail: 1, ponytail: false },
 }

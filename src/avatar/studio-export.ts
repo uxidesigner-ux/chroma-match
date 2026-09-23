@@ -12,6 +12,7 @@ import {
   sculptChest,
 } from './body-shape.ts'
 import type { ShapeNode, ShapedBone } from './body-shape.ts'
+import { hairStrands, mirror, normalsFor, strandRotation } from './hair-strands.ts'
 
 type Vec3 = [number, number, number]
 interface TextureInfo { index: number; [key: string]: unknown }
@@ -31,6 +32,7 @@ interface GlbNode {
   children?: number[]
   scale?: Vec3
   translation?: Vec3
+  rotation?: [number, number, number, number]
 }
 interface MaterialData {
   name: string
@@ -45,7 +47,10 @@ export interface SeedDocument {
   textures: { source: number; sampler?: number }[]
   materials: MaterialData[]
   accessors: Accessor[]
-  meshes: { primitives: { material: number; attributes: Record<string, number> }[] }[]
+  meshes: {
+    name?: string
+    primitives: { material: number; attributes: Record<string, number>; indices?: number }[]
+  }[]
   nodes: GlbNode[]
   extensions: {
     VRMC_vrm: {
@@ -55,6 +60,20 @@ export interface SeedDocument {
   }
 }
 export interface ExportMaterial { name: string; colour: number[]; shade: number[]; png: Uint8Array }
+/**
+ * The ponytail, stood upright in the head bone's own space, as the preview
+ * baked it.
+ *
+ * Handed in rather than worked out again here. Reading it from the document
+ * would mean a second implementation of skinning and of the node tree's
+ * matrices, and two implementations of the same geometry drift; this way the
+ * file carries the vertices the player was looking at when they pressed save.
+ */
+export interface ExportStrand {
+  readonly positions: Float32Array
+  readonly uv: Float32Array | null
+  readonly index: Uint32Array
+}
 
 export function readGlb(buffer: ArrayBuffer): { json: SeedDocument; binary: Uint8Array } {
   const view = new DataView(buffer)
@@ -121,11 +140,111 @@ function readVec3(json: SeedDocument, binary: Uint8Array, index: number): Float3
   return out
 }
 
+/**
+ * Stands this style's hair around the head, as meshes the file carries itself.
+ *
+ * Copies of one strand, each a node with its own place and turn under the head
+ * bone. They are not skinned: a node carrying a mesh and no skin is a rigid
+ * child of the bone above it, which every reader already knows how to place,
+ * where a second skin would have to agree with the first about joints it does
+ * not share. Mirrored copies get their own mesh rather than a negative scale,
+ * because a negative scale turns triangles inside out and glTF leaves fixing
+ * that to the reader.
+ */
+function standHair(
+  json: SeedDocument,
+  chunks: Uint8Array[],
+  byteLength: number,
+  spec: AnimeSpec,
+  strand: ExportStrand | null | undefined,
+): number {
+  const strands = hairStrands(spec.hair)
+  const head = json.extensions.VRMC_vrm.humanoid.humanBones.head?.node
+  const paint = json.materials.findIndex((material) => material.name === 'hair')
+  if (!strand || !strands.length || head === undefined || paint < 0) return byteLength
+  const crown = json.nodes[head]
+  if (!crown) return byteLength
+
+  /** Appends one lot of numbers and returns the accessor that reads it. */
+  const store = (
+    values: Float32Array | Uint32Array,
+    type: 'VEC3' | 'VEC2' | 'SCALAR',
+    stride: number,
+  ): number => {
+    const bytes = new Uint8Array(values.buffer, values.byteOffset, values.byteLength)
+    const bufferView = json.bufferViews.length
+    json.bufferViews.push({ buffer: 0, byteOffset: byteLength, byteLength: bytes.length })
+    const bounds: Partial<Accessor> = {}
+    if (type === 'VEC3' && values instanceof Float32Array) {
+      const min = [Infinity, Infinity, Infinity]
+      const max = [-Infinity, -Infinity, -Infinity]
+      for (let i = 0; i < values.length; i += 3)
+        for (let axis = 0; axis < 3; axis++) {
+          min[axis] = Math.min(min[axis]!, values[i + axis]!)
+          max[axis] = Math.max(max[axis]!, values[i + axis]!)
+        }
+      // glTF asks for these on positions; giving them on both is harmless.
+      bounds.min = min
+      bounds.max = max
+    }
+    const accessor = json.accessors.length
+    json.accessors.push({
+      bufferView,
+      componentType: values instanceof Uint32Array ? 5125 : 5126,
+      type,
+      count: values.length / stride,
+      ...bounds,
+    })
+    chunks.push(bytes)
+    byteLength += padded(bytes.length)
+    return accessor
+  }
+
+  /** One mesh for the strand as baked, one for its mirror. */
+  const shape = (positions: Float32Array, index: Uint32Array): number => {
+    const attributes: Record<string, number> = {
+      POSITION: store(positions, 'VEC3', 3),
+      NORMAL: store(normalsFor(positions, index), 'VEC3', 3),
+    }
+    if (strand.uv) attributes.TEXCOORD_0 = store(strand.uv, 'VEC2', 2)
+    const mesh = json.meshes.length
+    json.meshes.push({
+      name: 'hair_strand',
+      primitives: [{ attributes, indices: store(index, 'SCALAR', 1), material: paint }],
+    })
+    return mesh
+  }
+
+  const flipped = mirror(strand.positions, strand.index)
+  const meshes = [
+    shape(strand.positions, strand.index),
+    shape(flipped.positions, flipped.index),
+  ]
+  crown.children = [...(crown.children ?? [])]
+  for (const piece of strands) {
+    const node = json.nodes.length
+    json.nodes.push({
+      name: 'hair_strand',
+      mesh: meshes[piece.flip ? 1 : 0]!,
+      translation: [piece.at[0], piece.at[1], piece.at[2]],
+      rotation: strandRotation(piece),
+      scale: [1, piece.length, 1],
+    })
+    crown.children.push(node)
+  }
+  return byteLength
+}
+
 /** Template-preserving export for the pinned Seed model, NOT a general VRM optimizer.
  * Keep humanoid, spring bones, expressions, original author and permission metadata.
  * New textures are appended so shared original textures/material indices remain valid.
  */
-export function exportSeed(source: ArrayBuffer, spec: AnimeSpec, materials: ExportMaterial[]): ArrayBuffer {
+export function exportSeed(
+  source: ArrayBuffer,
+  spec: AnimeSpec,
+  materials: ExportMaterial[],
+  strand?: ExportStrand | null,
+): ArrayBuffer {
   const { json, binary } = readGlb(source)
   const meta = json.extensions.VRMC_vrm.meta
   if (meta.name !== 'Seed-san' || meta.allowRedistribution !== true ||
@@ -266,6 +385,7 @@ export function exportSeed(source: ArrayBuffer, spec: AnimeSpec, materials: Expo
       return true
     })
   }
+  byteLength = standHair(json, chunks, byteLength, spec, strand)
   json.asset.copyright = SEED_CREDIT
   json.asset.generator = 'Chroma Match · Seed appearance export'
   json.asset.extras = { ...json.asset.extras, chromaCharacter: { version: 1, code: encodeSpec(spec) } }
