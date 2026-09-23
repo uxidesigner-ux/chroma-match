@@ -92,44 +92,22 @@
   background: color-mix(in srgb, var(--accent-2) 12%, var(--bg));
 }
 /*
- * `overflow-y: auto` makes `overflow-x` compute to `auto` too — the pair cannot
- * be split — so this column clips horizontally whether it was asked to or not,
- * and the Paper skin's hard offset shadow was being sliced off the full-width
- * Apply button. The padding gives the shadow somewhere to live; the negative
- * margin gives the width straight back. Same trick, same reason, as `.home`.
+ * The screen does not scroll. The preview holds the top of it and the sheet
+ * holds the bottom, and the only thing that moves is the options inside the
+ * sheet — turning a knob and then hunting back up the page to see what it did
+ * was the whole reason this was rebuilt.
  */
 .anime-studio {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  gap: 12px;
-  overflow-y: auto;
-  padding-inline: 8px;
-  margin-inline: -8px;
-  /*
-   * Room to scroll past the end, and a soft edge on the way there.
-   *
-   * The column ended exactly on its own clip line, so the last row of options
-   * was sliced in half against the bottom of the screen with nothing to say
-   * whether that was the end or the middle. The padding lets the final row
-   * come fully clear; the mask fades the last stretch instead of guillotining
-   * it, which is what makes a cut read as "more below" rather than as broken.
-   */
-  padding-block-end: 28px;
-  scroll-padding-block-end: 28px;
-  /*
-   * Only the bottom is softened. The top of this column is the preview stage —
-   * a panel with its own edge and its own colour — and fading that would read
-   * as the panel being broken rather than as content running on.
-   */
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+  gap: 8px;
 }
 .studio-viewer {
   display: flex;
   flex-direction: column;
-  min-height: 280px;
+  min-height: 0;
   flex: 1;
   gap: 8px;
 }
@@ -152,18 +130,6 @@
 }
 .studio-stage canvas:active {
   cursor: grabbing;
-}
-.studio-model-name {
-  position: absolute;
-  left: 14px;
-  top: 14px;
-  font-size: var(--text-xs);
-  color: var(--text);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  border: 1px solid var(--line);
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  pointer-events: none;
 }
 .studio-loading {
   position: absolute;
@@ -197,8 +163,7 @@
   z-index: 2;
   pointer-events: none;
 }
-.anime-studio:not([data-state='ready']) .studio-hud,
-.anime-studio:not([data-state='ready']) .studio-below-stage {
+.anime-studio:not([data-state='ready']) .studio-hud {
   opacity: 0.35;
   pointer-events: none;
 }
@@ -214,12 +179,11 @@
   top: 10px;
   right: 10px;
 }
-/* Direction moved below the preview; these three hold the stage. */
-.studio-below-stage {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
+/* Where the model's name used to sit, which is the corner nothing else wants. */
+.studio-hud-orbit {
+  position: absolute;
+  top: 10px;
+  left: 10px;
 }
 .studio-hud-gestures {
   position: absolute;
@@ -257,6 +221,18 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
+}
+/*
+ * The link in the chain that lets the sheet bound its own contents: without a
+ * flex row of its own and a floor of zero, this box takes its content's height
+ * and the options inside it run out past the foot of the sheet instead of
+ * scrolling within it.
+ */
+.studio-controls {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
 .studio-controls > .studio-button {
   margin-top: 12px;
@@ -337,13 +313,75 @@
 .studio-tab.studio-icon[aria-selected='true'] {
   background: color-mix(in srgb, var(--accent-2) 12%, transparent);
 }
+/*
+ * The sheet: pinned to the foot of the screen, bounded so the preview always
+ * keeps the larger share, and full-bleed to the app's own gutter so no strip of
+ * background is left doing nothing along the bottom.
+ */
+.studio-edit {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 8px;
+  max-height: 46vh;
+  /*
+   * Down to the very bottom of the screen. The app's own 12px floor padding and
+   * the slack under it were doing nothing but shortening the list above them,
+   * so the sheet takes both and gives the space back as options; the safe area
+   * is the one thing it still leaves alone.
+   */
+  padding: 0 12px max(6px, env(safe-area-inset-bottom));
+  margin-inline: -12px;
+  margin-block-end: calc(-1 * max(12px, env(safe-area-inset-bottom)));
+  border-top: 1px solid var(--line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--panel);
+}
+.anime-studio[data-sheet='tall'] .studio-edit {
+  max-height: 68vh;
+}
+/* The grip. It is a button, so it is reachable and says which way it will go. */
+.studio-sheet-handle {
+  flex: none;
+  align-self: center;
+  width: 44px;
+  min-height: 22px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+.studio-sheet-handle::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 4px;
+  margin: 9px auto;
+  border-radius: 2px;
+  background: var(--line);
+}
 .studio-options {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 16px 0 4px;
-  min-height: 96px;
+  padding: 14px 0 4px;
   align-content: start;
+  /*
+   * The one scroller on the screen. It carries the same padding-and-negative-
+   * margin trick as the lobby: `overflow-y: auto` forces `overflow-x` to match,
+   * and the Paper skin's hard offset shadow was being sliced off the buttons
+   * against the side. The mask fades the last stretch so a cut reads as "more
+   * below" rather than as broken.
+   */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-inline: 8px;
+  margin-inline: -8px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent 100%);
 }
 .studio-choice-group {
   display: flex;
@@ -362,7 +400,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 12px;
+  width: 100%;
+  min-height: 44px;
 }
 .studio-figure-name {
   flex: none;
@@ -370,24 +409,34 @@
   font-size: var(--text-sm);
   font-weight: 600;
 }
-/* Seven steps that share the row, so a thumb can land on any of them. */
-.studio-figure-steps {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
+/*
+ * A track rather than seven buttons.
+ *
+ * Seven buttons on five rows is thirty-five targets and the height of a screen,
+ * which is what pushed the preview out of sight in the first place. A track is
+ * one row, and it moves the body while the thumb is still down — which is the
+ * thing being judged. It snaps to the same seven steps, so nothing between them
+ * can be set, and the number beside it says which one.
+ */
+.studio-figure-slider {
   flex: 1;
   min-width: 0;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  accent-color: var(--accent-2);
+  cursor: pointer;
 }
-.studio-figure-step {
-  min-width: 0;
-  padding: 0;
+.studio-figure-value {
+  flex: none;
+  width: 1.6em;
+  text-align: center;
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
-/* Four builds squeezed into one row break their own labels across lines, so
- * they take the width they need and fall to a second row when it runs out. */
 .studio-figure-preset {
-  flex: 1 1 128px;
+  flex: 1 1 72px;
 }
 .studio-options[data-category='looks'] {
   display: grid;
@@ -459,15 +508,30 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
-.studio-footer {
+/*
+ * Undo, redo, reset, the file tools and whatever the studio last said, in one
+ * row at the foot of the sheet. Stacked as three full-width blocks they took
+ * 171px of a 388px sheet — more than the options they sat under.
+ */
+.studio-sheet-foot {
+  flex: none;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.studio-sheet-foot .studio-status {
+  flex: 1 1 8em;
+  min-width: 0;
+  font-size: var(--text-xs);
+  text-align: right;
+  opacity: 0.85;
 }
 .studio-status {
   margin: 0;
-  min-height: 20px;
-  line-height: 1.5;
+  line-height: 1.4;
   font-size: var(--text-sm);
   color: var(--text);
 }
@@ -475,12 +539,16 @@
   min-height: 48px;
   width: 100%;
 }
+/* The last line on the screen, and the only place the model is named. */
 .studio-credit {
+  flex: none;
   font-size: var(--text-xs);
+  opacity: 0.75;
   color: var(--text);
-  line-height: 1.5;
+  line-height: 1.4;
   text-align: center;
   text-underline-offset: 3px;
+  padding-block: 2px;
 }
 .studio-discard {
   margin: auto;
@@ -569,14 +637,30 @@
   .has-studio .anime-studio {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(330px, 1fr);
-    gap: 32px;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 0 32px;
   }
   .studio-viewer {
     min-height: 420px;
   }
+  /* Beside the preview rather than under it, so none of the sheet applies. */
   .studio-edit {
     justify-content: center;
+    max-height: none;
     padding: 20px 8px;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .anime-studio[data-sheet='tall'] .studio-edit {
+    max-height: none;
+  }
+  .studio-sheet-handle {
+    display: none;
+  }
+  .studio-credit {
+    grid-column: 1 / -1;
   }
   .studio-heading h3 {
     font-size: var(--text-3xl);
@@ -585,21 +669,19 @@
     min-height: 132px;
   }
 }
-@media (max-width: 859px) and (min-height: 780px) {
-  .studio-viewer {
-    min-height: 330px;
-  }
-}
+/*
+ * On a phone the preview takes whatever the sheet leaves, rather than a height
+ * of its own: a fixed 360px stage plus a sheet was taller than a short screen
+ * and put the first row of options under the fold again.
+ */
 @media (max-width: 859px) {
   .studio-viewer {
-    flex: none;
+    flex: 1;
+    min-height: 200px;
   }
   .studio-stage {
-    flex: none;
-    height: 240px;
-  }
-  .anime-studio[data-framing='full'] .studio-stage {
-    height: 360px;
+    flex: 1;
+    min-height: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {

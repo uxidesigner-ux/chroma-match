@@ -213,9 +213,10 @@ test('lobby and studio chrome hold a 44px target on narrow phones, and the studi
   expect(stageInk).not.toBe('rgb(32, 44, 61)')
   expect(pageInk).not.toBe('')
 
-  // Paper hangs a hard offset shadow off the Apply button; the scroll box has
-  // to leave room for it rather than slicing it at the edge.
-  const overflow = await page.locator('#anime-studio').evaluate(node => ({
+  // Paper hangs a hard offset shadow off the buttons; the scroll box has to
+  // leave room for it rather than slicing it at the edge. That box is the
+  // options inside the sheet now — the screen itself no longer scrolls.
+  const overflow = await page.locator('.studio-options').evaluate(node => ({
     scroll: node.scrollWidth,
     client: node.clientWidth,
     pad: getComputedStyle(node).paddingRight,
@@ -273,9 +274,16 @@ test('accent chips clear WCAG AA on every skin, and the discard prompt is a real
   await page.locator('#lobby-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
 
-  // Direction moved off the character; the stage keeps seven controls, not ten.
-  expect(await page.locator('.studio-hud button').count()).toBe(7)
-  await expect(page.locator('.studio-below-stage button')).toHaveCount(3)
+  /*
+   * Everything that drives the preview sits on the preview. Direction spent a
+   * while on a row of its own underneath, which cost a line of the screen and
+   * put the controls further from the thing they turn; it is back in the corner
+   * the model's name used to hold, and nothing is left below the stage.
+   */
+  expect(await page.locator('.studio-hud button').count()).toBe(10)
+  await expect(page.locator('.studio-below-stage')).toHaveCount(0)
+  for (const name of ['정면', '측면', '후면'])
+    await expect(page.locator('.studio-hud').getByRole('button', { name, exact: true })).toBeVisible()
   // The rotate hint no longer takes a line under the preview, but it is still
   // what the canvas points at, so the description survives the tidy-up.
   await expect(page.locator('.studio-stage canvas')).toHaveAttribute('aria-describedby', 'studio-rotate-help')
