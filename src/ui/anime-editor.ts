@@ -1,4 +1,15 @@
 import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, FIGURE_AXES, FIGURE_PRESETS, HAIR_STYLES, SKIN_TONES, encodeAnime } from '../avatar/anime-spec.ts'
+
+/*
+ * How tall the sheet stands at each stop, as a fraction of the screen.
+ *
+ * The first shows the tabs and a row under them, which is enough to tell what
+ * the sheet holds without taking the character; the last is the longest tab
+ * with nothing left to scroll to. Nothing goes past seven tenths: past that the
+ * preview is a strip, and a sheet that covers what it is editing has stopped
+ * being a sheet.
+ */
+const SHEET_STOPS = [0.36, 0.53, 0.7] as const
 import type { AnimeSpec, FigureAxis, FigureStep, HairStyle } from '../avatar/anime-spec.ts'
 import { myAvatar, setMyAvatar } from '../avatar/store.ts'
 import { cachePortrait } from '../avatar/anime-portrait.ts'
@@ -33,6 +44,9 @@ export class AnimeEditor {
   private face = false
   private closed = true
   private history = new LookHistory()
+  /** Which of the sheet's three stops it is resting at, and the grip that says so. */
+  private sheet = 0
+  private grip: HTMLButtonElement | null = null
   private undo = document.createElement('button')
   private redo = document.createElement('button')
   private paused = false
@@ -406,6 +420,9 @@ export class AnimeEditor {
       candidate.apply(this.draft)
       candidate.attach(this.stage, () => this.failed())
       candidate.framePortrait(this.face)
+      // The sheet stood up before the model finished loading, so the camera has
+      // not heard how much of its canvas is hidden yet.
+      this.setSheet(this.sheetSize())
       candidate.pause(this.paused)
       this.loading.hidden = true
       this.root.dataset.state = 'ready'
@@ -776,26 +793,88 @@ export class AnimeEditor {
    * one is the model exactly as it ships.
    */
   /**
-   * The grip at the top of the sheet, and the one control that resizes it.
+   * The grip, and everything that decides how tall the sheet stands.
    *
-   * Two heights rather than a free drag: a drag needs a pointer, and the thing
-   * it would buy — any height at all — is not worth the reach it costs. Tapping
-   * swaps between a sheet that leaves most of the preview showing and one tall
-   * enough for the longest tab.
+   * The sheet floats over the preview rather than dividing the screen with it,
+   * so its height is the one number that says how much of the character is
+   * showing. Three stops: enough to see the tabs and a row, half, and tall
+   * enough for the longest tab. A drag moves it and lets go at the nearest
+   * stop; a tap steps to the next one, which is what a thumb reaching the grip
+   * without aiming will do; arrow keys move it one stop, because a grip nobody
+   * can reach by keyboard is a grip half the people cannot use.
    */
   private sheetHandle(): HTMLElement {
     const tools = studioToolsCopy()
-    const handle = this.button('', () => {
-      const tall = this.root.dataset.sheet === 'tall'
-      this.root.dataset.sheet = tall ? 'short' : 'tall'
-      handle.setAttribute('aria-expanded', String(!tall))
-      handle.setAttribute('aria-label', tall ? tools.sheetExpand : tools.sheetCollapse)
-    }, 'studio-sheet-handle')
-    this.root.dataset.sheet = 'short'
-    handle.setAttribute('aria-expanded', 'false')
-    handle.setAttribute('aria-label', tools.sheetExpand)
+    const handle = this.button('', () => this.snapSheet(this.sheet >= SHEET_STOPS.length - 1 ? 0 : this.sheet + 1), 'studio-sheet-handle')
+    this.grip = handle
+    handle.setAttribute('aria-label', tools.sheetHeight)
+    handle.setAttribute('role', 'slider')
+    handle.setAttribute('aria-valuemin', '1')
+    handle.setAttribute('aria-valuemax', String(SHEET_STOPS.length))
+    handle.addEventListener('keydown', (event) => {
+      const step = event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0
+      if (!step) return
+      event.preventDefault()
+      this.snapSheet(Math.max(0, Math.min(SHEET_STOPS.length - 1, this.sheet + step)))
+    })
+    /*
+     * Dragging tracks the pointer exactly, with no stop to snap to until it is
+     * let go: a sheet that jumped between heights under the thumb would feel
+     * like it was being taken away from whoever was holding it.
+     */
+    let from = 0
+    let at = 0
+    handle.addEventListener('pointerdown', (event) => {
+      from = event.clientY
+      at = this.sheetSize()
+      handle.setPointerCapture(event.pointerId)
+      this.root.dataset.dragging = ''
+    })
+    handle.addEventListener('pointermove', (event) => {
+      if (!handle.hasPointerCapture(event.pointerId)) return
+      const box = this.root.getBoundingClientRect()
+      if (!box.height) return
+      this.setSheet(at + (from - event.clientY) / box.height)
+    })
+    const drop = (event: PointerEvent) => {
+      if (!handle.hasPointerCapture(event.pointerId)) return
+      handle.releasePointerCapture(event.pointerId)
+      delete this.root.dataset.dragging
+      const size = this.sheetSize()
+      let nearest = 0
+      SHEET_STOPS.forEach((stop, index) => {
+        if (Math.abs(stop - size) < Math.abs(SHEET_STOPS[nearest]! - size)) nearest = index
+      })
+      this.snapSheet(nearest)
+    }
+    handle.addEventListener('pointerup', drop)
+    handle.addEventListener('pointercancel', drop)
+    this.snapSheet(0)
     return handle
   }
+
+  /** Where the sheet stands right now, as a fraction of the screen. */
+  private sheetSize(): number {
+    return Number(this.root.style.getPropertyValue('--sheet')) || SHEET_STOPS[0]!
+  }
+
+  private setSheet(fraction: number): void {
+    const size = Math.max(SHEET_STOPS[0]!, Math.min(SHEET_STOPS.at(-1)!, fraction))
+    this.root.style.setProperty('--sheet', size.toFixed(4))
+    /*
+     * The preview is behind the sheet, not above it, so the camera has to be
+     * told how much of its canvas is hidden or the character stands in it.
+     * Beside the preview the sheet covers nothing, and the canvas is whole.
+     */
+    this.renderer?.cover(this.grip?.checkVisibility() === false ? 0 : size)
+  }
+
+  private snapSheet(stop: number): void {
+    this.sheet = stop
+    this.setSheet(SHEET_STOPS[stop]!)
+    this.grip?.setAttribute('aria-valuenow', String(stop + 1))
+  }
+
 
   private figureRow(axis: FigureAxis, label: string): HTMLElement {
     const row = document.createElement('div')

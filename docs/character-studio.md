@@ -39,12 +39,22 @@ body naming Rhinox 3D as its author. Publishing this repository redistributes
 whatever `public/` holds, so those files stay out of it. Character variety comes
 from reproportioning the one model that permits it.
 
-## The screen does not scroll
+## The screen does not scroll, and the sheet is not a panel
 
-The preview holds the top and the sheet holds the bottom; the only thing that
-moves is the options inside the sheet. Before this, the whole column scrolled,
-so moving a body control and then seeing what it did meant scrolling back up —
-which is the one thing a character editor cannot ask for.
+The preview fills the screen and the editing sheet stands over its foot, raised,
+with the character carrying on behind it. The only thing that moves is the
+options inside the sheet. Before this, the whole column scrolled, so moving a
+body control and then seeing what it did meant scrolling back up — which is the
+one thing a character editor cannot ask for; and before the sheet floated, the
+two split the column and read as two stacked boxes that happened to touch.
+
+The sheet stands at three heights and is dragged, tapped or arrowed between
+them. Because it covers the canvas rather than shortening it, the camera is told
+what fraction is hidden: it shifts its frustum down by half of that and stands
+back by the reciprocal of what is left, which lifts the character into the band
+still showing and keeps all of it there. Getting that wrong is what makes a
+floating sheet unusable — the legs stand behind it — so there is a test that
+reads the lowest drawn pixel at every height and fails if it reaches the edge.
 
 The figure axes are tracks rather than rows of seven buttons. Thirty-five
 targets across five rows was most of a screen, and a track follows the thumb
