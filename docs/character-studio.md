@@ -39,6 +39,21 @@ body naming Rhinox 3D as its author. Publishing this repository redistributes
 whatever `public/` holds, so those files stay out of it. Character variety comes
 from reproportioning the one model that permits it.
 
+## The screen does not scroll
+
+The preview holds the top and the sheet holds the bottom; the only thing that
+moves is the options inside the sheet. Before this, the whole column scrolled,
+so moving a body control and then seeing what it did meant scrolling back up —
+which is the one thing a character editor cannot ask for.
+
+The figure axes are tracks rather than rows of seven buttons. Thirty-five
+targets across five rows was most of a screen, and a track follows the thumb
+while it is still down, which is what makes the shape the thing being judged. A
+drag is recorded as one undo step, not one per step it crosses. Everything that
+drives the preview — direction, framing, gestures, pause, shuffle — sits on the
+preview; the model's name moved to the credit line at the very foot, which is
+the only place it is named.
+
 ## One rule, two backends
 
 The figure and the bust are defined once, in `src/avatar/body-shape.ts`,

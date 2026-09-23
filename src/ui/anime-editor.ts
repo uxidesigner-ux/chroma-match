@@ -186,10 +186,7 @@ export class AnimeEditor {
     this.loading = document.createElement('div')
     this.loading.className = 'studio-loading'
     this.loading.setAttribute('role', 'status')
-    const modelName = document.createElement('span')
-    modelName.className = 'studio-model-name'
-    modelName.textContent = copy.starter
-    this.stage.append(this.canvas, modelName, this.loading)
+    this.stage.append(this.canvas, this.loading)
     const toolbar = document.createElement('div')
     toolbar.className = 'studio-hud'
     const framing = document.createElement('div')
@@ -281,7 +278,7 @@ export class AnimeEditor {
      * also what dragging already does, so of the ten these are the three that
      * lose least by moving off the figure and gain a caption by doing it.
      */
-    toolbar.append(framing, gestures, pause, random)
+    toolbar.append(direction, framing, gestures, pause, random)
     this.stage.append(toolbar)
     const hint = document.createElement('p')
     hint.id = 'studio-rotate-help'
@@ -338,16 +335,14 @@ export class AnimeEditor {
     this.panel.className = 'studio-options'
     this.panel.setAttribute('role', 'tabpanel')
     const history = document.createElement('div')
-    history.className = 'studio-choice-group studio-history'
-    this.undo = this.labelled(tools.undo, 'undo', () => this.restoreHistory(false))
-    this.redo = this.labelled(tools.redo, 'redo', () => this.restoreHistory(true))
-    history.append(this.undo, this.redo, this.labelled(tools.reset, 'reset', () => {
+    history.className = 'studio-sheet-foot'
+    this.undo = this.icon(tools.undo, 'undo', () => this.restoreHistory(false))
+    this.redo = this.icon(tools.redo, 'redo', () => this.restoreHistory(true))
+    history.append(this.undo, this.redo, this.icon(tools.reset, 'reset', () => {
       this.update(DEFAULT_ANIME)
       this.paintOptions()
     }))
     controls.append(this.tabs, this.panel, history)
-    const footer = document.createElement('div')
-    footer.className = 'studio-footer'
     this.status = document.createElement('p')
     this.status.className = 'studio-status'
     this.status.setAttribute('role', 'status')
@@ -357,7 +352,6 @@ export class AnimeEditor {
     // The one committing action belongs with the title, not at the foot of a
     // column the player has to scroll back through to find it.
     document.getElementById('creator-actions')?.replaceChildren(this.save)
-    footer.append(this.status)
     this.discard = document.createElement('dialog')
     this.discard.className = 'studio-discard'
     this.discard.addEventListener('close', () => {
@@ -371,12 +365,16 @@ export class AnimeEditor {
     credit.textContent = copy.credit
     const viewer = document.createElement('div')
     viewer.className = 'studio-viewer'
-    direction.classList.remove('studio-hud-cluster', 'studio-hud-orbit')
-    direction.classList.add('studio-below-stage')
-    viewer.append(this.stage, direction, hint)
+    viewer.append(this.stage, hint)
+    /*
+     * The sheet. The preview above it never scrolls away, because the only
+     * thing that scrolls is the options inside — turning a knob and then
+     * hunting back up the page for what it did is the whole problem it solves.
+     */
     const edit = document.createElement('div')
     edit.className = 'studio-edit'
-    edit.append(controls, this.discard, footer, this.buildFilesButton(), credit)
+    history.append(this.buildFilesButton(), this.status)
+    edit.append(this.sheetHandle(), controls, this.discard, credit)
     this.root.append(viewer, edit)
     this.paintOptions()
   }
@@ -438,6 +436,28 @@ export class AnimeEditor {
       message,
       this.button(animeCopy().retry, () => void this.load()),
     )
+  }
+
+  /**
+   * A change in progress: the model follows, the history does not.
+   *
+   * Dragging a slider fires on every step it crosses, and each one pushed as
+   * its own entry would bury whatever came before under thirty of them. The
+   * entry is pushed by `commit` when the gesture ends.
+   */
+  private slide(spec: AnimeSpec): void {
+    if (this.busy) return
+    this.draft = { ...spec }
+    this.renderer?.apply(this.draft)
+    this.status.textContent = animeCopy().ready
+    if (this.discard.open) this.discard.close()
+  }
+
+  /** Records a finished gesture as one step, from where it started. */
+  private commit(before: AnimeSpec): void {
+    if (this.busy) return
+    this.history.push(before, this.draft)
+    this.refreshHistory()
   }
 
   private update(spec: AnimeSpec): void {
@@ -527,11 +547,6 @@ export class AnimeEditor {
         group.append(button)
       }
     } else if (this.category === 'figure') {
-      const note = document.createElement('p')
-      note.className = 'studio-file-note'
-      note.textContent = copy.figureNote
-      this.panel.append(note)
-
       /*
        * The one choice above the builds, because it is the only one that
        * changes what the body can do rather than how much of it there is.
@@ -760,39 +775,79 @@ export class AnimeEditor {
    * say where the shape is and let a thumb land on any of them, and the middle
    * one is the model exactly as it ships.
    */
+  /**
+   * The grip at the top of the sheet, and the one control that resizes it.
+   *
+   * Two heights rather than a free drag: a drag needs a pointer, and the thing
+   * it would buy — any height at all — is not worth the reach it costs. Tapping
+   * swaps between a sheet that leaves most of the preview showing and one tall
+   * enough for the longest tab.
+   */
+  private sheetHandle(): HTMLElement {
+    const tools = studioToolsCopy()
+    const handle = this.button('', () => {
+      const tall = this.root.dataset.sheet === 'tall'
+      this.root.dataset.sheet = tall ? 'short' : 'tall'
+      handle.setAttribute('aria-expanded', String(!tall))
+      handle.setAttribute('aria-label', tall ? tools.sheetExpand : tools.sheetCollapse)
+    }, 'studio-sheet-handle')
+    this.root.dataset.sheet = 'short'
+    handle.setAttribute('aria-expanded', 'false')
+    handle.setAttribute('aria-label', tools.sheetExpand)
+    return handle
+  }
+
   private figureRow(axis: FigureAxis, label: string): HTMLElement {
     const row = document.createElement('div')
     row.className = 'studio-figure-row'
-    const name = document.createElement('span')
+    const name = document.createElement('label')
     name.className = 'studio-figure-name'
     name.textContent = label
-    const steps = document.createElement('div')
-    steps.className = 'studio-figure-steps'
-    steps.setAttribute('role', 'group')
-    steps.setAttribute('aria-label', label)
-    for (let step = 0 as FigureStep; step <= 6; step = (step + 1) as FigureStep) {
-      const value = step
-      const button = this.button(String(value + 1), () => {
-        this.update({ ...this.draft, [axis]: value })
-        this.paintOptions()
-      }, 'studio-button studio-figure-step')
-      button.setAttribute('aria-label', `${label} ${value + 1}`)
-      button.setAttribute('aria-pressed', String(this.draft[axis] === value))
-      steps.append(button)
+    const slider = document.createElement('input')
+    slider.type = 'range'
+    slider.min = '0'
+    slider.max = '6'
+    slider.step = '1'
+    slider.value = String(this.draft[axis])
+    slider.className = 'studio-figure-slider'
+    slider.id = `studio-figure-${axis}`
+    name.htmlFor = slider.id
+    const readout = document.createElement('output')
+    readout.className = 'studio-figure-value'
+    readout.htmlFor = slider.id
+    const show = () => {
+      readout.textContent = String(Number(slider.value) + 1)
+      // Seven unnamed steps read as nothing to a screen reader; "4 / 7" is
+      // what the number beside the track says to everyone else.
+      slider.setAttribute('aria-valuetext', `${Number(slider.value) + 1} / 7`)
     }
-    row.append(name, steps)
+    show()
+    /*
+     * A drag is one change, not thirty. The body follows the thumb on every
+     * `input` so the shape is what is being watched, and the undo entry is
+     * pushed once when the thumb comes off.
+     */
+    let before: AnimeSpec | null = null
+    slider.addEventListener('input', () => {
+      before ??= this.draft
+      this.slide({ ...this.draft, [axis]: Number(slider.value) as FigureStep })
+      show()
+    })
+    slider.addEventListener('change', () => {
+      if (before) this.commit(before)
+      before = null
+      this.paintOptions()
+    })
+    row.append(name, slider, readout)
     return row
   }
 
-  private buildFilesButton(): HTMLElement {
+  private buildFilesButton(): HTMLButtonElement {
     const tools = studioToolsCopy()
     this.files ??= new Sheet('sheet-studio-files')
     this.filesBody = document.getElementById('studio-files-body') as HTMLElement
     this.filesBody.replaceChildren(this.buildDownloads())
-    const row = document.createElement('div')
-    row.className = 'studio-files-open'
-    row.append(this.button(tools.openFiles, () => this.files?.show()))
-    return row
+    return this.icon(tools.openFiles, 'files', () => this.files?.show())
   }
 
   private buildDownloads(): HTMLElement {

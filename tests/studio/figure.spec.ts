@@ -156,8 +156,10 @@ test('the figure reshapes the torso and leaves the head alone', async ({ page })
 test('each axis moves its own region and leaves the others standing', async ({ page }) => {
   await openStudio(page, '체형')
   const silhouette = silhouetteOf(page)
+  // The rows are tracks now. `fill` sets the value and fires the same input and
+  // change a thumb does, which is the gesture the editor records as one step.
   const step = (axis: string, value: number) =>
-    page.getByRole('button', { name: `${axis} ${value}`, exact: true }).click()
+    page.getByLabel(axis, { exact: true }).fill(String(value - 1))
 
   // Every axis but the one under test is held at the middle, which is the
   // model untouched, so whatever moves is the work of that axis alone.
@@ -302,7 +304,7 @@ test('the bust is rounded at the front and runs out further below than above', a
   const male = await evened()
   expect(male, 'nothing was drawn to measure').not.toBeNull()
   await page.getByRole('button', { name: '여성', exact: true }).click()
-  await page.getByRole('button', { name: '가슴 7', exact: true }).click()
+  await page.getByLabel('가슴', { exact: true }).fill('6')
   const female = await evened()
 
   /*
@@ -343,24 +345,37 @@ test('the bust is rounded at the front and runs out further below than above', a
   expect(broadness, 'the bust is tall for its width, which reads as a point').toBeGreaterThan(2.4)
 
   /*
-   * And softer underneath than on top: the run from the peak down to half its
-   * depth is half again the run up, which is what carries the underside into
-   * the ribcage instead of ending it on a rim.
+   * And softer underneath than on top: there is more of the shape below its
+   * peak than above it, which is what carries the underside into the ribcage
+   * instead of ending it on a rim.
+   *
+   * Measured as the area either side rather than the rows either side. A row
+   * count is a count of pixels, so it moves with how large the character
+   * happens to be drawn — when the preview grew, the same shape read 1.5
+   * instead of 2.0 on a gate of 1.6 and failed for no reason of its own. The
+   * area either side of the peak is the same number whatever the scale.
    */
-  expect(below / above, 'the underside is no softer than the top').toBeGreaterThan(1.6)
+  const area = (step: number) => {
+    let total = 0
+    for (let row = peak + step; added[row] !== undefined && added[row]! > 0; row += step) total += added[row]!
+    return total
+  }
+  expect(area(1) / area(-1), 'the underside is no softer than the top').toBeGreaterThan(1.35)
 })
 
 test('picking a character seeds a build, and keeps a figure set row by row', async ({ page }) => {
   await openStudio(page, '체형')
   const pressed = (name: string) =>
     expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true')
+  const reads = (axis: string, value: number) =>
+    expect(page.getByLabel(axis, { exact: true })).toHaveValue(String(value - 1))
 
   // From one of the four builds, picking the other character swaps the build:
   // one tap has to produce a character rather than a setting.
   await page.getByRole('button', { name: '여성', exact: true }).click()
   await page.getByRole('button', { name: '곡선', exact: true }).click()
   await page.getByRole('button', { name: '남성', exact: true }).click()
-  await pressed('어깨 7')
+  await reads('어깨', 7)
   await pressed('남성')
 
   /*
@@ -370,10 +385,10 @@ test('picking a character seeds a build, and keeps a figure set row by row', asy
    */
   // Neither of these is what the female build would set, so a figure that came
   // back matching it would be the build overwriting the rows, not keeping them.
-  await page.getByRole('button', { name: '어깨 4', exact: true }).click()
-  await page.getByRole('button', { name: '엉덩이 2', exact: true }).click()
+  await page.getByLabel('어깨', { exact: true }).fill('3')
+  await page.getByLabel('엉덩이', { exact: true }).fill('1')
   await page.getByRole('button', { name: '여성', exact: true }).click()
   await pressed('여성')
-  await pressed('어깨 4')
-  await pressed('엉덩이 2')
+  await reads('어깨', 4)
+  await reads('엉덩이', 2)
 })
