@@ -85,6 +85,24 @@ export function invalidatePortrait(canvas: HTMLCanvasElement): void {
   requests.delete(canvas)
 }
 
+/**
+ * Ink that can be read on a given backdrop.
+ *
+ * The two marks this file draws itself — the dots while a portrait renders and
+ * the dash when one cannot — used to be white, which was safe while every
+ * backdrop on offer was a shade of night. Daylight is on the list now, and a
+ * white dash on white is a portrait that looks like it drew nothing at all.
+ */
+function inkOn(backdrop: string): string {
+  const hex = /^[0-9a-f]{6}$/i.test(backdrop) ? backdrop : '202C3D'
+  const channel = (at: number): number => {
+    const value = parseInt(hex.slice(at, at + 2), 16) / 255
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  }
+  const light = 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4)
+  return light > 0.3 ? '#101318' : '#ffffff'
+}
+
 export function paintAnimePortrait(
   canvas: HTMLCanvasElement,
   spec: AnimeSpec,
@@ -98,7 +116,7 @@ export function paintAnimePortrait(
   // A neutral placeholder communicates loading; it is not another character.
   ctx.fillStyle = `#${spec.backdrop}`
   ctx.fillRect(0, 0, size, size)
-  ctx.fillStyle = '#fff'
+  ctx.fillStyle = inkOn(spec.backdrop)
   ctx.textAlign = 'center'
   ctx.font = `${size * 0.3}px system-ui`
   ctx.fillText('…', size / 2, size * 0.55)
@@ -124,7 +142,7 @@ export function paintAnimePortrait(
       ctx.clearRect(0, 0, size, size)
       ctx.fillStyle = `#${spec.backdrop}`
       ctx.fillRect(0, 0, size, size)
-      ctx.fillStyle = '#fff'
+      ctx.fillStyle = inkOn(spec.backdrop)
       ctx.fillText('—', size / 2, size * 0.55)
     })
 }

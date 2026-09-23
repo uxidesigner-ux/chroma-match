@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { enterLobby } from './boot.ts'
+import { portraitFrame } from '../../src/avatar/portrait-frame.ts'
 
 async function openCreator(page: Page) {
   await page.locator('#profile-face').click()
@@ -15,7 +16,9 @@ async function openAnime(page: Page) {
 
 async function expectFaceCrop(page: Page, selector: string) {
   await expect(page.locator(selector)).toHaveAttribute('data-avatar-state', 'ready')
-  const result = await page.locator(selector).evaluate(async element => {
+  // The framing comes from the source rather than being copied here, so this
+  // measures that the canvas carries the crop, not that two numbers still match.
+  const result = await page.locator(selector).evaluate(async (element, frame) => {
     const actual = element as HTMLCanvasElement
     const saved = JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!)
     const image = new Image()
@@ -32,16 +35,19 @@ async function expectFaceCrop(page: Page, selector: string) {
       ctx.beginPath()
       ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
       ctx.clip()
-      if (zoom) {
-        const edge = image.naturalWidth
-        const crop = edge / 1.65
-        ctx.drawImage(image, (edge - crop) / 2, edge * 0.43 - crop / 2, crop, crop, 0, 0, size, size)
-      } else ctx.drawImage(image, 0, 0, size, size)
+      if (zoom) ctx.drawImage(image, frame.x, frame.y, frame.size, frame.size, 0, 0, size, size)
+      else ctx.drawImage(image, 0, 0, size, size)
       return canvas.toDataURL()
     }
-    return { isCloseup: actual.toDataURL() === capture(true), isOldFraming: actual.toDataURL() === capture(false) }
-  })
-  expect(result).toEqual({ isCloseup: true, isOldFraming: false })
+    return {
+      isCloseup: actual.toDataURL() === capture(true),
+      isOldFraming: actual.toDataURL() === capture(false),
+      // The frame above was measured for this edge; a capture of another size
+      // would make the comparison meaningless rather than failing on its own.
+      capturedAt: image.naturalWidth,
+    }
+  }, portraitFrame(256))
+  expect(result).toEqual({ isCloseup: true, isOldFraming: false, capturedAt: 256 })
 }
 
 test.beforeEach(async ({ page }) => {

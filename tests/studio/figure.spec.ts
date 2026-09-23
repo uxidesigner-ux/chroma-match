@@ -234,6 +234,40 @@ test('a skin tone darkens the character and white leaves the model as drawn', as
   expect(Math.abs(back!.light - pale!.light), 'white did not restore the model').toBeLessThan(0.5)
 })
 
+/*
+ * All eight starter looks carry a night backdrop, so the row of shortcuts is
+ * the only place daylight is one tap away. What it has to actually do is paint
+ * the scene behind the character, and lead back.
+ */
+test('the backdrop row reaches daylight and finds its way back to night', async ({ page }) => {
+  await openStudio(page, '색상')
+  const ground = () =>
+    page.evaluate(() => {
+      const canvas = document.querySelector('.studio-stage canvas') as HTMLCanvasElement
+      const copy = document.createElement('canvas')
+      copy.width = copy.height = 8
+      const ctx = copy.getContext('2d')!
+      // The top-left corner of the stage is backdrop on every framing.
+      ctx.drawImage(canvas, 0, 0, 40, 40, 0, 0, 8, 8)
+      const [red, green, blue] = ctx.getImageData(0, 0, 1, 1).data
+      return (red! + green! + blue!) / 3
+    })
+
+  const night = await ground()
+  expect(night, 'the starter stands against a dark backdrop').toBeLessThan(80)
+
+  await page.getByRole('button', { name: '배경 #F4F1EA', exact: true }).click()
+  await page.waitForTimeout(300)
+  expect(await ground(), 'the lightest shortcut paints daylight behind them')
+    .toBeGreaterThan(200)
+
+  // And the row ends where the character started, so getting back is a tap.
+  await page.getByRole('button', { name: '배경 #202C3D', exact: true }).click()
+  await page.waitForTimeout(300)
+  expect(Math.abs((await ground()) - night), 'the last shortcut is the default')
+    .toBeLessThan(3)
+})
+
 test('a female character carries a bust a male one does not, and going back takes it off', async ({ page }) => {
   await openStudio(page, '체형')
   const silhouette = silhouetteOf(page)

@@ -153,6 +153,21 @@ export const ANIME_LOOKS: readonly AnimeSpec[] = [
 export const SKIN_TONES = ['FFFFFF', 'FFE0C8', 'F0C39B', 'D19A6E', 'A9714B', '6F4530'] as const
 
 /*
+ * Six backdrops, daylight to night.
+ *
+ * All eight starter looks carry a dark backdrop, because each was built as a
+ * whole palette and they are all night palettes — so the only way to stand a
+ * character against daylight was to find the colour wheel and know what to
+ * type into it. The backdrop is its own axis: it is behind the character
+ * rather than on them, and it is the one colour that fills the circle on the
+ * launch screen. Six, because that is the row the skin tones already use and
+ * a shortcut row that wraps is not a row; the free picker beside them still
+ * reaches everything these do not. The last is the default, so getting back
+ * is a tap rather than a memory.
+ */
+export const BACKDROPS = ['F4F1EA', 'D8E6EF', 'E6D7C4', 'A8B6A4', '5A6E86', '202C3D'] as const
+
+/*
  * The hairstyles, and the one letter each is saved as.
  *
  * This is a short list because the asset allows a short one. The model's hair
