@@ -92,17 +92,21 @@
   background: color-mix(in srgb, var(--accent-2) 12%, var(--bg));
 }
 /*
- * The screen does not scroll. The preview holds the top of it and the sheet
- * holds the bottom, and the only thing that moves is the options inside the
- * sheet — turning a knob and then hunting back up the page to see what it did
- * was the whole reason this was rebuilt.
+ * The screen does not scroll, and the sheet is not a panel.
+ *
+ * The preview fills the whole screen and the sheet stands over its foot, the
+ * way a sheet does: raised, with an edge of its own and the character carrying
+ * on behind it. Splitting the column between the two instead read as two
+ * stacked boxes that happened to touch. The only thing that scrolls is the
+ * options inside the sheet.
  */
 .anime-studio {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  gap: 8px;
+  --sheet: 0.36;
 }
 .studio-viewer {
   display: flex;
@@ -110,6 +114,14 @@
   min-height: 0;
   flex: 1;
   gap: 8px;
+}
+/*
+ * The stage's own foot is rounded away under the sheet, so the two do not read
+ * as one box split in half: the character carries on behind a raised edge.
+ */
+.anime-studio .studio-stage {
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
 }
 .studio-stage {
   position: relative;
@@ -185,20 +197,24 @@
   top: 10px;
   left: 10px;
 }
+/*
+ * Above the sheet, not behind it. These used to sit on the stage's floor, which
+ * is the part the sheet stands over; they ride its top edge instead.
+ */
 .studio-hud-gestures {
   position: absolute;
   left: 10px;
-  bottom: 10px;
+  bottom: calc(var(--sheet) * 100% + 10px);
 }
 .studio-hud-pause {
   position: absolute;
   right: 62px;
-  bottom: 10px;
+  bottom: calc(var(--sheet) * 100% + 10px);
 }
 .studio-hud-shuffle {
   position: absolute;
   right: 10px;
-  bottom: 10px;
+  bottom: calc(var(--sheet) * 100% + 10px);
 }
 /*
  * The stage chrome floats over a 3D backdrop the player chose, so it carries a
@@ -314,50 +330,61 @@
   background: color-mix(in srgb, var(--accent-2) 12%, transparent);
 }
 /*
- * The sheet: pinned to the foot of the screen, bounded so the preview always
- * keeps the larger share, and full-bleed to the app's own gutter so no strip of
- * background is left doing nothing along the bottom.
+ * The sheet. It floats: absolute against the screen, above the canvas, with its
+ * own edge and shadow, and it reaches past the app's floor padding so nothing
+ * is left doing nothing along the bottom. `--sheet` is how tall it stands, set
+ * by the grip as a fraction of the screen.
  */
 .studio-edit {
-  flex: none;
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--sheet) * 100%);
   display: flex;
   flex-direction: column;
   min-height: 0;
-  gap: 8px;
-  max-height: 46vh;
-  /*
-   * Down to the very bottom of the screen. The app's own 12px floor padding and
-   * the slack under it were doing nothing but shortening the list above them,
-   * so the sheet takes both and gives the space back as options; the safe area
-   * is the one thing it still leaves alone.
-   */
+  gap: 6px;
   padding: 0 12px max(6px, env(safe-area-inset-bottom));
+  /* Out to the app's own gutter, and down through its floor. */
   margin-inline: -12px;
   margin-block-end: calc(-1 * max(12px, env(safe-area-inset-bottom)));
-  border-top: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-bottom: 0;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--panel);
+  box-shadow: 0 -10px 30px -12px rgb(0 0 0 / 0.45);
+  transition: height 0.24s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.anime-studio[data-sheet='tall'] .studio-edit {
-  max-height: 68vh;
+/* Under the thumb it tracks exactly; easing here would feel like lag. */
+.anime-studio[data-dragging] .studio-edit {
+  transition: none;
 }
-/* The grip. It is a button, so it is reachable and says which way it will go. */
+/*
+ * The grip. A 44px row to reach for, with the bar itself drawn small — the
+ * target and the mark it carries are not the same thing.
+ */
 .studio-sheet-handle {
   flex: none;
-  align-self: center;
-  width: 44px;
-  min-height: 22px;
+  width: 100%;
+  min-height: 30px;
   padding: 0;
   margin: 0;
   border: 0;
   background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+.anime-studio[data-dragging] .studio-sheet-handle {
+  cursor: grabbing;
 }
 .studio-sheet-handle::before {
   content: '';
   display: block;
-  width: 36px;
+  width: 40px;
   height: 4px;
-  margin: 9px auto;
+  margin: 13px auto;
   border-radius: 2px;
   background: var(--line);
 }
@@ -643,21 +670,25 @@
   .studio-viewer {
     min-height: 420px;
   }
-  /* Beside the preview rather than under it, so none of the sheet applies. */
+  /* Beside the preview rather than over it, so none of the sheet applies. */
   .studio-edit {
+    position: static;
+    height: auto;
     justify-content: center;
-    max-height: none;
     padding: 20px 8px;
     margin: 0;
     border: 0;
     border-radius: 0;
     background: transparent;
-  }
-  .anime-studio[data-sheet='tall'] .studio-edit {
-    max-height: none;
+    box-shadow: none;
   }
   .studio-sheet-handle {
     display: none;
+  }
+  .studio-hud-gestures,
+  .studio-hud-pause,
+  .studio-hud-shuffle {
+    bottom: 10px;
   }
   .studio-credit {
     grid-column: 1 / -1;

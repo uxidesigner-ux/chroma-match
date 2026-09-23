@@ -392,3 +392,67 @@ test('picking a character seeds a build, and keeps a figure set row by row', asy
   await reads('어깨', 4)
   await reads('엉덩이', 2)
 })
+
+test('the sheet floats over the preview, and the character stays clear of it', async ({ page }) => {
+  // A phone. Wider than 860px the panel is a column beside the preview and
+  // there is no sheet to float, which is the point of the two layouts.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await openStudio(page, '체형')
+  const grip = page.getByRole('slider', { name: /패널 높이/ })
+  const silhouette = silhouetteOf(page)
+
+  /*
+   * A sheet, not a panel: it stands over the preview rather than taking a share
+   * of the column, so the stage runs the full height of the screen behind it.
+   */
+  const laid = await page.evaluate(() => {
+    const box = (sel: string) => document.querySelector(sel)!.getBoundingClientRect()
+    return { studio: box('.anime-studio'), stage: box('.studio-stage'), sheet: box('.studio-edit') }
+  })
+  expect(laid.stage.bottom - laid.studio.bottom, 'the stage stops where the sheet starts')
+    .toBeGreaterThan(-1)
+  expect(laid.sheet.top, 'the sheet does not overlap the preview').toBeLessThan(laid.stage.bottom - 40)
+
+  /*
+   * And the character is framed in what is left showing. The camera is told how
+   * much of its canvas the sheet hides; without that the legs stand behind it,
+   * which is the failure that makes a floating sheet unusable.
+   */
+  const clear = async () => {
+    const shot = await silhouette()
+    expect(shot, 'nothing was drawn to measure').not.toBeNull()
+    return page.evaluate(() => {
+      const canvas = document.querySelector('.studio-stage canvas') as HTMLCanvasElement
+      const copy = document.createElement('canvas')
+      copy.width = canvas.width
+      copy.height = canvas.height
+      copy.getContext('2d')!.drawImage(canvas, 0, 0)
+      const data = copy.getContext('2d')!.getImageData(0, 0, copy.width, copy.height).data
+      const back = [data[0]!, data[1]!, data[2]!]
+      let lowest = -1
+      for (let y = 0; y < copy.height; y++)
+        for (let x = 0; x < copy.width; x++) {
+          const i = (y * copy.width + x) * 4
+          if (Math.abs(data[i]! - back[0]!) + Math.abs(data[i + 1]! - back[1]!) + Math.abs(data[i + 2]! - back[2]!) > 24) {
+            lowest = y
+            break
+          }
+        }
+      // Where the character's feet are, and where the sheet's top edge falls,
+      // both as a fraction of the canvas.
+      const stage = document.querySelector('.studio-stage')!.getBoundingClientRect()
+      const sheet = document.querySelector('.studio-edit')!.getBoundingClientRect()
+      return { feet: lowest / copy.height, edge: (sheet.top - stage.top) / stage.height }
+    })
+  }
+
+  for (const stop of [0, 1, 2]) {
+    if (stop) await grip.click()
+    const { feet, edge } = await clear()
+    expect(feet, `at stop ${stop} the character reaches under the sheet`).toBeLessThan(edge)
+    await expect(grip).toHaveAttribute('aria-valuenow', String(stop + 1))
+  }
+  // And it comes back round, so a thumb that keeps tapping never gets stuck.
+  await grip.click()
+  await expect(grip).toHaveAttribute('aria-valuenow', '1')
+})

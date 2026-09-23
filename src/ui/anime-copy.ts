@@ -74,8 +74,7 @@ const en = {
   left: 'Rotate left',
   right: 'Rotate right',
   rotate: 'Drag to rotate. Use arrow keys when the preview is focused; Home resets the view.',
-  credit:
-    'Seed-san by VirtualCast, Inc. · Modified palette, hair and pose · VRM Public License 1.0',
+  credit: 'Seed-san · VirtualCast, Inc. · VRM Public License 1.0',
   preview: '3D character preview',
   close: 'Back to profile',
 }
@@ -157,7 +156,7 @@ const ko: Copy = {
   right: '오른쪽 회전',
   rotate:
     '드래그로 회전해요. 미리보기에 초점을 맞춘 뒤 방향키로 회전하고 Home 키로 정면을 볼 수 있어요.',
-  credit: 'Seed-san: VirtualCast, Inc. · 색상·헤어·포즈 변경 · VRM Public License 1.0',
+  credit: 'Seed-san · VirtualCast, Inc. · VRM Public License 1.0',
   preview: '3D 캐릭터 미리보기',
   close: '프로필로 돌아가기',
 }
@@ -234,7 +233,7 @@ const ja: Copy = {
   left: '左に回転',
   right: '右に回転',
   rotate: 'ドラッグで回転。プレビューにフォーカスすると矢印キーで回転、Homeキーで正面に戻ります。',
-  credit: 'Seed-san: VirtualCast, Inc. · 色・髪・ポーズを変更 · VRM Public License 1.0',
+  credit: 'Seed-san · VirtualCast, Inc. · VRM Public License 1.0',
   preview: '3Dキャラクタープレビュー',
   close: 'プロフィールに戻る',
 }
@@ -311,7 +310,7 @@ const zh: Copy = {
   left: '向左旋转',
   right: '向右旋转',
   rotate: '拖动旋转。预览获得焦点后，可用方向键旋转，Home键恢复正面。',
-  credit: 'Seed-san: VirtualCast, Inc. · 修改颜色、发型和姿势 · VRM Public License 1.0',
+  credit: 'Seed-san · VirtualCast, Inc. · VRM Public License 1.0',
   preview: '3D角色预览',
   close: '返回个人资料',
 }

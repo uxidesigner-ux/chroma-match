@@ -30,6 +30,8 @@ export class AnimeRenderer {
   private portraitMode = false
   private height = 1.6
   private focusY = 1.4
+  /** What fraction of the canvas foot the sheet hides. */
+  private covered = 0
   private bounds = new Box3()
   private silhouette = ''
   private yawStart: number | null = null
@@ -185,20 +187,60 @@ export class AnimeRenderer {
     this.draw()
   }
 
+  /**
+   * How much of the canvas's foot is hidden behind something else, 0 to 1.
+   *
+   * The editing sheet floats over the preview rather than sitting beside it, so
+   * the canvas runs the full height of the screen and its lower part is covered.
+   * Shrinking the canvas to match would make the sheet a panel again, so the
+   * camera is told instead: it renders as though its frame were taller than the
+   * canvas and shows only the top of that frame, which lifts the character into
+   * the band that is actually visible.
+   */
+  cover(fraction: number): void {
+    const next = Math.max(0, Math.min(0.7, fraction))
+    if (Math.abs(next - this.covered) < 0.004) return
+    this.covered = next
+    this.draw()
+  }
+
   private draw(): void {
     if (this.disposed) return
-    this.camera.aspect = this.width / this.canvasHeight
+    /*
+     * The frame keeps its size; only its middle moves.
+     *
+     * Shifting the frustum down by half the hidden fraction lifts whatever is
+     * centred on the camera's target into the middle of the band still showing,
+     * and standing back by the reciprocal of what is left makes it fit there.
+     * An earlier attempt rendered into a taller frame instead, which narrowed
+     * the field by the same factor it stood back by, and the two cancelled: the
+     * character moved and never shrank.
+     */
+    const aspect = this.width / this.canvasHeight
+    this.camera.aspect = aspect
+    if (this.covered > 0.004)
+      this.camera.setViewOffset(
+        this.width,
+        this.canvasHeight,
+        0,
+        (this.canvasHeight * this.covered) / 2,
+        this.width,
+        this.canvasHeight,
+      )
+    else this.camera.clearViewOffset()
     this.camera.updateProjectionMatrix()
+    const back = 1 / (1 - this.covered)
     if (!this.portraitMode && !this.bounds.isEmpty()) {
       const { target, distance } = fitFullBody(
         { min: this.bounds.min.toArray(), max: this.bounds.max.toArray() },
-        this.camera.aspect,
+        aspect,
         this.angle,
       )
+      const reach = distance * back
       this.camera.position.set(
-        target[0] + Math.sin(this.angle) * distance,
+        target[0] + Math.sin(this.angle) * reach,
         target[1],
-        target[2] + Math.cos(this.angle) * distance,
+        target[2] + Math.cos(this.angle) * reach,
       )
       this.camera.lookAt(...target)
       this.renderer.render(this.scene, this.camera)
@@ -206,7 +248,7 @@ export class AnimeRenderer {
     }
     const visibleHeight = this.height * 0.42
     const distance =
-      (visibleHeight / (2 * Math.tan(Math.PI / 12))) * Math.max(1, 0.65 / this.camera.aspect)
+      (visibleHeight / (2 * Math.tan(Math.PI / 12))) * Math.max(1, 0.65 / aspect) * back
     const y = this.portraitMode ? this.focusY * 1.02 : this.height * 0.52
     this.camera.position.set(Math.sin(this.angle) * distance, y, Math.cos(this.angle) * distance)
     this.camera.lookAt(0, y, 0)
