@@ -1,4 +1,4 @@
-import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, FIGURE_AXES, FIGURE_PRESETS, HAIR_STYLES, SKIN_TONES, encodeAnime } from '../avatar/anime-spec.ts'
+import { ANIME_LOOKS, BACKDROPS, DEFAULT_ANIME, EXPRESSIONS, FIGURE_AXES, FIGURE_PRESETS, HAIR_STYLES, SKIN_TONES, encodeAnime } from '../avatar/anime-spec.ts'
 
 /*
  * How tall the sheet stands at each stop, as a fraction of the screen.
@@ -717,30 +717,35 @@ export class AnimeEditor {
           this.update({ ...this.draft, [key]: input.value.slice(1).toUpperCase() }),
         )
         label.append(name, input)
-        if (key !== 'skinColour') {
+        /*
+         * Two of these are jobs nobody wants out of a colour wheel: a skin
+         * tone, and a backdrop that is not another shade of night. Both get a
+         * row of shortcuts beside the picker rather than instead of it.
+         */
+        const shortcuts =
+          key === 'skinColour' ? SKIN_TONES : key === 'backdrop' ? BACKDROPS : null
+        if (!shortcuts) {
           this.panel.append(label)
           continue
         }
-        // Picking a skin tone out of a colour wheel is a job nobody wants, so
-        // the six tints sit next to the picker rather than replacing it.
         const tones = document.createElement('div')
         tones.className = 'studio-swatch-row'
         tones.setAttribute('role', 'group')
         tones.setAttribute('aria-label', copy[key])
-        for (const hex of SKIN_TONES) {
+        for (const hex of shortcuts) {
           const swatch = this.button('', () => {
-            this.update({ ...this.draft, skinColour: hex })
+            this.update({ ...this.draft, [key]: hex })
             this.paintOptions()
           }, 'studio-button studio-swatch')
           swatch.style.background = `#${hex}`
           swatch.setAttribute('aria-label', `${copy[key]} #${hex}`)
-          swatch.setAttribute('aria-pressed', String(this.draft.skinColour.toUpperCase() === hex))
+          swatch.setAttribute('aria-pressed', String(this.draft[key].toUpperCase() === hex))
           tones.append(swatch)
         }
-        const skin = document.createElement('div')
-        skin.className = 'studio-skin'
-        skin.append(label, tones)
-        this.panel.append(skin)
+        const group = document.createElement('div')
+        group.className = 'studio-skin'
+        group.append(label, tones)
+        this.panel.append(group)
       }
     }
     if (focused)

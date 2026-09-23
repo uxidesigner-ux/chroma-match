@@ -234,6 +234,40 @@ test('a skin tone darkens the character and white leaves the model as drawn', as
   expect(Math.abs(back!.light - pale!.light), 'white did not restore the model').toBeLessThan(0.5)
 })
 
+/*
+ * All eight starter looks carry a night backdrop, so the row of shortcuts is
+ * the only place daylight is one tap away. What it has to actually do is paint
+ * the scene behind the character, and lead back.
+ */
+test('the backdrop row reaches daylight and finds its way back to night', async ({ page }) => {
+  await openStudio(page, '색상')
+  const ground = () =>
+    page.evaluate(() => {
+      const canvas = document.querySelector('.studio-stage canvas') as HTMLCanvasElement
+      const copy = document.createElement('canvas')
+      copy.width = copy.height = 8
+      const ctx = copy.getContext('2d')!
+      // The top-left corner of the stage is backdrop on every framing.
+      ctx.drawImage(canvas, 0, 0, 40, 40, 0, 0, 8, 8)
+      const [red, green, blue] = ctx.getImageData(0, 0, 1, 1).data
+      return (red! + green! + blue!) / 3
+    })
+
+  const night = await ground()
+  expect(night, 'the starter stands against a dark backdrop').toBeLessThan(80)
+
+  await page.getByRole('button', { name: '배경 #F4F1EA', exact: true }).click()
+  await page.waitForTimeout(300)
+  expect(await ground(), 'the lightest shortcut paints daylight behind them')
+    .toBeGreaterThan(200)
+
+  // And the row ends where the character started, so getting back is a tap.
+  await page.getByRole('button', { name: '배경 #202C3D', exact: true }).click()
+  await page.waitForTimeout(300)
+  expect(Math.abs((await ground()) - night), 'the last shortcut is the default')
+    .toBeLessThan(3)
+})
+
 test('a female character carries a bust a male one does not, and going back takes it off', async ({ page }) => {
   await openStudio(page, '체형')
   const silhouette = silhouetteOf(page)
@@ -540,6 +574,44 @@ test.describe('the sheet under a thumb', () => {
     expect(laid.over, 'there is more below on this tab').toBeGreaterThan(0)
     expect(laid.more, 'so the cut at the foot is shown fading').toBe('')
     expect(laid.canvas, 'and a drag on the character never pans the page').toBe('none')
+  })
+
+  /*
+   * The tools were moved into the scroller so they would stop holding a row
+   * open at the foot of the sheet. Nesting them there is not enough on its own:
+   * a flex item that takes the free space sits on the floor exactly when there
+   * is free space to take, which — now that every tab fits inside the tallest
+   * stop — is the case you see most.
+   */
+  test('the tools follow the options, and never sit on the sheet floor', async ({ page }) => {
+    await openStudio(page, '체형')
+    const grip = page.getByRole('slider', { name: /패널 높이/ })
+    await grip.click()
+    await grip.click()
+    await expect(grip).toHaveAttribute('aria-valuenow', '4')
+    await page.waitForTimeout(450)
+
+    const laid = await page.evaluate(() => {
+      const list = document.querySelector('.studio-controls') as HTMLElement
+      const box = (sel: string) => document.querySelector(sel)!.getBoundingClientRect()
+      const rows = document.querySelectorAll('.studio-figure-row')
+      return {
+        over: list.scrollHeight - list.clientHeight,
+        gap: box('.studio-sheet-foot').top - rows[rows.length - 1]!.getBoundingClientRect().bottom,
+        floor: list.getBoundingClientRect().bottom - box('.studio-credit').bottom,
+      }
+    })
+    expect(laid.over, 'this stop holds the whole tab, so there is free space to take')
+      .toBe(0)
+    /*
+     * Where the slack goes is the whole of it, and saying it as a comparison
+     * rather than a pixel count keeps it true on a screen of any height: under
+     * the tools is a sheet with room left, above them is a bar on the floor.
+     * It used to be 98 pixels above and none below.
+     */
+    expect(laid.floor, 'the slack is left under the tools, not above them')
+      .toBeGreaterThan(laid.gap)
+    expect(laid.gap, 'which follow the last option closely').toBeLessThan(30)
   })
 
   test('the list gives up the gesture at its top, and takes it back below', async ({ page }) => {

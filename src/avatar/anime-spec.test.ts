@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ANIME_LOOKS, DEFAULT_ANIME, FIGURE_PRESETS, HAIR_STYLES, decodeAnime, encodeAnime, gearFromBits } from './anime-spec.ts'
+import { ANIME_LOOKS, BACKDROPS, DEFAULT_ANIME, FIGURE_PRESETS, HAIR_STYLES, decodeAnime, encodeAnime, gearFromBits } from './anime-spec.ts'
 import { DEFAULT_SPEC, SPEC_MAX, decodeSpec, encodeSpec, isKnownSpec } from './spec.ts'
 
 test('anime appearance survives a profile round trip within live rules', () => {
@@ -145,4 +145,41 @@ test('both characters and every hairstyle survive a round trip', () => {
   // The two letters that existed before still name the styles they named.
   assert.equal(decodeAnime('SBNN67B7A3A899E891ADB8202C3D')?.hair, 'bob')
   assert.equal(decodeAnime('STNN67B7A3A899E891ADB8202C3D')?.hair, 'tails')
+})
+
+/** How bright a hex colour is, the way an eye weighs it. */
+function brightness(hex: string): number {
+  const channel = (at: number): number => {
+    const value = Number.parseInt(hex.slice(at, at + 2), 16) / 255
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4)
+}
+
+/*
+ * Every starter look is a night palette, so before these existed the only way
+ * to stand a character against daylight was the colour wheel. The shortcuts
+ * have to actually reach daylight, and they have to lead back to the default.
+ */
+test('the backdrop shortcuts run from daylight to night and end where they started', () => {
+  assert.equal(BACKDROPS.length, 6, 'one row, the same row the skin tones use')
+  for (const hex of BACKDROPS) assert.match(hex, /^[0-9A-F]{6}$/)
+  const light: number[] = BACKDROPS.map(brightness)
+  assert.ok(light[0]! > 0.75, 'the first is daylight')
+  assert.ok(light.at(-1)! < 0.05, 'and the last is night')
+  for (let i = 1; i < light.length; i++)
+    assert.ok(light[i]! < light[i - 1]!, `${BACKDROPS[i]} is darker than the one before it`)
+  assert.equal(BACKDROPS.at(-1), DEFAULT_ANIME.backdrop, 'getting back is a tap')
+  // The point of the row: the looks alone never offered one.
+  assert.ok(
+    ANIME_LOOKS.every((look) => brightness(look.backdrop) < 0.2),
+    'the starter looks are all night, which is why this row exists',
+  )
+})
+
+test('a backdrop picked from the row survives a profile round trip', () => {
+  for (const backdrop of BACKDROPS) {
+    const spec = { ...DEFAULT_ANIME, backdrop }
+    assert.equal(decodeAnime(encodeAnime(spec))?.backdrop, backdrop)
+  }
 })

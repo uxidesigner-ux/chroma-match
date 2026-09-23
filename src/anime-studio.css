@@ -643,13 +643,22 @@
  * row at the foot of the sheet. Stacked as three full-width blocks they took
  * 171px of a 388px sheet — more than the options they sat under.
  */
+/*
+ * The tools follow the options immediately, with no gap held open under them.
+ *
+ * They used to take the free space with `margin-top: auto`, which reads well
+ * only while there is none. Every tab fits inside the tallest stop now, so the
+ * usual case was ninety-eight pixels of nothing and then a row sitting hard on
+ * the sheet's floor — which is a fixed bottom bar however the markup nests it,
+ * and it is the thing the row was moved into the scroller to stop being.
+ */
 .studio-sheet-foot {
   flex: none;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: auto;
+  margin-top: 4px;
   padding-top: 10px;
   border-top: 1px solid var(--line);
 }
