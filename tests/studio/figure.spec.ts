@@ -576,6 +576,44 @@ test.describe('the sheet under a thumb', () => {
     expect(laid.canvas, 'and a drag on the character never pans the page').toBe('none')
   })
 
+  /*
+   * The tools were moved into the scroller so they would stop holding a row
+   * open at the foot of the sheet. Nesting them there is not enough on its own:
+   * a flex item that takes the free space sits on the floor exactly when there
+   * is free space to take, which — now that every tab fits inside the tallest
+   * stop — is the case you see most.
+   */
+  test('the tools follow the options, and never sit on the sheet floor', async ({ page }) => {
+    await openStudio(page, '체형')
+    const grip = page.getByRole('slider', { name: /패널 높이/ })
+    await grip.click()
+    await grip.click()
+    await expect(grip).toHaveAttribute('aria-valuenow', '4')
+    await page.waitForTimeout(450)
+
+    const laid = await page.evaluate(() => {
+      const list = document.querySelector('.studio-controls') as HTMLElement
+      const box = (sel: string) => document.querySelector(sel)!.getBoundingClientRect()
+      const rows = document.querySelectorAll('.studio-figure-row')
+      return {
+        over: list.scrollHeight - list.clientHeight,
+        gap: box('.studio-sheet-foot').top - rows[rows.length - 1]!.getBoundingClientRect().bottom,
+        floor: list.getBoundingClientRect().bottom - box('.studio-credit').bottom,
+      }
+    })
+    expect(laid.over, 'this stop holds the whole tab, so there is free space to take')
+      .toBe(0)
+    /*
+     * Where the slack goes is the whole of it, and saying it as a comparison
+     * rather than a pixel count keeps it true on a screen of any height: under
+     * the tools is a sheet with room left, above them is a bar on the floor.
+     * It used to be 98 pixels above and none below.
+     */
+    expect(laid.floor, 'the slack is left under the tools, not above them')
+      .toBeGreaterThan(laid.gap)
+    expect(laid.gap, 'which follow the last option closely').toBeLessThan(30)
+  })
+
   test('the list gives up the gesture at its top, and takes it back below', async ({ page }) => {
     await openStudio(page, '색상')
     expect(await resting(page)).toBe('2')
