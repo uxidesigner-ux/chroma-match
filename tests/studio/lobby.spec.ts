@@ -215,8 +215,9 @@ test('lobby and studio chrome hold a 44px target on narrow phones, and the studi
 
   // Paper hangs a hard offset shadow off the buttons; the scroll box has to
   // leave room for it rather than slicing it at the edge. That box is the
-  // options inside the sheet now — the screen itself no longer scrolls.
-  const overflow = await page.locator('.studio-options').evaluate(node => ({
+  // column inside the sheet now — the options, the tools and the credit scroll
+  // together, and the screen itself does not scroll at all.
+  const overflow = await page.locator('.studio-controls').evaluate(node => ({
     scroll: node.scrollWidth,
     client: node.clientWidth,
     pad: getComputedStyle(node).paddingRight,

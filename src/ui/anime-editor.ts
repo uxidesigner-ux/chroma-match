@@ -17,6 +17,16 @@ const SHEET_STOPS = [0.055, 0.38, 0.55, 0.72] as const
  * editor behind a discovery.
  */
 const SHEET_START = 1
+/*
+ * How fast a drag has to be let go of, in pixels a second, to count as thrown
+ * rather than placed. Below it the sheet settles where it was put.
+ */
+const FLICK = 420
+/*
+ * How much nearer a stop counts as when the drag was heading for it. Half puts
+ * the line between two stops a third of the way along instead of at the middle.
+ */
+const PULL = 0.5
 import type { AnimeSpec, FigureAxis, FigureStep, HairStyle } from '../avatar/anime-spec.ts'
 import { myAvatar, setMyAvatar } from '../avatar/store.ts'
 import { cachePortrait } from '../avatar/anime-portrait.ts'
@@ -56,6 +66,10 @@ export class AnimeEditor {
   private grip: HTMLButtonElement | null = null
   /** The sheet itself, so the camera can be told the height it really stands. */
   private sheetBox: HTMLElement | null = null
+  /** The one scrolling column inside the sheet. */
+  private scroller: HTMLElement | null = null
+  /** What the shut sheet last measured, as a share of the screen. */
+  private shut: number = SHEET_STOPS[0]!
   private undo = document.createElement('button')
   private redo = document.createElement('button')
   private paused = false
@@ -330,6 +344,9 @@ export class AnimeEditor {
     ]
     for (const [key, icon, label] of tabs) {
       const button = this.labelled(label, icon, () => {
+        // A new tab starts at its own top, not part-way down where the last
+        // one happened to be left.
+        if (this.category !== key && this.scroller) this.scroller.scrollTop = 0
         this.category = key
         this.paintOptions()
       }, 'studio-tab studio-icon')
@@ -365,7 +382,7 @@ export class AnimeEditor {
       this.update(DEFAULT_ANIME)
       this.paintOptions()
     }))
-    controls.append(this.tabs, this.panel, history)
+    this.scroller = controls
     this.status = document.createElement('p')
     this.status.className = 'studio-status'
     this.status.setAttribute('role', 'status')
@@ -398,7 +415,25 @@ export class AnimeEditor {
     edit.className = 'studio-edit'
     this.sheetBox = edit
     history.append(this.buildFilesButton(), this.status)
-    edit.append(this.sheetHandle(), controls, this.discard, credit)
+    /*
+     * One scroller, holding everything under the tab bar: the options, the
+     * tools, and the credit that used to be pinned under them all.
+     */
+    controls.append(this.tabs, this.panel, history, credit)
+    controls.addEventListener('scroll', () => this.markMore(), { passive: true })
+    // The sheet's height is what eases, so how much is below the fold is only
+    // settled once it has finished moving.
+    edit.addEventListener('transitionend', (event) => {
+      if (event.propertyName === 'height') this.markMore()
+    })
+    // A turned phone is a different screen: the shut sheet is the same number
+    // of pixels of a different height, and the list a different length.
+    window.addEventListener('resize', () => {
+      this.measureShut()
+      this.setSheet(this.sheetSize())
+    })
+    edit.append(this.sheetHandle(), controls, this.discard)
+    this.sheetGestures(edit, controls)
     this.root.append(viewer, edit)
     this.paintOptions()
   }
@@ -712,6 +747,7 @@ export class AnimeEditor {
       Array.from(this.panel.querySelectorAll('button'))
         .find((button) => (button.getAttribute('aria-label') || button.textContent) === focused)
         ?.focus({ preventScroll: true })
+    this.markMore()
   }
 
   private paintLibrary(): void {
@@ -839,8 +875,12 @@ export class AnimeEditor {
     let from = 0
     let at = 0
     handle.addEventListener('pointerdown', (event) => {
+      // A finger is the sheet's own gesture, handled across the whole sheet so
+      // the list and the grip can hand it back and forth. This is the mouse.
+      if (event.pointerType === 'touch') return
       from = event.clientY
       at = this.sheetSize()
+      this.measureShut()
       handle.setPointerCapture(event.pointerId)
       this.root.dataset.dragging = ''
     })
@@ -854,17 +894,141 @@ export class AnimeEditor {
       if (!handle.hasPointerCapture(event.pointerId)) return
       handle.releasePointerCapture(event.pointerId)
       delete this.root.dataset.dragging
-      const size = this.sheetSize()
-      let nearest = 0
-      SHEET_STOPS.forEach((stop, index) => {
-        if (Math.abs(stop - size) < Math.abs(SHEET_STOPS[nearest]! - size)) nearest = index
-      })
-      this.snapSheet(nearest)
+      this.snapSheet(this.restingStop(0, at))
     }
     handle.addEventListener('pointerup', drop)
     handle.addEventListener('pointercancel', drop)
     this.snapSheet(SHEET_START)
     return handle
+  }
+
+  /**
+   * The two gestures on a sheet, and how a drag says which one it meant.
+   *
+   * The list scrolls and the sheet moves, and a thumb landing on the sheet
+   * does not announce which. The rule is the one every sheet on a phone uses:
+   * the list has the gesture for as long as it can use it. Pull down with the
+   * list already at its top and there is nothing left for it to scroll, so the
+   * sheet comes down instead; pull up there and the sheet has somewhere to go,
+   * so it goes, and the list carries on from where it was. Anywhere else the
+   * list scrolls, natively, with the momentum the browser gives it — which is
+   * why this decides once per gesture and then keeps out of the way.
+   */
+  private sheetGestures(sheet: HTMLElement, list: HTMLElement): void {
+    let from = 0
+    let at = 0
+    let mode: 'asking' | 'sheet' | 'list' = 'asking'
+    let last = 0
+    let when = 0
+    let speed = 0
+    let onGrip = false
+    sheet.addEventListener(
+      'touchstart',
+      (event) => {
+        if (event.touches.length !== 1) return
+        from = last = event.touches[0]!.clientY
+        when = performance.now()
+        speed = 0
+        at = this.sheetSize()
+        mode = 'asking'
+        onGrip = this.grip?.contains(event.target as Node) === true
+        this.measureShut()
+      },
+      { passive: true },
+    )
+    sheet.addEventListener(
+      'touchmove',
+      (event) => {
+        if (event.touches.length !== 1) return
+        const y = event.touches[0]!.clientY
+        const moved = y - from
+        if (mode === 'asking') {
+          /*
+           * Settled on three pixels, which is as long as this can wait: the
+           * browser claims a pan of its own within a handful more, and once it
+           * has, it is no longer ours to cancel.
+           */
+          if (Math.abs(moved) < 3) return
+          const top = list.scrollTop <= 0
+          const room = this.sheet < SHEET_STOPS.length - 1
+          mode = onGrip || (top && (moved > 0 || room)) ? 'sheet' : 'list'
+          if (mode === 'sheet') this.root.dataset.dragging = ''
+        }
+        if (mode !== 'sheet') return
+        // The list would pan under the same finger; this one is the sheet's.
+        if (event.cancelable) event.preventDefault()
+        // On one clock of its own: a touch event's own timeStamp is epoch-based
+        // in some browsers and page-based in others.
+        const now = performance.now()
+        const gap = now - when
+        if (gap > 0) speed = ((y - last) / gap) * 1000
+        last = y
+        when = now
+        const box = this.root.getBoundingClientRect()
+        if (box.height) this.setSheet(at - moved / box.height)
+      },
+      { passive: false },
+    )
+    const drop = (): void => {
+      if (mode === 'sheet') {
+        delete this.root.dataset.dragging
+        this.snapSheet(this.restingStop(speed, at))
+      }
+      mode = 'asking'
+    }
+    sheet.addEventListener('touchend', drop)
+    sheet.addEventListener('touchcancel', drop)
+  }
+
+  /**
+   * Where a let-go lands: how fast it was travelling downward, and where it
+   * started from.
+   *
+   * Thrown, the sheet takes the next stop the way it was thrown however far it
+   * actually got — a sheet that snaps back because a quick flick only covered
+   * forty pixels is the one that feels broken, and a flick is how a sheet is
+   * put away everywhere else. Placed, it settles at the stop it is nearest,
+   * except that the line between two stops sits a third of the way along
+   * rather than halfway, on the side the drag came from. Stops here are far
+   * apart: halfway from the one it opens on to shut is a hundred and twenty
+   * pixels of pulling, and a deliberate pull that fell short of that was still
+   * meant.
+   */
+  private restingStop(speed: number, from: number): number {
+    const size = this.sheetSize()
+    if (speed < -FLICK) {
+      const up = SHEET_STOPS.findIndex((stop) => stop > size + 0.01)
+      if (up >= 0) return up
+    } else if (speed > FLICK) {
+      for (let index = SHEET_STOPS.length - 1; index >= 0; index--)
+        if (SHEET_STOPS[index]! < size - 0.01) return index
+    }
+    const gone = size - from
+    let best = 0
+    let mark = Infinity
+    SHEET_STOPS.forEach((stop, index) => {
+      const away = Math.abs(stop - size)
+      // A stop the drag was heading for counts as nearer than it is.
+      const heading = gone !== 0 && Math.sign(stop - from) === Math.sign(gone)
+      const weighed = heading ? away * PULL : away
+      if (weighed < mark) {
+        mark = weighed
+        best = index
+      }
+    })
+    return best
+  }
+
+  /**
+   * Whether the column has more below the fold, which is the only time it
+   * should be shown fading into one.
+   */
+  private markMore(): void {
+    const list = this.scroller
+    if (!list) return
+    const more = list.scrollHeight - list.clientHeight - list.scrollTop > 2
+    if (more) list.dataset.more = ''
+    else delete list.dataset.more
   }
 
   /** Where the sheet stands right now, as a fraction of the screen. */
@@ -890,24 +1054,33 @@ export class AnimeEditor {
      * height it is leaving, and the camera would trail a stop behind. Beside
      * the preview the sheet covers nothing, and the canvas is whole.
      */
+    // Not mid-drag: what is below the fold settles when the sheet does.
+    if (this.root.dataset.dragging === undefined) this.markMore()
     if (this.grip?.checkVisibility() === false) return this.renderer?.cover(0)
-    this.renderer?.cover(Math.max(size, this.sheetShut()))
+    this.renderer?.cover(Math.max(size, this.shut))
   }
 
-  /** The share of the screen the sheet keeps even when it is shut. */
-  private sheetShut(): number {
+  /**
+   * Measures the share of the screen the sheet keeps even when it is shut.
+   *
+   * Read rather than recomputed on the way past, because a drag calls setSheet
+   * on every frame and this is three forced layouts: the answer only changes
+   * when the screen does, so it is taken when the screen changes and kept.
+   */
+  private measureShut(): void {
     const box = this.sheetBox
     const room = this.root.clientHeight
-    if (!box || !room) return SHEET_STOPS[0]!
+    if (!box || !room) return
     const edges = getComputedStyle(box)
     const floor =
       (this.grip?.offsetHeight ?? 0) +
       (parseFloat(edges.paddingBottom) || 0) +
       (parseFloat(edges.borderTopWidth) || 0)
-    return floor ? floor / room : SHEET_STOPS[0]!
+    if (floor) this.shut = floor / room
   }
 
   private snapSheet(stop: number): void {
+    this.measureShut()
     this.sheet = stop
     this.setSheet(SHEET_STOPS[stop]!)
     this.grip?.setAttribute('aria-valuenow', String(stop + 1))

@@ -485,3 +485,106 @@ test('the sheet floats over the preview, and the character stays clear of it', a
   expect(shut.screen - shut.floor, 'and the preview runs to the screen\'s own floor')
     .toBeLessThan(2)
 })
+
+/**
+ * A sheet on a phone has exactly two gestures, and they share one finger: the
+ * list scrolls and the sheet moves. These are the rules that decide between
+ * them, plus the two things that made the sheet feel wrong before there were
+ * any rules — a vertical drag the browser took for itself, and a scroll window
+ * ninety-seven pixels tall with a row of tools pinned under it.
+ */
+test.describe('the sheet under a thumb', () => {
+  test.use({ hasTouch: true, viewport: { width: 390, height: 844 } })
+
+  /** A finger, dragged. Playwright's touchscreen only taps. */
+  async function swipe(page: Page, x: number, from: number, to: number): Promise<void> {
+    const cdp = await page.context().newCDPSession(page)
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: from }] })
+    for (let step = 1; step <= 6; step++)
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y: from + ((to - from) * step) / 6 }],
+      })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await cdp.detach()
+    await page.waitForTimeout(450)
+  }
+
+  const resting = (page: Page) =>
+    page.getByRole('slider', { name: /패널 높이/ }).getAttribute('aria-valuenow')
+
+  test('the whole sheet under the tabs scrolls, tools and all', async ({ page }) => {
+    await openStudio(page, '체형')
+    const laid = await page.evaluate(() => {
+      const box = (sel: string) => document.querySelector(sel)!.getBoundingClientRect()
+      const list = document.querySelector('.studio-controls') as HTMLElement
+      const tabs = box('.studio-tabs')
+      return {
+        window: list.clientHeight,
+        sheet: box('.studio-edit').height,
+        toolsUnderTabs: box('.studio-sheet-foot').top > tabs.bottom,
+        toolsInside: list.contains(document.querySelector('.studio-sheet-foot')),
+        creditInside: list.contains(document.querySelector('.studio-credit')),
+        stuck: getComputedStyle(document.querySelector('.studio-tabs')!).position,
+        over: list.scrollHeight - list.clientHeight,
+        more: list.dataset.more ?? null,
+        // The gesture on the character is the character's, not the page's.
+        canvas: getComputedStyle(document.querySelector('.studio-stage canvas')!).touchAction,
+      }
+    })
+    expect(laid.toolsInside, 'the tools scroll with the list rather than holding its floor').toBe(true)
+    expect(laid.creditInside, 'and so does the credit under them').toBe(true)
+    expect(laid.stuck, 'the tab bar stays put while they do').toBe('sticky')
+    // It used to be 97 of a 292px sheet: the tab bar, a slot, and a pinned row.
+    expect(laid.window, 'the scroll window is most of the sheet').toBeGreaterThan(laid.sheet * 0.7)
+    expect(laid.over, 'there is more below on this tab').toBeGreaterThan(0)
+    expect(laid.more, 'so the cut at the foot is shown fading').toBe('')
+    expect(laid.canvas, 'and a drag on the character never pans the page').toBe('none')
+  })
+
+  test('the list gives up the gesture at its top, and takes it back below', async ({ page }) => {
+    await openStudio(page, '색상')
+    expect(await resting(page)).toBe('2')
+
+    // At the top with somewhere to go, a pull up is the sheet's.
+    await swipe(page, 195, 760, 640)
+    expect(await resting(page), 'pulling up from the top raises the sheet').toBe('3')
+    await swipe(page, 195, 700, 560)
+    expect(await resting(page), 'and again, to the tallest stop').toBe('4')
+
+    // At the top with a pull down, there is nothing left to scroll, so it goes
+    // — one stop, for a pull the length of one gap between them.
+    await swipe(page, 195, 450, 550)
+    expect(await resting(page), 'pulling down from the top lowers it').toBe('3')
+
+  })
+
+  test('a pull that covers a third of the way is taken as meant', async ({ page }) => {
+    await openStudio(page, '체형')
+    // 90px of a 768px screen: a quarter of the sheet, a third of the gap below.
+    await swipe(page, 195, 700, 790)
+    expect(await resting(page), 'it goes down rather than springing back').toBe('1')
+    // And a smaller one does spring back, or nothing would ever hold still.
+    await page.getByRole('slider', { name: /패널 높이/ }).click()
+    await page.waitForTimeout(450)
+    expect(await resting(page)).toBe('2')
+    await swipe(page, 195, 700, 735)
+    expect(await resting(page), 'a wobble is not a pull').toBe('2')
+
+    /*
+     * And once the list is scrolled it keeps the gesture: the sheet moving
+     * under a finger that meant to scroll back up is the other half of the
+     * same failure.
+     */
+    const scrolled = await page.evaluate(() => {
+      const list = document.querySelector('.studio-controls') as HTMLElement
+      list.scrollTop = 40
+      return list.scrollTop
+    })
+    expect(scrolled, 'this tab has more than the stop can hold').toBeGreaterThan(0)
+    await swipe(page, 195, 700, 790)
+    expect(await resting(page), 'so the sheet stays where it is').toBe('2')
+    expect(await page.evaluate(() => (document.querySelector('.studio-controls') as HTMLElement).scrollTop),
+      'and the list is what moved').toBeLessThan(scrolled)
+  })
+})
