@@ -446,13 +446,42 @@ test('the sheet floats over the preview, and the character stays clear of it', a
     })
   }
 
-  for (const stop of [0, 1, 2]) {
-    if (stop) await grip.click()
+  // Four stops, arriving part-way up and coming back round, so a thumb that
+  // keeps tapping never gets stuck and never lands on a screen with no controls.
+  for (const stop of [2, 3, 4, 1]) {
+    await expect(grip).toHaveAttribute('aria-valuenow', String(stop))
     const { feet, edge } = await clear()
     expect(feet, `at stop ${stop} the character reaches under the sheet`).toBeLessThan(edge)
-    await expect(grip).toHaveAttribute('aria-valuenow', String(stop + 1))
+    await grip.click()
+    await page.waitForTimeout(400)
   }
-  // And it comes back round, so a thumb that keeps tapping never gets stuck.
+  await expect(grip).toHaveAttribute('aria-valuenow', '2')
+
+  /*
+   * And shut it is off the screen but for the bar it is pulled back up by,
+   * which is the state the preview is there for: a sheet that only ever gets
+   * shorter is a panel that can be resized.
+   */
+  await grip.click()
+  await grip.click()
   await grip.click()
   await expect(grip).toHaveAttribute('aria-valuenow', '1')
+  await page.waitForTimeout(400)
+  const shut = await page.evaluate(() => {
+    const box = (sel: string) => document.querySelector(sel)!.getBoundingClientRect()
+    const sheet = box('.studio-edit')
+    return {
+      left: sheet.height,
+      word: getComputedStyle(document.querySelector('.studio-sheet-word')!).opacity,
+      hidden: getComputedStyle(document.querySelector('.studio-tabs')!).visibility,
+      floor: box('.studio-stage').bottom,
+      screen: innerHeight,
+    }
+  })
+  expect(shut.left, 'the shut sheet is the grip and nothing more').toBeLessThan(70)
+  expect(shut.left, 'and the grip is still there to take hold of').toBeGreaterThan(40)
+  expect(Number(shut.word), 'which says what it opens').toBeGreaterThan(0.5)
+  expect(shut.hidden, 'with the editing put away behind it').toBe('hidden')
+  expect(shut.screen - shut.floor, 'and the preview runs to the screen\'s own floor')
+    .toBeLessThan(2)
 })

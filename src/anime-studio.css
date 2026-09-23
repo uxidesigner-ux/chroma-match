@@ -106,7 +106,17 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  --sheet: 0.36;
+  --sheet: 0.38;
+  /* The shut sheet: the grip's 44px row, and the floor it is pulled back over. */
+  --sheet-shut: calc(45px + max(10px, env(safe-area-inset-bottom)));
+  /*
+   * Out to the screen's own edges. The app and the screen each hold this column
+   * in by a gutter, which left the preview 24px short of the sides and the
+   * sheet floating 12px off them — a card sitting in a box, not a sheet
+   * attached to a screen. The header keeps its gutter; this does not.
+   */
+  margin-inline: calc(-1 * var(--studio-bleed, 24px));
+  margin-block-end: calc(-1 * var(--studio-floor, 14px));
 }
 .studio-viewer {
   display: flex;
@@ -116,12 +126,12 @@
   gap: 8px;
 }
 /*
- * The stage's own foot is rounded away under the sheet, so the two do not read
- * as one box split in half: the character carries on behind a raised edge.
+ * Edge to edge, so the character has the whole screen. A stage inset from the
+ * sides reads as a picture of a character; one that reaches them reads as the
+ * character being there.
  */
 .anime-studio .studio-stage {
-  border-bottom-left-radius: var(--radius-lg);
-  border-bottom-right-radius: var(--radius-lg);
+  border-radius: 0;
 }
 .studio-stage {
   position: relative;
@@ -204,17 +214,17 @@
 .studio-hud-gestures {
   position: absolute;
   left: 10px;
-  bottom: calc(var(--sheet) * 100% + 10px);
+  bottom: calc(max(var(--sheet-shut), var(--sheet) * 100%) + 10px);
 }
 .studio-hud-pause {
   position: absolute;
   right: 62px;
-  bottom: calc(var(--sheet) * 100% + 10px);
+  bottom: calc(max(var(--sheet-shut), var(--sheet) * 100%) + 10px);
 }
 .studio-hud-shuffle {
   position: absolute;
   right: 10px;
-  bottom: calc(var(--sheet) * 100% + 10px);
+  bottom: calc(max(var(--sheet-shut), var(--sheet) * 100%) + 10px);
 }
 /*
  * The stage chrome floats over a 3D backdrop the player chose, so it carries a
@@ -341,19 +351,33 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(var(--sheet) * 100%);
+  /*
+   * Down, the sheet is off the screen and only the bar it is pulled up by is
+   * left. The floor is that bar's own height rather than a fraction, so the
+   * shut stop lands the same on a tall phone and a short one; anything below
+   * it is clipped instead of being squeezed.
+   */
+  height: max(var(--sheet-shut), calc(var(--sheet) * 100%));
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
   gap: 6px;
-  padding: 0 12px max(6px, env(safe-area-inset-bottom));
-  /* Out to the app's own gutter, and down through its floor. */
-  margin-inline: -12px;
-  margin-block-end: calc(-1 * max(12px, env(safe-area-inset-bottom)));
-  border: 1px solid var(--line);
-  border-bottom: 0;
+  /* The column already reaches the screen's edges, so the sheet only has to
+   * fill it and keep its own reading margin inside. */
+  padding: 0 var(--studio-bleed, 24px) max(10px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--panel);
+  /*
+   * Solid, on the page's own ground.
+   *
+   * `--panel` is a wash meant to sit over the background, and every other panel
+   * in the app does. This one sits over a 3D character instead, so taking it
+   * alone left the sheet see-through: the legs ran up behind the tab names and
+   * nothing under it could be read. The ground goes underneath it here.
+   */
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--panel), var(--panel));
   box-shadow: 0 -10px 30px -12px rgb(0 0 0 / 0.45);
   transition: height 0.24s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -366,9 +390,14 @@
  * target and the mark it carries are not the same thing.
  */
 .studio-sheet-handle {
+  position: relative;
   flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  min-height: 30px;
+  min-height: 44px;
   padding: 0;
   margin: 0;
   border: 0;
@@ -384,9 +413,47 @@
   display: block;
   width: 40px;
   height: 4px;
-  margin: 13px auto;
   border-radius: 2px;
   background: var(--line);
+}
+/* Shut, the bar shares the row with the word and moves up to make room. */
+.anime-studio[data-sheet='shut'] .studio-sheet-handle::before {
+  margin-bottom: 18px;
+}
+/*
+ * What the bar is for, said once. A bar alone is a handle to whoever has seen
+ * one before and a scratch on the screen to everyone else, and the shut sheet
+ * is the one state where nothing else on screen explains it. It is laid over
+ * the grip rather than in it, so appearing and going costs no layout: the tabs
+ * above never move because a word arrived under them.
+ */
+.studio-sheet-word {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5px;
+  text-align: center;
+  font-size: var(--text-xs);
+  font-weight: 650;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+.anime-studio[data-sheet='shut'] .studio-sheet-word {
+  opacity: 0.9;
+}
+/*
+ * Shut, the sheet is its grip and nothing else. What is below it still has a
+ * place in the column — it is only hidden, not taken out — so the tabs do not
+ * jump when the sheet comes back up, and none of it can leave a line showing
+ * under the grip on the way. Hiding is the whole of it: clipping the column
+ * instead would take the eight pixels the options lean into for the Paper
+ * skin's shadow.
+ */
+.anime-studio[data-sheet='shut'] .studio-controls,
+.anime-studio[data-sheet='shut'] .studio-credit {
+  visibility: hidden;
 }
 .studio-options {
   display: flex;
@@ -674,12 +741,13 @@
   .studio-edit {
     position: static;
     height: auto;
+    overflow: visible;
     justify-content: center;
     padding: 20px 8px;
     margin: 0;
     border: 0;
     border-radius: 0;
-    background: transparent;
+    background: none;
     box-shadow: none;
   }
   .studio-sheet-handle {

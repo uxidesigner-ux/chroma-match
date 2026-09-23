@@ -3,13 +3,20 @@ import { ANIME_LOOKS, DEFAULT_ANIME, EXPRESSIONS, FIGURE_AXES, FIGURE_PRESETS, H
 /*
  * How tall the sheet stands at each stop, as a fraction of the screen.
  *
- * The first shows the tabs and a row under them, which is enough to tell what
- * the sheet holds without taking the character; the last is the longest tab
- * with nothing left to scroll to. Nothing goes past seven tenths: past that the
- * preview is a strip, and a sheet that covers what it is editing has stopped
- * being a sheet.
+ * The first is down: the sheet is off the screen and only the bar it is pulled
+ * up by is left, so the character has the whole screen and sits in the middle
+ * of it. The last is the longest tab with nothing left to scroll to. Nothing
+ * goes past seven tenths — past that the preview is a strip, and a sheet that
+ * covers what it is editing has stopped being a sheet.
  */
-const SHEET_STOPS = [0.36, 0.53, 0.7] as const
+const SHEET_STOPS = [0.055, 0.38, 0.55, 0.72] as const
+/*
+ * Where it stands on arrival: up, not down. Shut is somewhere to put the sheet
+ * to look at the character, not somewhere to start — landing on a screen whose
+ * every control is behind a bar you have to know to pull would hide the whole
+ * editor behind a discovery.
+ */
+const SHEET_START = 1
 import type { AnimeSpec, FigureAxis, FigureStep, HairStyle } from '../avatar/anime-spec.ts'
 import { myAvatar, setMyAvatar } from '../avatar/store.ts'
 import { cachePortrait } from '../avatar/anime-portrait.ts'
@@ -44,9 +51,11 @@ export class AnimeEditor {
   private face = false
   private closed = true
   private history = new LookHistory()
-  /** Which of the sheet's three stops it is resting at, and the grip that says so. */
-  private sheet = 0
+  /** Which of the sheet's four stops it is resting at, and the grip that says so. */
+  private sheet = SHEET_START
   private grip: HTMLButtonElement | null = null
+  /** The sheet itself, so the camera can be told the height it really stands. */
+  private sheetBox: HTMLElement | null = null
   private undo = document.createElement('button')
   private redo = document.createElement('button')
   private paused = false
@@ -387,6 +396,7 @@ export class AnimeEditor {
      */
     const edit = document.createElement('div')
     edit.className = 'studio-edit'
+    this.sheetBox = edit
     history.append(this.buildFilesButton(), this.status)
     edit.append(this.sheetHandle(), controls, this.discard, credit)
     this.root.append(viewer, edit)
@@ -797,8 +807,8 @@ export class AnimeEditor {
    *
    * The sheet floats over the preview rather than dividing the screen with it,
    * so its height is the one number that says how much of the character is
-   * showing. Three stops: enough to see the tabs and a row, half, and tall
-   * enough for the longest tab. A drag moves it and lets go at the nearest
+   * showing. Four stops: shut, enough to see the tabs and a row, half, and
+   * tall enough for the longest tab. A drag moves it and lets go at the nearest
    * stop; a tap steps to the next one, which is what a thumb reaching the grip
    * without aiming will do; arrow keys move it one stop, because a grip nobody
    * can reach by keyboard is a grip half the people cannot use.
@@ -807,6 +817,10 @@ export class AnimeEditor {
     const tools = studioToolsCopy()
     const handle = this.button('', () => this.snapSheet(this.sheet >= SHEET_STOPS.length - 1 ? 0 : this.sheet + 1), 'studio-sheet-handle')
     this.grip = handle
+    const word = document.createElement('span')
+    word.className = 'studio-sheet-word'
+    word.textContent = tools.sheetOpen
+    handle.append(word)
     handle.setAttribute('aria-label', tools.sheetHeight)
     handle.setAttribute('role', 'slider')
     handle.setAttribute('aria-valuemin', '1')
@@ -849,7 +863,7 @@ export class AnimeEditor {
     }
     handle.addEventListener('pointerup', drop)
     handle.addEventListener('pointercancel', drop)
-    this.snapSheet(0)
+    this.snapSheet(SHEET_START)
     return handle
   }
 
@@ -862,11 +876,35 @@ export class AnimeEditor {
     const size = Math.max(SHEET_STOPS[0]!, Math.min(SHEET_STOPS.at(-1)!, fraction))
     this.root.style.setProperty('--sheet', size.toFixed(4))
     /*
+     * Shut is a state, not just a height: it is the one where the sheet has
+     * nothing on show but its grip, so the grip has to say what it opens.
+     */
+    if (size <= SHEET_STOPS[0]!) this.root.dataset.sheet = 'shut'
+    else delete this.root.dataset.sheet
+    /*
      * The preview is behind the sheet, not above it, so the camera has to be
      * told how much of its canvas is hidden or the character stands in it.
-     * Beside the preview the sheet covers nothing, and the canvas is whole.
+     * Shut, the sheet keeps its grip and covers more than the fraction says,
+     * so the camera is told whichever is larger. It cannot simply measure the
+     * sheet: the height is what eases, so a measurement taken now is the
+     * height it is leaving, and the camera would trail a stop behind. Beside
+     * the preview the sheet covers nothing, and the canvas is whole.
      */
-    this.renderer?.cover(this.grip?.checkVisibility() === false ? 0 : size)
+    if (this.grip?.checkVisibility() === false) return this.renderer?.cover(0)
+    this.renderer?.cover(Math.max(size, this.sheetShut()))
+  }
+
+  /** The share of the screen the sheet keeps even when it is shut. */
+  private sheetShut(): number {
+    const box = this.sheetBox
+    const room = this.root.clientHeight
+    if (!box || !room) return SHEET_STOPS[0]!
+    const edges = getComputedStyle(box)
+    const floor =
+      (this.grip?.offsetHeight ?? 0) +
+      (parseFloat(edges.paddingBottom) || 0) +
+      (parseFloat(edges.borderTopWidth) || 0)
+    return floor ? floor / room : SHEET_STOPS[0]!
   }
 
   private snapSheet(stop: number): void {
