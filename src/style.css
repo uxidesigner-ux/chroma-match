@@ -68,7 +68,8 @@ body {
   height: 100dvh;
   max-width: 620px;
   margin: 0 auto;
-  padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  --app-side: 16px;
+  padding: max(12px, env(safe-area-inset-top)) var(--app-side) max(12px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1108,7 +1109,8 @@ html.splash-open body {
 
 @media (max-width: 420px) {
   .app {
-    padding-left: max(8px, env(safe-area-inset-left));
+    --app-side: max(8px, env(safe-area-inset-left));
+    padding-left: var(--app-side);
     padding-right: max(8px, env(safe-area-inset-right));
     gap: 9px;
   }
@@ -3181,13 +3183,25 @@ html.splash-open body {
 /* A column that fills the viewport: the figure takes what is left after the
    header and the picker, so the preview is as big as the phone allows rather
    than a fixed size that is wrong on both a small phone and a large one. */
+/*
+ * The gutters this screen holds its contents in, named so the studio can give
+ * them back. The preview and its sheet reach the screen's own edges; the header
+ * above them does not, and neither does anything else here.
+ */
 .creator {
   display: flex;
   flex-direction: column;
   gap: 10px;
   height: 100%;
   min-height: 0;
-  padding: 10px 16px 14px;
+  --creator-side: 16px;
+  --creator-floor: 14px;
+  padding: 10px var(--creator-side) var(--creator-floor);
+}
+.has-studio .creator {
+  /* Plus whatever the app itself holds back, which differs by width. */
+  --studio-bleed: calc(var(--creator-side) + var(--app-side, 8px));
+  --studio-floor: calc(var(--creator-floor) + max(12px, env(safe-area-inset-bottom)));
 }
 
 .creator[hidden] {
