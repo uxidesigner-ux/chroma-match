@@ -306,24 +306,59 @@ test('a female character carries a bust a male one does not, and going back take
   expect(chest(back!) / chest(male!), 'the chest did not go back').toBeLessThan(1.005)
 })
 
-test('the ponytail is hidden, worn, or worn long, and each draws a different head of hair', async ({ page }) => {
+/*
+ * Three styles that have to be three, from the two views a player actually
+ * sees. The front matters most: the lobby and the profile both use it, so a
+ * style that only changes the back of the head is a style nobody can tell they
+ * picked.
+ */
+test('each hairstyle draws a different head of hair, from the front as well as the side', async ({ page }) => {
   await openStudio(page, '헤어')
   const silhouette = silhouetteOf(page)
-  await page.getByRole('button', { name: '측면', exact: true }).click()
 
   const wearing = async (style: string) => {
     await page.getByRole('button', { name: style, exact: true }).click()
     const shot = await silhouette()
     expect(shot, `${style} drew nothing`).not.toBeNull()
     // Ink against the character's own height squared, so the camera pulling
-    // back to frame a longer tail does not read as a shorter one.
+    // back to frame longer hair does not read as less of it.
     return shot!.area
   }
-  const bob = await wearing('단발')
-  const tail = await wearing('포니테일')
-  const long = await wearing('긴 포니테일')
-  expect(tail, 'the ponytail added nothing to the silhouette').toBeGreaterThan(bob * 1.01)
-  expect(long, 'the long ponytail is no longer than the short one').toBeGreaterThan(tail * 1.01)
+
+  await page.getByRole('button', { name: '측면', exact: true }).click()
+  const side = {
+    tails: await wearing('포니테일'),
+    bob: await wearing('단발'),
+    long: await wearing('긴 머리'),
+  }
+  expect(side.tails, 'the ponytail added nothing to the silhouette')
+    .toBeGreaterThan(side.bob * 1.01)
+  expect(side.long, 'long hair is no more than a ponytail from the side')
+    .toBeGreaterThan(side.tails * 1.05)
+
+  /*
+   * And from the front, which is the view that made this worth building: a
+   * ponytail hangs behind the head and leaves the face exactly as it was, so
+   * without locks down the sides a player could pick a style and see nothing
+   * on the screen the lobby and the profile both show them.
+   *
+   * Measured at the neck rather than over the whole silhouette. The neck is
+   * bare under a ponytail and covered under either of the others, so it is
+   * where the difference lives; total ink is not, because hair hanging behind
+   * the head stands the camera off and shrinks everything it just added.
+   */
+  await page.getByRole('button', { name: '정면', exact: true }).click()
+  const neck = async (style: string) => {
+    await page.getByRole('button', { name: style, exact: true }).click()
+    const shot = await silhouette()
+    expect(shot, `${style} drew nothing`).not.toBeNull()
+    return mean(band(shot!, 0.16, 0.19, 'span'))
+  }
+  const bare = await neck('포니테일')
+  expect(await neck('단발'), 'a bob leaves the neck as bare as a ponytail does')
+    .toBeGreaterThan(bare * 2)
+  expect(await neck('긴 머리'), 'long hair leaves the neck as bare as a ponytail does')
+    .toBeGreaterThan(bare * 2)
 })
 
 test('the bust is rounded at the front and runs out further below than above', async ({ page }) => {
