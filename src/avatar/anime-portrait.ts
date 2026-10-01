@@ -1,6 +1,7 @@
 import { DEFAULT_ANIME, encodeAnime } from './anime-spec.ts'
 import type { AnimeSpec } from './anime-spec.ts'
 import { portraitFrame } from './portrait-frame.ts'
+import { decodeSpec } from './spec.ts'
 import type { AnimeRenderer } from './anime-renderer.ts'
 
 const KEY = 'chroma-match:anime-portrait-v1'
@@ -85,7 +86,12 @@ function portrait(spec: AnimeSpec): Promise<HTMLImageElement> {
         await renderer.load(spec)
         const png = renderer.portrait()
         const rendered = await image(png)
-        persistPortrait(key, png)
+        // Row/preview portraits share this queue. Keep the one durable slot
+        // for the player's own appearance, not whichever friend drew last.
+        try {
+          const owner = decodeSpec(localStorage.getItem('chroma-match:avatar') ?? '')
+          if (encodeAnime(owner) === key) persistPortrait(key, png)
+        } catch { /* in-memory rendering still works with storage disabled */ }
         return rendered
       } finally {
         renderer.dispose()

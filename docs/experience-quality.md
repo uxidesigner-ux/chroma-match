@@ -41,6 +41,7 @@ user research. This document supersedes historical layout/scope descriptions.
   editing sheet's camera offset and restore interactive framing afterwards.
   Unversioned custom portrait caches regenerate once; authoritative appearance codes
   are preserved. Current framed images remain reusable after reload.
+  Rendering another player's portrait never replaces the owner's durable image.
 
 ## Verification and boundaries
 
