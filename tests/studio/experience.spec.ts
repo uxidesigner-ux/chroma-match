@@ -175,4 +175,10 @@ test('a pre-fix portrait cache regenerates once without changing the saved appea
   await page.reload()
   await enterLobby(page)
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!))).toEqual(regenerated)
+  await page.evaluate(async () => {
+    const { preparePortrait } = await import('/src/avatar/anime-portrait.ts')
+    const { DEFAULT_ANIME } = await import('/src/avatar/anime-spec.ts')
+    await preparePortrait({ ...DEFAULT_ANIME, hairColour: 'A12345' })
+  })
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!))).toEqual(regenerated)
 })
