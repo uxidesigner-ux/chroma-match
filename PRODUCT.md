@@ -32,6 +32,9 @@ of the player's task. The product has one anime character editor and one profile
 - Retired or invalid appearance formats display the anime starter; never reintroduce removed renderers.
 - Offer only customization actually supported by the licensed starter model.
 - Home is a rotatable full-body 3D lobby; release its renderer when leaving home.
+- Profile and icon-only utilities own the lobby header. Ranks/missions/shop use
+  a separate footer row, above Play. Model drags turn in the finger's direction
+  without handing vertical panning to browser refresh; rotation help is nonvisual.
 - Use cached still portraits in lists and the event-reactive game HUD; release editor resources.
 - Gameplay HUD has three equal regions: goal, character reaction, remaining moves.
 - New runs support 2×2 squares as bomb matches, alongside lines, L/T/+ and power fusion.

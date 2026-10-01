@@ -94,7 +94,7 @@ test('buttons centre the icons they hold', async ({ page }) => {
   // its column had nothing to centre and the glyph packed to the top — 11px
   // above the middle of a 44px circle.
   const round = [
-    ...(await offsets('.lobby-head .quick-btn')),
+    ...(await offsets('.lobby-nav .quick-btn')),
     ...(await offsets('.lobby-head .circle-button')),
     ...(await offsets('#lobby-edit, #lobby-tools button')),
   ]

@@ -11,7 +11,7 @@ import {
 } from 'three'
 import { StudioCharacter } from './character-studio/character.ts'
 import type { AnimeSpec } from './anime-spec.ts'
-import { fitFullBody } from './anime-camera.ts'
+import { fitFullBody, turnView } from './anime-camera.ts'
 import { SEED_CREDIT } from './studio-library.ts'
 
 /** One renderer per editor (or serial portrait queue), never one per list row. */
@@ -36,6 +36,7 @@ export class AnimeRenderer {
   private silhouette = ''
   private current: AnimeSpec | null = null
   private yawStart: number | null = null
+  private dragPointer: number | null = null
   private width = 256
   private canvasHeight = 256
   private paused = false
@@ -118,12 +119,17 @@ export class AnimeRenderer {
     this.canvas.addEventListener('pointermove', this.pointerMove)
     this.canvas.addEventListener('pointerup', this.pointerUp)
     this.canvas.addEventListener('pointercancel', this.pointerUp)
+    this.canvas.addEventListener('lostpointercapture', this.pointerUp)
     this.canvas.addEventListener('pointerleave', this.pointerLeave)
     this.canvas.addEventListener('keydown', this.keyDown)
     this.start()
   }
 
   private pointerDown = (e: PointerEvent): void => {
+    if (!e.isPrimary || e.button !== 0 || this.dragPointer !== null) return
+    e.preventDefault()
+    this.canvas.focus({ preventScroll: true })
+    this.dragPointer = e.pointerId
     this.yawStart = e.clientX
     this.canvas.setPointerCapture(e.pointerId)
   }
@@ -135,25 +141,30 @@ export class AnimeRenderer {
       }
       return
     }
+    if (e.pointerId !== this.dragPointer) return
+    e.preventDefault()
     this.character?.look(0, 0)
-    this.angle += (e.clientX - this.yawStart) * 0.012
+    this.angle = turnView(this.angle, (e.clientX - this.yawStart) * 0.012)
     this.yawStart = e.clientX
     this.draw()
   }
-  private pointerUp = (): void => {
+  private pointerUp = (e: PointerEvent): void => {
+    if (e.pointerId !== this.dragPointer) return
     this.yawStart = null
+    this.dragPointer = null
+    if (this.canvas.hasPointerCapture(e.pointerId)) this.canvas.releasePointerCapture(e.pointerId)
   }
   private pointerLeave = (): void => { this.character?.look(0, 0) }
   private keyDown = (e: KeyboardEvent): void => {
     if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(e.key)) return
     e.preventDefault()
     if (e.key === 'Home') this.angle = 0
-    else this.angle += e.key === 'ArrowLeft' ? -0.2 : 0.2
+    else this.angle = turnView(this.angle, e.key === 'ArrowLeft' ? -0.2 : 0.2)
     this.draw()
   }
 
   rotate(direction: number): void {
-    this.angle += direction * 0.3
+    this.angle = turnView(this.angle, direction * 0.3)
     this.draw()
   }
   gesture(kind: 'wave' | 'cheer' | 'pose'): void {
@@ -367,6 +378,7 @@ export class AnimeRenderer {
     this.canvas.removeEventListener('pointermove', this.pointerMove)
     this.canvas.removeEventListener('pointerup', this.pointerUp)
     this.canvas.removeEventListener('pointercancel', this.pointerUp)
+    this.canvas.removeEventListener('lostpointercapture', this.pointerUp)
     this.canvas.removeEventListener('pointerleave', this.pointerLeave)
     this.canvas.removeEventListener('keydown', this.keyDown)
     this.character?.dispose()

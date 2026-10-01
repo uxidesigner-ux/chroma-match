@@ -35,6 +35,13 @@ body {
   height: 100%;
 }
 
+/* Lock only the lobby: the shop and other long screens can still scroll. */
+html.lobby-open,
+html.lobby-open body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   background:
@@ -2997,7 +3004,7 @@ html.splash-open body {
 
 .home {
   overflow-y: auto;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
   /*
    * Room for the shadow, inside the scroll box.
