@@ -39,6 +39,8 @@ user research. This document supersedes historical layout/scope descriptions.
   tests choose their starting stop explicitly, independent of the initial height.
 - Editor resize listeners are removed on close. Captured portraits ignore the
   editing sheet's camera offset and restore interactive framing afterwards.
+  Unversioned custom portrait caches regenerate once; authoritative appearance codes
+  are preserved. Current framed images remain reusable after reload.
 
 ## Verification and boundaries
 
@@ -54,7 +56,9 @@ the 62-case sweep passed 59 cases and exposed three outdated sheet-layout
 assumptions. After adapting those fixtures to the intentional layout, all nine
 targeted checks passed, including the new settings target/focus check. Both
 production release checks passed again. The complete 63-case suite remains the
-CI gate before Pages deployment. Direct browser review covered phone, square
+CI gate before Pages deployment. The added portrait-cache migration case passed;
+the final CI gate contains 64 cases.
+Direct browser review covered phone, square
 unfolded, desktop and short landscape layouts, nested help and Paper keyboard
 focus; the reviewed tab reported no console errors or warnings.
 

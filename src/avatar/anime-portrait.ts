@@ -4,6 +4,9 @@ import { portraitFrame } from './portrait-frame.ts'
 import type { AnimeRenderer } from './anime-renderer.ts'
 
 const KEY = 'chroma-match:anime-portrait-v1'
+// Framing changed when editor-sheet camera offsets stopped leaking into saves.
+// Keep appearance codes untouched; only regenerate stale, derived images.
+const FRAME_VERSION = 2
 const cache = new Map<string, Promise<HTMLImageElement>>()
 const requests = new WeakMap<HTMLCanvasElement, symbol>()
 let queue: Promise<unknown> = Promise.resolve()
@@ -32,9 +35,13 @@ export function cachePortrait(spec: AnimeSpec, png: string, persist = true): voi
   cache.set(key, image(png))
   if (cache.size > 32) cache.delete(cache.keys().next().value!)
   if (!persist) return
+  persistPortrait(key, png)
+}
+
+function persistPortrait(key: string, png: string): void {
   // A single bounded local image is a cache, never the authoritative save.
   try {
-    localStorage.setItem(KEY, JSON.stringify({ key, png }))
+    localStorage.setItem(KEY, JSON.stringify({ key, png, frame: FRAME_VERSION }))
   } catch {
     /* regeneration is safe */
   }
@@ -51,9 +58,11 @@ function portrait(spec: AnimeSpec): Promise<HTMLImageElement> {
         const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as {
           key?: string
           png?: string
+          frame?: number
         } | null
         if (
           saved?.key === key &&
+          saved.frame === FRAME_VERSION &&
           saved.png?.startsWith('data:image/png;base64,') &&
           saved.png.length < 400000
         ) {
@@ -74,7 +83,10 @@ function portrait(spec: AnimeSpec): Promise<HTMLImageElement> {
       const renderer = new AnimeRenderer(document.createElement('canvas'))
       try {
         await renderer.load(spec)
-        return await image(renderer.portrait())
+        const png = renderer.portrait()
+        const rendered = await image(png)
+        persistPortrait(key, png)
+        return rendered
       } finally {
         renderer.dispose()
       }
