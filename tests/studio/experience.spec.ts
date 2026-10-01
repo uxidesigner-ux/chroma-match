@@ -146,3 +146,33 @@ test('settings have touch-sized choices and keyboard theme selection keeps visib
   })).toEqual({ outline: 'rgb(36, 30, 22)', ink: '#241e16' })
   await expect(page.locator('#settings-done')).toBeInViewport()
 })
+
+test('a pre-fix portrait cache regenerates once without changing the saved appearance', async ({ page }) => {
+  await page.goto('/')
+  await enterLobby(page)
+  await page.locator('#lobby-edit').click()
+  await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+  await page.getByRole('button', { name: '앰버', exact: true }).click()
+  await page.locator('.studio-apply').click()
+  await expect(page.locator('.studio-status')).toHaveText('이 기기에 저장했어요.')
+  const appearance = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
+  const cachedKey = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!).key)
+  // An old cache can be a valid PNG with the wrong framing, not a decode error.
+  await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!)
+    const tiny = document.createElement('canvas')
+    tiny.width = tiny.height = 1
+    localStorage.setItem('chroma-match:anime-portrait-v1', JSON.stringify({ key: saved.key, png: tiny.toDataURL() }))
+  })
+  await page.reload()
+  await enterLobby(page)
+  await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+  const regenerated = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!))
+  expect(regenerated.frame).toBe(2)
+  expect(regenerated.key).toBe(cachedKey)
+  expect(regenerated.png.length).toBeGreaterThan(1000)
+  expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(appearance)
+  await page.reload()
+  await enterLobby(page)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!))).toEqual(regenerated)
+})
