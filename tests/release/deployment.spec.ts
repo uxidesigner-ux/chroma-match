@@ -67,6 +67,22 @@ test('production guest editor saves, reloads and reopens offline without touchin
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   const gotIt = page.getByRole('button', { name: 'Got it', exact: true })
   if (await gotIt.isVisible()) await gotIt.click()
+  await page.setViewportSize({ width: 430, height: 852 })
+  await expect(page.locator('html')).toHaveClass(/lobby-open/)
+  await expect(page.locator('#lobby-hint')).toHaveClass('sr-only')
+  await expect(page.locator('#start-game')).toBeInViewport()
+  const lobby = await page.evaluate(() => {
+    const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect()
+    return {
+      profileClear: rect('.profile').right <= rect('.lobby-utilities').left,
+      navClear: rect('.lobby-stage').bottom <= rect('.lobby-nav').top,
+      root: getComputedStyle(document.documentElement).overscrollBehaviorY,
+      touch: getComputedStyle(document.getElementById('lobby-canvas')!).touchAction,
+    }
+  })
+  expect(lobby).toEqual({ profileClear: true, navClear: true, root: 'none', touch: 'none' })
+  await page.screenshot({ path: testInfo.outputPath('release-lobby.png') })
+  await page.setViewportSize({ width: 1280, height: 800 })
   await page.locator('#profile-face').click()
   await page.locator('#profile-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')

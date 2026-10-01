@@ -4,6 +4,11 @@ export interface CharacterBounds {
   max: Point3
 }
 
+/** Positive input turns the visible front toward screen-right, not the camera. */
+export function turnView(angle: number, screenTurn: number): number {
+  return angle - screenTurn
+}
+
 /** Fit all eight corners, including depth, at any yaw and screen aspect. */
 export function fitFullBody(bounds: CharacterBounds, aspect: number, yaw: number) {
   const target: Point3 = [

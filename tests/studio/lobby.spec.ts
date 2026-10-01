@@ -97,11 +97,12 @@ test('failed lobby remains playable and retry recovers without resetting profile
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
 })
 
-test('lobby chrome puts equal nav on top, coins under the name, and play actions in one row', async ({ page }) => {
+test('lobby separates profile and footer destinations, with play actions in one row', async ({ page }) => {
   await expect(page.locator('#splash')).toBeHidden()
   await expect(page.locator('#splash-title')).toHaveText('Chroma Match')
   await expect(page.locator('#screen-home h1')).toHaveCount(0)
-  await expect(page.locator('.lobby-head .quick')).toHaveCount(1)
+  await expect(page.locator('.lobby-head .quick')).toHaveCount(0)
+  await expect(page.locator('.home > .lobby-nav')).toHaveCount(1)
   const nav = await page.locator('.home .quick-btn').evaluateAll(nodes =>
     nodes.map(node => {
       const box = node.getBoundingClientRect()
@@ -115,10 +116,9 @@ test('lobby chrome puts equal nav on top, coins under the name, and play actions
   const stage = (await page.locator('#lobby-stage').boundingBox())!
   const navBox = (await page.locator('.home .quick').boundingBox())!
   const play = (await page.locator('.lobby-play').boundingBox())!
-  expect(navBox.y).toBeGreaterThanOrEqual(head.y - 1)
-  expect(navBox.y + navBox.height).toBeLessThanOrEqual(head.y + head.height + 2)
-  expect(navBox.y).toBeLessThan(stage.y)
-  expect(play.y).toBeGreaterThan(stage.y + stage.height - 8)
+  expect(stage.y).toBeGreaterThanOrEqual(head.y + head.height)
+  expect(navBox.y).toBeGreaterThanOrEqual(stage.y + stage.height)
+  expect(play.y).toBeGreaterThanOrEqual(navBox.y + navBox.height)
   const name = (await page.locator('#profile-name').boundingBox())!
   const coins = (await page.locator('.profile-wallet').boundingBox())!
   expect(coins.y).toBeGreaterThan(name.y)
@@ -127,8 +127,8 @@ test('lobby chrome puts equal nav on top, coins under the name, and play actions
   expect(edit.x).toBeGreaterThan(stage.x + stage.width / 2)
   expect(edit.y).toBeGreaterThan(stage.y + stage.height / 2)
   expect(Math.abs((edit.y + edit.height) - (tools.y + tools.height))).toBeLessThan(8)
-  await expect(page.locator('#lobby-hint-fine')).toContainText('Home')
-  await expect(page.locator('#lobby-hint-coarse')).toHaveText('드래그해서 회전')
+  await expect(page.locator('#lobby-hint')).toHaveClass('sr-only')
+  await expect(page.locator('#lobby-hint')).toContainText('Home')
   await page.locator('#start-game').click()
   await page.locator('#loadout-start').click()
   await expect(page.locator('#screen-game')).toBeVisible()
@@ -176,7 +176,7 @@ test('lobby and studio chrome hold a 44px target on narrow phones, and the studi
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
       .toBe(true)
-    const chrome = page.locator('.lobby-head .quick-btn, .lobby-head .circle-button, #lobby-edit, #lobby-tools button')
+    const chrome = page.locator('.lobby-nav .quick-btn, .lobby-head .circle-button, #lobby-edit, #lobby-tools button')
     for (const button of await chrome.all()) {
       const box = (await button.boundingBox())!
       expect(box.width).toBeGreaterThanOrEqual(44)

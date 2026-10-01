@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { fitFullBody } from './anime-camera.ts'
+import { fitFullBody, turnView } from './anime-camera.ts'
 import type { CharacterBounds } from './anime-camera.ts'
+
+test('drag direction turns the front of the character in the same screen direction', () => {
+  for (const input of [-0.6, 0.6]) {
+    const yaw = turnView(0, input)
+    // A front-facing point has z > 0; its projected x must follow the finger.
+    const frontX = -Math.sin(yaw)
+    assert.equal(Math.sign(frontX), Math.sign(input))
+  }
+  assert.equal(turnView(0.4, 0), 0.4)
+  assert.ok(Math.abs(turnView(turnView(0.4, 0.6), -0.6) - 0.4) < 1e-12)
+})
 
 test('full-body fitting keeps every corner inside the frame at all angles and screen shapes', () => {
   const bodies: CharacterBounds[] = [

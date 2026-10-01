@@ -29,8 +29,7 @@ export class Lobby {
     this.canvas.setAttribute('aria-label', copy.preview)
     this.canvas.setAttribute('aria-describedby', 'lobby-hint')
     this.root.setAttribute('aria-label', copy.preview)
-    document.getElementById('lobby-hint-fine')!.textContent = copy.rotate
-    document.getElementById('lobby-hint-coarse')!.textContent = copy.turn
+    document.getElementById('lobby-hint')!.textContent = copy.rotate
     this.tools.replaceChildren()
     for (const key of ['wave', 'cheer', 'pose'] as const) {
       const button = document.createElement('button')
@@ -54,10 +53,12 @@ export class Lobby {
   }
   show(): void {
     if (this.visible) return
+    document.documentElement.classList.add('lobby-open')
     this.visible = true
     void this.load()
   }
   hide(): void {
+    document.documentElement.classList.remove('lobby-open')
     this.visible = false
     this.generation++
     this.renderer?.dispose()

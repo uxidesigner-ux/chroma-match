@@ -56,12 +56,11 @@
 
 .lobby-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
 }
 .lobby-head .profile { justify-self: start; }
-.lobby-head .quick { justify-self: center; }
 .lobby-utilities { display: flex; gap: 6px; flex: none; justify-self: end; }
 .circle-button {
   width: 44px;
@@ -77,11 +76,6 @@
   cursor: pointer;
   padding: 0;
 }
-/*
- * Six 44px circles and an avatar do not fit across a 360px phone, so the header
- * wraps below rather than shrinking its targets: a hit area is not a thing to
- * trade for a row of vertical space. See the wrap query further down.
- */
 .lobby-head .circle-button {
   font-size: var(--text-xl);
 }
@@ -108,8 +102,8 @@
 .home .profile-stats { display: none; }
 
 .home .quick {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   padding: 0;
 }
@@ -128,7 +122,7 @@
 
 .home .lobby-stage { position: relative; flex: 1 0 260px; min-height: 240px; width: 100%; isolation: isolate; }
 .lobby-stage::before { content: ''; position: absolute; z-index: -1; bottom: 3%; left: 23%; width: 54%; height: 10%; border-radius: 50%; background: radial-gradient(ellipse, var(--accent) 0%, transparent 68%); opacity: .2; }
-#lobby-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-y; }
+#lobby-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
 .lobby-loading { position: absolute; inset: 24% 10% auto; text-align: center; color: var(--text); padding: 16px; background: var(--bg); border-radius: var(--radius); }
 .lobby-loading[hidden] { display: none; }
 /*
@@ -163,12 +157,6 @@
 }
 .lobby-gesture:disabled { opacity: .45; cursor: default; }
 .lobby-gesture .hud-ico { width: 20px; height: 20px; }
-.lobby-hint { margin: 0; text-align: center; font-size: var(--text-xs); color: var(--muted); pointer-events: none; }
-.lobby-hint .hint-coarse { display: none; }
-@media (hover: none) {
-  .lobby-hint .hint-fine { display: none; }
-  .lobby-hint .hint-coarse { display: inline; }
-}
 .lobby-edit {
   position: absolute;
   right: 10px;
@@ -244,24 +232,6 @@
 .game .item-count { top: auto; bottom: -2px; right: -2px; font-size: var(--text-md); }
 .game-exit { margin-left: auto; width: 56px; height: 56px; }
 .game .items-hint { margin: 0; min-height: 18px; font-size: var(--text-xs); }
-/*
- * Narrow phones get two rows instead of smaller buttons. The name and wallet
- * take the first row with the two utilities, and the three destinations spread
- * across the second — which also gives them the width their labels never had.
- */
-@media (max-width: 420px) {
-  .lobby-head {
-    grid-template-columns: minmax(0, 1fr) auto;
-    row-gap: 8px;
-  }
-  .lobby-head .profile { grid-column: 1; }
-  .lobby-utilities { grid-column: 2; }
-  .lobby-head .quick {
-    grid-column: 1 / -1;
-    justify-self: stretch;
-  }
-  .home .quick { justify-content: space-around; }
-}
 @media (max-height: 740px) {
   .home { gap: 8px; }
   .home .lobby-stage { flex-basis: 200px; min-height: 200px; }
@@ -273,6 +243,9 @@
   #goal-gem { width: 65px; height: 65px; }
   .game .item, .game-exit { width: 50px; height: 50px; }
 }
+@media (max-height: 480px) {
+  .home .lobby-stage { flex-basis: 140px; min-height: 140px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .hud-face, .hud-sparks, .lobby-gesture, .splash-fill, .splash-mark { animation: none !important; transition: none !important; }
 }
@@ -280,9 +253,8 @@
 .creator-head-gap { width: 44px; height: 44px; flex: none; }
 
 /* Utility icons stay icon-only; destinations get readable captions. */
-.home .quick-btn { width: auto; min-width: 54px; min-height: 64px; height: auto; border-radius: var(--radius-sm); gap: 4px; padding: 6px; }
+.home .quick-btn { width: 100%; min-width: 0; min-height: 56px; height: 56px; border-radius: var(--radius-sm); gap: 4px; padding: 4px 6px; }
 .home .quick-label { font-size: var(--text-xs); }
-.lobby-hint { font-size: var(--text-sm); line-height: 1.5; }
 #help .sheet-panel { max-width: 620px; }
 .rule-patterns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
 .rule-example { min-width: 0; text-align: center; }

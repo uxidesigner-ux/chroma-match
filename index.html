@@ -91,9 +91,8 @@
       <!-- ---------------------------------------------------------------- -->
       <section class="screen home" id="screen-home">
         <!--
-          One HUD bar: identity, the three equal doors, then utilities.
-          A second row of empty circles was reading as leftover chrome, not as
-          navigation, and it stole height from the character.
+          Identity owns the top row with icon-only utilities. Destinations have
+          their own footer row so they cannot squeeze or cover the profile.
         -->
         <header class="lobby-head">
           <section class="profile" aria-labelledby="profile-name">
@@ -123,21 +122,6 @@
               </div>
             </div>
           </section>
-          <nav class="quick" aria-label="Ranks, missions and shop" data-i18n-attr="aria-label:lobbyNav">
-            <button class="quick-btn" id="open-ranks" type="button" data-i18n-attr="aria-label:quickRanks title:quickRanks">
-              <span class="hud-ico hud-ico-ranks" aria-hidden="true"></span>
-              <span class="quick-label" data-i18n="quickRanks">Ranks</span>
-            </button>
-            <button class="quick-btn" id="today-row" type="button" data-i18n-attr="aria-label:quickToday title:quickToday">
-              <span class="hud-ico hud-ico-today" aria-hidden="true"></span>
-              <span class="quick-label" data-i18n="quickToday">Today</span>
-              <span class="quick-badge" id="today-summary-badge" hidden>0</span>
-            </button>
-            <button class="quick-btn" id="open-shop" type="button" data-i18n-attr="aria-label:quickShop title:quickShop">
-              <span class="hud-ico hud-ico-shop" aria-hidden="true"></span>
-              <span class="quick-label" data-i18n="quickShop">Shop</span>
-            </button>
-          </nav>
           <div class="lobby-utilities">
             <button class="circle-button" data-action="how-to" type="button" aria-expanded="false" data-i18n-attr="aria-label:howToPlay title:howToPlay"><span class="hud-ico hud-ico-help" aria-hidden="true"></span></button>
             <button class="circle-button" id="open-settings" type="button" data-i18n-attr="aria-label:settings title:settings"><span class="hud-ico hud-ico-gear" aria-hidden="true"></span></button>
@@ -152,10 +136,22 @@
           </button>
           <div class="lobby-tools" id="lobby-tools"></div>
         </section>
-        <p class="lobby-hint" id="lobby-hint">
-          <span class="hint-fine" id="lobby-hint-fine"></span>
-          <span class="hint-coarse" id="lobby-hint-coarse"></span>
-        </p>
+        <p class="sr-only" id="lobby-hint"></p>
+        <nav class="quick lobby-nav" aria-label="Ranks, missions and shop" data-i18n-attr="aria-label:lobbyNav">
+          <button class="quick-btn" id="open-ranks" type="button" data-i18n-attr="aria-label:quickRanks title:quickRanks">
+            <span class="hud-ico hud-ico-ranks" aria-hidden="true"></span>
+            <span class="quick-label" data-i18n="quickRanks">Ranks</span>
+          </button>
+          <button class="quick-btn" id="today-row" type="button" data-i18n-attr="aria-label:quickToday title:quickToday">
+            <span class="hud-ico hud-ico-today" aria-hidden="true"></span>
+            <span class="quick-label" data-i18n="quickToday">Today</span>
+            <span class="quick-badge" id="today-summary-badge" hidden>0</span>
+          </button>
+          <button class="quick-btn" id="open-shop" type="button" data-i18n-attr="aria-label:quickShop title:quickShop">
+            <span class="hud-ico hud-ico-shop" aria-hidden="true"></span>
+            <span class="quick-label" data-i18n="quickShop">Shop</span>
+          </button>
+        </nav>
         <!--
           A kept run is the first thing offered, because a player who left one
           behind came back for it. Starting fresh is still one tap, and says
