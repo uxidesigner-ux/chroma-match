@@ -41,11 +41,16 @@ of the player's task. The product has one anime character editor and one profile
 
 ## Current scope decision
 
-The user approved deferring male/female model selection and new outfit packs until
-licensed, compatible assets are available. This release uses Seed-san's real hair,
-expression, palette and independently mixed backpack/arm/visor options, plus breathing and gestures.
+This release uses one licensed Seed-san asset, with male/female figure variants,
+five independently adjustable body axes, three hairstyles, skin/palette choices,
+six expressions and independently mixed backpack/arm/visor options. Figure and
+hair variants modify this model; they are not additional licensed model packs.
+New models and outfit packs still require separate licensed, compatible assets.
+The lobby adds breathing, weight shift, gaze, blinking and three gestures.
 Game-specific celebratory motion is intentional; reduced-motion users receive
 text feedback and explicitly requested still poses instead of animation.
+Gameplay swaps pre-rendered expression portraits; it never keeps a WebGL scene
+alive. Players can bypass the first 3D load and enter the lobby immediately.
 
 The studio toolkit adds six expressions, pointer gaze, pause, 12 named local
 looks, undo/redo, JSON backup/restore and PNG/VRM/GLB downloads. The upstream

@@ -34,6 +34,7 @@ export class AnimeRenderer {
   private covered = 0
   private bounds = new Box3()
   private silhouette = ''
+  private current: AnimeSpec | null = null
   private yawStart: number | null = null
   private width = 256
   private canvasHeight = 256
@@ -82,9 +83,10 @@ export class AnimeRenderer {
 
   apply(spec: AnimeSpec): void {
     if (this.disposed) return
+    this.current = { ...spec }
     this.scene.background = this.transparent ? null : new Color(`#${spec.backdrop}`)
     this.character?.apply(spec)
-    const silhouette = `${spec.hair}:${Number(spec.pack)}${Number(spec.arms)}${Number(spec.visor)}`
+    const silhouette = `${spec.hair}:${Number(spec.pack)}${Number(spec.arms)}${Number(spec.visor)}:${spec.sex}:${spec.shoulder}:${spec.bust}:${spec.waist}:${spec.hip}:${spec.head}`
     if (this.character && this.silhouette !== silhouette) {
       this.silhouette = silhouette
       this.bounds.copy(this.measureBounds())
@@ -276,15 +278,23 @@ export class AnimeRenderer {
   }
 
   /** Capture the same character, front-facing, with open eyes and fixed framing. */
+  capturePortrait(spec: AnimeSpec): string {
+    const previous = this.current
+    try { this.apply(spec); return this.portrait() }
+    finally { if (previous) this.apply(previous) }
+  }
+
   portrait(): string {
     const previous = {
       angle: this.angle,
       mode: this.portraitMode,
       width: this.width,
       height: this.canvasHeight,
+      covered: this.covered,
     }
     this.angle = 0
     this.portraitMode = true
+    this.covered = 0
     this.character?.tick(0, false)
     this.resize(256, 256)
     const output = document.createElement('canvas')
@@ -293,6 +303,7 @@ export class AnimeRenderer {
     const data = output.toDataURL('image/png')
     this.angle = previous.angle
     this.portraitMode = previous.mode
+    this.covered = previous.covered
     this.resize(previous.width, previous.height)
     return data
   }

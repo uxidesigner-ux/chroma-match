@@ -70,7 +70,7 @@ export const PAPER: Skin = {
     'panel-shadow': '4px 4px 0 #241e16',
     line: '#241e16',
     text: '#241e16',
-    muted: '#7a6a55',
+    muted: '#6f5e48',
     accent: '#e8453c',
     'accent-2': '#f2a81c',
     'on-accent': '#241e16',

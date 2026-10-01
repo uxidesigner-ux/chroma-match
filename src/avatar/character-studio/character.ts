@@ -331,18 +331,25 @@ export class StudioCharacter {
   tick(delta: number, motion: boolean): void {
     if (motion) this.time += delta
     const sway = motion ? Math.sin(this.time * 1.5) * 0.014 : 0
+    const weight = motion ? Math.sin(this.time * .55) * .022 : 0
+    const shoulder = motion ? Math.sin(this.time * 1.5 - .4) * .012 : 0
     if (motion && this.gesture) this.gestureTime += delta
     if (this.gestureTime > 2.8) this.gesture = null
     const envelope = motion && this.gesture
       ? Math.min(1, this.gestureTime / .3, (2.8 - this.gestureTime) / .5) : 0
     const humanoid = this.vrm.humanoid
     // Relax the T-pose using normalized humanoid bones, shared by future packs.
-    humanoid.getNormalizedBoneNode('leftUpperArm')?.rotation.set(0, 0, -1.12)
-    humanoid.getNormalizedBoneNode('rightUpperArm')?.rotation.set(0, 0, 1.12)
-    humanoid.getNormalizedBoneNode('leftLowerArm')?.rotation.set(0, 0, -0.12)
-    humanoid.getNormalizedBoneNode('rightLowerArm')?.rotation.set(0, 0, 0.12)
+    humanoid.getNormalizedBoneNode('leftUpperArm')?.rotation.set(.04 + shoulder, 0, -1.12 + weight * .4)
+    humanoid.getNormalizedBoneNode('rightUpperArm')?.rotation.set(.04 - shoulder, 0, 1.12 + weight * .4)
+    humanoid.getNormalizedBoneNode('leftLowerArm')?.rotation.set(-.07, 0, -0.12)
+    humanoid.getNormalizedBoneNode('rightLowerArm')?.rotation.set(-.07, 0, 0.12)
+    // Counter-rotation shifts weight without translating the feet or changing
+    // customized body offsets. Every frame starts from these absolute values.
+    humanoid.getNormalizedBoneNode('hips')?.rotation.set(0, 0, weight)
+    humanoid.getNormalizedBoneNode('leftUpperLeg')?.rotation.set(0, 0, -weight)
+    humanoid.getNormalizedBoneNode('rightUpperLeg')?.rotation.set(0, 0, -weight)
     humanoid.getNormalizedBoneNode('chest')?.rotation.set(sway, 0, 0)
-    humanoid.getNormalizedBoneNode('spine')?.rotation.set(0, motion ? Math.sin(this.time * .65) * .025 : 0, sway * .6)
+    humanoid.getNormalizedBoneNode('spine')?.rotation.set(0, motion ? Math.sin(this.time * .65) * .025 : 0, sway * .6 - weight * .5)
     humanoid.getNormalizedBoneNode('head')?.rotation.set(sway * .5, motion ? Math.sin(this.time * .45) * .07 : 0, sway)
     if (this.gesture === 'wave') {
       humanoid.getNormalizedBoneNode('rightUpperArm')?.rotation.set(0, 0, 1.12 - envelope * 1.8)

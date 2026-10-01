@@ -72,13 +72,19 @@ test('buttons centre the icons they hold', async ({ page }) => {
       nodes
         .map(node => {
           const mark = node.querySelector('.hud-ico')
-          if (!mark) return null
+          if (!mark || !mark.getClientRects().length) return null
           const box = node.getBoundingClientRect()
           const ink = mark.getBoundingClientRect()
+          const label = node.querySelector('.quick-label, .studio-button-label')
+          const caption = label?.getBoundingClientRect()
+          const cluster = caption && caption.width > 1 ? {
+            left: Math.min(ink.left, caption.left), right: Math.max(ink.right, caption.right),
+            top: Math.min(ink.top, caption.top), bottom: Math.max(ink.bottom, caption.bottom),
+          } : ink
           return {
             id: node.id || node.getAttribute('aria-label') || '?',
-            dx: ink.left + ink.width / 2 - (box.left + box.width / 2),
-            dy: ink.top + ink.height / 2 - (box.top + box.height / 2),
+            dx: (cluster.left + cluster.right) / 2 - (box.left + box.width / 2),
+            dy: (cluster.top + cluster.bottom) / 2 - (box.top + box.height / 2),
           }
         })
         .filter(Boolean),

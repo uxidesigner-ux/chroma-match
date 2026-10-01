@@ -75,6 +75,18 @@ export class SettingsSheet {
       this.wiring.applyHaptics(next)
       this.paint()
     })
+    for (const group of [this.langs, this.skins]) {
+      group.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return
+        event.preventDefault()
+        const chips = Array.from(group.querySelectorAll<HTMLButtonElement>('[role="radio"]'))
+        const index = chips.indexOf(document.activeElement as HTMLButtonElement)
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? chips.length - 1
+          : (index + (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1) + chips.length) % chips.length
+        chips[next]?.click()
+        chips[next]?.focus()
+      })
+    }
 
     el('settings-done').addEventListener('click', () => this.sheet.hide())
     el('open-settings').addEventListener('click', () => this.show())
@@ -102,6 +114,7 @@ export class SettingsSheet {
       const on = chip.dataset.lang === lang
       chip.classList.toggle('is-on', on)
       chip.setAttribute('aria-checked', String(on))
+      chip.tabIndex = on ? 0 : -1
     }
 
     const skin = activeSkin().id
@@ -109,6 +122,7 @@ export class SettingsSheet {
       const on = chip.dataset.skinId === skin
       chip.classList.toggle('is-on', on)
       chip.setAttribute('aria-checked', String(on))
+      chip.tabIndex = on ? 0 : -1
     }
 
     const sound = soundOn()

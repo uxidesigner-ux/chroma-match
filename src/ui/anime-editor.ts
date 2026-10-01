@@ -16,7 +16,7 @@ const SHEET_STOPS = [0.055, 0.38, 0.55, 0.72] as const
  * every control is behind a bar you have to know to pull would hide the whole
  * editor behind a discovery.
  */
-const SHEET_START = 1
+const SHEET_START = 2
 /*
  * How fast a drag has to be let go of, in pixels a second, to count as thrown
  * rather than placed. Below it the sheet settles where it was put.
@@ -29,7 +29,9 @@ const FLICK = 420
 const PULL = 0.5
 import type { AnimeSpec, FigureAxis, FigureStep, HairStyle } from '../avatar/anime-spec.ts'
 import { myAvatar, setMyAvatar } from '../avatar/store.ts'
-import { cachePortrait } from '../avatar/anime-portrait.ts'
+import { cachePortrait, hasPortrait, warmReactionPortraits } from '../avatar/anime-portrait.ts'
+import { paintAvatar } from '../avatar/store.ts'
+import { experienceCopy } from './experience-copy.ts'
 import { account } from '../leaderboard/session.ts'
 import type { AnimeRenderer } from '../avatar/anime-renderer.ts'
 import { animeCopy } from './anime-copy.ts'
@@ -76,6 +78,11 @@ export class AnimeEditor {
   private transparent = false
   private files: Sheet | null = null
   private filesBody: HTMLElement = document.createElement('div')
+  private onResize = (): void => {
+    if (this.closed) return
+    this.measureShut()
+    this.setSheet(this.sheetSize())
+  }
 
   constructor(
     private root: HTMLElement,
@@ -97,6 +104,7 @@ export class AnimeEditor {
     this.files?.hide()
     if (this.discard.open) this.discard.close()
     this.closed = true
+    window.removeEventListener('resize', this.onResize)
     this.busy = false
     this.generation++
     this.renderer?.dispose()
@@ -386,12 +394,13 @@ export class AnimeEditor {
     this.status = document.createElement('p')
     this.status.className = 'studio-status'
     this.status.setAttribute('role', 'status')
+    this.status.setAttribute('aria-atomic', 'true')
     this.status.textContent = copy.ready
     this.save = this.button(copy.apply, () => void this.apply(), 'btn btn-primary studio-apply')
     this.save.disabled = true
     // The one committing action belongs with the title, not at the foot of a
     // column the player has to scroll back through to find it.
-    document.getElementById('creator-actions')?.replaceChildren(this.save)
+    document.getElementById('creator-actions')?.replaceChildren(this.save, this.status)
     this.discard = document.createElement('dialog')
     this.discard.className = 'studio-discard'
     this.discard.addEventListener('close', () => {
@@ -414,7 +423,7 @@ export class AnimeEditor {
     const edit = document.createElement('div')
     edit.className = 'studio-edit'
     this.sheetBox = edit
-    history.append(this.buildFilesButton(), this.status)
+    history.append(this.buildFilesButton())
     /*
      * One scroller, holding everything under the tab bar: the options, the
      * tools, and the credit that used to be pinned under them all.
@@ -428,10 +437,7 @@ export class AnimeEditor {
     })
     // A turned phone is a different screen: the shut sheet is the same number
     // of pixels of a different height, and the list a different length.
-    window.addEventListener('resize', () => {
-      this.measureShut()
-      this.setSheet(this.sheetSize())
-    })
+    window.addEventListener('resize', this.onResize)
     edit.append(this.sheetHandle(), controls, this.discard)
     this.sheetGestures(edit, controls)
     this.root.append(viewer, edit)
@@ -473,6 +479,7 @@ export class AnimeEditor {
       this.root.dataset.state = 'ready'
       this.ready = true
       this.save.disabled = false
+      this.paintOptions()
       for (const button of this.everyControl<HTMLButtonElement>('[data-requires-model]')) {
         button.disabled = false
       }
@@ -512,6 +519,7 @@ export class AnimeEditor {
     this.draft = { ...spec }
     this.renderer?.apply(this.draft)
     this.status.textContent = animeCopy().ready
+    this.status.dataset.tone = 'info'
     if (this.discard.open) this.discard.close()
   }
 
@@ -528,6 +536,7 @@ export class AnimeEditor {
     this.draft = { ...spec }
     this.renderer?.apply(this.draft)
     this.status.textContent = animeCopy().ready
+    this.status.dataset.tone = 'info'
     if (this.discard.open) this.discard.close()
     this.refreshHistory()
   }
@@ -542,6 +551,7 @@ export class AnimeEditor {
     this.draft = redo ? this.history.redo(this.draft) : this.history.undo(this.draft)
     this.renderer?.apply(this.draft)
     this.status.textContent = animeCopy().ready
+    this.status.dataset.tone = 'info'
     if (this.discard.open) this.discard.close()
     this.paintOptions()
   }
@@ -574,19 +584,12 @@ export class AnimeEditor {
           },
           'studio-look',
         )
-        const palette = document.createElement('span')
-        palette.className = 'studio-look-palette'
-        palette.setAttribute('aria-hidden', 'true')
-        for (const hex of [look.hairColour, look.eyeColour, look.outfitColour]) {
-          const swatch = document.createElement('i')
-          swatch.style.background = `#${hex}`
-          palette.append(swatch)
-        }
-        button.prepend(palette)
+        button.prepend(this.thumbnail(look))
         button.setAttribute('aria-pressed', String(encodeAnime(look) === encodeAnime(this.draft)))
         this.panel.append(button)
       })
     } else if (this.category === 'library') {
+      this.status.dataset.tone = 'info'
       this.paintLibrary()
     } else if (this.category === 'hair' || this.category === 'expression') {
       const group = document.createElement('div')
@@ -605,6 +608,8 @@ export class AnimeEditor {
           this.update({ ...this.draft, [slot]: value })
           this.paintOptions()
         }, 'studio-button studio-icon studio-trait')
+        button.querySelector('.hud-ico')?.remove()
+        button.prepend(this.thumbnail({ ...this.draft, [slot]: value }))
         button.setAttribute('aria-pressed', String(this.draft[slot] === value))
         group.append(button)
       }
@@ -849,7 +854,7 @@ export class AnimeEditor {
    * The sheet floats over the preview rather than dividing the screen with it,
    * so its height is the one number that says how much of the character is
    * showing. Four stops: shut, enough to see the tabs and a row, half, and
-   * tall enough for the longest tab. A drag moves it and lets go at the nearest
+   * a tall scroll window for dense tabs. A drag moves it and lets go at the nearest
    * stop; a tap steps to the next one, which is what a thumb reaching the grip
    * without aiming will do; arrow keys move it one stop, because a grip nobody
    * can reach by keyboard is a grip half the people cannot use.
@@ -1142,7 +1147,10 @@ export class AnimeEditor {
     this.files ??= new Sheet('sheet-studio-files')
     this.filesBody = document.getElementById('studio-files-body') as HTMLElement
     this.filesBody.replaceChildren(this.buildDownloads())
-    return this.icon(tools.openFiles, 'files', () => this.files?.show())
+    return this.icon(tools.openFiles, 'files', () => {
+      this.status.dataset.tone = 'info'
+      this.files?.show()
+    })
   }
 
   private buildDownloads(): HTMLElement {
@@ -1254,6 +1262,9 @@ export class AnimeEditor {
     const copy = animeCopy()
     this.busy = true
     this.save.disabled = true
+    this.save.textContent = experienceCopy().saving
+    this.status.textContent = experienceCopy().saving
+    this.status.dataset.tone = 'info'
     this.root
       .querySelectorAll<HTMLButtonElement | HTMLInputElement>(
         '.studio-button, .studio-look, .studio-tab, input',
@@ -1266,17 +1277,21 @@ export class AnimeEditor {
       const png = this.renderer.portrait()
       if (!setMyAvatar({ ...this.draft })) {
         this.status.textContent = copy.storageFailed
+        this.status.dataset.tone = 'error'
         return
       }
       cachePortrait(this.draft, png)
+      warmReactionPortraits(this.draft, this.renderer)
       this.initial = encodeAnime(this.draft)
       if (this.discard.open) this.discard.close()
       const online = account()?.kind === 'google'
       this.status.textContent = online ? copy.syncing : copy.saved
       await this.changed()
       if (mine === this.generation) this.status.textContent = online ? copy.synced : copy.saved
+      this.status.dataset.tone = 'success'
     } catch {
       if (mine === this.generation) this.status.textContent = copy.syncFailed
+      this.status.dataset.tone = 'error'
     } finally {
       if (mine === this.generation) {
         this.busy = false
@@ -1288,9 +1303,21 @@ export class AnimeEditor {
             node.disabled = false
           })
         this.save.disabled = !this.ready
+        this.save.textContent = animeCopy().apply
         this.refreshHistory()
         if (!this.ready) this.failed()
       }
     }
+  }
+
+  private thumbnail(spec: AnimeSpec): HTMLCanvasElement {
+    const canvas = document.createElement('canvas')
+    canvas.className = 'studio-thumbnail'
+    canvas.setAttribute('aria-hidden', 'true')
+    if (this.ready && this.renderer) {
+      if (!hasPortrait(spec)) cachePortrait(spec, this.renderer.capturePortrait(spec), false)
+      paintAvatar(canvas, spec, 64, { round: true })
+    }
+    return canvas
   }
 }

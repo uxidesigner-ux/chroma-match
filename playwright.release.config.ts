@@ -4,6 +4,7 @@ import { defineConfig } from '@playwright/test'
 const deployed = process.env.STUDIO_BASE_URL
 export default defineConfig({
   testDir: './tests/release',
+  outputDir: './test-results/release',
   workers: 1,
   timeout: 120000,
   expect: { timeout: 30000 },

@@ -26,7 +26,8 @@ third-party character or clothing files.
 | Sprite atlas | Four-view still sheet only; animated multi-clip sprite atlas is not implemented |
 | Arbitrary local VRM / texture upload | Not implemented: needs a separate model storage/schema, metadata handling, performance limits and cross-device profile design; JSON import is explicitly NOT a model upload |
 | Mesh merging / texture atlas optimizer | Not ported; exports retain original buffers and append recoloured textures, so they are not smaller or single-draw-call models |
-| Manifest trait catalogues, male/female models, new garments | Existing fixed, versioned Seed adapter only; requires licensed compatible assets and per-model bindings |
+| Male/female selection and figure variation | Implemented as Seed mesh variants plus five independent body axes; not separate model assets |
+| Manifest trait catalogues, additional models, new garments | Fixed, versioned Seed adapter only; new packs require licensed compatible assets and per-model bindings |
 | Batch randomized 3D export / LoRA data generation | Authoring pipeline, not included in the player profile flow |
 | AI personality, lip sync, wallet, NFT minting | Not game-profile requirements; no paid service, microphone permission, wallet or blockchain dependencies added |
 

@@ -7,6 +7,8 @@ import { styleFor } from '../render/theme.ts'
 import { gemPath } from '../render/shapes.ts'
 import { reducedMotion } from '../render/motion.ts'
 import { playCopy } from './play-copy.ts'
+import { experienceCopy } from './experience-copy.ts'
+import { hasPortrait } from '../avatar/anime-portrait.ts'
 
 const el = (id: string) => document.getElementById(id)!
 type Reaction = 'pop' | 'power' | 'fusion' | 'chain' | 'clear'
@@ -27,6 +29,8 @@ export class Hud {
     })
   }
   refreshAvatar(): void {
+    clearTimeout(this.timer)
+    this.sequence++
     paintAvatar(el('hud-avatar') as HTMLCanvasElement, myAvatar(), 112, { round: true })
   }
   invalidate(): void { this.last = '' }
@@ -43,6 +47,13 @@ export class Hud {
     this.reaction.dataset.reaction = kind
     this.reaction.dataset.sequence = String(++this.sequence)
     el('hud-reaction').textContent = kind === 'chain' ? `${playCopy().chain} ×${chain}` : playCopy()[kind]
+    const expression = kind === 'fusion' || kind === 'power' ? 'surprised'
+      : kind === 'pop' ? 'relaxed' : 'happy'
+    const look = { ...myAvatar(), expression } as const
+    if (hasPortrait(look)) {
+      paintAvatar(el('hud-avatar') as HTMLCanvasElement, look, 112, { round: true })
+      this.reaction.dataset.expression = expression
+    }
     if (!reducedMotion()) {
       const face = this.reaction.querySelector('.hud-face')!
       const tilt = this.sequence % 2 ? -1 : 1
@@ -62,11 +73,14 @@ export class Hud {
     this.timer = setTimeout(() => {
       this.reaction.dataset.reaction = 'ready'
       el('hud-reaction').textContent = playCopy().ready
+      this.reaction.dataset.expression = myAvatar().expression
+      this.refreshAvatar()
     }, 1400)
   }
 
   update(game: Game, _best?: number): void {
-    const what = goalLabel(game.goal, gemName, { score: t('goalScore'), power: t('goalPower'), gems: colour => t('goalGems', { colour }) })
+    const copy = experienceCopy()
+    const what = goalLabel(game.goal, gemName, { score: copy.scoreGoal, power: copy.powerGoal, gems: colour => t('goalGems', { colour }) })
     const colour = game.goal.kind === 'colour' ? game.goal.colour : 3
     const style = styleFor(colour)
     const signature = `${game.moves}:${game.level}:${game.progress}:${game.need}:${game.seed}:${game.rules}:${what}:${style.base}`
@@ -76,8 +90,10 @@ export class Hud {
     el('moves').closest('.stat')!.classList.toggle('urgent', game.moves <= 5)
     el('level').textContent = t('levelN', { level: game.level })
     el('goal-text').textContent = what
+    const unit = game.goal.kind === 'score' ? copy.points : game.goal.kind === 'power' ? copy.powers : copy.gems
+    el('goal-unit').textContent = unit
     el('goal-remaining').textContent = n(Math.max(0, game.need - game.progress))
-    el('goal-remaining').setAttribute('aria-label', `${what}: ${n(Math.max(0, game.need - game.progress))}`)
+    el('goal-remaining').setAttribute('aria-label', `${what}: ${n(Math.max(0, game.need - game.progress))} ${unit}`)
     el('progress').textContent = n(Math.min(game.progress, game.need))
     el('target').textContent = n(game.need)
     el('bar').style.width = `${Math.min(100, game.progress / game.need * 100)}%`

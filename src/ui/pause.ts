@@ -1,4 +1,5 @@
 import { n, t } from '../i18n/index.ts'
+import { ModalLayer } from './modal.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -31,6 +32,7 @@ export class PauseSheet {
   private keep = el<HTMLButtonElement>('paused-keep')
   private end = el<HTMLButtonElement>('paused-end')
   private actions: PauseActions | null = null
+  private modal = new ModalLayer(this.root, this.root.querySelector<HTMLElement>('.card')!, () => this.run(a => a.resume()))
 
   constructor() {
     this.resume.addEventListener('click', () => this.run((a) => a.resume()))
@@ -52,11 +54,11 @@ export class PauseSheet {
     this.actions = actions
     this.title.textContent = t('levelN', { level })
     this.body.textContent = t('pointsSoFar', { score: n(score) })
-    this.root.hidden = false
-    this.resume.focus()
+    this.modal.open(this.resume)
   }
 
   hide(): void {
     this.root.hidden = true
+    this.modal.close()
   }
 }

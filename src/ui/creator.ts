@@ -7,6 +7,7 @@ export class Creator {
   private opened = false
   private generation = 0
   private listeners: Array<() => void | Promise<void>> = []
+  private opener: HTMLElement | null = null
 
   constructor(private onBack: () => void) {
     document.getElementById('creator-back')!.addEventListener('click', () => {
@@ -20,9 +21,11 @@ export class Creator {
   }
 
   open(): void {
+    this.opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     this.opened = true
     document.querySelector('.app')?.classList.add('has-studio')
     void this.load()
+    queueMicrotask(() => document.getElementById('creator-back')?.focus())
   }
 
   close(): void {
@@ -35,7 +38,9 @@ export class Creator {
   private leave(): void {
     this.close()
     this.onBack()
-    document.getElementById('profile-face')?.focus()
+    const target = this.opener?.isConnected && !this.opener.closest('[hidden]')
+      ? this.opener : document.getElementById('profile-face')
+    target?.focus()
   }
 
   private async load(): Promise<void> {

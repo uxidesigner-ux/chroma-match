@@ -1,6 +1,6 @@
 import type { AnimeRenderer } from '../avatar/anime-renderer.ts'
 import { myAvatar } from '../avatar/store.ts'
-import { preparePortrait } from '../avatar/anime-portrait.ts'
+import { preparePortrait, warmReactionPortraits } from '../avatar/anime-portrait.ts'
 import { onLanguageChange } from '../i18n/index.ts'
 import { animeCopy } from './anime-copy.ts'
 import { playCopy } from './play-copy.ts'
@@ -79,7 +79,7 @@ export class Lobby {
     const fresh = this.canvas.cloneNode(false) as HTMLCanvasElement
     this.canvas.replaceWith(fresh); this.canvas = fresh
     this.root.dataset.state = 'loading'
-    this.status.hidden = this.booting
+    this.status.hidden = false
     this.paint()
     this.report(8)
     let candidate: AnimeRenderer | null = null
@@ -96,6 +96,7 @@ export class Lobby {
       this.renderer = candidate
       await candidate.load(myAvatar(), (ratio) => this.report(28 + ratio * 68))
       if (!this.visible || mine !== this.generation) { candidate.dispose(); return }
+      warmReactionPortraits(myAvatar(), candidate)
       candidate.attach(this.root, () => this.failed())
       this.report(100)
       this.root.dataset.state = 'ready'
