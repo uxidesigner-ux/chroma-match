@@ -5,6 +5,9 @@ import './play-responsive.css'
 import { attachPlayLayout } from './ui/play-layout.ts'
 import { Lobby } from './ui/lobby.ts'
 import { Splash } from './ui/splash.ts'
+import { RulesHelp } from './ui/rules-help.ts'
+import { experienceCopy } from './ui/experience-copy.ts'
+import { BoardViewport } from './ui/board-viewport.ts'
 import { playCopy } from './ui/play-copy.ts'
 import { Sfx } from './audio.ts'
 import { Haptics } from './haptics.ts'
@@ -125,7 +128,7 @@ const shop = new Shop()
 const loadout = new Loadout()
 const pause = new PauseSheet()
 const screens = new Screens()
-const splash = new Splash()
+const splash = new Splash(() => welcomeHome())
 const lobby = new Lobby({
   onProgress: (pct) => splash.setProgress(pct),
   onBootSettled: (ok) => {
@@ -711,6 +714,7 @@ function applySound(on: boolean): void {
     if (label) label.textContent = on ? t('settingsSound') : t('settingsOff')
   }
 }
+applySound(soundOn())
 for (const button of soundButtons) {
   button.addEventListener('click', () => {
     sfx.unlock()
@@ -729,17 +733,8 @@ const settings = new SettingsSheet({
   },
 })
 
-const help = document.getElementById('help')
-const helpButtons = document.querySelectorAll<HTMLButtonElement>('[data-action="how-to"]')
-for (const button of helpButtons) {
-  button.addEventListener('click', () => {
-    if (!help) return
-    const opening = help.hidden
-    help.hidden = !opening
-    for (const other of helpButtons) other.setAttribute('aria-expanded', String(opening))
-    renderer.resize()
-  })
-}
+const rulesHelp = new RulesHelp()
+const boardViewport = new BoardViewport()
 
 // ---- loop -----------------------------------------------------------------
 
@@ -762,6 +757,8 @@ function repaintText(): void {
   paintContinue()
   profile.paintCard()
   paintPlayText()
+  rulesHelp.paint()
+  boardViewport.paint()
 
   today.refresh()
   shop.refresh()
@@ -770,14 +767,15 @@ function repaintText(): void {
 }
 applyLanguage()
 function paintPlayText(): void {
+  document.getElementById('board-scroll-hint')!.textContent = experienceCopy().scrollBoard
   document.querySelector('[data-i18n="helpLT"]')!.textContent = playCopy().square
   document.getElementById('pause')!.setAttribute('aria-label', playCopy().exit)
   document.getElementById('pause')!.title = playCopy().exit
 }
 paintPlayText()
 document.getElementById('lobby-edit')!.addEventListener('click', () => {
-  screens.show('creator')
   creator.open()
+  screens.show('creator')
 })
 onLanguageChange(repaintText)
 

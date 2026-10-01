@@ -1,5 +1,7 @@
 import { onLanguageChange, t } from '../i18n/index.ts'
 import { playCopy } from './play-copy.ts'
+import { experienceCopy } from './experience-copy.ts'
+import { ModalLayer } from './modal.ts'
 
 /**
  * The boot screen: the game's name, and a bar that only fills when the lobby
@@ -15,12 +17,16 @@ export class Splash {
   private app = document.querySelector('main.app') as HTMLElement
   private value = 0
   private done = false
+  private skip = document.getElementById('splash-skip')!
+  private modal = new ModalLayer(this.root, this.root.querySelector<HTMLElement>('.splash-inner')!, () => this.hide())
 
-  constructor() {
+  constructor(private entered: () => void) {
     document.documentElement.classList.add('splash-open')
     onLanguageChange(() => this.paint())
     this.setProgress(6)
     this.paint()
+    this.skip.addEventListener('click', () => this.hide())
+    this.modal.open(this.skip)
   }
 
   get open(): boolean {
@@ -38,6 +44,8 @@ export class Splash {
 
   paint(): void {
     if (!this.done) this.status.textContent = playCopy().loading
+    this.skip.textContent = experienceCopy().skip
+    document.getElementById('splash-skip-note')!.textContent = experienceCopy().skipNote
   }
 
   async finish(ok: boolean): Promise<void> {
@@ -50,9 +58,12 @@ export class Splash {
   }
 
   hide(): void {
+    if (this.done) return
     this.done = true
     this.root.hidden = true
+    this.modal.close()
     this.app.removeAttribute('inert')
     document.documentElement.classList.remove('splash-open')
+    this.entered()
   }
 }

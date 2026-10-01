@@ -18,7 +18,7 @@ export function playRegion(width: number, height: number, segments: readonly Pla
 
 export function playLayout(rect: PlayRect): 'stack' | 'wide' {
   // The HUD needs ~300px for three readable equal regions, besides the board.
-  return rect.width >= 700 && rect.width / rect.height >= 0.95 ? 'wide' : 'stack'
+  return rect.width >= 760 && rect.height < 600 && rect.width / rect.height >= 1.45 ? 'wide' : 'stack'
 }
 
 export function attachPlayLayout(): void {
@@ -29,6 +29,7 @@ export function attachPlayLayout(): void {
     }
     const region = playRegion(innerWidth, innerHeight, segmented.viewport?.segments)
     root.dataset.playLayout = playLayout(region)
+    root.dataset.playShort = String(region.height < (playLayout(region) === 'wide' ? 550 : 640))
     for (const key of ['left', 'top', 'width', 'height'] as const) {
       root.style.setProperty(`--play-${key}`, `${region[key]}px`)
     }

@@ -10,18 +10,18 @@ User scenario hypotheses below are inferred from the request, not research.
 | Scenario | Behavior |
 | --- | --- |
 | Cover display / portrait phone | Equal goal/profile/moves HUD above board |
-| Continuous unfolded square display | Expand square gem size; use side-by-side layout when room permits |
-| Wide unfolded display / tablet / desktop | At least 700px and aspect ≥0.95: HUD rail left, board right, circular controls below; exit at right |
+| Continuous unfolded square / tablet / desktop | Centred board, equal goal/profile/moves HUD above; no empty rail |
+| Short, wide display | Width ≥760px, height <600px and aspect ≥1.45: HUD rail left, board right, tools below |
 | Physical hinge separating panels | Largest valid viewport segment; tie goes top/left; never straddle gap |
 | Fold, rotation, split-window, resize during play | Preserve run; recompute layout; cancel incomplete pointer gesture |
-| Short landscape window | Scroll instead of forced rotation or undersized gems |
+| Short portrait / landscape window | Scroll only the board; HUD/tools stay visible. Explicit row-view buttons and keyboard auto-scroll |
 | Unsupported segment API | Normal responsive full viewport; physical hinge avoidance cannot be guaranteed |
 | Keyboard / reduced motion | Existing keyboard controls; no layout animation; preserve focus and selected gem |
 
-Minimum stage height 450px reserves nine 44px cells, board plate and combo
-space. Width can still constrain targets below 44px at viewports narrower than
-320 CSS px; these are outside the tested width range. Short viewports require
-scrolling and may not show HUD, full board and controls simultaneously.
+Minimum board frame 280×420px reserves nine 44px cells and the plate. The stage
+may be shorter and scrolls independently, with controls enabled only when content
+overflows. Widths below 320 CSS px remain outside the verified range. A short
+viewport cannot show all nine rows at once; target size takes priority.
 
 The game shell alone expands beyond the former 620px cap. Editor and lobby
 retain their existing layouts. The wide-mode HUD remains three equal columns

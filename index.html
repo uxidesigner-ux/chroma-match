@@ -79,6 +79,8 @@
             <strong class="splash-pct" id="splash-pct">0%</strong>
           </div>
           <p class="splash-status" id="splash-status">Preparing your 3D lobby…</p>
+          <button class="btn btn-ghost" id="splash-skip" type="button">Enter lobby now</button>
+          <p class="splash-tag" id="splash-skip-note"></p>
         </div>
       </div>
     </div>
@@ -124,16 +126,16 @@
           <nav class="quick" aria-label="Ranks, missions and shop" data-i18n-attr="aria-label:lobbyNav">
             <button class="quick-btn" id="open-ranks" type="button" data-i18n-attr="aria-label:quickRanks title:quickRanks">
               <span class="hud-ico hud-ico-ranks" aria-hidden="true"></span>
-              <span class="quick-label sr-only" data-i18n="quickRanks">Ranks</span>
+              <span class="quick-label" data-i18n="quickRanks">Ranks</span>
             </button>
             <button class="quick-btn" id="today-row" type="button" data-i18n-attr="aria-label:quickToday title:quickToday">
               <span class="hud-ico hud-ico-today" aria-hidden="true"></span>
-              <span class="quick-label sr-only" data-i18n="quickToday">Today</span>
+              <span class="quick-label" data-i18n="quickToday">Today</span>
               <span class="quick-badge" id="today-summary-badge" hidden>0</span>
             </button>
             <button class="quick-btn" id="open-shop" type="button" data-i18n-attr="aria-label:quickShop title:quickShop">
               <span class="hud-ico hud-ico-shop" aria-hidden="true"></span>
-              <span class="quick-label sr-only" data-i18n="quickShop">Shop</span>
+              <span class="quick-label" data-i18n="quickShop">Shop</span>
             </button>
           </nav>
           <div class="lobby-utilities">
@@ -268,8 +270,9 @@
       <section class="screen game" id="screen-game" hidden>
         <section class="game-hud">
           <div class="hud-goal">
-            <span class="hud-label" id="goal-text">Score</span>
+            <span class="hud-label" id="goal-text">Points to go</span>
             <div class="goal-token"><canvas id="goal-gem" width="128" height="128" aria-hidden="true"></canvas><strong id="goal-remaining">1,800</strong></div>
+            <span class="goal-unit" id="goal-unit"></span>
             <span class="sr-only"><span id="progress">0</span> / <span id="target">1,800</span></span>
           </div>
           <div class="hud-character" id="hud-character">
@@ -329,6 +332,11 @@
           playing, not part of the chrome, and a thumb reaching the board can
           reach it without crossing anything else.
         -->
+        <div class="board-scroll-hint">
+          <button class="circle-button" id="board-scroll-up" type="button" aria-controls="board">↑</button>
+          <p id="board-scroll-hint"></p>
+          <button class="circle-button" id="board-scroll-down" type="button" aria-controls="board">↓</button>
+        </div>
         <div class="items" id="items" role="group" aria-label="Items" data-i18n-attr="aria-label:itemsAria">
           <button class="item" data-item="hammer" type="button" aria-pressed="false" disabled>
             <span class="item-art item-hammer" aria-hidden="true"></span>
@@ -353,8 +361,14 @@
 
       </section>
 
-      <section class="help" id="help" hidden>
-        <ul>
+    </main>
+
+      <section class="overlay sheet" id="help" hidden>
+        <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="help-title">
+        <h2 id="help-title" tabindex="-1" data-i18n="howToPlay">How to play</h2>
+        <p class="card-body" id="help-intro"></p>
+        <div class="rule-patterns" id="rule-patterns"></div>
+        <details class="rule-details"><summary id="help-details-title"></summary><ul>
           <li data-i18n="helpSwap">Swap two neighbouring gems to line up three or more of a colour.</li>
           <li data-i18n="helpShapes">Every colour has its own shape, so the board reads without relying on hue.</li>
           <li data-i18n="helpFour">Four in a row leaves a striped gem that clears its whole line.</li>
@@ -370,9 +384,10 @@
             Finish a level to earn an item, and land a ×5 chain for a bomb. Items cost no move —
             and they are earned fresh every run, so the board is the same climb for everyone.
           </li>
-        </ul>
+        </ul><p data-i18n="boardKeys"></p></details>
+        <button class="btn btn-ghost" id="help-close" data-i18n="settingsDone" type="button">Done</button>
+        </div>
       </section>
-    </main>
 
     <!--
       Who the player is: the face they play as, the name that posts, and the
@@ -591,7 +606,7 @@
         <button class="btn" id="paused-end" type="button" data-i18n="endRunNow">End run now</button>
 
         <div class="paused-tools">
-          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false">
+          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false" data-i18n="howToPlay">
             How to play
           </button>
           <button class="btn btn-ghost" data-action="sound" type="button" aria-pressed="true">

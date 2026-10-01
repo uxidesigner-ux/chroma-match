@@ -18,9 +18,13 @@
   --accent: #8b8bff;
   --accent-2: #38bdf8;
   --on-accent: #080b14;
+  --focus-ring: var(--accent-2);
   --radius: 16px;
   color-scheme: dark;
 }
+[data-skin='paper'] { --focus-ring: var(--text); }
+:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+[data-skin='paper'] :focus-visible { outline-color: var(--focus-ring) !important; }
 
 * {
   box-sizing: border-box;
@@ -53,9 +57,9 @@ body {
    * 10px — small enough that a label is guessed at rather than read. These are
    * the steps the design uses; a new size should be one of these or a reason.
    */
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-md: 13px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 14px;
   --text-lg: 15px;
   --text-xl: 18px;
   --text-2xl: 22px;
@@ -3073,6 +3077,8 @@ html.splash-open body {
 
 .set-chip {
   flex: none;
+  min-width: 44px;
+  min-height: 44px;
   padding: 8px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);

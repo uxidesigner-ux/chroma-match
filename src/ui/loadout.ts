@@ -2,6 +2,8 @@ import { ITEMS } from '../game/items.ts'
 import type { Item } from '../game/items.ts'
 import { BOOSTER_LIMIT, stash, totalStashed } from '../meta.ts'
 import { t } from '../i18n/index.ts'
+import { ModalLayer } from './modal.ts'
+import { experienceCopy } from './experience-copy.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -27,6 +29,7 @@ export class Loadout {
   private cancel = el<HTMLButtonElement>('loadout-cancel')
   private picked: Item[] = []
   private onStart: (picked: Item[]) => void = () => {}
+  private modal = new ModalLayer(this.root, this.root.querySelector<HTMLElement>('.card')!, () => this.hide())
 
   constructor() {
     for (const item of ITEMS) {
@@ -68,12 +71,13 @@ export class Loadout {
     }
 
     const room = BOOSTER_LIMIT - this.picked.length
+    const copy = experienceCopy()
     this.body.textContent =
       this.picked.length === 0
-        ? `Pick up to ${BOOSTER_LIMIT}. They start in your tray.`
+        ? copy.loadout(BOOSTER_LIMIT)
         : room > 0
-          ? `${this.picked.length} picked — room for ${room} more.`
-          : `${this.picked.length} picked. That is the limit.`
+          ? copy.picked(this.picked.length, room)
+          : copy.full(this.picked.length)
     this.start.textContent = this.picked.length > 0 ? t('loadoutStart') : t('loadoutStartEmpty')
   }
 
@@ -85,12 +89,12 @@ export class Loadout {
     this.grid.hidden = nothing
     this.body.hidden = nothing
     this.paint()
-    this.root.hidden = false
-    this.start.focus()
+    this.modal.open(this.start)
   }
 
   hide(): void {
     this.root.hidden = true
+    this.modal.close()
   }
 
   get visible(): boolean {

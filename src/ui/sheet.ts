@@ -1,3 +1,5 @@
+import { ModalLayer } from './modal.ts'
+
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
   if (!node) throw new Error(`Missing element #${id}`)
@@ -22,22 +24,18 @@ function el<T extends HTMLElement>(id: string): T {
 export class Sheet {
   private root: HTMLElement
   private panel: HTMLElement
+  private modal: ModalLayer
+  private generation = 0
 
-  constructor(rootId: string) {
+  constructor(rootId: string, private onClose?: () => void) {
     this.root = el(rootId)
     const panel = this.root.querySelector<HTMLElement>('.sheet-panel')
     if (!panel) throw new Error(`Sheet #${rootId} has no .sheet-panel`)
     this.panel = panel
+    this.modal = new ModalLayer(this.root, panel, () => this.hide())
 
     this.root.addEventListener('click', (event) => {
       if (event.target === this.root) this.hide()
-    })
-    // On the root rather than the panel: Escape is pressed without anything
-    // inside the sheet ever having been focused, so the keydown's target is
-    // whatever the page focus already was — document.body, usually — and an
-    // event there does not bubble down into a listener on a descendant.
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && !this.root.hidden) this.hide()
     })
   }
 
@@ -46,20 +44,24 @@ export class Sheet {
     return this.root.hidden
   }
 
-  show(): void {
-    this.root.hidden = false
+  show(initial?: HTMLElement): void {
+    const mine = ++this.generation
+    this.modal.open(initial)
     // `hidden` and the transition's starting class have to land in different
     // frames, or the browser coalesces them and there is nothing to animate
     // from — the panel would simply appear already open.
-    requestAnimationFrame(() => this.root.classList.add('is-open'))
+    requestAnimationFrame(() => { if (mine === this.generation) this.root.classList.add('is-open') })
   }
 
   hide(): void {
     if (this.root.hidden) return
+    const mine = ++this.generation
+    this.modal.close()
+    this.onClose?.()
     this.root.classList.remove('is-open')
     let done = false
     const finish = () => {
-      if (done) return
+      if (done || mine !== this.generation) return
       done = true
       this.root.hidden = true
     }

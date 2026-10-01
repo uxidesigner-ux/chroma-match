@@ -1,5 +1,6 @@
 import { t } from '../i18n/index.ts'
 import { myAvatar, paintAvatar } from '../avatar/store.ts'
+import { ModalLayer } from './modal.ts'
 
 export interface OverlayContent {
   kicker: string
@@ -50,6 +51,7 @@ export class Overlay {
   private status = el('post-status')
   private victory = el('overlay-victory')
   private avatar = el<HTMLCanvasElement>('victory-avatar')
+  private modal = new ModalLayer(this.root, this.root.querySelector<HTMLElement>('.card')!)
 
   private onAction: (() => void) | null = null
   private onSecondary: (() => void) | null = null
@@ -152,12 +154,12 @@ export class Overlay {
       this.setStatus('', null)
     }
 
-    this.root.hidden = false
-    this.action.focus()
+    this.modal.open(this.action)
   }
 
   hide(): void {
     this.root.hidden = true
+    this.modal.close()
     this.victory.hidden = true
     this.root.dataset.celebration = ''
     this.onAction = null

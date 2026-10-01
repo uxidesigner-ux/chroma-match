@@ -330,15 +330,13 @@
   color: var(--text);
 }
 /*
- * The tabs scroll rather than divide.
- *
- * Seven of them split across a phone gave each about forty pixels, which is
- * narrower than the glyph inside it and far narrower than its name. They keep
- * a legible width and the strip slides instead, which also leaves room for the
- * next one without squeezing the rest.
+ * All categories are discoverable: two rows on phones, one on wide screens.
+ * Text carries the meaning without asking a hidden horizontal strip to teach
+ * the player which other features exist.
  */
 .studio-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-bottom: 1px solid var(--line);
   gap: 2px;
   /*
@@ -355,18 +353,14 @@
   background-image: linear-gradient(var(--panel), var(--panel));
   padding-inline: 8px;
   margin-inline: -8px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  scroll-snap-type: x proximity;
+  overflow: visible;
 }
 .studio-tabs::-webkit-scrollbar {
   display: none;
 }
 .studio-tabs > .studio-tab {
-  flex: 0 0 auto;
-  min-width: 64px;
-  scroll-snap-align: center;
+  min-width: 0;
+  min-height: 44px;
 }
 .studio-tab {
   padding: 8px 2px;
@@ -380,7 +374,18 @@
   border-bottom: 3px solid transparent;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   padding: 7px 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  flex-direction: row;
+  gap: 4px;
 }
+.studio-tab .hud-ico { display: none; }
+.studio-tab .studio-button-label { font-size: var(--text-sm); }
+.studio-tab span:last-child { overflow-wrap: anywhere; }
+.studio-thumbnail { width: 64px !important; height: 64px !important; flex: none; border-radius: 50%; background: var(--panel-strong); }
+.studio-trait:has(.studio-thumbnail) .hud-ico { display: none; }
 .studio-tab[aria-selected='true'] {
   border-bottom-color: var(--accent-2);
   font-weight: 700;
@@ -612,16 +617,6 @@
 .studio-look[aria-pressed='true'] {
   padding: 9px 3px;
 }
-.studio-look-palette {
-  display: flex;
-  width: 44px;
-  height: 28px;
-  overflow: hidden;
-  border-radius: var(--radius-sm);
-}
-.studio-look-palette i {
-  flex: 1;
-}
 .studio-colour {
   display: flex;
   align-items: center;
@@ -839,13 +834,18 @@
 
 /* Save sits in the screen header, opposite the back button. */
 .creator-head-actions {
-  display: flex;
-  justify-content: flex-end;
-  min-width: 44px;
+  display: contents;
 }
+.creator-head { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; }
+.creator-head .studio-status { grid-column: 1 / -1; padding-bottom: 8px; border-bottom: 1px solid var(--line); min-height: 28px; }
+.studio-status[data-tone='success']::before { content: '✓ '; }
+.studio-status[data-tone='error'] { font-weight: 650; }
 .creator-head-actions .studio-apply {
   width: auto;
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 18px;
   white-space: nowrap;
+}
+@media (min-width: 700px) {
+  .studio-tabs { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }

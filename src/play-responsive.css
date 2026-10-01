@@ -12,18 +12,23 @@
 }
 .game:not([hidden]) {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1040px;
   margin-inline: auto;
   padding: 4px;
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  overflow: hidden;
 }
 .game .stage {
   /* Nine 44px gems + plate/aspect padding + chain space. Short windows scroll rather than
      hide the game. On narrow phones width still bounds the square cells. */
-  display: grid;
-  flex: 1 0 450px;
-  min-height: 450px;
+  display: block;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   grid-area: auto;
 }
 .game .game-hud, .game > .goal, .game > .items, .game > .items-hint {
@@ -31,23 +36,43 @@
   max-width: 680px;
   margin-inline: auto;
 }
-.app:not(.ignore-rotate) .game .stage { display: grid; }
+.game .board-wrap {
+  /* 280 × 420 keeps all six columns at least 44px, even in short windows.
+     Scroll only the board when nine rows cannot fit; HUD and tools stay put. */
+  width: min(100cqw, calc(max(420px, 100cqh) * var(--board-ratio, .6667)));
+  margin-inline: auto;
+}
+.app:not(.ignore-rotate) .game .stage { display: block; }
 .app:not(.ignore-rotate) .game .rotate, .game .rotate { display: none; }
 
-/* Keep the three HUD regions together and in their original reading order.
-   Square unfolded displays also have room for a rail and a larger board. */
+/* Only genuinely wide surfaces need a rail. Square folds keep the familiar
+   goal / character / moves above the board, with no empty side column. */
 [data-play-layout="wide"] .game:not([hidden]) {
   display: grid;
-  grid-template-columns: minmax(300px, 38%) minmax(0, 1fr);
-  grid-template-rows: auto auto minmax(190px, 1fr) auto auto;
+  grid-template-columns: minmax(280px, 34%) minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
   column-gap: 24px;
-  align-content: start;
+  min-height: 0;
 }
 [data-play-layout="wide"] .game-hud { grid-area: 1 / 1; align-self: start; }
 [data-play-layout="wide"] .game > .goal { grid-area: 2 / 1; }
 [data-play-layout="wide"] .game .stage { grid-area: 1 / 2 / 4 / 3; }
-[data-play-layout="wide"] .game > .items { grid-area: 4 / 1 / 5 / 3; max-width: none; }
-[data-play-layout="wide"] .game > .items-hint { grid-area: 5 / 1 / 6 / 3; }
+[data-play-layout="wide"] .game > .board-scroll-hint { grid-area: 4 / 2; }
+[data-play-layout="wide"] .game > .items { grid-area: 5 / 1 / 6 / 3; max-width: none; }
+[data-play-layout="wide"] .game > .items-hint { grid-area: 6 / 1 / 7 / 3; }
+.board-scroll-hint { display: none; margin: 0; color: var(--muted); font-size: var(--text-sm); text-align: center; align-items: center; justify-content: center; gap: 12px; flex: none; }
+.board-scroll-hint p { margin: 0; }
+[data-board-scroll="true"] .board-scroll-hint { display: flex; }
+.board-scroll-hint button:disabled { opacity: .4; cursor: default; }
+[data-play-short="true"] .game { gap: 6px; }
+[data-play-short="true"] .hud-face { width: 64px; }
+[data-play-short="true"] .hud-reaction { margin-top: 5px; height: 18px; }
+[data-play-short="true"] .goal-token { width: 66px; height: 50px; }
+[data-play-short="true"] #goal-gem { width: 50px; height: 50px; }
+[data-play-short="true"] #goal-remaining { font-size: 22px; }
+[data-play-short="true"] .hud-moves .stat-value { font-size: 42px; }
+[data-play-short="true"] .game .item, [data-play-short="true"] .game-exit { width: 48px; height: 48px; }
+.goal-unit { display: block; color: var(--muted); font-size: var(--text-sm); margin-top: 4px; }
 
 @media (max-width: 360px) {
   .app:has(.game:not([hidden])) { padding-inline: 8px; }

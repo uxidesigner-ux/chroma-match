@@ -517,21 +517,20 @@ test('the sheet floats over the preview, and the character stays clear of it', a
 
   // Four stops, arriving part-way up and coming back round, so a thumb that
   // keeps tapping never gets stuck and never lands on a screen with no controls.
-  for (const stop of [2, 3, 4, 1]) {
+  for (const stop of [3, 4, 1, 2]) {
     await expect(grip).toHaveAttribute('aria-valuenow', String(stop))
     const { feet, edge } = await clear()
     expect(feet, `at stop ${stop} the character reaches under the sheet`).toBeLessThan(edge)
     await grip.click()
     await page.waitForTimeout(400)
   }
-  await expect(grip).toHaveAttribute('aria-valuenow', '2')
+  await expect(grip).toHaveAttribute('aria-valuenow', '3')
 
   /*
    * And shut it is off the screen but for the bar it is pulled back up by,
    * which is the state the preview is there for: a sheet that only ever gets
    * shorter is a panel that can be resized.
    */
-  await grip.click()
   await grip.click()
   await grip.click()
   await expect(grip).toHaveAttribute('aria-valuenow', '1')
@@ -615,13 +614,12 @@ test.describe('the sheet under a thumb', () => {
    * The tools were moved into the scroller so they would stop holding a row
    * open at the foot of the sheet. Nesting them there is not enough on its own:
    * a flex item that takes the free space sits on the floor exactly when there
-   * is free space to take, which — now that every tab fits inside the tallest
-   * stop — is the case you see most.
+   * is free space to take. Use a short category for that case: the larger
+   * type and two visible tab rows intentionally let dense categories scroll.
    */
   test('the tools follow the options, and never sit on the sheet floor', async ({ page }) => {
-    await openStudio(page, '체형')
+    await openStudio(page, '헤어')
     const grip = page.getByRole('slider', { name: /패널 높이/ })
-    await grip.click()
     await grip.click()
     await expect(grip).toHaveAttribute('aria-valuenow', '4')
     await page.waitForTimeout(450)
@@ -629,10 +627,9 @@ test.describe('the sheet under a thumb', () => {
     const laid = await page.evaluate(() => {
       const list = document.querySelector('.studio-controls') as HTMLElement
       const box = (sel: string) => document.querySelector(sel)!.getBoundingClientRect()
-      const rows = document.querySelectorAll('.studio-figure-row')
       return {
         over: list.scrollHeight - list.clientHeight,
-        gap: box('.studio-sheet-foot').top - rows[rows.length - 1]!.getBoundingClientRect().bottom,
+        gap: box('.studio-sheet-foot').top - box('#studio-options').bottom,
         floor: list.getBoundingClientRect().bottom - box('.studio-credit').bottom,
       }
     })
@@ -651,6 +648,10 @@ test.describe('the sheet under a thumb', () => {
 
   test('the list gives up the gesture at its top, and takes it back below', async ({ page }) => {
     await openStudio(page, '색상')
+    // The default is now the third stop so options are discoverable. Exercise
+    // the same two upward transitions from an explicitly chosen second stop.
+    await page.getByRole('slider', { name: /패널 높이/ }).press('ArrowDown')
+    await page.waitForTimeout(450)
     expect(await resting(page)).toBe('2')
 
     // At the top with somewhere to go, a pull up is the sheet's.
@@ -668,6 +669,9 @@ test.describe('the sheet under a thumb', () => {
 
   test('a pull that covers a third of the way is taken as meant', async ({ page }) => {
     await openStudio(page, '체형')
+    await page.getByRole('slider', { name: /패널 높이/ }).press('ArrowDown')
+    await page.waitForTimeout(450)
+    expect(await resting(page)).toBe('2')
     // 90px of a 768px screen: a quarter of the sheet, a third of the gap below.
     await swipe(page, 195, 700, 790)
     expect(await resting(page), 'it goes down rather than springing back').toBe('1')

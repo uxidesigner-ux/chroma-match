@@ -87,10 +87,11 @@ through a design tool. No dependency does the drawing.
 
 **The phone is a first-class target, not a narrow desktop.** Portrait uses the
 full dynamic viewport so the footer never hides behind the browser's chrome.
-Landscape moves the readouts into a side rail rather than squeezing the board
-into a letterbox — and on a phone lying down, where nine rows cannot fit above a
-44&nbsp;px tap target at any padding, it asks to be turned upright instead of
-silently shrinking the gems, with an escape for anyone who means it. Buttons get 44&nbsp;px targets on touch devices, a swipe
+Square unfolds and desktops keep the three-part HUD above the centred board.
+Short, wide windows move it into a side rail. When nine rows cannot fit at a
+44&nbsp;px target, only the board scrolls; goal, moves and tools stay visible.
+Explicit upper/lower-row controls avoid confusing touch scrolling with gem
+swapping, and keyboard selection scrolls into view. Buttons get 44&nbsp;px targets, a swipe
 commits at a third of a cell, and matches carry a short vibration where the
 platform supports one.
 

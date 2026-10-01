@@ -1,6 +1,7 @@
 import { DEFAULT_ANIME, encodeAnime } from './anime-spec.ts'
 import type { AnimeSpec } from './anime-spec.ts'
 import { portraitFrame } from './portrait-frame.ts'
+import type { AnimeRenderer } from './anime-renderer.ts'
 
 const KEY = 'chroma-match:anime-portrait-v1'
 const cache = new Map<string, Promise<HTMLImageElement>>()
@@ -16,10 +17,21 @@ function image(data: string): Promise<HTMLImageElement> {
   })
 }
 
-export function cachePortrait(spec: AnimeSpec, png: string): void {
+export function hasPortrait(spec: AnimeSpec): boolean { return cache.has(encodeAnime(spec)) }
+
+/** Bake expressions with the already-loaded lobby/editor. No WebGL in play. */
+export function warmReactionPortraits(spec: AnimeSpec, renderer: AnimeRenderer): void {
+  for (const expression of ['happy', 'surprised', 'relaxed'] as const) {
+    const look = { ...spec, expression }
+    if (!hasPortrait(look)) cachePortrait(look, renderer.capturePortrait(look), false)
+  }
+}
+
+export function cachePortrait(spec: AnimeSpec, png: string, persist = true): void {
   const key = encodeAnime(spec)
   cache.set(key, image(png))
   if (cache.size > 32) cache.delete(cache.keys().next().value!)
+  if (!persist) return
   // A single bounded local image is a cache, never the authoritative save.
   try {
     localStorage.setItem(KEY, JSON.stringify({ key, png }))

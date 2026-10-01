@@ -33,6 +33,16 @@ export function attachInput(
   let pointerRect: DOMRect | null = null
   let keyboardCell = 0
   const status = document.getElementById('board-status')
+  const revealCell = () => {
+    const stage = canvas.closest<HTMLElement>('.stage')
+    if (!stage || stage.scrollHeight <= stage.clientHeight) return
+    const point = renderer.centreOf(keyboardCell)
+    const board = canvas.getBoundingClientRect(), frame = stage.getBoundingClientRect()
+    const top = board.top + point.y - renderer.cellSize / 2
+    const bottom = top + renderer.cellSize
+    if (top < frame.top + 4) stage.scrollTop += top - frame.top - 4
+    else if (bottom > frame.bottom - 4) stage.scrollTop += bottom - frame.bottom + 4
+  }
   const announce = () => {
     const gem = game.grid[keyboardCell]
     if (!status || !gem) return
@@ -45,6 +55,7 @@ export function attachInput(
   }
   canvas.addEventListener('focus', () => {
     game.press(keyboardCell)
+    revealCell()
     announce()
   })
   canvas.addEventListener('blur', () => game.cancelPress())
@@ -68,6 +79,7 @@ export function attachInput(
       const r = Math.max(0, Math.min(game.geom.rows - 1, game.geom.rowOf(keyboardCell) + dy))
       keyboardCell = game.geom.idx(c, r)
       game.press(keyboardCell)
+      revealCell()
     }
     announce()
   })
