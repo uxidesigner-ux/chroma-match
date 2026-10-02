@@ -899,7 +899,12 @@
   .studio-tabs { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 }
 @media (max-width: 359px) {
-  /* Keep the new Wardrobe and Equipment captions whole on 320px phones. */
-  .studio-tab .studio-button-label { font-size: var(--text-xs); }
+  /* Allocate by real caption width: Linux fallback fonts are wider than SF. */
+  .studio-tabs { grid-template-columns: repeat(4, minmax(max-content, 1fr)); }
+  .studio-tab .studio-button-label {
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
   .studio-tabs > .studio-tab.studio-icon { padding-inline: 0; }
 }

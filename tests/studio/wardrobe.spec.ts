@@ -256,8 +256,32 @@ for (const [lang, skin, tab, choice, width, height] of [
   await page.locator('#lobby-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
   await page.getByRole('tab', { name: tab, exact: true }).click()
-  if (width === 320) for (const caption of await page.locator('.studio-tab .studio-button-label').all()) {
-    expect(await caption.evaluate(node => { const range = document.createRange(); range.selectNodeContents(node); return range.getClientRects().length })).toBe(1)
+  if (width === 320) {
+    // Platform fallback fonts have different metrics. A monospace stress case
+    // reproduced the Linux CI wrap that the default macOS font did not expose.
+    const captions = page.locator('.studio-tab .studio-button-label')
+    for (const font of ['inherit', 'Arial, sans-serif', 'Verdana, sans-serif', 'monospace']) {
+      const metrics = await captions.evaluateAll((nodes, font) => {
+        for (const node of nodes) (node as HTMLElement).style.fontFamily = font
+        return nodes.map(node => {
+          const range = document.createRange(); range.selectNodeContents(node)
+          const ink = range.getBoundingClientRect(), button = node.closest('button')!.getBoundingClientRect()
+          return { label: node.textContent, lines: range.getClientRects().length, inkLeft: ink.left, inkRight: ink.right, left: button.left, right: button.right, top: button.top, width: button.width, height: button.height }
+        })
+      }, font)
+      expect(new Set(metrics.map(metric => Math.round(metric.top))).size, font).toBe(2)
+      for (const metric of metrics) {
+        const label = `${metric.label} (${font})`
+        expect(metric.lines, label).toBe(1)
+        expect(metric.inkLeft, label).toBeGreaterThanOrEqual(metric.left - .5)
+        expect(metric.inkRight, label).toBeLessThanOrEqual(metric.right + .5)
+        expect(metric.width, label).toBeGreaterThanOrEqual(44)
+        expect(metric.height, label).toBeGreaterThanOrEqual(44)
+        expect(metric.left, label).toBeGreaterThanOrEqual(0)
+        expect(metric.right, label).toBeLessThanOrEqual(width)
+      }
+    }
+    await captions.evaluateAll(nodes => nodes.forEach(node => (node as HTMLElement).style.removeProperty('font-family')))
   }
   const button = page.getByRole('button', { name: choice, exact: true })
   await button.focus(); await page.keyboard.press('Enter')

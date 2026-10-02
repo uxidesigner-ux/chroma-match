@@ -185,3 +185,23 @@ pump skin-mask refinement were resolved before the frozen-source pass. No
 independent sub-agent/human review is claimed. All earlier physical-device,
 native Safari, signed-in cloud-write, third-party VRM and cloth-physics limits
 still apply. No push, merge, CI or live deployment was performed for this change.
+
+### Live-release gate — 2026-10-02
+
+The preceding no-deployment statement is the local refinement checkpoint. The
+publication is tracked by [PR #60](https://github.com/uxidesigner-ux/chroma-match/pull/60).
+Its first full CI run, `36999871440` at `9471cf8`, passed 78 browser checks but
+failed the 320px English/Paper caption check; it did not merge or deploy.
+
+Equal-width tab tracks fitted the macOS font but wrapped wider fallback fonts.
+The failure was reproduced locally with Verdana (`Equipment`) and monospace
+(`Expression`). Narrow screens now allocate tracks from real caption widths,
+without smaller type, truncation, hidden tabs or another navigation row. The
+regression check keeps its one-line requirement and additionally checks ink
+inside the button, two tab rows, 44px targets and viewport containment for four
+font families. All four locale/viewport wardrobe-control checks passed after
+the correction, as did typecheck, all 196 unit tests and the production build.
+The actual 320px render was inspected. Supporting results are in
+`/tmp/chroma-wardrobe-live.WKP15f/`. Publication still requires a successful
+full CI run, the main Pages deployment, exact artifact/live parity and live
+guest save/reload/offline recovery; follow the PR for the final release proof.
