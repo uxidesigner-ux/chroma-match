@@ -196,8 +196,8 @@ test('lobby and studio chrome hold a 44px target on narrow phones, and the studi
 
   // Every tab names itself; the equipment that used to hide behind the hair
   // glyph is a destination of its own.
-  await expect(page.getByRole('tab')).toHaveCount(7)
-  for (const name of ['스타일', '체형', '헤어', '장비', '색상', '표정', '보관함']) {
+  await expect(page.getByRole('tab')).toHaveCount(8)
+  for (const name of ['스타일', '체형', '헤어', '의상', '장비', '색상', '표정', '보관함']) {
     await expect(page.getByRole('tab', { name, exact: true })).toHaveText(name)
   }
   await page.getByRole('tab', { name: '장비', exact: true }).click()

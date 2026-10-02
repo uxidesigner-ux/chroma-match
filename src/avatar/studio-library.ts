@@ -4,7 +4,7 @@ import type { AnimeSpec } from './anime-spec.ts'
 export const LIBRARY_KEY = 'chroma-match:studio-library-v1'
 export const LIBRARY_LIMIT = 12
 export interface SavedLook { id: string; name: string; code: string }
-export const SEED_CREDIT = 'Seed-san by VirtualCast, Inc. — VRM Public License 1.0. Modified colours, hair and equipment.'
+export const SEED_CREDIT = 'Seed-san by VirtualCast, Inc. — VRM Public License 1.0. Modified colours, hair, clothing and equipment.'
 
 /** Only allow known appearance codes; imports cannot introduce URLs or executable data. */
 export function parseLookFile(text: string): AnimeSpec {

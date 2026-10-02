@@ -13,6 +13,8 @@ import {
 } from './body-shape.ts'
 import type { ShapeNode, ShapedBone } from './body-shape.ts'
 import { hairGeometry } from './hair-strands.ts'
+import { buildWardrobe, wardrobeColour, wardrobeShade } from './wardrobe.ts'
+import type { Wardrobe } from './wardrobe.ts'
 
 type Vec3 = [number, number, number]
 interface TextureInfo { index: number; [key: string]: unknown }
@@ -37,7 +39,9 @@ interface GlbNode {
 interface MaterialData {
   name: string
   pbrMetallicRoughness: { baseColorFactor?: number[]; baseColorTexture?: TextureInfo }
-  extensions?: { VRMC_materials_mtoon?: { shadeColorFactor?: number[]; shadeMultiplyTexture?: TextureInfo } }
+  normalTexture?: TextureInfo
+  emissiveTexture?: TextureInfo
+  extensions?: { VRMC_materials_mtoon?: { shadeColorFactor?: number[]; shadeMultiplyTexture?: TextureInfo; [key: string]: unknown } }
 }
 export interface SeedDocument {
   asset: { copyright?: string; generator?: string; extras?: Record<string, unknown> }
@@ -52,6 +56,7 @@ export interface SeedDocument {
     primitives: { material: number; attributes: Record<string, number>; indices?: number }[]
   }[]
   nodes: GlbNode[]
+  scenes: { nodes: number[] }[]
   extensions: {
     VRMC_vrm: {
       meta: Record<string, unknown>
@@ -206,6 +211,61 @@ function standHair(json: SeedDocument, chunks: Uint8Array[], byteLength: number,
   return byteLength
 }
 
+/** Write exactly the live fitted surfaces with the existing skin/inverse binds. */
+function dress(json: SeedDocument, chunks: Uint8Array[], byteLength: number, wardrobe: Wardrobe, spec: AnimeSpec): number {
+  const store = (values: Float32Array | Uint16Array | Uint32Array, type: string, width: number, position = false): number => {
+    const bytes = new Uint8Array(values.buffer, values.byteOffset, values.byteLength)
+    const bufferView = json.bufferViews.length
+    json.bufferViews.push({ buffer: 0, byteOffset: byteLength, byteLength: bytes.length })
+    const accessor = json.accessors.length
+    const bounds: Partial<Accessor> = {}
+    if (position) {
+      bounds.min = [Infinity, Infinity, Infinity]; bounds.max = [-Infinity, -Infinity, -Infinity]
+      for (let i = 0; i < values.length; i += 3) for (let k = 0; k < 3; k++) {
+        bounds.min[k] = Math.min(bounds.min[k]!, values[i + k]!); bounds.max[k] = Math.max(bounds.max[k]!, values[i + k]!)
+      }
+    }
+    json.accessors.push({ bufferView, componentType: values instanceof Uint16Array ? 5123 : values instanceof Uint32Array ? 5125 : 5126, type, count: values.length / width, ...bounds })
+    chunks.push(bytes); byteLength += padded(bytes.length)
+    return accessor
+  }
+  const wearAt = json.nodes.findIndex(node => node.name === 'wear')
+  const parent = json.nodes.find(node => node.children?.includes(wearAt))
+  for (const part of wardrobe.parts) {
+    const material = structuredClone(json.materials.find(mat => mat.name === (part.paint === 'skin' || part.paint === 'armSkin' ? 'body_bake' : 'huku_bake'))!)
+    material.name = part.name
+    if (part.paint !== 'skin') {
+      const colour = wardrobeColour(part.paint, spec)
+      delete material.pbrMetallicRoughness.baseColorTexture
+      delete material.normalTexture; delete material.emissiveTexture
+      material.pbrMetallicRoughness.baseColorFactor = [...colour, 1]
+      const toon = material.extensions?.VRMC_materials_mtoon
+      if (toon) {
+        delete toon.shadeMultiplyTexture; delete toon.matcapTexture; delete toon.rimMultiplyTexture
+        delete toon.shadingShiftTexture; delete toon.outlineWidthMultiplyTexture
+        toon.shadeColorFactor = wardrobeShade(part.paint, spec)
+        toon.outlineWidthFactor = part.paint === 'armSkin' ? .001 : .0015
+      }
+    }
+    const materialAt = json.materials.length; json.materials.push(material)
+    const meshAt = json.meshes.length
+    json.meshes.push({ name: part.name, primitives: [{ material: materialAt, attributes: {
+      POSITION: store(part.positions, 'VEC3', 3, true), NORMAL: store(part.normals, 'VEC3', 3),
+      TEXCOORD_0: store(part.uv, 'VEC2', 2), JOINTS_0: store(part.joints, 'VEC4', 4), WEIGHTS_0: store(part.weights, 'VEC4', 4),
+    }, indices: store(part.index, 'SCALAR', 1) }] })
+    const node = json.nodes.length; json.nodes.push({ name: part.name, mesh: meshAt, skin: wardrobe.skin })
+    if (parent) parent.children = [...(parent.children ?? []), node]
+    else for (const scene of json.scenes) scene.nodes.push(node)
+  }
+  for (const { node, rotation } of wardrobe.rotations) json.nodes[node]!.rotation = rotation
+  if (wardrobe.lift) for (const scene of json.scenes) {
+    const node = json.nodes.length
+    json.nodes.push({ name: 'wardrobe_stance', translation: [0, wardrobe.lift, 0], children: scene.nodes })
+    scene.nodes = [node]
+  }
+  return byteLength
+}
+
 /** Template-preserving export for the pinned Seed model, NOT a general VRM optimizer.
  * Keep humanoid, spring bones, expressions, original author and permission metadata.
  * New textures are appended so shared original textures/material indices remain valid.
@@ -216,6 +276,7 @@ export function exportSeed(
   materials: ExportMaterial[],
 ): ArrayBuffer {
   const { json, binary } = readGlb(source)
+  const wardrobe = buildWardrobe(source, spec)
   const meta = json.extensions.VRMC_vrm.meta
   if (meta.name !== 'Seed-san' || meta.allowRedistribution !== true ||
     meta.modification !== 'allowModificationRedistribution') throw new Error('Unsupported export source')
@@ -350,6 +411,7 @@ export function exportSeed(
     const mesh = json.meshes[node.mesh]!
     mesh.primitives = mesh.primitives.filter(p => {
       const name = json.materials[p.material]!.name
+      if (wardrobe && node.name === 'wear' && /^(body_bake|body_nm|huku_bake|wear_metal|anim_logo)$/.test(name)) return false
       if (!spec.pack && name.startsWith('backpack_')) return false
       if (!spec.arms && name.startsWith('armgear_')) return false
       if (!spec.visor && /^(robo_face|glass|anim_logo)$/.test(name)) return false
@@ -357,6 +419,7 @@ export function exportSeed(
     })
   }
   byteLength = standHair(json, chunks, byteLength, spec, materials.find(palette => palette.name === 'hair_shape')?.png)
+  if (wardrobe) byteLength = dress(json, chunks, byteLength, wardrobe, spec)
   json.asset.copyright = SEED_CREDIT
   json.asset.generator = 'Chroma Match · Seed appearance export'
   json.asset.extras = { ...json.asset.extras, chromaCharacter: { version: 1, code: encodeSpec(spec) } }

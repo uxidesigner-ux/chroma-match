@@ -55,6 +55,11 @@ export interface AnimeSpec {
   hairColour: string
   eyeColour: string
   outfitColour: string
+  top: TopStyle
+  bottom: BottomStyle
+  shoes: ShoeStyle
+  bottomColour: string
+  shoeColour: string
   skinColour: string
   backdrop: string
 }
@@ -72,6 +77,11 @@ export const DEFAULT_ANIME: AnimeSpec = {
   hairColour: '67B7A3',
   eyeColour: 'A899E8',
   outfitColour: '91ADB8',
+  top: 'seed',
+  bottom: 'seed',
+  shoes: 'bare',
+  bottomColour: '35465D',
+  shoeColour: 'EBE8E2',
   /*
    * White is not a skin tone; it is no tint at all, which is the model's own
    * baked skin. Every other value multiplies that texture, so the default is
@@ -181,6 +191,25 @@ export const BACKDROPS = ['F4F1EA', 'D8E6EF', 'E6D7C4', 'A8B6A4', '5A6E86', '202
 export const HAIR_STYLES = { tails: 'T', bob: 'B', long: 'L' } as const
 export type HairStyle = keyof typeof HAIR_STYLES
 
+/** Original appearances keep their complete Seed outfit until deliberately changed. */
+export const TOP_STYLES = { roundShort: 'R', roundLong: 'L', vShort: 'V', vLong: 'W' } as const
+export const BOTTOM_STYLES = { trousers: 'P', shorts: 'S', skirtLong: 'L', skirtShort: 'K' } as const
+export const SHOE_STYLES = { bare: 'N', basketball: 'B', dress: 'D', heels: 'H' } as const
+export type TopStyle = 'seed' | keyof typeof TOP_STYLES
+export type BottomStyle = 'seed' | keyof typeof BOTTOM_STYLES
+export type ShoeStyle = keyof typeof SHOE_STYLES
+
+export function hasWardrobe(spec: AnimeSpec): boolean { return spec.top !== 'seed' && spec.bottom !== 'seed' }
+
+/** Enter the fitted pack once; subsequent choices affect only their own slot. */
+export function wear(spec: AnimeSpec, part: Partial<Pick<AnimeSpec, 'top' | 'bottom' | 'shoes'>>): AnimeSpec {
+  return {
+    ...spec,
+    ...(hasWardrobe(spec) ? {} : { top: 'roundShort', bottom: 'trousers', shoes: 'basketball' }),
+    ...part,
+  }
+}
+
 const colours = ['hairColour', 'eyeColour', 'outfitColour', 'backdrop'] as const
 export const EXPRESSIONS = ['neutral', 'happy', 'relaxed', 'angry', 'sad', 'surprised'] as const
 const expressionCodes = { neutral: 'N', happy: 'H', relaxed: 'R', angry: 'A', sad: 'S', surprised: 'U' } as const
@@ -204,7 +233,7 @@ const figureStep = (value: number): FigureStep =>
   (Number.isInteger(value) && value >= 0 && value <= 6 ? value : 3) as FigureStep
 
 export function encodeAnime(spec: AnimeSpec): string {
-  return (
+  const base = (
     'S' +
     (HAIR_STYLES[spec.hair] ?? 'T') +
     (expressionCodes[spec.expression] ?? 'N') +
@@ -223,6 +252,11 @@ export function encodeAnime(spec: AnimeSpec): string {
     (/^[0-9a-f]{6}$/i.test(spec.skinColour) ? spec.skinColour.toUpperCase() : DEFAULT_ANIME.skinColour) +
     (spec.sex === 'female' ? 'F' : 'M')
   )
+  if (!hasWardrobe(spec)) return base
+  const colour = (value: string, fallback: string) => /^[0-9a-f]{6}$/i.test(value) ? value.toUpperCase() : fallback
+  return base + 'W' + TOP_STYLES[spec.top as keyof typeof TOP_STYLES] +
+    BOTTOM_STYLES[spec.bottom as keyof typeof BOTTOM_STYLES] + SHOE_STYLES[spec.shoes] +
+    colour(spec.bottomColour, DEFAULT_ANIME.bottomColour) + colour(spec.shoeColour, DEFAULT_ANIME.shoeColour)
 }
 
 /*
@@ -237,10 +271,11 @@ const CODE = new RegExp(
   `^S[${Object.values(HAIR_STYLES).join('')}][NHRASU][NG1-6][0-9A-F]{24}` +
     '(?:[0-6]{3}(?:[0-6]{2}(?:[0-9A-F]{6}[MF]?)?)?)?$',
 )
+const WARDROBE_CODE = /^S[TBL][NHRASU][NG1-6][0-9A-F]{24}[0-6]{5}[0-9A-F]{6}[MF]W[RLVW][PSLK][NBDH][0-9A-F]{12}$/
 
 /** Reject malformed/newer model data; callers can show the safe starter appearance. */
 export function decodeAnime(raw: string): AnimeSpec | undefined {
-  if (!CODE.test(raw)) return undefined
+  if (!CODE.test(raw) && !WARDROBE_CODE.test(raw)) return undefined
   const mark = raw[3]!
   const bits = mark === 'G' ? 7 : mark === 'N' ? 0 : Number(mark)
   const tail = raw.slice(28)
@@ -261,6 +296,11 @@ export function decodeAnime(raw: string): AnimeSpec | undefined {
     hairColour: raw.slice(4, 10),
     eyeColour: raw.slice(10, 16),
     outfitColour: raw.slice(16, 22),
+    top: raw[40] === 'W' ? (Object.keys(TOP_STYLES) as (keyof typeof TOP_STYLES)[]).find(key => TOP_STYLES[key] === raw[41])! : 'seed',
+    bottom: raw[40] === 'W' ? (Object.keys(BOTTOM_STYLES) as (keyof typeof BOTTOM_STYLES)[]).find(key => BOTTOM_STYLES[key] === raw[42])! : 'seed',
+    shoes: raw[40] === 'W' ? (Object.keys(SHOE_STYLES) as ShoeStyle[]).find(key => SHOE_STYLES[key] === raw[43])! : 'bare',
+    bottomColour: raw[40] === 'W' ? raw.slice(44, 50) : DEFAULT_ANIME.bottomColour,
+    shoeColour: raw[40] === 'W' ? raw.slice(50, 56) : DEFAULT_ANIME.shoeColour,
     skinColour: tail.length > FIGURE_AXES.length
       ? tail.slice(FIGURE_AXES.length, FIGURE_AXES.length + 6)
       : DEFAULT_ANIME.skinColour,
