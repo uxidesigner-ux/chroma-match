@@ -55,7 +55,7 @@ test('real rig keeps sleeves, hands, skirts and grounded footwear through body v
     const { StudioCharacter } = await import('/src/avatar/character-studio/character.ts')
     const { DEFAULT_ANIME, FIGURE_PRESETS, wear } = await import('/src/avatar/anime-spec.ts')
     const { buildWardrobe } = await import('/src/avatar/wardrobe.ts')
-    const { Mesh, SkinnedMesh, Scene, WebGLRenderer, PerspectiveCamera, HemisphereLight, DirectionalLight, Color, Vector3, Quaternion, Box3 } = await import('/node_modules/.vite/deps/three.js')
+    const { Mesh, SkinnedMesh, Scene, WebGLRenderer, PerspectiveCamera, HemisphereLight, DirectionalLight, Color, Vector3, Quaternion, Box3, Ray } = await import('/node_modules/.vite/deps/three.js')
     const character = await StudioCharacter.load(new AbortController().signal)
     const canvas = document.createElement('canvas'), renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true })
     renderer.setSize(320, 520, false)
@@ -75,6 +75,14 @@ test('real rig keeps sleeves, hands, skirts and grounded footwear through body v
       { top: 'roundShort', bottom: 'shorts', shoes: 'bare' },
     ] as const
     let cases = 0, minimumGround = Infinity, maximumContactGap = 0
+    let skirtSamples = 0, minimumSkirtClearance = Infinity, maximumSkirtClearance = 0
+    const indices = original.geometry.index!, skinIndex = original.geometry.attributes.skinIndex!, skinWeight = original.geometry.attributes.skinWeight!
+    const bodyFaces: number[][] = []
+    for (let i = 0; i < indices.count; i += 3) {
+      const at = [0, 1, 2].map(j => indices.getX(i + j))
+      if (at.some(v => [0, 1, 2, 3].some(j => skinWeight.getComponent(v, j) > .1 && skinIndex.getComponent(v, j) >= 30 && skinIndex.getComponent(v, j) <= 78 && skinIndex.getComponent(v, j) !== 37))) continue
+      bodyFaces.push(at)
+    }
     try {
       const builds = { ...FIGURE_PRESETS, min: { hip: 0, waist: 0, bust: 0, shoulder: 0, head: 0 }, max: { hip: 6, waist: 6, bust: 6, shoulder: 6, head: 6 },
         wideHip: { hip: 6, waist: 0, bust: 6, shoulder: 0, head: 6 }, narrowHip: { hip: 0, waist: 6, bust: 0, shoulder: 6, head: 0 } }
@@ -99,6 +107,9 @@ test('real rig keeps sleeves, hands, skirts and grounded footwear through body v
           for (const phase of [0, .2, .75, 1.4, 2.8]) {
             character.tick(phase - previous, true); previous = phase
             character.vrm.scene.updateMatrixWorld(true)
+            // CPU getVertexPosition reads boneMatrices; matrixWorld alone is
+            // insufficient before a render. Do not measure the previous figure.
+            original.skeleton.update()
             const soles = meshes.find(mesh => mesh.name === (outfit.shoes === 'bare' ? 'wardrobe_skin' : 'wardrobe_soles'))!
             let ground = Infinity, frontContact = Infinity, heelContact = Infinity
             for (let i = 0; i < soles.geometry.attributes.position.count; i++) {
@@ -111,6 +122,31 @@ test('real rig keeps sleeves, hands, skirts and grounded footwear through body v
             minimumGround = Math.min(minimumGround, ground)
             maximumContactGap = Math.max(maximumContactGap, Math.abs(frontContact), Math.abs(heelContact))
             if (ground < -.007 || Math.abs(frontContact) > .008 || Math.abs(heelContact) > .008) failures.push(`${build}/${sex}/${outfit.shoes}/${gesture}/${phase}: sole contact ${ground.toFixed(4)}/${frontContact.toFixed(4)}/${heelContact.toFixed(4)}`)
+            if (outfit.bottom === 'skirtLong' || outfit.bottom === 'skirtShort') {
+              const skirt = meshes.find(mesh => mesh.name === 'wardrobe_bottom')!, positions = skirt.geometry.attributes.position!
+              const body = Array.from({ length: original.geometry.attributes.position!.count }, (_, i) => original.localToWorld(original.getVertexPosition(i, new Vector3())))
+              const centre = character.vrm.humanoid.getRawBoneNode('hips')!.getWorldPosition(new Vector3())
+              const levels = [.895, .76, outfit.bottom === 'skirtShort' ? .567 : .175]
+              for (let i = 0; i < positions.count; i++) {
+                if (!levels.some(y => Math.abs(positions.getY(i) - y) < 1e-6) || i % 4 !== 0) continue
+                const p = skirt.localToWorld(skirt.getVertexPosition(i, new Vector3()))
+                const origin = new Vector3(centre.x, p.y, centre.z)
+                const ray = new Ray(origin, p.clone().sub(origin).normalize())
+                let radius = 0, hitFace: number[] = []
+                for (const face of bodyFaces) {
+                  const [a, b, c] = face.map(at => body[at]!) as [Vector3, Vector3, Vector3]
+                  if ([a, b, c].every(v => v.y < p.y) || [a, b, c].every(v => v.y > p.y)) continue
+                  const hit = ray.intersectTriangle(a, b, c, false, new Vector3())
+                  if (hit && hit.distanceTo(origin) > radius) { radius = hit.distanceTo(origin); hitFace = face }
+                }
+                // The joined front/back panel may span empty space between the
+                // legs. Where skin lies on this ray, check the ACTUAL posed rig.
+                if (!radius) continue
+                const gap = p.distanceTo(origin) - radius
+                skirtSamples++; minimumSkirtClearance = Math.min(minimumSkirtClearance, gap); maximumSkirtClearance = Math.max(maximumSkirtClearance, gap)
+                if (gap < .002 || gap > .050) failures.push(`${build}/${sex}/${outfit.bottom}/${gesture}/${phase}: skirt clearance ${gap.toFixed(4)} at ${positions.getY(i).toFixed(3)}, source face ${hitFace.map(at => original.geometry.attributes.position!.getY(at).toFixed(3))}`)
+              }
+            }
             for (const side of ['left', 'right'] as const) {
               const elbow = character.vrm.humanoid.getNormalizedBoneNode(`${side}LowerArm`)!.quaternion
               if (Math.abs(elbow.x) > 1e-7 || Math.abs(elbow.z) > 1e-7) failures.push(`${gesture}: elbow side-flexion`)
@@ -136,13 +172,15 @@ test('real rig keeps sleeves, hands, skirts and grounded footwear through body v
       character.apply(DEFAULT_ANIME)
       if (character.vrm.scene.position.y !== 0) failures.push('heel lift survived returning to original outfit')
       for (const side of ['left', 'right'] as const) if (character.vrm.humanoid.getNormalizedBoneNode(`${side}Foot`)!.rotation.x !== 0) failures.push('heel angle survived returning to original outfit')
-      return { failures, cases, minimumGround, maximumContactGap, png: sheet.toDataURL('image/png').split(',')[1]! }
+      return { failures, cases, minimumGround, maximumContactGap, skirtSamples, minimumSkirtClearance, maximumSkirtClearance, png: sheet.toDataURL('image/png').split(',')[1]! }
     } finally { character.dispose(); renderer.dispose() }
   })
   await writeFile(testInfo.outputPath('wardrobe-fit-gestures.png'), Buffer.from(result.png, 'base64'))
   await writeFile(testInfo.outputPath('wardrobe-fit-results.json'), JSON.stringify({ ...result, png: undefined }, null, 2))
   expect(result.failures).toEqual([])
   expect(result.cases).toBe(240)
+  expect(result.skirtSamples).toBeGreaterThan(15000)
+  expect(result.minimumSkirtClearance).toBeGreaterThan(.002)
 })
 
 test('tailored hips and formal shoe lasts render clearly from front, side and back', async ({ page }, testInfo) => {
@@ -166,8 +204,10 @@ test('tailored hips and formal shoe lasts render clearly from front, side and ba
         character.apply(wear({ ...DEFAULT_ANIME, sex: 'female', hair: 'bob', shoeColour: '263A46' }, { top: 'vShort', bottom, shoes }))
         character.tick(0, false); character.vrm.scene.updateMatrixWorld(true)
         for (const [column, angle] of [0, Math.PI / 2, row < 2 ? Math.PI / 4 : Math.PI].entries()) {
-          const target = new Vector3(0, row < 2 ? .085 : .86, row < 2 ? .06 : .007)
-          const size = row < 2 ? .32 : .42
+          // Include the hem, not just the already-fitted waist. A waist crop
+          // hid the old lower skirt's boxy silhouette from visual review.
+          const target = new Vector3(0, row < 2 ? .085 : item === 'skirtLong' ? .59 : .79, row < 2 ? .06 : .007)
+          const size = row < 2 ? .32 : item === 'skirtLong' ? .98 : .52
           const camera = new OrthographicCamera(-size / 2 * 440 / 380, size / 2 * 440 / 380, size / 2, -size / 2, .01, 20)
           camera.position.copy(target).add(new Vector3(Math.sin(angle) * 3, row < 2 ? .65 : .15, Math.cos(angle) * 3))
           camera.lookAt(target); renderer.render(scene, camera)
