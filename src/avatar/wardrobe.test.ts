@@ -5,8 +5,9 @@ import { DEFAULT_ANIME, TOP_STYLES, BOTTOM_STYLES, SHOE_STYLES, wear } from './a
 import type { BottomStyle, ShoeStyle, TopStyle } from './anime-spec.ts'
 import { decodeSpec, encodeSpec, isKnownSpec, SPEC_MAX } from './spec.ts'
 import { lookFile, parseLookFile, LookHistory } from './studio-library.ts'
-import { buildWardrobe } from './wardrobe.ts'
+import { buildWardrobe, wardrobeColour } from './wardrobe.ts'
 import { exportSeed, readGlb } from './studio-export.ts'
+import { Ray, Vector3 } from 'three'
 
 const bytes = readFileSync(new URL('../../public/avatars/seed-v1/seed-san.vrm', import.meta.url))
 const source = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
@@ -97,15 +98,73 @@ test('palette edits reuse geometry; body edits refit the soles without mutating 
 function readAccessor(glb: ReturnType<typeof readGlb>, at: number): number[] {
   const a = glb.json.accessors[at]!, b = glb.json.bufferViews[a.bufferView]!
   const width = ({ SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 } as Record<string, number>)[a.type]!
-  const size = a.componentType === 5123 ? 2 : 4
+  const size = a.componentType === 5121 ? 1 : a.componentType === 5123 ? 2 : 4
   const view = new DataView(glb.binary.buffer, glb.binary.byteOffset)
   const result: number[] = []
   for (let i = 0; i < a.count * width; i++) {
-    const offset = (b.byteOffset ?? 0) + (a.byteOffset ?? 0) + i * size
-    result.push(a.componentType === 5126 ? view.getFloat32(offset, true) : size === 2 ? view.getUint16(offset, true) : view.getUint32(offset, true))
+    const offset = (b.byteOffset ?? 0) + (a.byteOffset ?? 0) + Math.floor(i / width) * (b.byteStride ?? size * width) + (i % width) * size
+    result.push(a.componentType === 5126 ? view.getFloat32(offset, true) : size === 1 ? view.getUint8(offset) : size === 2 ? view.getUint16(offset, true) : view.getUint32(offset, true))
   }
   return result
 }
+
+test('skirts seat on the torso, clear only the tucked shirt and follow bare hips without floating', () => {
+  const glb = readGlb(source), node = glb.json.nodes.find(node => node.name === 'wear')!
+  const primitive = glb.json.meshes[node.mesh!]!.primitives.find(p => glb.json.materials[p.material]!.name === 'body_bake')!
+  const position = readAccessor(glb, primitive.attributes.POSITION!), joints = readAccessor(glb, primitive.attributes.JOINTS_0!)
+  const weights = readAccessor(glb, primitive.attributes.WEIGHTS_0!), indices = readAccessor(glb, primitive.indices!)
+  const body: [Vector3, Vector3, Vector3][] = []
+  for (let i = 0; i < indices.length; i += 3) {
+    const at = indices.slice(i, i + 3)
+    // The body's A-pose includes fingers at waist height; exclude those by
+    // actual influences, not a coordinate box that also contains the hands.
+    if (at.some(v => [0, 1, 2, 3].some(j => weights[v * 4 + j]! > .1 && joints[v * 4 + j]! >= 30 && joints[v * 4 + j]! <= 78 && joints[v * 4 + j] !== 37))) continue
+    body.push(at.map(v => new Vector3().fromArray(position, v * 3)) as [Vector3, Vector3, Vector3])
+  }
+  for (const bottom of ['skirtLong', 'skirtShort'] as const) {
+    const part = buildWardrobe(source, wear(DEFAULT_ANIME, { bottom, shoes: 'dress' }))!.parts.find(p => p.paint === 'bottom')!
+    for (const y of [.949, .941, .927, .895, .875, .850, .82, .79]) {
+      let measured = 0
+      const section = body.filter(t => !t.every(v => v.y < y) && !t.every(v => v.y > y))
+      for (let i = 0; i < part.positions.length; i += 3) {
+        const p = new Vector3().fromArray(part.positions, i)
+        if (Math.abs(p.y - y) > 1e-6) continue
+        const ray = new Ray(new Vector3(0, y, .007), new Vector3(p.x, 0, p.z - .007).normalize())
+        let radius = 0
+        for (const t of section) {
+          const hit = ray.intersectTriangle(...t, false, new Vector3())
+          if (hit) radius = Math.max(radius, hit.distanceTo(ray.origin))
+        }
+        assert.ok(radius > 0, `${bottom}/${y}: no torso behind the waistband`)
+        const gap = p.distanceTo(ray.origin) - radius
+        assert.ok(gap >= .0054 && gap <= .0121, `${bottom}/${y}: ${gap} m clearance`)
+        for (let j = 0; j < 4; j++) assert.ok(part.weights[i / 3 * 4 + j]! < .1 || part.joints[i / 3 * 4 + j]! < 30, 'waist bound to an arm')
+        measured++
+      }
+      assert.equal(measured, 65)
+    }
+    const xs = Array.from(part.positions).filter((_, i) => i % 3 === 0)
+    assert.ok(Math.max(...xs.map(Math.abs)) < .17, 'slim skirt regressed to a flared cone')
+  }
+})
+
+test('formal footwear has its own tapered last, narrow collar and thin colour-matched sole', () => {
+  for (const shoes of ['dress', 'heels'] as const) {
+    const spec = wear(DEFAULT_ANIME, { shoes }), parts = buildWardrobe(source, spec)!.parts
+    const upper = parts.find(p => p.paint === 'shoe')!
+    assert.ok(Math.max(...Array.from(upper.positions).filter((_, i) => i % 3 === 2)) > .19, 'toe last not distinct from the sneaker')
+    const collars = new Map<number, number[]>()
+    for (let i = 0; i < upper.positions.length / 3; i++) if (upper.uv[i * 2 + 1]! > .9999) {
+      const foot = upper.joints[i * 4]!, xs = collars.get(foot) ?? []
+      xs.push(upper.positions[i * 3]!); collars.set(foot, xs)
+    }
+    assert.equal(collars.size, 2)
+    for (const xs of collars.values()) assert.ok(Math.max(...xs) - Math.min(...xs) < .068, 'wide sneaker collar on formal footwear')
+    const base = wardrobeColour('shoe', spec), sole = wardrobeColour('sole', spec)
+    assert.deepEqual(sole, base.map(c => c * .28), 'white sneaker outsole used for formal footwear')
+    assert.ok(parts.find(p => p.paint === 'sole')!.index.length > 100, 'underside/heel missing')
+  }
+})
 
 test('VRM/GLB exports carry exact preview surfaces, weights, palette, heel stance and metadata', () => {
   const original = readGlb(source)

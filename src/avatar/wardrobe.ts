@@ -283,40 +283,60 @@ function nearest(source: Source, p: V3): Vertex {
 function waistSurface(source: Source, y: number, a: number): Vertex | null {
   const ray = new Ray(new Vector3(0, y, .007), new Vector3(Math.cos(a), 0, Math.sin(a)))
   const hit = new Vector3(), bary = new Vector3()
+  let fitted: Vertex | null = null, distance = 0
   for (const t of source.body) {
-    if (t.every(v => v.p[1] < y) || t.every(v => v.p[1] > y) || t.some(v => Math.abs(v.p[0]) > .20)) continue
+    // Hands share body_bake and cross waist height in the mesh's A-pose. A
+    // waistband must never be fitted to a finger instead of the torso behind it.
+    if (t.every(v => v.p[1] < y) || t.every(v => v.p[1] > y) || t.some(v => v.weights.some((w, i) => w > .1 && v.joints[i]! >= 30 && v.joints[i]! <= 78 && v.joints[i] !== 37))) continue
     const [p, q, r] = t.map(v => new Vector3(...v.p)) as [Vector3, Vector3, Vector3]
     if (!ray.intersectTriangle(p, q, r, false, hit)) continue
+    const next = hit.distanceTo(ray.origin)
+    if (next <= distance) continue
     Triangle.getBarycoord(hit, p, q, r, bary)
     const pq = bary.x + bary.y
     const vertex = between(pq > 1e-8 ? between(t[0]!, t[1]!, bary.y / pq) : t[0]!, t[2]!, bary.z)
-    vertex.p = hit.clone().addScaledVector(new Vector3(...vertex.n), .020).toArray() as V3
-    return vertex
+    vertex.p = hit.toArray() as V3
+    fitted = vertex; distance = next
   }
-  return null
+  return fitted
 }
 
 function skirt(source: Source, spec: AnimeSpec, cloth: Surface, trim: Surface): void {
   const long = spec.bottom === 'skirtLong', hem = long ? .175 : .567
-  const around = 64, rows = 22
+  const around = 64
+  // Dense, horizontal tailoring at the waistband/hip; a shallow drape only
+  // below the seat. A fixed flaring ellipse made the old waist look suspended.
+  const levels = [.949, .945, .941, .934, .927, .915, .895, .875, .850, .82, .79, .76, .73]
+  const lowerRows = Math.ceil((.73 - hem) / .025)
+  for (let row = 1; row <= lowerRows; row++) levels.push(.73 + (hem - .73) * row / lowerRows)
+  const anchors = Array.from({ length: around + 1 }, (_, i) => {
+    const a = i / around * Math.PI * 2
+    const samples = [.875, .850, .82, .79, .76].map(y => waistSurface(source, y, a)).filter(v => v !== null)
+    return samples.reduce<Vertex | null>((best, v) => !best || Math.hypot(v.p[0], v.p[2] - .007) > Math.hypot(best.p[0], best.p[2] - .007) ? v : best, null)
+  })
   const rings: Vertex[][] = []
-  for (let row = 0; row <= rows; row++) {
-    const t = row / rows, y = .949 + (hem - .949) * t
-    const hip = smooth(Math.min(1, (.949 - y) / .135))
-    const flare = Math.max(0, (t - .22) / .78)
-    const rx = .132 + hip * .02 + flare * (long ? .126 : .076)
-    const rz = .085 + hip * .004 + flare * (long ? .104 : .058)
+  for (const y of levels) {
+    const t = (.949 - y) / (.949 - hem), release = smooth((.79 - y) / .06)
+    // Shirt is 9 mm outside the skin. Clear it by 3 mm, then ease down to
+    // 5.5 mm over bare hips; the inner binding seats against the tucked shirt.
+    const gap = .0055 + .0065 * (1 - smooth((.927 - y) / .032))
     const ring: Vertex[] = []
     for (let i = 0; i <= around; i++) {
-      const a = i / around * Math.PI * 2, fold = Math.cos(a * 10) * .0035 * flare
-      const target: V3 = [(rx + fold) * Math.cos(a), y, (rz + fold) * Math.sin(a) + .007]
-      const fitted = y > .84 ? waistSurface(source, y, a) : null
+      const a = i / around * Math.PI * 2, anchor = anchors[i]
+      const ease = .006 + smooth((.73 - y) / (.73 - hem)) * (long ? .013 : .008)
+      const radius = (anchor ? Math.hypot(anchor.p[0], anchor.p[2] - .007) : Math.hypot(.14 * Math.cos(a), .08 * Math.sin(a))) + ease
+      const target: V3 = [radius * Math.cos(a), y, radius * Math.sin(a) + .007]
+      const fitted = y >= .73 ? waistSurface(source, y, a) : null
       const v = fitted ?? nearest(source, [target[0], Math.max(.66, y), target[2]])
-      const p = fitted ? new Vector3(...fitted.p).lerp(new Vector3(...target), smooth((.949 - y) / .109)).toArray() as V3 : target
+      // A radial offset stays on this exact horizontal section. Following an
+      // interpolated mesh normal would slide over a seam onto a different ray,
+      // producing a much larger gap (or penetrating an adjacent hip triangle).
+      const normal = new Vector3(Math.cos(a), 0, Math.sin(a))
+      const p = fitted ? new Vector3(...fitted.p).addScaledVector(normal, gap).lerp(new Vector3(...target), release).toArray() as V3 : target
       // Lower fabric follows the legs gently, with a smooth centre panel instead
       // of switching rigidly at the centre seam. Idle/gesture leg motion is bounded.
-      if (t > .2) {
-        const left = smooth((Math.cos(a) + .28) / .56), leg = smooth((t - .2) / .5) * .7
+      if (y < .76) {
+        const left = smooth((Math.cos(a) + .28) / .56), leg = smooth((.76 - y) / .35) * .4
         v.joints = [source.joint.hips!, source.joint.leftUpperLeg!, source.joint.rightUpperLeg!, 0]
         v.weights = [1 - leg, leg * left, leg * (1 - left), 0]
       }
@@ -327,7 +347,7 @@ function skirt(source: Source, spec: AnimeSpec, cloth: Surface, trim: Surface): 
     }
     rings.push(ring)
   }
-  for (let row = 0; row < rows; row++) for (let i = 0; i < around; i++) {
+  for (let row = 0; row < levels.length - 1; row++) for (let i = 0; i < around; i++) {
     const a = rings[row]![i]!, b = rings[row]![i + 1]!, c = rings[row + 1]![i]!, d = rings[row + 1]![i + 1]!
     cloth.face(a, b, c); cloth.face(b, d, c)
   }
@@ -427,21 +447,41 @@ function shoes(source: Source, spec: AnimeSpec, upper: Surface, sole: Surface, t
     // shapes are authored in neutral world space, then put into that bind space.
     const neutralToBind = nodeWorld(source.document, footAt).multiply(source.inverses[bone]!).invert()
     const make = (p: V3, uv: [number, number] = [0, 0]): Vertex => ({ p: new Vector3(...p).applyMatrix4(neutralToBind).toArray() as V3, uv, n: [0, 0, 0], joints: [bone, 0, 0, 0], weights: [1, 0, 0, 0] })
+    const heelPose = new Matrix4().makeTranslation(0, lift, 0).multiply(feet.get(footAt)!).multiply(source.inverses[bone]!).multiply(neutralToBind)
+    const heelInverse = heelPose.clone().invert()
     const rings: Vertex[][] = []
     for (let row = 0; row <= rows; row++) {
       const t = row / rows, ring: Vertex[] = []
       for (let i = 0; i <= around; i++) {
         const a = i / around * Math.PI * 2, front = Math.sin(a), sideways = Math.cos(a)
-        const tipZ = .052 + front * .131
-        const width = .044 + Math.max(0, front) * .010
-        const ankleX = heels ? .030 : basketball ? .042 : .037
-        const ankleZ = heels ? .054 : .038
-        const z = tipZ * (1 - t) + (-.007 + front * ankleZ) * t
-        const x = centre.x + sideways * (width * (1 - t) + ankleX * t)
-        const ankleY = basketball ? .146 : heels ? .057 + Math.max(0, -front) * .028 : .091
+        // Formal lasts are narrow at the heel, broad at the ball and tapered
+        // into an almond toe. Do not scale a sneaker's oval into a dress shoe.
+        const tipZ = basketball ? .052 + front * .131 : .06 + front * .141
+        const width = basketball ? .044 + Math.max(0, front) * .010 : .032 + .016 * smooth((front + .8) / .9) - .020 * smooth((front - .55) / .45)
+        const ankleX = basketball ? .042 : .032
+        const ankleZ = basketball ? .038 : heels ? .059 : .055
+        const loft = basketball ? t : smooth((t - .12) / .88)
+        const z = tipZ * (1 - loft) + ((basketball ? -.007 : .001) + front * ankleZ) * loft
+        const x = centre.x + sideways * (width * (1 - loft) + ankleX * loft)
+        const ankleY = basketball ? .146 : heels ? .065 + Math.max(0, -front) * .033 : .092 + Math.max(0, -front) * .015
+        const baseY = basketball ? .025 : .014 + .008 * smooth((-front - .25) / .65)
         const rise = smooth(t)
-        const y = .025 + (ankleY - .025) * rise + Math.sin(t * Math.PI) * .014
-        ring.push(make([x, y, z], [i / around, t]))
+        const y = baseY + (ankleY - baseY) * rise + Math.sin(t * Math.PI) * (basketball ? .014 : .012)
+        const p = new Vector3(x, y, z)
+        if (!basketball) {
+          // The tapered last extends beyond the old sneaker toe. Fit its lower
+          // edge in the actual posed/scaled rig, leaving a thin outsole above
+          // the floor instead of letting extreme hip axes sink the new tip.
+          p.applyMatrix4(heelPose)
+          if (heels) {
+            // Pumps have a thin forefoot sole, not a sneaker platform. Ease
+            // the ball/toe base onto it while leaving the heel counter high.
+            const forefoot = smooth((z - .03) / .10), base = new Vector3(x, baseY, z).applyMatrix4(heelPose)
+            p.y += (.010 - base.y) * forefoot * (1 - smooth(t))
+          }
+          p.y = Math.max(.009, p.y); p.applyMatrix4(heelInverse)
+        }
+        ring.push(make(p.toArray() as V3, [i / around, t]))
       }
       rings.push(ring)
     }
@@ -450,47 +490,61 @@ function shoes(source: Source, spec: AnimeSpec, upper: Surface, sole: Surface, t
       upper.face(a, c, b); upper.face(b, c, d)
     }
     // A separate sole has an actual closed underside and a shaped sidewall.
-    const heelPose = new Matrix4().makeTranslation(0, lift, 0).multiply(feet.get(footAt)!).multiply(source.inverses[bone]!).multiply(neutralToBind)
-    const heelInverse = heelPose.clone().invert()
     const top = rings[0]!
     const bindToNeutral = neutralToBind.clone().invert()
     const lower = top.map(v => {
       const p = new Vector3(...v.p).applyMatrix4(bindToNeutral)
-      p.y = heels ? .016 : .002
-      const support = heels ? smooth((p.z - .055) / .05) : 1
-      p.applyMatrix4(heelPose); p.y += (.002 - p.y) * support; p.applyMatrix4(heelInverse)
+      if (heels) {
+        const forefoot = smooth((p.z - .03) / .10)
+        p.applyMatrix4(heelPose); p.y -= .0055
+        p.y += (.002 - p.y) * forefoot; p.y = Math.max(.002, p.y)
+      } else {
+        p.y = .002; p.applyMatrix4(heelPose); p.y = .002
+      }
+      // A slight waist/arch notch between the dress shoe's forefoot and its
+      // low stacked heel; preserve actual heel and ball contact at both ends.
+      if (!heels && !basketball) p.y += .004 * smooth((p.z + .025) / .025) * (1 - smooth((p.z - .045) / .03))
+      p.applyMatrix4(heelInverse)
       return make(p.toArray() as V3, v.uv)
     })
-    const centrePoint = new Vector3(centre.x, heels ? .016 : .002, .052).applyMatrix4(heelPose)
-    if (!heels) centrePoint.y = .002
-    const centreSole = make(centrePoint.applyMatrix4(heelInverse).toArray() as V3)
     for (let i = 0; i < around; i++) {
       sole.face(top[i]!, lower[i]!, top[i + 1]!); sole.face(top[i + 1]!, lower[i]!, lower[i + 1]!)
-      sole.face(centreSole, lower[i + 1]!, lower[i]!)
+    }
+    // Ruled strips across the last preserve the curved underside/arch. A fan
+    // anchored to one low centre point used to make a hanging wedge/platform.
+    for (let i = 0; i < around / 2; i++) {
+      const at = (i: number) => lower[(i + around) % around]!
+      const a = at(around / 4 + i), b = at(around / 4 - i)
+      const c = at(around / 4 + i + 1), d = at(around / 4 - i - 1)
+      sole.face(a, c, b); sole.face(b, c, d)
     }
     if (heels) {
       // Author the heel's ground end in the posed world, then pull it back into
       // bind space. Both ends are carried by the same foot; no floating stem.
       const inverse = heelInverse
       const posed = (p: V3) => new Vector3(...p).applyMatrix4(heelPose)
-      const back = posed([centre.x, .020, -.045])
+      const back = posed([centre.x, .020, -.052])
       const high: Vertex[] = [], low: Vertex[] = []
       for (let i = 0; i < 24; i++) {
         const a = i / 24 * Math.PI * 2
-        high.push(make(new Vector3(back.x + Math.cos(a) * .014, back.y, back.z + Math.sin(a) * .014).applyMatrix4(inverse).toArray() as V3))
-        low.push(make(new Vector3(back.x + Math.cos(a) * .009, .002, back.z + Math.sin(a) * .009).applyMatrix4(inverse).toArray() as V3))
+        high.push(make(new Vector3(back.x + Math.cos(a) * .012, back.y, back.z + Math.sin(a) * .010).applyMatrix4(inverse).toArray() as V3))
+        low.push(make(new Vector3(back.x + Math.cos(a) * .006, .002, back.z - .003 + Math.sin(a) * .005).applyMatrix4(inverse).toArray() as V3))
       }
-      const bottom = make(new Vector3(back.x, .002, back.z).applyMatrix4(inverse).toArray() as V3)
+      const bottom = make(new Vector3(back.x, .002, back.z - .003).applyMatrix4(inverse).toArray() as V3)
       for (let i = 0; i < 24; i++) { const next = (i + 1) % 24; sole.face(high[i]!, low[i]!, high[next]!); sole.face(high[next]!, low[i]!, low[next]!); sole.face(bottom, low[next]!, low[i]!) }
     } else {
-      // Four pairs of fitted lace strips, seated on the actual upper surface.
-      for (const row of [5, 6, 7, 8]) {
-        const t = row / rows, frontY = .025 + ((basketball ? .146 : .091) - .025) * smooth(t) + Math.sin(t * Math.PI) * .014
-        const frontZ = .183 * (1 - t) + .031 * t
-        const half = .020 * (1 - t * .35)
-        const a = make([centre.x - half, frontY + .002, frontZ - .003]), b = make([centre.x + half, frontY + .002, frontZ - .003])
-        const c = make([centre.x - half, frontY + .0025, frontZ + .003]), d = make([centre.x + half, frontY + .0025, frontZ + .003])
-        trim.face(a, c, b); trim.face(b, c, d)
+      // Narrow dress lacing belongs on the instep, not across the toe box.
+      // Sample the actual loft so neither style has floating strips.
+      for (const row of basketball ? [5, 6, 7, 8] : [7, 8, 9]) {
+        const width = basketball ? 4 : 3
+        const path = (i: number, next: boolean): Vertex => {
+          const v = next ? between(rings[row]![i]!, rings[row + 1]![i]!, basketball ? .16 : .11) : rings[row]![i]!
+          return { ...v, p: new Vector3(...v.p).add(new Vector3(0, 1, 0).transformDirection(neutralToBind).multiplyScalar(.001)).toArray() as V3 }
+        }
+        for (let i = around / 4 - width; i < around / 4 + width; i++) {
+          trim.face(path(i, false), path(i, true), path(i + 1, false))
+          trim.face(path(i + 1, false), path(i, true), path(i + 1, true))
+        }
       }
     }
   }
@@ -513,7 +567,24 @@ function clothes(source: Source, spec: AnimeSpec): WardrobeGeometry[] {
   const shirt = new Surface(), pants = new Surface(), shirtTrim = new Surface(), pantsTrim = new Surface()
   const skirtMode = spec.bottom === 'skirtLong' || spec.bottom === 'skirtShort'
   const footTop = spec.shoes === 'basketball' ? .148 : spec.shoes === 'dress' ? .088 : .038
-  const coverFeet: Cut[] = [v => footTop - v.p[1]]
+  const footFits = ['leftFoot', 'rightFoot'].map(name => {
+    const at = source.document.extensions.VRMC_vrm.humanoid.humanBones[name]!.node
+    const world = nodeWorld(source.document, at)
+    return { centre: new Vector3().setFromMatrixPosition(world), bindToNeutral: world.multiply(source.inverses[source.joint[name]!]!) }
+  })
+  const coverFeet: Cut[] = spec.shoes === 'heels' ? [
+    v => .16 - v.p[1],
+    v => {
+      const fit = footFits[v.p[0] >= 0 ? 0 : 1]!
+      const p = new Vector3(...v.p).applyMatrix4(fit.bindToNeutral)
+      const x = (p.x - fit.centre.x) / .033, z = (p.z - .001) / .060
+      const front = z / Math.max(1e-6, Math.hypot(x, z))
+      // Keep a generous concealed overlap below the curved opening, not a
+      // near-coplanar skin edge. Remove the lower foot so it cannot emerge
+      // through the thin outsole as toes counter-rotate in the heel stance.
+      return Math.max((x * x + z * z - 1) * .10, .048 + Math.max(0, -front) * .033 - p.y)
+    },
+  ] : [v => footTop - v.p[1]]
   for (const [triangles, name, paint] of [[source.body, 'wardrobe_skin', 'skin'], [source.arm, 'wardrobe_arm_skin', 'armSkin']] as const) {
     const skin = new Surface()
     for (const original of triangles) {
@@ -567,10 +638,12 @@ export function buildWardrobe(buffer: ArrayBuffer, spec: AnimeSpec): Wardrobe | 
 /** Linear material factors, identical on-screen and in glTF. */
 export function wardrobeColour(paint: WardrobePaint, spec: AnimeSpec): V3 {
   const colour = new Vector3()
-  const hex = paint === 'armSkin' ? 'FFEDD1' : paint === 'top' || paint === 'topTrim' ? spec.outfitColour : paint === 'bottom' || paint === 'bottomTrim' ? spec.bottomColour : paint === 'sole' ? 'D7DCE3' : paint === 'shoeTrim' ? '526273' : spec.shoeColour
+  const formal = spec.shoes === 'dress' || spec.shoes === 'heels'
+  const hex = paint === 'armSkin' ? 'FFEDD1' : paint === 'top' || paint === 'topTrim' ? spec.outfitColour : paint === 'bottom' || paint === 'bottomTrim' ? spec.bottomColour : paint === 'sole' && !formal ? 'D7DCE3' : paint === 'shoeTrim' && !formal ? '526273' : spec.shoeColour
   const channels = [0, 2, 4].map(at => { const s = parseInt(hex.slice(at, at + 2), 16) / 255; return s <= .04045 ? s / 12.92 : ((s + .055) / 1.055) ** 2.4 }) as V3
   colour.fromArray(channels)
   if (paint === 'topTrim' || paint === 'bottomTrim') colour.multiplyScalar(.78)
+  if (formal && (paint === 'sole' || paint === 'shoeTrim')) colour.multiplyScalar(paint === 'sole' ? .28 : .7)
   if (paint === 'armSkin') {
     const tint = [0, 2, 4].map(at => { const s = parseInt(spec.skinColour.slice(at, at + 2), 16) / 255; return s <= .04045 ? s / 12.92 : ((s + .055) / 1.055) ** 2.4 })
     colour.multiply(new Vector3(...tint as V3))

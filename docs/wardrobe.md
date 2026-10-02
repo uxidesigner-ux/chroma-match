@@ -114,3 +114,74 @@ rules were not modified. CI and actual live verification remain deployment gates
 This is a fitted, rigged game wardrobe, not a real-time cloth simulator. Exact
 Nike/Jordan products, logos and brand names are excluded. No claim of universal
 collision-free compatibility with arbitrary poses or imported models is made.
+
+## Tailoring refinement — 2026-10-02
+
+### User problem and selected solution
+
+The user requested more believable formal shoes and skirts that feel seated
+against the body, rather than suspended around it. Keep the existing anime
+materials, choices, gestures, draft/save flow and appearance encoding. This is
+a geometry refinement, not a new editing mode or garment catalogue.
+
+Inspection of actual close-ups confirmed that dress shoes reused a sneaker-like
+oval and thick light outsole. The skirt had a 20 mm normal-offset waist and
+quickly blended out to a large flaring ellipse. Hands in the A-pose also cross
+waist height in the same source primitive; fitting must explicitly exclude them.
+
+- **Skirts:** true horizontal torso sections through waist/seat, with body
+  influences at fitted points and dense waist rows. The outer waist is 12 mm
+  from skin (9 mm shirt thickness plus 3 mm clearance), reducing to 5.5 mm over
+  bare hips. A radial offset avoids tangential sliding across mesh seams. The
+  skirt is a slim silhouette with a small movement allowance below the seat,
+  rather than a uniformly flaring cone. Long/short lengths remain unchanged.
+- **Formal shoes:** separate almond-toe lasts, narrower collars/heel counters,
+  instep lacing on dress shoes, thin colour-matched outsoles, arch clearance and
+  a tapered heel. The sole underside is made of ruled strips, not a low central
+  fan that visually fills the arch with a hanging wedge. Sneakers retain their
+  own last/palette; only fitted lace strips and the underside construction are
+  shared.
+- **Motion:** new toe support is fitted in the actual scaled/posed foot matrix.
+  Initial extreme-figure checks exposed a sinking forefoot; fitting the upper
+  and replacing the low underside fan resolved it. Skin masking is in the same
+  neutral-to-bind space as the pump, with concealed overlap below its curved
+  opening so the foot cannot emerge through the thin sole. Rig/export still
+  consume the same generated surfaces, weights, palette and raw heel stance.
+- **Compatibility:** earlier appearance codes, selected colours, library/backup
+  files and the licensed source asset are unchanged. Saved v7 outfits receive
+  the refined geometry when rendered; no re-selection or new schema is needed.
+
+### Refinement verification
+
+Final frozen-source results (the original implementation evidence above remains
+historical):
+
+- `npm test`: **196 passed**. New regression coverage measures 65 points on
+  each of eight waist/hip sections, for both skirt lengths (1,040 samples):
+  radial skin clearance stays between 5.4 and 12.1 mm including float tolerance,
+  without arm influences. It also checks formal toe/collar dimensions and the
+  colour-matched sole. Existing 64 outfit combinations and exact exported
+  geometry/weights still pass.
+- `npm run typecheck` and `BASE_PATH=/chroma-match/ npm run build`: passed.
+  Only the existing Vite large-chunk advisory remains; no dependency changed.
+- `npm run test:studio -- tests/studio/wardrobe.spec.ts`: **8 passed**. Includes
+  draft/Undo/cancel, save/reload/lobby/profile, PNG/backup and VRM/GLB download
+  reloads, and keyboard/reduced motion in four locales and three themes at
+  320/390/720/1280 px. Page-error checks in UI/export flows remained empty.
+- The real rig test in that run covers **240 body/outfit/gesture cases / 1,200
+  sampled phases**. No separate skeletons, raw export-stance mismatches or hinge
+  errors; lowest support -0.000779 m, maximum contact gap 0.007390 m, within the
+  existing 7/8 mm tolerance. This is not an exact-zero or universal collision
+  claim.
+- `npm run test:release`: **5 passed** on the final local production build,
+  including wardrobe save/reload/offline recovery and prior guest/Paper flows.
+  Final renderer asset: `anime-renderer-BuJU16ER.js`.
+- `git diff --check` passed. The pinned model checksum remains the same.
+
+Actual rendered close-ups, gesture contact sheet, four-view PNG, downloaded
+models and fit JSON are in `/tmp/chroma-wardrobe-tailoring-final/`. Source and
+before/after renders were reviewed; the initial forefoot-contact failure and
+pump skin-mask refinement were resolved before the frozen-source pass. No
+independent sub-agent/human review is claimed. All earlier physical-device,
+native Safari, signed-in cloud-write, third-party VRM and cloth-physics limits
+still apply. No push, merge, CI or live deployment was performed for this change.

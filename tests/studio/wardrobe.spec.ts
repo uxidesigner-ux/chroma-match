@@ -145,6 +145,43 @@ test('real rig keeps sleeves, hands, skirts and grounded footwear through body v
   expect(result.cases).toBe(240)
 })
 
+test('tailored hips and formal shoe lasts render clearly from front, side and back', async ({ page }, testInfo) => {
+  await page.route('**/src/main.ts', route => route.fulfill({ contentType: 'application/javascript', body: '' }))
+  await page.goto('/')
+  const result = await page.evaluate(async () => {
+    const { StudioCharacter } = await import('/src/avatar/character-studio/character.ts')
+    const { DEFAULT_ANIME, wear } = await import('/src/avatar/anime-spec.ts')
+    const { Scene, WebGLRenderer, OrthographicCamera, HemisphereLight, DirectionalLight, Color, Vector3 } = await import('/node_modules/.vite/deps/three.js')
+    const character = await StudioCharacter.load(new AbortController().signal)
+    const scene = new Scene(); scene.background = new Color('#263245')
+    scene.add(character.vrm.scene, new HemisphereLight(0xffffff, 0x718095, 2))
+    const light = new DirectionalLight(0xffffff, 2); light.position.set(-1, 2, 3); scene.add(light)
+    const canvas = document.createElement('canvas'), renderer = new WebGLRenderer({ canvas, antialias: true })
+    renderer.setSize(440, 380, false)
+    const sheet = document.createElement('canvas'); sheet.width = 1320; sheet.height = 1520
+    const ctx = sheet.getContext('2d')!
+    try {
+      for (const [row, item] of ['dress', 'heels', 'skirtLong', 'skirtShort'].entries()) {
+        const shoes = item === 'dress' ? 'dress' : 'heels', bottom = item === 'skirtLong' ? 'skirtLong' : 'skirtShort'
+        character.apply(wear({ ...DEFAULT_ANIME, sex: 'female', hair: 'bob', shoeColour: '263A46' }, { top: 'vShort', bottom, shoes }))
+        character.tick(0, false); character.vrm.scene.updateMatrixWorld(true)
+        for (const [column, angle] of [0, Math.PI / 2, row < 2 ? Math.PI / 4 : Math.PI].entries()) {
+          const target = new Vector3(0, row < 2 ? .085 : .86, row < 2 ? .06 : .007)
+          const size = row < 2 ? .32 : .42
+          const camera = new OrthographicCamera(-size / 2 * 440 / 380, size / 2 * 440 / 380, size / 2, -size / 2, .01, 20)
+          camera.position.copy(target).add(new Vector3(Math.sin(angle) * 3, row < 2 ? .65 : .15, Math.cos(angle) * 3))
+          camera.lookAt(target); renderer.render(scene, camera)
+          ctx.drawImage(canvas, column * 440, row * 380)
+          ctx.fillStyle = '#fff'; ctx.font = '18px sans-serif'
+          ctx.fillText(`${item} · ${column === 0 ? 'front' : column === 1 ? 'side' : row < 2 ? 'three-quarter' : 'back'}`, column * 440 + 10, row * 380 + 365)
+        }
+      }
+      return sheet.toDataURL('image/png').split(',')[1]!
+    } finally { character.dispose(); renderer.dispose() }
+  })
+  await writeFile(testInfo.outputPath('wardrobe-tailoring-closeups.png'), Buffer.from(result, 'base64'))
+})
+
 test('wardrobe backup/PNG and skinned VRM/GLB downloads preserve the selected outfit', async ({ page }, testInfo) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
