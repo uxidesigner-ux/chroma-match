@@ -4,12 +4,15 @@ import { SEED_CREDIT } from './studio-library.ts'
 import {
   CHEST_HIGH,
   CHEST_LOW,
+  SEAT_HIGH,
+  SEAT_LOW,
   HAIR_SHAPE,
   RIGID,
   SCULPTED,
   applyFigure,
   bustAmount,
   sculptChest,
+  sculptSeat,
 } from './body-shape.ts'
 import type { ShapeNode, ShapedBone } from './body-shape.ts'
 import { hairGeometry } from './hair-strands.ts'
@@ -24,6 +27,7 @@ interface Accessor {
   componentType: number
   type: string
   count: number
+  normalized?: boolean
   min?: number[]
   max?: number[]
 }
@@ -111,25 +115,29 @@ function glbSkeleton(json: SeedDocument) {
   return { bone: (name: ShapedBone) => wrap(bones[name]?.node) }
 }
 
-/** Reads a tightly-read VEC3 accessor, whatever stride the source packed it at. */
-function readVec3(json: SeedDocument, binary: Uint8Array, index: number): Float32Array {
+/** Reads vertex/skin attributes with their actual component size and stride. */
+function readVector(json: SeedDocument, binary: Uint8Array, index: number, width: 3 | 4): Float32Array {
   const accessor = json.accessors[index]
-  if (!accessor || accessor.type !== 'VEC3' || accessor.componentType !== 5126)
+  if (!accessor || accessor.type !== `VEC${width}` || ![5126, 5123, 5121].includes(accessor.componentType))
     throw new Error('Unsupported vertex data')
   const view = json.bufferViews[accessor.bufferView]
   if (!view) throw new Error('Unsupported vertex data')
   const data = new DataView(binary.buffer, binary.byteOffset)
   const base = (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0)
-  const stride = view.byteStride ?? 12
-  const out = new Float32Array(accessor.count * 3)
+  const size = accessor.componentType === 5126 ? 4 : accessor.componentType === 5123 ? 2 : 1
+  const stride = view.byteStride ?? width * size
+  const out = new Float32Array(accessor.count * width)
   for (let i = 0; i < accessor.count; i++) {
     const at = base + i * stride
-    out[i * 3] = data.getFloat32(at, true)
-    out[i * 3 + 1] = data.getFloat32(at + 4, true)
-    out[i * 3 + 2] = data.getFloat32(at + 8, true)
+    for (let j = 0; j < width; j++) {
+      let value = size === 4 ? data.getFloat32(at + j * size, true) : size === 2 ? data.getUint16(at + j * size, true) : data.getUint8(at + j * size)
+      if (accessor.normalized && size !== 4) value /= size === 2 ? 65535 : 255
+      out[i * width + j] = value
+    }
   }
   return out
 }
+const readVec3 = (json: SeedDocument, binary: Uint8Array, index: number) => readVector(json, binary, index, 3)
 
 /** Write the same closed shell the preview uses, as a rigid head child. */
 function standHair(json: SeedDocument, chunks: Uint8Array[], byteLength: number, spec: AnimeSpec, png?: Uint8Array): number {
@@ -333,7 +341,7 @@ export function exportSeed(
   }
 
   const amount = bustAmount(spec)
-  if (amount > 0) {
+  {
     for (const mesh of json.meshes)
       for (const primitive of mesh.primitives) {
         const name = json.materials[primitive.material]!.name
@@ -344,28 +352,32 @@ export function exportSeed(
         const position = readVec3(json, binary, positionAt)
         const normal = readVec3(json, binary, normalAt)
         /*
-         * Only the meshes that actually carry geometry across the chest. The
+         * Only the meshes carrying chest/seat geometry. The
          * head's skin shares a material name with the body's but sits entirely
          * above the neck, and rewriting base vertices under its forty-three
          * expression morphs would quietly corrupt them.
          */
         let inside = false
         for (let i = 0; i < position.length && !inside; i += 3)
-          inside = position[i + 1]! > CHEST_LOW && position[i + 1]! < CHEST_HIGH && position[i + 2]! > 0
+          inside = (amount > 0 && position[i + 1]! > CHEST_LOW && position[i + 1]! < CHEST_HIGH && position[i + 2]! > 0) || (position[i + 1]! > SEAT_LOW && position[i + 1]! < SEAT_HIGH && position[i + 2]! < -.008)
         if (!inside) continue
         const moved = { position: new Float32Array(position), normal: new Float32Array(normal) }
-        sculptChest(amount, RIGID.has(name), { position, normal }, {
-          setPosition: (i, x, y, z) => {
+        const into = {
+          setPosition: (i: number, x: number, y: number, z: number) => {
             moved.position[i * 3] = x
             moved.position[i * 3 + 1] = y
             moved.position[i * 3 + 2] = z
           },
-          setNormal: (i, x, y, z) => {
+          setNormal: (i: number, x: number, y: number, z: number) => {
             moved.normal[i * 3] = x
             moved.normal[i * 3 + 1] = y
             moved.normal[i * 3 + 2] = z
           },
-        })
+        }
+        sculptChest(amount, RIGID.has(name), { position, normal }, into)
+        const jointsAt = primitive.attributes.JOINTS_0, weightsAt = primitive.attributes.WEIGHTS_0
+        if (!RIGID.has(name) && jointsAt !== undefined && weightsAt !== undefined)
+          sculptSeat({ position, normal, joints: readVector(json, binary, jointsAt, 4), weights: readVector(json, binary, weightsAt, 4) }, into)
         // Appended rather than written over: the originals stay valid for
         // anything else in the document still pointing at them.
         for (const [key, values] of [['POSITION', moved.position], ['NORMAL', moved.normal]] as const) {

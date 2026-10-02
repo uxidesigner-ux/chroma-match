@@ -60,6 +60,10 @@ unbranded high-top sneakers/dress shoes/heels and barefoot. Pieces and colours
 are independent; compatible skin masks, finished openings and shared bone
 weights keep the body/cloth together. Heel stance and sole contact are fitted
 against the actual reshaped rig, and use the same geometry in VRM/GLB exports.
+Even the minimum hip setting retains a modest rounded rear foundation, shared
+by the body, original outfit, fitted wardrobe and exports. Hip size still scales
+independently; this requested baseline refinement also applies to saved looks
+without changing their codes or the face, belly, height and leg length.
 Previous appearances retain the original outfit until a new piece is selected;
 new wardrobe profiles use a bounded v7 code. This is skinned game clothing, not
 cloth simulation or a claim of fit on arbitrary models/animations. See

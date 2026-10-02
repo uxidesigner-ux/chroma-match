@@ -34,7 +34,7 @@ test('palette export appends aligned textures without recolouring shared origina
   assert.deepEqual(material.pbrMetallicRoughness.baseColorFactor, [.1, .2, .3, 1])
   assert.equal(material.pbrMetallicRoughness.baseColorTexture!.index, original.json.textures.length)
   assert.deepEqual(result.json.textures[originalMap], original.json.textures[originalMap])
-  const view = result.json.bufferViews.at(-1)!
+  const view = result.json.bufferViews[result.json.images[original.json.images.length]!.bufferView]!
   assert.equal(view.byteOffset! % 4, 0)
   assert.deepEqual([...result.binary.slice(view.byteOffset!, view.byteOffset! + view.byteLength)], [1, 2, 3, 4, 5])
   assert.equal(result.json.buffers[0]!.byteLength, result.binary.byteLength)
@@ -104,14 +104,24 @@ test('an exported avatar carries the figure it was drawn with', () => {
   assert.equal(movedShoulder[1], restShoulder[1], 'the shoulder changed height')
 })
 
-test('a male export is the shipped mesh, and a female export carries the bust', () => {
+test('both exports have the rounded seat, while only the female chest carries the bust', () => {
   const male = readGlb(exportSeed(source, { ...DEFAULT_ANIME, sex: 'male' }, []))
   const female = readGlb(exportSeed(source, { ...DEFAULT_ANIME, sex: 'female', bust: 6 }, []))
   assert.equal(bustAmount({ ...DEFAULT_ANIME, sex: 'male' }), 0)
 
   const shipped = positions(original, 'huku_bake')
-  assert.deepEqual(Array.from(positions(male, 'huku_bake')), Array.from(shipped),
-    'a male export moved vertices its author did not')
+  const baseline = positions(male, 'huku_bake')
+  let seat = 0
+  for (let i = 0; i < shipped.length; i += 3) {
+    assert.equal(baseline[i], shipped[i], 'seat changed width')
+    assert.equal(baseline[i + 1], shipped[i + 1], 'seat changed height')
+    const delta = shipped[i + 2]! - baseline[i + 2]!
+    if (delta <= 1e-6) { assert.ok(Math.abs(delta) < 1e-6); continue }
+    assert.ok(delta <= .0321)
+    assert.ok(shipped[i + 1]! > .68 && shipped[i + 1]! < .95 && shipped[i + 2]! < -.008)
+    seat++
+  }
+  assert.ok(seat > 40, 'rounded seat missing from original outfit export')
 
   // The chest comes forward, and only the chest.
   const sculpted = positions(female, 'huku_bake')
@@ -119,9 +129,9 @@ test('a male export is the shipped mesh, and a female export carries the bust', 
   let chest = 0
   for (let i = 0; i < shipped.length; i += 3) {
     const moved = Math.hypot(
-      sculpted[i]! - shipped[i]!,
-      sculpted[i + 1]! - shipped[i + 1]!,
-      sculpted[i + 2]! - shipped[i + 2]!,
+      sculpted[i]! - baseline[i]!,
+      sculpted[i + 1]! - baseline[i + 1]!,
+      sculpted[i + 2]! - baseline[i + 2]!,
     )
     if (moved <= 1e-6) continue
     chest++

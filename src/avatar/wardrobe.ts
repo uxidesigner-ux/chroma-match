@@ -10,7 +10,7 @@ import { VRMHumanoid } from '@pixiv/three-vrm'
 import type { VRMHumanBones } from '@pixiv/three-vrm'
 import type { AnimeSpec } from './anime-spec.ts'
 import { hasWardrobe } from './anime-spec.ts'
-import { applyFigure, bustAmount, sculptChest } from './body-shape.ts'
+import { applyFigure, bustAmount, sculptChest, sculptSeat } from './body-shape.ts'
 import type { ShapeNode } from './body-shape.ts'
 
 type V3 = [number, number, number]
@@ -52,7 +52,6 @@ interface Source {
   body: Vertex[][]
   arm: Vertex[][]
   points: Vertex[]
-  fitPoints: Vertex[]
   joint: Record<string, number>
   inverses: Matrix4[]
   looks: Map<string, Wardrobe>
@@ -103,9 +102,8 @@ function sourceData(buffer: ArrayBuffer): Source {
     for (let i = 0; i < indices.length; i += 3) triangles.push(indices.slice(i, i + 3).map(index => vertices[index]!))
   }
   const joint = Object.fromEntries(Object.entries(document.extensions.VRMC_vrm.humanoid.humanBones).map(([name, bone]) => [name, skin.joints.indexOf(bone.node)]))
-  const fitPoints = points.filter(v => Math.abs(v.p[0]) < .18 && v.p[1] > .63 && v.p[1] < .99)
   const inverses = read(skin.inverseBindMatrices).map(values => new Matrix4().fromArray(values))
-  const result = { document, skin: wear.skin, body, arm, points, fitPoints, joint, inverses, looks: new Map<string, Wardrobe>(), clothes: new Map<string, WardrobeGeometry[]>() }
+  const result = { document, skin: wear.skin, body, arm, points, joint, inverses, looks: new Map<string, Wardrobe>(), clothes: new Map<string, WardrobeGeometry[]>() }
   sources.set(buffer, result)
   return result
 }
@@ -260,22 +258,18 @@ function sculpt(source: Source, spec: AnimeSpec): Map<Vertex, Vertex> {
   const amount = bustAmount(spec)
   const positions = Float32Array.from(source.points.flatMap(v => v.p)), normals = Float32Array.from(source.points.flatMap(v => v.n))
   const result = new Map<Vertex, Vertex>()
-  sculptChest(amount, false, { position: positions, normal: normals }, {
-    setPosition: (i, x, y, z) => positions.set([x, y, z], i * 3),
-    setNormal: (i, x, y, z) => normals.set([x, y, z], i * 3),
-  })
+  const rest = { position: positions.slice(), normal: normals.slice(), joints: source.points.flatMap(v => v.joints), weights: source.points.flatMap(v => v.weights) }
+  const into = {
+    setPosition: (i: number, x: number, y: number, z: number) => positions.set([x, y, z], i * 3),
+    setNormal: (i: number, x: number, y: number, z: number) => normals.set([x, y, z], i * 3),
+  }
+  sculptChest(amount, false, rest, into)
+  sculptSeat(rest, into)
   source.points.forEach((v, i) => result.set(v, { ...v, p: Array.from(positions.subarray(i * 3, i * 3 + 3)) as V3, n: Array.from(normals.subarray(i * 3, i * 3 + 3)) as V3 }))
   return result
 }
 
-function nearest(source: Source, p: V3): Vertex {
-  let best = source.points[0]!, distance = Infinity
-  for (const v of source.fitPoints) {
-    const d = (v.p[0] - p[0]) ** 2 + (v.p[1] - p[1]) ** 2 + (v.p[2] - p[2]) ** 2
-    if (d < distance) { best = v; distance = d }
-  }
-  return { ...best, p, n: [0, 0, 0], uv: [0, 0] }
-}
+const armInfluence = (v: Vertex) => v.weights.some((w, i) => w > .1 && v.joints[i]! >= 30 && v.joints[i]! <= 78 && v.joints[i] !== 37)
 
 /** The skirt waist shares the body's actual surface/influences, not an ellipse
  * merely close to it. This keeps a tucked shirt outside the skin and inside
@@ -287,7 +281,7 @@ function waistSurface(source: Source, y: number, a: number): Vertex | null {
   for (const t of source.body) {
     // Hands share body_bake and cross waist height in the mesh's A-pose. A
     // waistband must never be fitted to a finger instead of the torso behind it.
-    if (t.every(v => v.p[1] < y) || t.every(v => v.p[1] > y) || t.some(v => v.weights.some((w, i) => w > .1 && v.joints[i]! >= 30 && v.joints[i]! <= 78 && v.joints[i] !== 37))) continue
+    if (t.every(v => v.p[1] < y) || t.every(v => v.p[1] > y) || t.some(armInfluence)) continue
     const [p, q, r] = t.map(v => new Vector3(...v.p)) as [Vector3, Vector3, Vector3]
     if (!ray.intersectTriangle(p, q, r, false, hit)) continue
     const next = hit.distanceTo(ray.origin)
@@ -301,46 +295,114 @@ function waistSurface(source: Source, y: number, a: number): Vertex | null {
   return fitted
 }
 
+/** A skirt follows the outside of BOTH legs, not each leg like trousers. Join
+ * the real horizontal section with a convex envelope, carrying the sampled
+ * body weights across its centre panels. This removes the maximum-hip cylinder
+ * without making a crotch groove or binding the hem mostly to a scaled hip. */
+function skirtSection(source: Source, y: number): Vertex[] {
+  const points: Vertex[] = []
+  for (const triangle of source.body) {
+    if (triangle.some(armInfluence)) continue
+    for (let i = 0; i < 3; i++) {
+      const a = triangle[i]!, b = triangle[(i + 1) % 3]!
+      if ((a.p[1] < y) === (b.p[1] < y)) continue
+      points.push(between(a, b, (y - a.p[1]) / (b.p[1] - a.p[1])))
+    }
+  }
+  return sectionHull(points)
+}
+
+function sectionHull(points: Vertex[]): Vertex[] {
+  points.sort((a, b) => a.p[0] - b.p[0] || a.p[2] - b.p[2])
+  const cross = (a: Vertex, b: Vertex, c: Vertex) => (b.p[0] - a.p[0]) * (c.p[2] - a.p[2]) - (b.p[2] - a.p[2]) * (c.p[0] - a.p[0])
+  const chain = (vertices: Vertex[]) => {
+    const hull: Vertex[] = []
+    for (const v of vertices) {
+      while (hull.length > 1 && cross(hull[hull.length - 2]!, hull[hull.length - 1]!, v) <= 1e-12) hull.pop()
+      hull.push(v)
+    }
+    return hull.slice(0, -1)
+  }
+  return [...chain(points), ...chain([...points].reverse())]
+}
+
+function sectionPoint(section: Vertex[], y: number, a: number): Vertex {
+  const dx = Math.cos(a), dz = Math.sin(a)
+  for (let i = 0; i < section.length; i++) {
+    const p = section[i]!, q = section[(i + 1) % section.length]!
+    const px = p.p[0], pz = p.p[2] - .007, ex = q.p[0] - px, ez = q.p[2] - p.p[2]
+    const denominator = dx * ez - dz * ex
+    if (Math.abs(denominator) < 1e-10) continue
+    const radius = (px * ez - pz * ex) / denominator, t = (px * dz - pz * dx) / denominator
+    if (radius > 0 && t >= -1e-8 && t <= 1 + 1e-8) {
+      const vertex = between(p, q, Math.max(0, Math.min(1, t)))
+      vertex.p = [dx * radius, y, dz * radius + .007]
+      return vertex
+    }
+  }
+  throw new Error('Missing fitted skirt section')
+}
+
 function skirt(source: Source, spec: AnimeSpec, cloth: Surface, trim: Surface): void {
   const long = spec.bottom === 'skirtLong', hem = long ? .175 : .567
   const around = 64
-  // Dense, horizontal tailoring at the waistband/hip; a shallow drape only
-  // below the seat. A fixed flaring ellipse made the old waist look suspended.
-  const levels = [.949, .945, .941, .934, .927, .915, .895, .875, .850, .82, .79, .76, .73]
-  const lowerRows = Math.ceil((.73 - hem) / .025)
-  for (let row = 1; row <= lowerRows; row++) levels.push(.73 + (hem - .73) * row / lowerRows)
-  const anchors = Array.from({ length: around + 1 }, (_, i) => {
-    const a = i / around * Math.PI * 2
-    const samples = [.875, .850, .82, .79, .76].map(y => waistSurface(source, y, a)).filter(v => v !== null)
-    return samples.reduce<Vertex | null>((best, v) => !best || Math.hypot(v.p[0], v.p[2] - .007) > Math.hypot(best.p[0], best.p[2] - .007) ? v : best, null)
-  })
+  // Preserve the seated waist; continue tailoring through seat/thigh/hem rather
+  // than projecting the widest hip radius all the way down to the floor.
+  const thigh = .567
+  const levels = [.949, .945, .941, .934, .927, .915, .895, .875, .850, .82, .79, .76, .73, .71, .69, .67, .65, .63, .61, .59, thigh]
+  if (long) {
+    const lowerRows = Math.ceil((thigh - hem) / .025)
+    for (let row = 1; row <= lowerRows; row++) levels.push(thigh + (hem - thigh) * row / lowerRows)
+  }
+  const sections = new Map(levels.filter(y => y < .79).map(y => [y, skirtSection(source, y)]))
+  const radiusOf = (v: Vertex) => Math.hypot(v.p[0], v.p[2] - .007)
+  // Below the thigh, use the narrowest ruled pencil panel that encloses every
+  // sampled leg section. Following knees/calves literally made a wavy tube;
+  // using the widest hip everywhere made a box. Keep the actual section weights.
+  const pencil = long ? Array.from({ length: around + 1 }, (_, i) => {
+    const a = i / around * Math.PI * 2, start = radiusOf(sectionPoint(sections.get(thigh)!, thigh, a))
+    let end = 0
+    for (const y of levels.filter(y => y < thigh)) {
+      const t = (thigh - y) / (thigh - hem), radius = radiusOf(sectionPoint(sections.get(y)!, y, a))
+      end = Math.max(end, start + (radius - start) / t)
+    }
+    return { start, end }
+  }) : null
+  if (pencil) {
+    // The maximum of radial constraints can have re-entrant corners between
+    // rays. Fair the endpoint into one convex hem before drawing ruled panels;
+    // otherwise an edge can cut into a calf even when both ends clear it.
+    const endSection = sectionHull(pencil.slice(0, around).map(({ end }, i) => {
+      const a = i / around * Math.PI * 2, v = sectionPoint(sections.get(hem)!, hem, a)
+      v.p = [end * Math.cos(a), hem, end * Math.sin(a) + .007]
+      return v
+    }))
+    pencil.forEach((p, i) => { p.end = radiusOf(sectionPoint(endSection, hem, i / around * Math.PI * 2)) })
+  }
   const rings: Vertex[][] = []
   for (const y of levels) {
-    const t = (.949 - y) / (.949 - hem), release = smooth((.79 - y) / .06)
+    const t = (.949 - y) / (.949 - hem)
     // Shirt is 9 mm outside the skin. Clear it by 3 mm, then ease down to
     // 5.5 mm over bare hips; the inner binding seats against the tucked shirt.
-    const gap = .0055 + .0065 * (1 - smooth((.927 - y) / .032))
+    // Mini: close 8 mm tailoring below the seat. Long: the same fitted thigh,
+    // with 4 mm additional hem allowance for the supported weight shift.
+    const gap = .0055 + .0065 * (1 - smooth((.927 - y) / .032)) + .0025 * smooth((.79 - y) / .08) + (long ? .004 * smooth((thigh - y) / (thigh - hem)) : 0)
+    const section = sections.get(y)
     const ring: Vertex[] = []
     for (let i = 0; i <= around; i++) {
-      const a = i / around * Math.PI * 2, anchor = anchors[i]
-      const ease = .006 + smooth((.73 - y) / (.73 - hem)) * (long ? .013 : .008)
-      const radius = (anchor ? Math.hypot(anchor.p[0], anchor.p[2] - .007) : Math.hypot(.14 * Math.cos(a), .08 * Math.sin(a))) + ease
-      const target: V3 = [radius * Math.cos(a), y, radius * Math.sin(a) + .007]
-      const fitted = y >= .73 ? waistSurface(source, y, a) : null
-      const v = fitted ?? nearest(source, [target[0], Math.max(.66, y), target[2]])
+      const a = i / around * Math.PI * 2
+      const v = section ? sectionPoint(section, y, a) : waistSurface(source, y, a)
+      if (!v) throw new Error('Missing fitted skirt waist')
+      if (pencil && y < thigh) {
+        const { start, end } = pencil[i]!, t = (thigh - y) / (thigh - hem)
+        const radius = start + (end - start) * t
+        v.p = [radius * Math.cos(a), y, radius * Math.sin(a) + .007]
+      }
       // A radial offset stays on this exact horizontal section. Following an
       // interpolated mesh normal would slide over a seam onto a different ray,
       // producing a much larger gap (or penetrating an adjacent hip triangle).
       const normal = new Vector3(Math.cos(a), 0, Math.sin(a))
-      const p = fitted ? new Vector3(...fitted.p).addScaledVector(normal, gap).lerp(new Vector3(...target), release).toArray() as V3 : target
-      // Lower fabric follows the legs gently, with a smooth centre panel instead
-      // of switching rigidly at the centre seam. Idle/gesture leg motion is bounded.
-      if (y < .76) {
-        const left = smooth((Math.cos(a) + .28) / .56), leg = smooth((.76 - y) / .35) * .4
-        v.joints = [source.joint.hips!, source.joint.leftUpperLeg!, source.joint.rightUpperLeg!, 0]
-        v.weights = [1 - leg, leg * left, leg * (1 - left), 0]
-      }
-      v.p = p
+      v.p = new Vector3(...v.p).addScaledVector(normal, gap).toArray() as V3
       v.n = [Math.cos(a), .12, Math.sin(a)]
       v.uv = [i / around, t]
       ring.push(v)
@@ -351,7 +413,8 @@ function skirt(source: Source, spec: AnimeSpec, cloth: Surface, trim: Surface): 
     const a = rings[row]![i]!, b = rings[row]![i + 1]!, c = rings[row + 1]![i]!, d = rings[row + 1]![i + 1]!
     cloth.face(a, b, c); cloth.face(b, d, c)
   }
-  finishOpening(cloth, trim, .005)
+  cloth.calculateNormals()
+  finishOpening(cloth, trim, .004)
 }
 
 const nodeWorld = (document: SourceDocument, at: number, override = new Map<number, V4>()): Matrix4 => {
@@ -593,7 +656,9 @@ function clothes(source: Source, spec: AnimeSpec): WardrobeGeometry[] {
       if (spec.shoes !== 'bare') exposed = exposed.flatMap(t => uncover(t, coverFeet))
       skin.triangles(exposed)
       const offset = (v: Vertex, bottom: boolean): Vertex => {
-        const gap = bottom ? .013 + (spec.bottom === 'trousers' ? smooth((.63 - v.p[1]) / .48) * .013 : .004) : .009
+        // Taper only the concealed tucked-shirt overlap. New rear normals can
+        // otherwise lift its lower binding through an independently scaled waist.
+        const gap = bottom ? .013 + (spec.bottom === 'trousers' ? smooth((.63 - v.p[1]) / .48) * .013 : .004) : .002 + .007 * smooth((v.p[1] - .927) / .022)
         return { ...v, p: v.p.map((n, i) => n + v.n[i]! * gap) as V3 }
       }
       shirt.triangles(keep(triangle, top).map(t => t.map(v => offset(v, false))))
@@ -602,7 +667,7 @@ function clothes(source: Source, spec: AnimeSpec): WardrobeGeometry[] {
     parts.push(skin.shape(name, paint))
   }
   finishOpening(shirt, shirtTrim)
-  if (skirtMode) skirt(source, spec, pants, pantsTrim)
+  if (skirtMode) skirt({ ...source, body: source.body.map(t => t.map(v => shaped.get(v)!)) }, spec, pants, pantsTrim)
   else finishOpening(pants, pantsTrim)
   parts.push(shirt.shape('wardrobe_top', 'top'), shirtTrim.shape('wardrobe_top_binding', 'topTrim', true), pants.shape('wardrobe_bottom', 'bottom', skirtMode), pantsTrim.shape('wardrobe_bottom_binding', 'bottomTrim', true))
   source.clothes.set(key, parts)

@@ -258,7 +258,7 @@ export function sculptChest(
     const py = rest.position[o + 1]!
     const pz = rest.position[o + 2]!
     const fall = bustField(amount, px, py, pz, move)
-    into.setPosition(i, px + move[0]!, py + move[1]!, pz + move[2]!)
+    into.setPosition(i, fall > 0 ? px + move[0]! : px, fall > 0 ? py + move[1]! : py, fall > 0 ? pz + move[2]! : pz)
     if (fall <= 0) {
       into.setNormal(i, rest.normal[o]!, rest.normal[o + 1]!, rest.normal[o + 2]!)
       continue
@@ -280,6 +280,47 @@ export function sculptChest(
     ny /= unit
     nz /= unit
     into.setNormal(i, nx, ny, nz)
+  }
+}
+
+/** The licensed starter's rear is almost flat. Add a modest rounded foundation
+ * before bone scaling, so even hip step 0 keeps a seat rather than a flat back.
+ * Shared by skin, fitted clothes, the legacy outfit and VRM/GLB export. */
+export const SEAT_LOW = .68
+export const SEAT_HIGH = .95
+const SEAT_VOLUME = .032
+const smoothSeat = (v: number) => { const t = Math.max(0, Math.min(1, v)); return t * t * (3 - 2 * t) }
+
+export function seatField(x: number, y: number, z: number): number {
+  if (y <= SEAT_LOW || y >= SEAT_HIGH || z >= -.008) return 0
+  const dy = (y - .83) / (y < .83 ? .15 : .12)
+  const rise = (1 - dy * dy) ** 2
+  const across = 1 - smoothSeat((Math.abs(x) - .075) / .09)
+  const centre = .85 + .15 * smoothSeat(Math.abs(x) / .055)
+  const rear = smoothSeat((-z - .008) / .045)
+  return SEAT_VOLUME * rise * across * centre * rear
+}
+
+/** Writes only seat vertices. Call after sculptChest, whose field is disjoint.
+ * Normals follow the displacement Jacobian; source weights are never changed.
+ * Arm/finger influences are excluded even when a hand crosses hip height. */
+export function sculptSeat(
+  rest: { position: Float32Array; normal: Float32Array; joints: ArrayLike<number>; weights: ArrayLike<number> },
+  into: { setPosition(i: number, x: number, y: number, z: number): void; setNormal(i: number, x: number, y: number, z: number): void },
+): void {
+  const epsilon = .0001
+  for (let i = 0; i < rest.position.length / 3; i++) {
+    const at = i * 3, x = rest.position[at]!, y = rest.position[at + 1]!, z = rest.position[at + 2]!
+    const amount = seatField(x, y, z)
+    if (!amount || [0, 1, 2, 3].some(j => rest.weights[i * 4 + j]! > .1 && rest.joints[i * 4 + j]! >= 30 && rest.joints[i * 4 + j]! <= 78 && rest.joints[i * 4 + j] !== 37)) continue
+    into.setPosition(i, x, y, z - amount)
+    const dx = (seatField(x + epsilon, y, z) - seatField(x - epsilon, y, z)) / (2 * epsilon)
+    const dy = (seatField(x, y + epsilon, z) - seatField(x, y - epsilon, z)) / (2 * epsilon)
+    const dz = (seatField(x, y, z + epsilon) - seatField(x, y, z - epsilon)) / (2 * epsilon)
+    const nz = rest.normal[at + 2]! / (1 - dz)
+    const nx = rest.normal[at]! + dx * nz, ny = rest.normal[at + 1]! + dy * nz
+    const length = Math.hypot(nx, ny, nz) || 1
+    into.setNormal(i, nx / length, ny / length, nz / length)
   }
 }
 
