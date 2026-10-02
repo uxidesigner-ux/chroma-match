@@ -9,7 +9,7 @@ distinguishes shipped player features from upstream authoring features not porte
 One licensed Seed-san starter model, reproportioned rather than swapped: a male
 or female character, five figure axes (shoulders, chest, waist, hips, head size)
 at seven steps each, four builds as starting points, three hair silhouettes
-(ponytail hidden, worn, worn long), eight starting palettes, independently mixed
+(original ponytail, rounded bob, mid-back long hair), eight starting palettes, independently mixed
 backpack / arm gear / visor, hair/eye/skin/outfit/background colours, six
 expressions, rotation, face/full-body framing, idle breathing and blinking. Apply commits a
 draft; leaving a changed draft asks before discarding it. This is the only
@@ -102,13 +102,24 @@ The backpack straps cross the same space (576 and 528 vertices) and are left
 alone, because gear that swells with the body under it reads as a fault. Every
 pass rewrites from the model's own vertices, so male restores the shipped mesh.
 
-Hairstyles are limited to three by the asset, not by the code. The hair is a
-single mesh weighted 4902 of 5145 to the head bone itself; the eleven strand
-chains hanging off it carry between fourteen and thirty-six each and exist to
-let the tips swing, so scaling them changes nothing visible. The ponytail is the
-one part rigged to move — its own 156-vertex mesh on its own six-bone chain —
-and can be hidden, worn, or lengthened. Distinct cuts would need hair geometry
-this model does not carry.
+The shipped hair cap is weighted mostly to the head; scaling its tip chains
+cannot produce distinct cuts. Bob and long now add purpose-built closed shells
+under the original crown/fringe instead of copies of the 156-vertex ponytail.
+Each uses 1,690 vertices and an original 128×64 grayscale strand map, with a
+continuous side/back silhouette and no alpha-card sorting. Long hair includes
+extra rear clearance when a backpack is selected. Geometry, UVs and the PNG map
+are included in VRM/GLB exports. These are rigid head attachments, not simulated
+strand physics; broad collision or independently licensed hairstyle packs remain
+out of scope. Existing T/B/L codes are preserved, portrait cache frame 3 refreshes
+derived images only, and the pinned original VRM is unchanged.
+
+Gesture rotations operate in normalized T-pose space: ±X arm directions, +Z
+front. Elbows flex on mirrored Y hinges within 0.12–1.62 radians. Shoulder axial
+rotation carries that flexion upward for wave/cheer; wrist motion supplies the
+wave. The previous sideways Z elbow bend and X forearm twist are removed.
+Rest reset, mirrored cheer, continuous envelopes and the actual Seed raw rig
+retargeting are covered by unit tests; paused/reduced-motion explicit requests
+retain a still gesture.
 
 ## Data and rendering
 

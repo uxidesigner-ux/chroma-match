@@ -54,6 +54,14 @@ five independently adjustable body axes, three hairstyles, skin/palette choices,
 six expressions and independently mixed backpack/arm/visor options. Figure and
 hair variants modify this model; they are not additional licensed model packs.
 New models and outfit packs still require separate licensed, compatible assets.
+Bob and mid-back long hair use dedicated closed meshes and an original neutral
+strand texture over the licensed crown/fringe, not repeated ponytail ribbons.
+The same geometry and texture are written into VRM/GLB exports; B/L appearance
+codes remain stable and derived portrait caches regenerate. These cuts follow
+the head rigidly; strand physics and cloth/hair collision simulation are excluded.
+Gestures separate shoulder swing/axial rotation, mirrored forward elbow hinges,
+and wrist movement. Elbows never switch to side-flexion or hyperextend; ease-in
+and ease-out return both arms to the same rest without accumulating transforms.
 The lobby adds breathing, weight shift, gaze, blinking and three gestures.
 Game-specific celebratory motion is intentional; reduced-motion users receive
 text feedback and explicitly requested still poses instead of animation.

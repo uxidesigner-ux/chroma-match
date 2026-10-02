@@ -124,24 +124,39 @@ test('VRM and GLB exports load again, retain permissions and match selected pale
     expect(json.extensions.VRMC_vrm.meta.creditNotation).toBe('required')
     expect(json.nodes.find(n => n.name === 'hair_tail')?.mesh).toBeUndefined()
     expect(json.nodes.find(n => n.name === 'robo_arm')?.mesh).toBeUndefined()
-    expect(json.images.length).toBe(18)
+    expect(json.images.length).toBe(19)
+    const shell = json.nodes.find(n => n.name === 'hair_shape')!
+    expect(shell.mesh).toBeDefined()
+    const primitive = json.meshes[shell.mesh!]!.primitives[0]!
+    expect(json.materials[primitive.material]!.name).toBe('hair_shape')
+    expect(json.materials[primitive.material]!.pbrMetallicRoughness.baseColorTexture).toBeDefined()
     await page.route('**/test-export.vrm', route => route.fulfill({ contentType: 'model/gltf-binary', body: bytes }))
     const result = await page.evaluate(async () => {
       const { GLTFLoader } = await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js')
       const { VRMLoaderPlugin, VRMUtils } = await import('/node_modules/.vite/deps/@pixiv_three-vrm.js')
+      const { hairGeometry, hairShading } = await import('/src/avatar/hair-strands.ts')
       const loader = new GLTFLoader(); loader.register(parser => new VRMLoaderPlugin(parser))
       const gltf = await loader.loadAsync('/test-export.vrm')
       const vrm = gltf.userData.vrm
       const materials: string[] = []
       const colours: string[] = []
+      let shapeMatches = false, textureMatches = false
       vrm.scene.traverse(node => {
         if (!node.isMesh) return
         for (const material of Array.isArray(node.material) ? node.material : [node.material]) {
           materials.push(material.name)
-          if (material.name === 'hair') colours.push(material.color.getHexString())
+          if (material.name === 'hair' || material.name === 'hair_shape') colours.push(material.color.getHexString())
+          if (material.name === 'hair_shape') {
+            const expected = hairGeometry('bob')!
+            shapeMatches = JSON.stringify(Array.from(node.geometry.attributes.position.array)) === JSON.stringify(Array.from(expected.positions))
+            const texture = material.map.image
+            const sample = document.createElement('canvas'); sample.width = texture.width; sample.height = texture.height
+            const ctx = sample.getContext('2d')!; ctx.drawImage(texture, 0, 0)
+            textureMatches = JSON.stringify(Array.from(ctx.getImageData(0, 0, sample.width, sample.height).data)) === JSON.stringify(Array.from(hairShading().rgba))
+          }
         }
       })
-      const result = { head: !!vrm.humanoid.getNormalizedBoneNode('head'), expressions: Object.keys(vrm.expressionManager.expressionMap), materials, colours }
+      const result = { head: !!vrm.humanoid.getNormalizedBoneNode('head'), expressions: Object.keys(vrm.expressionManager.expressionMap), materials, colours, shapeMatches, textureMatches }
       VRMUtils.deepDispose(vrm.scene)
       return result
     })
@@ -150,6 +165,8 @@ test('VRM and GLB exports load again, retain permissions and match selected pale
     expect(result.materials).not.toContain('backpack_plastic')
     expect(result.colours.every(c => c === 'ed9560')).toBe(true)
     expect(result.colours.length).toBeGreaterThan(0)
+    expect(result.shapeMatches).toBe(true)
+    expect(result.textureMatches).toBe(true)
     await page.unroute('**/test-export.vrm')
   }
 })
