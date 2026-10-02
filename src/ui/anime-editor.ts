@@ -40,8 +40,10 @@ import { studioToolsCopy } from './studio-tools-copy.ts'
 import { LIBRARY_LIMIT, LookHistory, lookFile, parseLookFile, readLibrary, writeLibrary } from '../avatar/studio-library.ts'
 import { decodeSpec, encodeSpec } from '../avatar/spec.ts'
 import { Sheet } from './sheet.ts'
+import { TOP_STYLES, BOTTOM_STYLES, SHOE_STYLES, hasWardrobe, wear } from '../avatar/anime-spec.ts'
+import { wardrobeCopy } from './wardrobe-copy.ts'
 
-type Category = 'looks' | 'figure' | 'hair' | 'gear' | 'colours' | 'expression' | 'library'
+type Category = 'looks' | 'figure' | 'hair' | 'wardrobe' | 'gear' | 'colours' | 'expression' | 'library'
 
 /** An explicit draft: navigating away cannot silently overwrite the profile. */
 export class AnimeEditor {
@@ -345,6 +347,7 @@ export class AnimeEditor {
       ['looks', 'looks', copy.looks],
       ['figure', 'figure', copy.figure],
       ['hair', 'hair', copy.hair],
+      ['wardrobe', 'wardrobe', wardrobeCopy().wardrobe],
       ['gear', 'pack', copy.equipment],
       ['colours', 'colours', copy.colours],
       ['expression', 'expression', copy.expression],
@@ -672,6 +675,8 @@ export class AnimeEditor {
       for (const axis of ['shoulder', 'bust', 'waist', 'hip', 'head'] as const) {
         this.panel.append(this.figureRow(axis, copy[axis]))
       }
+    } else if (this.category === 'wardrobe') {
+      this.paintWardrobe()
     } else if (this.category === 'gear') {
       const traitGroup = document.createElement('div')
       traitGroup.className = 'studio-choice-group studio-traits'
@@ -713,11 +718,11 @@ export class AnimeEditor {
         const label = document.createElement('label')
         label.className = 'studio-colour'
         const name = document.createElement('span')
-        name.textContent = copy[key]
+        name.textContent = key === 'outfitColour' && hasWardrobe(this.draft) ? wardrobeCopy().topColour : copy[key]
         const input = document.createElement('input')
         input.type = 'color'
         input.value = `#${this.draft[key]}`
-        input.setAttribute('aria-label', copy[key])
+        input.setAttribute('aria-label', name.textContent)
         input.addEventListener('input', () =>
           this.update({ ...this.draft, [key]: input.value.slice(1).toUpperCase() }),
         )
@@ -829,6 +834,45 @@ export class AnimeEditor {
       list.append(row)
     }
     this.panel.append(list)
+  }
+
+  private paintWardrobe(): void {
+    const copy = wardrobeCopy()
+    const note = document.createElement('p')
+    note.className = 'studio-file-note'; note.textContent = copy.note
+    const original = this.button(copy.original, () => {
+      this.update({ ...this.draft, top: 'seed', bottom: 'seed', shoes: 'bare', bottomColour: DEFAULT_ANIME.bottomColour, shoeColour: DEFAULT_ANIME.shoeColour })
+      this.paintOptions()
+    })
+    original.setAttribute('aria-pressed', String(!hasWardrobe(this.draft)))
+    this.panel.append(note, original)
+    for (const [slot, choices, colour, label] of [
+      ['top', TOP_STYLES, 'outfitColour', 'topColour'],
+      ['bottom', BOTTOM_STYLES, 'bottomColour', 'bottomColour'],
+      ['shoes', SHOE_STYLES, 'shoeColour', 'shoeColour'],
+    ] as const) {
+      const section = document.createElement('fieldset')
+      section.className = 'studio-wardrobe-section'
+      const legend = document.createElement('legend'); legend.textContent = copy[slot]
+      const group = document.createElement('div'); group.className = 'studio-wardrobe-choices'
+      for (const value of Object.keys(choices)) {
+        const button = this.button(copy[value as keyof typeof copy], () => {
+          this.update(wear(this.draft, { [slot]: value }))
+          this.paintOptions()
+        })
+        button.dataset.wardrobePart = slot; button.dataset.wardrobeValue = value
+        button.setAttribute('aria-pressed', String(hasWardrobe(this.draft) && this.draft[slot] === value))
+        group.append(button)
+      }
+      const picker = document.createElement('label'); picker.className = 'studio-wardrobe-colour'
+      const text = document.createElement('span'); text.textContent = copy[label]
+      const input = document.createElement('input'); input.type = 'color'; input.value = `#${this.draft[colour]}`
+      input.setAttribute('aria-label', copy[label]); input.disabled = !hasWardrobe(this.draft)
+      input.addEventListener('input', () => this.update({ ...this.draft, [colour]: input.value.slice(1).toUpperCase() }))
+      picker.append(text, input)
+      section.append(legend, group, picker)
+      this.panel.append(section)
+    }
   }
 
   /**

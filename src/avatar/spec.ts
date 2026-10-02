@@ -1,4 +1,4 @@
-import { DEFAULT_ANIME, decodeAnime, encodeAnime, gearBits } from './anime-spec.ts'
+import { DEFAULT_ANIME, decodeAnime, encodeAnime, gearBits, hasWardrobe } from './anime-spec.ts'
 import type { AnimeSpec } from './anime-spec.ts'
 
 export type AvatarSpec = AnimeSpec
@@ -11,14 +11,18 @@ export function encodeSpec(spec: AvatarSpec): string {
   const bits = gearBits(spec)
   const classic = bits === 0 || bits === 7
   const originalFace = ['neutral', 'happy', 'relaxed'].includes(spec.expression)
-  const version = classic ? (originalFace ? '4' : '5') : '6'
+  const version = hasWardrobe(spec) ? '7' : classic ? (originalFace ? '4' : '5') : '6'
   return version + encodeAnime(spec)
 }
 
 /** Read existing anime appearances without retaining any removed renderer or catalogue. */
 export function decodeSpec(raw: string): AvatarSpec {
   if (typeof raw !== 'string') return { ...DEFAULT_SPEC }
-  if (/^[456]/.test(raw)) return decodeAnime(raw.slice(1)) ?? { ...DEFAULT_SPEC }
+  if (/^[4567]/.test(raw)) {
+    const spec = decodeAnime(raw.slice(1))
+    // A new pack has its own envelope; never silently reinterpret an old code.
+    return spec && (raw[0] === '7') === hasWardrobe(spec) ? spec : { ...DEFAULT_SPEC }
+  }
   // The previous envelope put the same anime payload at offset 46. Its unused
   // prefix is discarded, never decoded or recreated in new saves.
   if (/^32[a-zA-Z0-9]{72}$/.test(raw)) {

@@ -19,6 +19,7 @@ import { hairGeometry, hairShading } from '../hair-strands.ts'
 import { exportSeed } from '../studio-export.ts'
 import { BlinkManager } from './blink.ts'
 import { armPose, GESTURE_SECONDS, gestureWeight } from './gesture-pose.ts'
+import { WardrobeRig } from '../wardrobe-rig.ts'
 
 type Toon = Material &
   Partial<Pick<MToonMaterial, 'color' | 'shadeColorFactor' | 'map' | 'shadeMultiplyTexture'>>
@@ -26,6 +27,7 @@ type Toon = Material &
 
 export class StudioCharacter {
   readonly vrm: VRM
+  private wardrobe: WardrobeRig
   private blink = new BlinkManager()
   private materials = new Map<string, Toon[]>()
   private tails: Mesh[] = []
@@ -186,6 +188,7 @@ export class StudioCharacter {
     // Original maps are no longer used by these three material groups.
     // deepDispose owns every remaining texture; released sources are disposed here.
     for (const texture of textures.keys()) texture.dispose()
+    this.wardrobe = new WardrobeRig(vrm, source)
   }
 
   static async load(signal: AbortSignal, onProgress?: (ratio: number) => void): Promise<StudioCharacter> {
@@ -268,6 +271,7 @@ export class StudioCharacter {
       position.needsUpdate = true
       normal.needsUpdate = true
     }
+    this.wardrobe.apply(spec)
     this.tick(0, false)
   }
 
@@ -336,6 +340,8 @@ export class StudioCharacter {
       humanoid.getNormalizedBoneNode(`${side}UpperArm`)?.quaternion.copy(arm.upper)
       humanoid.getNormalizedBoneNode(`${side}LowerArm`)?.quaternion.copy(arm.lower)
       humanoid.getNormalizedBoneNode(`${side}Hand`)?.quaternion.copy(arm.wrist)
+      humanoid.getNormalizedBoneNode(`${side}Foot`)?.rotation.set(this.wardrobe.heelAngle, 0, 0)
+      humanoid.getNormalizedBoneNode(`${side}Toes`)?.rotation.set(-this.wardrobe.heelAngle, 0, 0)
     }
     // Counter-rotation shifts weight without translating the feet or changing
     // customized body offsets. Every frame starts from these absolute values.
@@ -414,6 +420,7 @@ export class StudioCharacter {
   }
 
   dispose(): void {
+    this.wardrobe.dispose()
     this.hairMesh?.removeFromParent()
     this.hairMesh?.geometry.dispose()
     this.hairMesh = null

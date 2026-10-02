@@ -13,6 +13,7 @@ import { StudioCharacter } from './character-studio/character.ts'
 import type { AnimeSpec } from './anime-spec.ts'
 import { fitFullBody, turnView } from './anime-camera.ts'
 import { SEED_CREDIT } from './studio-library.ts'
+import { wardrobeKey } from './wardrobe.ts'
 
 /** One renderer per editor (or serial portrait queue), never one per list row. */
 export class AnimeRenderer {
@@ -87,11 +88,12 @@ export class AnimeRenderer {
     this.current = { ...spec }
     this.scene.background = this.transparent ? null : new Color(`#${spec.backdrop}`)
     this.character?.apply(spec)
-    const silhouette = `${spec.hair}:${Number(spec.pack)}${Number(spec.arms)}${Number(spec.visor)}:${spec.sex}:${spec.shoulder}:${spec.bust}:${spec.waist}:${spec.hip}:${spec.head}`
+    const silhouette = `${spec.hair}:${Number(spec.pack)}${Number(spec.arms)}${Number(spec.visor)}:${spec.sex}:${spec.shoulder}:${spec.bust}:${spec.waist}:${spec.hip}:${spec.head}:${wardrobeKey(spec)}`
     if (this.character && this.silhouette !== silhouette) {
       this.silhouette = silhouette
       this.bounds.copy(this.measureBounds())
       this.height = this.bounds.max.y - this.bounds.min.y
+      this.focusY = this.character.vrm.humanoid.getRawBoneNode('head')?.getWorldPosition(new Vector3()).y ?? this.height * .88
     }
     this.draw()
   }

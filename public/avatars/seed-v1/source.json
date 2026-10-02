@@ -22,5 +22,5 @@
     "thumbnailImage": 14,
     "version": "1"
   },
-  "modifications": "None. Runtime palette, hairstyle visibility and pose edits only."
+  "modifications": "Distributed VRM unchanged. Runtime palette, figure, hairstyle, fitted clothing and pose edits; see docs/wardrobe.md."
 }

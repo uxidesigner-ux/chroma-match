@@ -22,12 +22,12 @@ third-party character or clothing files.
 | Expressions and programmable animation | Six actual Seed expressions, blink/breathing, three gestures, bounded canvas-local gaze, pause and OS reduced motion |
 | Save and restore selections | 64-step undo/redo; default reset; 12 named local looks; strict versioned JSON backup/restore |
 | Screenshot export | Face 512×512, full body 512×768, four-view 2×2 sheet 1024×1536; each adds a 36px attribution footer; optional transparent background |
-| VRM / GLB export | Both export the same valid GLB/VRM1 container with modified palette/visibility and original rig, permissions and expressions; neutral/rest pose, not a baked animation |
+| VRM / GLB export | Both export the same valid GLB/VRM1 container with modified palette/visibility, fitted garments and original rig, permissions and expressions; rest pose with fitted footwear, not a baked animation |
 | Sprite atlas | Four-view still sheet only; animated multi-clip sprite atlas is not implemented |
 | Arbitrary local VRM / texture upload | Not implemented: needs a separate model storage/schema, metadata handling, performance limits and cross-device profile design; JSON import is explicitly NOT a model upload |
 | Mesh merging / texture atlas optimizer | Not ported; exports retain original buffers and append recoloured textures, so they are not smaller or single-draw-call models |
 | Male/female selection and figure variation | Implemented as Seed mesh variants plus five independent body axes; not separate model assets |
-| Manifest trait catalogues, additional models, new garments | Fixed, versioned Seed adapter only; new packs require licensed compatible assets and per-model bindings |
+| Manifest trait catalogues, additional models, new garments | Fixed, versioned Seed adapter with an original fitted wardrobe; external packs require checked permissions and per-model bindings. See `wardrobe.md` |
 | Batch randomized 3D export / LoRA data generation | Authoring pipeline, not included in the player profile flow |
 | AI personality, lip sync, wallet, NFT minting | Not game-profile requirements; no paid service, microphone permission, wallet or blockchain dependencies added |
 

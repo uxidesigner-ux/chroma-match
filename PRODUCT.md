@@ -53,7 +53,17 @@ This release uses one licensed Seed-san asset, with male/female figure variants,
 five independently adjustable body axes, three hairstyles, skin/palette choices,
 six expressions and independently mixed backpack/arm/visor options. Figure and
 hair variants modify this model; they are not additional licensed model packs.
-New models and outfit packs still require separate licensed, compatible assets.
+New external models and outfit packs still require separately checked permissions
+and a compatible rig. The first original wardrobe is fitted to this licensed
+body: four round/V-neck short/long-sleeve tops, trousers/shorts/long/short skirts,
+unbranded high-top sneakers/dress shoes/heels and barefoot. Pieces and colours
+are independent; compatible skin masks, finished openings and shared bone
+weights keep the body/cloth together. Heel stance and sole contact are fitted
+against the actual reshaped rig, and use the same geometry in VRM/GLB exports.
+Previous appearances retain the original outfit until a new piece is selected;
+new wardrobe profiles use a bounded v7 code. This is skinned game clothing, not
+cloth simulation or a claim of fit on arbitrary models/animations. See
+`docs/wardrobe.md` for acceptance evidence and limits.
 Bob and mid-back long hair use dedicated closed meshes and an original neutral
 strand texture over the licensed crown/fringe, not repeated ponytail ribbons.
 The same geometry and texture are written into VRM/GLB exports; B/L appearance

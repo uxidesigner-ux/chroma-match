@@ -1,6 +1,43 @@
 import { expect, test } from '@playwright/test'
 import { createHash } from 'node:crypto'
 
+test('production wardrobe v7 survives save/reload and offline editor recovery', async ({ page, context }, testInfo) => {
+  await context.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
+  await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'en'))
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto('./')
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
+  const gift = page.getByRole('button', { name: 'Got it', exact: true })
+  if (await gift.isVisible()) await gift.click()
+  await page.locator('#lobby-edit').click()
+  await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+  await page.getByRole('tab', { name: 'Wardrobe', exact: true }).click()
+  for (const name of ['V neck · long sleeves', 'Short skirt', 'Heels']) await page.getByRole('button', { name, exact: true }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
+  const code = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
+  expect(code).toMatch(/^7[a-zA-Z0-9]{56}$/)
+  await page.reload()
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
+  await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
+  await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
+  await context.setOffline(true)
+  try {
+    await page.reload()
+    await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
+    await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
+    expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(code)
+    await page.locator('#lobby-edit').click()
+    await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+    await page.getByRole('tab', { name: 'Wardrobe', exact: true }).click()
+    for (const name of ['V neck · long sleeves', 'Short skirt', 'Heels']) await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await page.screenshot({ path: testInfo.outputPath('release-wardrobe-offline.png') })
+  } finally { await context.setOffline(false) }
+  expect(errors).toEqual([])
+})
+
 test('production long hair retains a regenerated portrait and requested still gestures', async ({ page, context }, testInfo) => {
   await context.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
   await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'en'))

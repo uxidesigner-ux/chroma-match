@@ -91,7 +91,7 @@ test('editor exposes every category, real thumbnails and persistent save confirm
     const r = node.getBoundingClientRect()
     return { x: r.x, right: r.right, height: r.height }
   }))
-  expect(boxes).toHaveLength(7)
+  expect(boxes).toHaveLength(8)
   for (const box of boxes) { expect(box.x).toBeGreaterThanOrEqual(0); expect(box.right).toBeLessThanOrEqual(390); expect(box.height).toBeGreaterThanOrEqual(44) }
   await page.locator('.studio-look .studio-thumbnail').first().waitFor({ state: 'visible' })
   await expect(page.locator('.studio-look .studio-thumbnail').first()).toHaveAttribute('data-avatar-state', 'ready')
