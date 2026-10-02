@@ -129,6 +129,7 @@ export const ZH: Strings = {
   profileTitle: '我的资料',
   namePlaceholder: '名字',
   editAvatar: '装扮角色',
+  customizeAvatar: '装扮',
   accountSignIn: '使用 Google 登录',
   accountSignOut: '退出登录',
   accountSigningIn: '登录中…',

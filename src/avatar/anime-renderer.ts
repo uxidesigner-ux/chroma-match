@@ -122,12 +122,17 @@ export class AnimeRenderer {
     this.canvas.addEventListener('lostpointercapture', this.pointerUp)
     this.canvas.addEventListener('pointerleave', this.pointerLeave)
     this.canvas.addEventListener('keydown', this.keyDown)
+    this.canvas.addEventListener('blur', this.clearPointerFocus)
     this.start()
   }
 
   private pointerDown = (e: PointerEvent): void => {
     if (!e.isPrimary || e.button !== 0 || this.dragPointer !== null) return
     e.preventDefault()
+    // Explicit focus keeps arrow-key rotation available after a drag. Mark
+    // pointer focus so a previously keyboard-focused control cannot transfer
+    // its focus-visible frame to the entire character stage.
+    this.canvas.setAttribute('data-pointer-focus', '')
     this.canvas.focus({ preventScroll: true })
     this.dragPointer = e.pointerId
     this.yawStart = e.clientX
@@ -155,7 +160,9 @@ export class AnimeRenderer {
     if (this.canvas.hasPointerCapture(e.pointerId)) this.canvas.releasePointerCapture(e.pointerId)
   }
   private pointerLeave = (): void => { this.character?.look(0, 0) }
+  private clearPointerFocus = (): void => { this.canvas.removeAttribute('data-pointer-focus') }
   private keyDown = (e: KeyboardEvent): void => {
+    this.clearPointerFocus()
     if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(e.key)) return
     e.preventDefault()
     if (e.key === 'Home') this.angle = 0
@@ -381,6 +388,8 @@ export class AnimeRenderer {
     this.canvas.removeEventListener('lostpointercapture', this.pointerUp)
     this.canvas.removeEventListener('pointerleave', this.pointerLeave)
     this.canvas.removeEventListener('keydown', this.keyDown)
+    this.canvas.removeEventListener('blur', this.clearPointerFocus)
+    this.clearPointerFocus()
     this.character?.dispose()
     this.renderer.dispose()
     this.renderer.forceContextLoss()

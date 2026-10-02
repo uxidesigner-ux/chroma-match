@@ -132,6 +132,7 @@ export const JA: Strings = {
   profileTitle: 'プロフィール',
   namePlaceholder: '名前',
   editAvatar: 'キャラクターを作る',
+  customizeAvatar: '着せ替え',
   accountSignIn: 'Google でログイン',
   accountSignOut: 'ログアウト',
   accountSigningIn: 'ログイン中…',

@@ -75,7 +75,7 @@ test('buttons centre the icons they hold', async ({ page }) => {
           if (!mark || !mark.getClientRects().length) return null
           const box = node.getBoundingClientRect()
           const ink = mark.getBoundingClientRect()
-          const label = node.querySelector('.quick-label, .studio-button-label')
+          const label = node.querySelector('.quick-label, .studio-button-label, .lobby-edit-label')
           const caption = label?.getBoundingClientRect()
           const cluster = caption && caption.width > 1 ? {
             left: Math.min(ink.left, caption.left), right: Math.max(ink.right, caption.right),

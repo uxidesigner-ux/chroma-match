@@ -152,6 +152,7 @@ export const EN = {
   profileTitle: 'Your profile',
   namePlaceholder: 'Your name',
   editAvatar: 'Edit character',
+  customizeAvatar: 'Customize',
   accountSignIn: 'Sign in with Google',
   accountSignOut: 'Sign out',
   accountSigningIn: 'Signing in…',

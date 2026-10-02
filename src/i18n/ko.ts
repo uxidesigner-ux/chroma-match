@@ -138,6 +138,7 @@ export const KO: Strings = {
   profileTitle: '내 프로필',
   namePlaceholder: '이름',
   editAvatar: '캐릭터 꾸미기',
+  customizeAvatar: '꾸미기',
   accountSignIn: 'Google로 로그인',
   accountSignOut: '로그아웃',
   accountSigningIn: '로그인 중…',

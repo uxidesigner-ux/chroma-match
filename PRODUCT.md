@@ -33,7 +33,12 @@ of the player's task. The product has one anime character editor and one profile
 - Offer only customization actually supported by the licensed starter model.
 - Home is a rotatable full-body 3D lobby; release its renderer when leaving home.
 - Profile and icon-only utilities own the lobby header. Ranks/missions/shop use
-  a separate footer row, above Play. Model drags turn in the finger's direction
+  a separate footer row, above Play. Play remains primary, labeled customization secondary,
+  gestures a quiet grouped toolbar, and help/settings unframed utility icons.
+  Portrait badges and keyboard focus rings are never clipped to the profile row;
+  dragging a 3D preview hides pointer focus only, with keyboard focus restored
+  on key input or the next keyboard entry.
+  Model drags turn in the finger's direction
   without handing vertical panning to browser refresh; rotation help is nonvisual.
 - Use cached still portraits in lists and the event-reactive game HUD; release editor resources.
 - Gameplay HUD has three equal regions: goal, character reaction, remaining moves.
