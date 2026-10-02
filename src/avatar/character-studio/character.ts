@@ -15,9 +15,10 @@ import type { AnimeSpec } from '../anime-spec.ts'
 import { EXPRESSIONS } from '../anime-spec.ts'
 import { CHEST_HIGH, CHEST_LOW, HAIR_SHAPE, RIGID, SCULPTED, applyFigure, bustAmount, sculptChest } from '../body-shape.ts'
 import type { ShapeNode, ShapedBone } from '../body-shape.ts'
-import { hairStrands, mirror, normalsFor, straighten, strandRotation } from '../hair-strands.ts'
+import { hairGeometry, hairShading } from '../hair-strands.ts'
 import { exportSeed } from '../studio-export.ts'
 import { BlinkManager } from './blink.ts'
+import { armPose, GESTURE_SECONDS, gestureWeight } from './gesture-pose.ts'
 
 type Toon = Material &
   Partial<Pick<MToonMaterial, 'color' | 'shadeColorFactor' | 'map' | 'shadeMultiplyTexture'>>
@@ -47,11 +48,11 @@ export class StudioCharacter {
   private restSkinShade = new Map<Toon, [number, number, number]>()
   /** The root of the ponytail chain — the one part of the hair that is rigged to move. */
   private tailBone: Object3D | null = null
-  /** The ponytail baked upright, and its mirror, which longer hair is built from. */
-  private strandGeometry: [BufferGeometry, BufferGeometry] | null = null
-  /** The strands standing on the head right now, and the style they are. */
-  private strands: Mesh[] = []
-  private strandStyle: string | null = null
+  /** One dedicated shell, sharing palette factors with the original fringe. */
+  private hairMesh: Mesh | null = null
+  private hairPaint: Toon | null = null
+  private hairTexture: CanvasTexture | null = null
+  private hairKey: string | null = null
   /** Every node the figure moves, as the model shipped it. */
   private restPose = new Map<Object3D, [number, number, number]>()
   /*
@@ -243,7 +244,7 @@ export class StudioCharacter {
       mesh.visible = hair.ponytail
     })
     this.tailBone?.scale.setScalar(hair.tail)
-    this.standHair(spec.hair)
+    this.standHair(spec)
     this.pack.forEach((mesh) => {
       mesh.visible = spec.pack
     })
@@ -313,36 +314,29 @@ export class StudioCharacter {
       const png = Uint8Array.from(atob(canvas.toDataURL('image/png').split(',')[1]!), c => c.charCodeAt(0))
       return { name, colour: material.color.toArray(), shade: material.shadeColorFactor.toArray(), png }
     })
-    /*
-     * The strand the file will carry is the one the preview baked, so what is
-     * saved is what was on the screen. Baked here if the style on show never
-     * asked for it, because the style being exported may be a different one.
-     */
-    this.strandGeometry ??= this.bakeStrand()
-    const upright = this.strandGeometry?.[0]
-    const strand = upright && {
-      positions: upright.getAttribute('position').array as Float32Array,
-      uv: (upright.getAttribute('uv')?.array as Float32Array | undefined) ?? null,
-      index: Uint32Array.from(upright.getIndex()?.array ?? []),
+    if (spec.hair !== 'tails') {
+      const canvas = this.shellTexture().image as HTMLCanvasElement
+      const png = Uint8Array.from(atob(canvas.toDataURL('image/png').split(',')[1]!), c => c.charCodeAt(0))
+      palettes.push({ name: 'hair_shape', colour: [], shade: [], png })
     }
-    return exportSeed(this.source, spec, palettes, strand)
+    return exportSeed(this.source, spec, palettes)
   }
 
   tick(delta: number, motion: boolean): void {
     if (motion) this.time += delta
     const sway = motion ? Math.sin(this.time * 1.5) * 0.014 : 0
     const weight = motion ? Math.sin(this.time * .55) * .022 : 0
-    const shoulder = motion ? Math.sin(this.time * 1.5 - .4) * .012 : 0
     if (motion && this.gesture) this.gestureTime += delta
-    if (this.gestureTime > 2.8) this.gesture = null
-    const envelope = motion && this.gesture
-      ? Math.min(1, this.gestureTime / .3, (2.8 - this.gestureTime) / .5) : 0
+    if (this.gestureTime >= GESTURE_SECONDS) this.gesture = null
+    const active = motion ? this.gesture : null
+    const envelope = active ? gestureWeight(this.gestureTime) : 0
     const humanoid = this.vrm.humanoid
-    // Relax the T-pose using normalized humanoid bones, shared by future packs.
-    humanoid.getNormalizedBoneNode('leftUpperArm')?.rotation.set(.04 + shoulder, 0, -1.12 + weight * .4)
-    humanoid.getNormalizedBoneNode('rightUpperArm')?.rotation.set(.04 - shoulder, 0, 1.12 + weight * .4)
-    humanoid.getNormalizedBoneNode('leftLowerArm')?.rotation.set(-.07, 0, -0.12)
-    humanoid.getNormalizedBoneNode('rightLowerArm')?.rotation.set(-.07, 0, 0.12)
+    for (const side of ['left', 'right'] as const) {
+      const arm = armPose(side, active, this.gestureTime, weight)
+      humanoid.getNormalizedBoneNode(`${side}UpperArm`)?.quaternion.copy(arm.upper)
+      humanoid.getNormalizedBoneNode(`${side}LowerArm`)?.quaternion.copy(arm.lower)
+      humanoid.getNormalizedBoneNode(`${side}Hand`)?.quaternion.copy(arm.wrist)
+    }
     // Counter-rotation shifts weight without translating the feet or changing
     // customized body offsets. Every frame starts from these absolute values.
     humanoid.getNormalizedBoneNode('hips')?.rotation.set(0, 0, weight)
@@ -351,17 +345,8 @@ export class StudioCharacter {
     humanoid.getNormalizedBoneNode('chest')?.rotation.set(sway, 0, 0)
     humanoid.getNormalizedBoneNode('spine')?.rotation.set(0, motion ? Math.sin(this.time * .65) * .025 : 0, sway * .6 - weight * .5)
     humanoid.getNormalizedBoneNode('head')?.rotation.set(sway * .5, motion ? Math.sin(this.time * .45) * .07 : 0, sway)
-    if (this.gesture === 'wave') {
-      humanoid.getNormalizedBoneNode('rightUpperArm')?.rotation.set(0, 0, 1.12 - envelope * 1.8)
-      humanoid.getNormalizedBoneNode('rightLowerArm')?.rotation.set(0, 0, .12 - envelope * (1 + Math.sin(this.gestureTime * 12) * .2))
-    } else if (this.gesture === 'cheer') {
-      humanoid.getNormalizedBoneNode('leftUpperArm')?.rotation.set(0, 0, -1.12 + envelope * 1.9)
-      humanoid.getNormalizedBoneNode('rightUpperArm')?.rotation.set(0, 0, 1.12 - envelope * 1.9)
-      humanoid.getNormalizedBoneNode('leftLowerArm')?.rotation.set(0, 0, -.12 + envelope * .9)
-      humanoid.getNormalizedBoneNode('rightLowerArm')?.rotation.set(0, 0, .12 - envelope * .9)
-    } else if (this.gesture === 'pose') {
+    if (active === 'pose') {
       humanoid.getNormalizedBoneNode('chest')?.rotation.set(sway, envelope * .2, envelope * .08)
-      humanoid.getNormalizedBoneNode('leftLowerArm')?.rotation.set(-envelope * .8, 0, -.12 + envelope * .9)
       humanoid.getNormalizedBoneNode('head')?.rotation.set(0, -envelope * .2, -envelope * .1)
     }
     const cheering = envelope > .5
@@ -380,86 +365,62 @@ export class StudioCharacter {
     this.vrm.update(delta)
   }
 
-  /**
-   * The ponytail, baked upright in the head bone's own space.
-   *
-   * Taken once and kept: it is the same 156 vertices whatever the character
-   * wears, and every strand of longer hair is a copy of it standing somewhere
-   * else. Skinned positions rather than raw ones, so it is where the model
-   * actually holds it and not where the file happens to store it.
-   */
-  private bakeStrand(): [BufferGeometry, BufferGeometry] | null {
+  /** Keep one shell; palette drags never rebuild geometry. */
+  private standHair(spec: AnimeSpec): void {
+    const key = `${spec.hair}:${Number(spec.pack)}`
+    if (key === this.hairKey) return
+    this.hairKey = key
+    this.hairMesh?.removeFromParent()
+    this.hairMesh?.geometry.dispose()
+    this.hairMesh = null
+    const shape = hairGeometry(spec.hair, spec.pack)
     const head = this.vrm.humanoid.getRawBoneNode('head')
-    const tail = this.tails.find((mesh) => 'applyBoneTransform' in mesh) as
-      | (Mesh & { applyBoneTransform(index: number, target: Vector3): Vector3 })
-      | undefined
-    if (!head || !tail) return null
-    this.vrm.scene.updateMatrixWorld(true)
-    const source = tail.geometry.getAttribute('position')
-    const local = new Float32Array(source.count * 3)
-    const point = new Vector3()
-    for (let i = 0; i < source.count; i++) {
-      point.fromBufferAttribute(source as BufferAttribute, i)
-      tail.applyBoneTransform(i, point)
-      tail.localToWorld(point)
-      head.worldToLocal(point)
-      local.set([point.x, point.y, point.z], i * 3)
+    const original = this.materials.get('hair')?.[0]
+    if (!shape || !head || !original) return
+    if (!this.hairPaint) {
+      this.hairPaint = original.clone() as Toon
+      // Own grayscale strands, not reused UVs into an unrelated ponytail map.
+      this.hairPaint.map = this.shellTexture()
+      this.hairPaint.shadeMultiplyTexture = this.hairTexture
+      this.hairPaint.name = 'hair_shape'
+      this.hairPaint.needsUpdate = true
+      this.materials.get('hair')!.push(this.hairPaint)
     }
-    const upright = straighten(local)
-    const index = Uint32Array.from(tail.geometry.getIndex()?.array ?? [])
-    const uv = tail.geometry.getAttribute('uv')
-    const build = (positions: Float32Array, order: Uint32Array): BufferGeometry => {
-      const geometry = new BufferGeometry()
-      geometry.setAttribute('position', new BufferAttribute(positions, 3))
-      geometry.setAttribute('normal', new BufferAttribute(normalsFor(positions, order), 3))
-      if (uv) geometry.setAttribute('uv', (uv as BufferAttribute).clone())
-      geometry.setIndex(new BufferAttribute(order, 1))
-      return geometry
-    }
-    const flipped = mirror(upright, index)
-    return [build(upright, index), build(flipped.positions, flipped.index)]
+    const geometry = new BufferGeometry()
+    geometry.setAttribute('position', new BufferAttribute(shape.positions, 3))
+    geometry.setAttribute('normal', new BufferAttribute(shape.normals, 3))
+    geometry.setAttribute('uv', new BufferAttribute(shape.uv, 2))
+    geometry.setIndex(new BufferAttribute(shape.index, 1))
+    this.hairMesh = new Mesh(geometry, this.hairPaint)
+    this.hairMesh.name = 'hair_shape'
+    this.hairMesh.frustumCulled = false
+    head.add(this.hairMesh)
   }
 
-  /**
-   * Stands this style's strands around the head, and takes down the last lot.
-   *
-   * Rebuilt only when the style changes: apply() runs on every drag of every
-   * slider, and seventeen meshes torn down and stood back up sixty times a
-   * second is work for nothing.
-   */
-  private standHair(style: AnimeSpec['hair']): void {
-    if (style === this.strandStyle) return
-    this.strandStyle = style
-    for (const mesh of this.strands) mesh.removeFromParent()
-    this.strands = []
-    const strands = hairStrands(style)
-    if (!strands.length) return
-    const head = this.vrm.humanoid.getRawBoneNode('head')
-    const tail = this.tails[0]
-    if (!head || !tail) return
-    this.strandGeometry ??= this.bakeStrand()
-    if (!this.strandGeometry) return
-    // One material, not the array the loader hands back: a Mesh given an array
-    // draws only the groups its geometry declares, and a baked strand has none.
-    const paint = Array.isArray(tail.material) ? tail.material[0]! : tail.material
-    for (const strand of strands) {
-      const mesh = new Mesh(this.strandGeometry[strand.flip ? 1 : 0], paint)
-      // The head can turn to look at a pointer; hair that culled itself on its
-      // own untouched bounds would blink out as it did.
-      mesh.frustumCulled = false
-      mesh.position.set(strand.at[0], strand.at[1], strand.at[2])
-      mesh.quaternion.fromArray(strandRotation(strand))
-      mesh.scale.set(1, strand.length, 1)
-      head.add(mesh)
-      this.strands.push(mesh)
+  /** Exporting a different cut can create the map without changing the preview. */
+  private shellTexture(): CanvasTexture {
+    if (!this.hairTexture) {
+      const pixels = hairShading()
+      const canvas = document.createElement('canvas')
+      canvas.width = pixels.width; canvas.height = pixels.height
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('Canvas unavailable')
+      context.putImageData(new ImageData(pixels.rgba, pixels.width, pixels.height), 0, 0)
+      this.hairTexture = new CanvasTexture(canvas)
+      this.hairTexture.flipY = false
+      this.hairTexture.colorSpace = SRGBColorSpace
     }
+    return this.hairTexture
   }
 
   dispose(): void {
-    for (const mesh of this.strands) mesh.removeFromParent()
-    this.strands = []
-    for (const geometry of this.strandGeometry ?? []) geometry.dispose()
-    this.strandGeometry = null
+    this.hairMesh?.removeFromParent()
+    this.hairMesh?.geometry.dispose()
+    this.hairMesh = null
+    this.hairPaint?.dispose()
+    this.hairPaint = null
+    this.hairTexture?.dispose()
+    this.hairTexture = null
     this.vrm.scene.removeFromParent()
     VRMUtils.deepDispose(this.vrm.scene)
   }

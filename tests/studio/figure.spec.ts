@@ -331,10 +331,12 @@ test('each hairstyle draws a different head of hair, from the front as well as t
     bob: await wearing('단발'),
     long: await wearing('긴 머리'),
   }
-  expect(side.tails, 'the ponytail added nothing to the silhouette')
-    .toBeGreaterThan(side.bob * 1.01)
+  // A real bob has a full back shell, not two locks only. Its total side area
+  // need not be smaller than the original ponytail's narrow ribbon.
+  expect(Math.abs(side.tails - side.bob), 'bob and ponytail share the same silhouette')
+    .toBeGreaterThan(.0005)
   expect(side.long, 'long hair is no more than a ponytail from the side')
-    .toBeGreaterThan(side.tails * 1.05)
+    .toBeGreaterThan(Math.max(side.tails, side.bob) * 1.05)
 
   /*
    * And from the front, which is the view that made this worth building: a

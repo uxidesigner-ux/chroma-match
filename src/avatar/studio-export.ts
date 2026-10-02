@@ -12,7 +12,7 @@ import {
   sculptChest,
 } from './body-shape.ts'
 import type { ShapeNode, ShapedBone } from './body-shape.ts'
-import { hairStrands, mirror, normalsFor, strandRotation } from './hair-strands.ts'
+import { hairGeometry } from './hair-strands.ts'
 
 type Vec3 = [number, number, number]
 interface TextureInfo { index: number; [key: string]: unknown }
@@ -60,20 +60,6 @@ export interface SeedDocument {
   }
 }
 export interface ExportMaterial { name: string; colour: number[]; shade: number[]; png: Uint8Array }
-/**
- * The ponytail, stood upright in the head bone's own space, as the preview
- * baked it.
- *
- * Handed in rather than worked out again here. Reading it from the document
- * would mean a second implementation of skinning and of the node tree's
- * matrices, and two implementations of the same geometry drift; this way the
- * file carries the vertices the player was looking at when they pressed save.
- */
-export interface ExportStrand {
-  readonly positions: Float32Array
-  readonly uv: Float32Array | null
-  readonly index: Uint32Array
-}
 
 export function readGlb(buffer: ArrayBuffer): { json: SeedDocument; binary: Uint8Array } {
   const view = new DataView(buffer)
@@ -140,31 +126,12 @@ function readVec3(json: SeedDocument, binary: Uint8Array, index: number): Float3
   return out
 }
 
-/**
- * Stands this style's hair around the head, as meshes the file carries itself.
- *
- * Copies of one strand, each a node with its own place and turn under the head
- * bone. They are not skinned: a node carrying a mesh and no skin is a rigid
- * child of the bone above it, which every reader already knows how to place,
- * where a second skin would have to agree with the first about joints it does
- * not share. Mirrored copies get their own mesh rather than a negative scale,
- * because a negative scale turns triangles inside out and glTF leaves fixing
- * that to the reader.
- */
-function standHair(
-  json: SeedDocument,
-  chunks: Uint8Array[],
-  byteLength: number,
-  spec: AnimeSpec,
-  strand: ExportStrand | null | undefined,
-): number {
-  const strands = hairStrands(spec.hair)
+/** Write the same closed shell the preview uses, as a rigid head child. */
+function standHair(json: SeedDocument, chunks: Uint8Array[], byteLength: number, spec: AnimeSpec, png?: Uint8Array): number {
+  const shape = hairGeometry(spec.hair, spec.pack)
   const head = json.extensions.VRMC_vrm.humanoid.humanBones.head?.node
-  const paint = json.materials.findIndex((material) => material.name === 'hair')
-  if (!strand || !strands.length || head === undefined || paint < 0) return byteLength
-  const crown = json.nodes[head]
-  if (!crown) return byteLength
-
+  const paint = json.materials.find(material => material.name === 'hair')
+  if (!shape || head === undefined || !paint || !json.nodes[head]) return byteLength
   /** Appends one lot of numbers and returns the accessor that reads it. */
   const store = (
     values: Float32Array | Uint32Array,
@@ -200,38 +167,42 @@ function standHair(
     return accessor
   }
 
-  /** One mesh for the strand as baked, one for its mirror. */
-  const shape = (positions: Float32Array, index: Uint32Array): number => {
-    const attributes: Record<string, number> = {
-      POSITION: store(positions, 'VEC3', 3),
-      NORMAL: store(normalsFor(positions, index), 'VEC3', 3),
-    }
-    if (strand.uv) attributes.TEXCOORD_0 = store(strand.uv, 'VEC2', 2)
-    const mesh = json.meshes.length
-    json.meshes.push({
-      name: 'hair_strand',
-      primitives: [{ attributes, indices: store(index, 'SCALAR', 1), material: paint }],
-    })
-    return mesh
+  const material = structuredClone(paint)
+  material.name = 'hair_shape'
+  delete material.pbrMetallicRoughness.baseColorTexture
+  if (material.extensions?.VRMC_materials_mtoon)
+    delete material.extensions.VRMC_materials_mtoon.shadeMultiplyTexture
+  if (png) {
+    const bufferView = json.bufferViews.length
+    json.bufferViews.push({ buffer: 0, byteOffset: byteLength, byteLength: png.length })
+    const image = json.images.length
+    json.images.push({ bufferView, mimeType: 'image/png' })
+    const texture = json.textures.length
+    json.textures.push({ source: image })
+    material.pbrMetallicRoughness.baseColorTexture = { index: texture }
+    if (material.extensions?.VRMC_materials_mtoon)
+      material.extensions.VRMC_materials_mtoon.shadeMultiplyTexture = { index: texture }
+    chunks.push(png)
+    byteLength += padded(png.length)
   }
-
-  const flipped = mirror(strand.positions, strand.index)
-  const meshes = [
-    shape(strand.positions, strand.index),
-    shape(flipped.positions, flipped.index),
-  ]
-  crown.children = [...(crown.children ?? [])]
-  for (const piece of strands) {
-    const node = json.nodes.length
-    json.nodes.push({
-      name: 'hair_strand',
-      mesh: meshes[piece.flip ? 1 : 0]!,
-      translation: [piece.at[0], piece.at[1], piece.at[2]],
-      rotation: strandRotation(piece),
-      scale: [1, piece.length, 1],
-    })
-    crown.children.push(node)
-  }
+  const materialAt = json.materials.length
+  json.materials.push(material)
+  const mesh = json.meshes.length
+  json.meshes.push({
+    name: 'hair_shape',
+    primitives: [{
+      attributes: {
+        POSITION: store(shape.positions, 'VEC3', 3),
+        NORMAL: store(shape.normals, 'VEC3', 3),
+        TEXCOORD_0: store(shape.uv, 'VEC2', 2),
+      },
+      indices: store(shape.index, 'SCALAR', 1), material: materialAt,
+    }],
+  })
+  const node = json.nodes.length
+  json.nodes.push({ name: 'hair_shape', mesh })
+  const crown = json.nodes[head]!
+  crown.children = [...(crown.children ?? []), node]
   return byteLength
 }
 
@@ -243,7 +214,6 @@ export function exportSeed(
   source: ArrayBuffer,
   spec: AnimeSpec,
   materials: ExportMaterial[],
-  strand?: ExportStrand | null,
 ): ArrayBuffer {
   const { json, binary } = readGlb(source)
   const meta = json.extensions.VRMC_vrm.meta
@@ -252,6 +222,7 @@ export function exportSeed(
   const chunks = [binary]
   let byteLength = padded(binary.byteLength)
   for (const palette of materials) {
+    if (palette.name === 'hair_shape') continue
     const mat = json.materials.find(item => item.name === palette.name)
     if (!mat?.pbrMetallicRoughness.baseColorTexture) throw new Error('Missing palette material')
     const original = mat.pbrMetallicRoughness.baseColorTexture
@@ -385,7 +356,7 @@ export function exportSeed(
       return true
     })
   }
-  byteLength = standHair(json, chunks, byteLength, spec, strand)
+  byteLength = standHair(json, chunks, byteLength, spec, materials.find(palette => palette.name === 'hair_shape')?.png)
   json.asset.copyright = SEED_CREDIT
   json.asset.generator = 'Chroma Match · Seed appearance export'
   json.asset.extras = { ...json.asset.extras, chromaCharacter: { version: 1, code: encodeSpec(spec) } }

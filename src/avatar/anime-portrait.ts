@@ -5,9 +5,9 @@ import { decodeSpec } from './spec.ts'
 import type { AnimeRenderer } from './anime-renderer.ts'
 
 const KEY = 'chroma-match:anime-portrait-v1'
-// Framing changed when editor-sheet camera offsets stopped leaking into saves.
+// Regenerate derived images after replacing ribbon hair with dedicated shells.
 // Keep appearance codes untouched; only regenerate stale, derived images.
-const FRAME_VERSION = 2
+const FRAME_VERSION = 3
 const cache = new Map<string, Promise<HTMLImageElement>>()
 const requests = new WeakMap<HTMLCanvasElement, symbol>()
 let queue: Promise<unknown> = Promise.resolve()

@@ -170,14 +170,10 @@ export const BACKDROPS = ['F4F1EA', 'D8E6EF', 'E6D7C4', 'A8B6A4', '5A6E86', '202
 /*
  * The hairstyles, and the one letter each is saved as.
  *
- * This is a short list because the asset allows a short one. The model's hair
- * is a single mesh weighted 4902 of 5145 to the head bone itself — the eleven
- * strand chains hanging off it carry between fourteen and thirty-six each, and
- * exist to let the tips swing, not to shape a cut. Scaling them changes nothing
- * anyone can see. The ponytail is the one part rigged to move: its own mesh on
- * its own six-bone chain, which can be hidden or lengthened.
- *
- * More than this needs hair geometry the model does not carry.
+ * The licensed ponytail keeps its own rig. Bob and long use dedicated closed
+ * geometry beneath its crown/fringe; the asset's tiny tip chains cannot shape
+ * these cuts. Their implementation lives in hair-strands.ts, independently of
+ * the stable appearance letters here.
  *
  * Bob and ponytail keep the letters they have always had, so every code saved
  * before the long ponytail existed still names the style it named.

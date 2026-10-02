@@ -1,6 +1,46 @@
 import { expect, test } from '@playwright/test'
 import { createHash } from 'node:crypto'
 
+test('production long hair retains a regenerated portrait and requested still gestures', async ({ page, context }, testInfo) => {
+  await context.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
+  await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'en'))
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto('./')
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
+  const gift = page.getByRole('button', { name: 'Got it', exact: true })
+  if (await gift.isVisible()) await gift.click()
+  await page.locator('#lobby-edit').click()
+  await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+  await page.getByRole('tab', { name: 'Hair', exact: true }).click()
+  await page.getByRole('button', { name: 'Long hair', exact: true }).click()
+  await page.screenshot({ path: testInfo.outputPath('release-long-front.png') })
+  await page.getByRole('button', { name: 'Rear', exact: true }).click()
+  await page.screenshot({ path: testInfo.outputPath('release-long-back.png') })
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(page.locator('.studio-status')).toHaveText('Saved on this device.')
+  const saved = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
+  expect(saved).toMatch(/^[456]SL/)
+  await page.reload()
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
+  await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
+  expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!).frame)).toBe(3)
+  await page.setViewportSize({ width: 430, height: 852 })
+  const canvas = page.locator('#lobby-canvas')
+  const hash = async () => createHash('sha256').update(await canvas.evaluate(e => (e as HTMLCanvasElement).toDataURL())).digest('hex')
+  const frames: string[] = []
+  for (const label of ['Wave', 'Cheer', 'Pose']) {
+    await page.getByRole('button', { name: label, exact: true }).click()
+    frames.push(await hash())
+    await page.screenshot({ path: testInfo.outputPath(`release-long-${label.toLowerCase()}.png`) })
+    await page.waitForTimeout(150)
+    expect(await hash()).toBe(frames.at(-1))
+  }
+  expect(new Set(frames).size).toBe(3)
+  expect(errors).toEqual([])
+})
+
 test('release serves the pinned model, license notices and built entry assets', async ({
   request,
 }) => {
