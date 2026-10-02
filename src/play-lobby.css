@@ -79,13 +79,21 @@
 .lobby-head .circle-button {
   font-size: var(--text-xl);
 }
+.lobby-utilities .circle-button {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+.lobby-utilities .hud-ico { width: 18px; height: 18px; }
 .circle-button:focus-visible, .lobby-gesture:focus-visible, #lobby-canvas:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 3px; }
 .circle-button:hover, .lobby-gesture:hover { background: var(--panel-strong); }
 
-.home .profile { min-width: 0; max-width: 100%; overflow: hidden; flex-direction: row; border: 0; box-shadow: none; padding: 0; background: none; gap: 8px; align-items: center; }
+/* Only the name truncates; the portrait's badge and focus ring must escape. */
+.home .profile { min-width: 0; max-width: 100%; overflow: visible; flex-direction: row; border: 0; box-shadow: none; padding: 0; background: none; gap: 8px; align-items: center; }
 .home .profile-face { width: 44px; height: 44px; flex: none; }
 .home #profile-avatar { width: 44px !important; height: 44px !important; }
-.home .profile-pen { width: 14px; height: 14px; right: 0; bottom: 0; }
+.home .profile-pen { width: 18px; height: 18px; right: -1px; bottom: -1px; }
+.home .profile-pen::after { inset: 3px; }
 .home .profile-body { text-align: left; align-items: flex-start; flex: 1; min-width: 0; gap: 1px; }
 .home .profile-name { font-size: var(--text-md); line-height: 1.2; max-width: 100%; }
 .home .profile-wallet {
@@ -123,6 +131,9 @@
 .home .lobby-stage { position: relative; flex: 1 0 260px; min-height: 240px; width: 100%; isolation: isolate; }
 .lobby-stage::before { content: ''; position: absolute; z-index: -1; bottom: 3%; left: 23%; width: 54%; height: 10%; border-radius: 50%; background: radial-gradient(ellipse, var(--accent) 0%, transparent 68%); opacity: .2; }
 #lobby-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+/* Suppress pointer-only focus, never keyboard focus (including studio views). */
+#lobby-canvas[data-pointer-focus]:focus,
+.studio-stage canvas[data-pointer-focus]:focus { outline-style: none; }
 .lobby-loading { position: absolute; inset: 24% 10% auto; text-align: center; color: var(--text); padding: 16px; background: var(--bg); border-radius: var(--radius); }
 .lobby-loading[hidden] { display: none; }
 /*
@@ -135,11 +146,15 @@
  */
 .lobby-tools {
   position: absolute;
-  left: 10px;
-  bottom: 10px;
+  left: 0;
+  bottom: 8px;
   z-index: 2;
   display: flex;
-  gap: 8px;
+  gap: 0;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
 }
 .lobby-gesture {
   width: 44px;
@@ -148,32 +163,43 @@
   min-width: 44px;
   padding: 0;
   color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background: none;
+  border: 0;
   border-radius: 50%;
   display: grid;
   place-items: center;
   cursor: pointer;
 }
 .lobby-gesture:disabled { opacity: .45; cursor: default; }
-.lobby-gesture .hud-ico { width: 20px; height: 20px; }
+.lobby-gesture .hud-ico { width: 18px; height: 18px; }
+.lobby-gesture:active:not(:disabled) { background: var(--panel-strong); }
 .lobby-edit {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
+  right: 0;
+  bottom: 8px;
   z-index: 2;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border-radius: 50%;
+  min-width: 44px;
+  height: 52px;
+  padding: 0 12px;
+  border-radius: 999px;
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: var(--panel-strong);
   color: var(--text);
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: 700 var(--text-sm)/1.2 system-ui;
   cursor: pointer;
 }
-.lobby-edit:hover, .lobby-gesture:hover { background: var(--panel-strong); }
+.lobby-edit-label { white-space: nowrap; }
+.lobby-edit:hover { border-color: var(--accent-2); }
+/* Paper keeps its pressed-card identity on actions, not every utility. */
+[data-skin='paper'] .lobby-utilities .circle-button,
+[data-skin='paper'] .lobby-gesture { box-shadow: none; transform: none; }
+[data-skin='paper'] .lobby-utilities .circle-button { border-color: transparent; }
+[data-skin='paper'] .lobby-edit { box-shadow: 2px 2px 0 var(--line); }
+[data-skin='paper'] .lobby-edit:active { transform: translate(2px, 2px); box-shadow: none; }
 
 .lobby-play { display: flex; align-items: stretch; gap: 8px; width: 100%; }
 /*
