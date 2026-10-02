@@ -129,13 +129,21 @@ test('settings have touch-sized choices and keyboard theme selection keeps visib
   await page.goto('/')
   await enterLobby(page)
   await page.locator('#open-settings').click()
+  // Measure the final layout, not the sheet's entrance transform.
+  await expect.poll(() => page.locator('#sheet-settings .sheet-panel').evaluate(node =>
+    new DOMMatrix(getComputedStyle(node).transform).isIdentity)).toBe(true)
   const sizes = await page.getByRole('radio').evaluateAll(nodes => nodes.map(node => {
     const r = node.getBoundingClientRect()
-    return { width: r.width, height: r.height }
+    const css = getComputedStyle(node)
+    return { width: r.width, height: r.height, minWidth: parseFloat(css.minWidth), minHeight: parseFloat(css.minHeight) }
   }))
   for (const size of sizes) {
-    expect(size.width).toBeGreaterThanOrEqual(44)
-    expect(size.height).toBeGreaterThanOrEqual(44)
+    expect(size.minWidth).toBeGreaterThanOrEqual(44)
+    expect(size.minHeight).toBeGreaterThanOrEqual(44)
+    // Chromium can report 43.999969482421875 for a 44px translated box.
+    // Allow only subpixel arithmetic error, never an undersized pixel target.
+    expect(size.width + 0.001).toBeGreaterThanOrEqual(44)
+    expect(size.height + 0.001).toBeGreaterThanOrEqual(44)
   }
   await page.getByRole('radio', { name: 'Jewel', exact: true }).press('End')
   await expect(page.getByRole('radio', { name: 'Paper', exact: true })).toBeFocused()
