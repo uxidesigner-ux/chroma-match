@@ -13,7 +13,7 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm'
 import type { VRM, MToonMaterial } from '@pixiv/three-vrm'
 import type { AnimeSpec } from '../anime-spec.ts'
 import { EXPRESSIONS } from '../anime-spec.ts'
-import { CHEST_HIGH, CHEST_LOW, HAIR_SHAPE, RIGID, SCULPTED, applyFigure, bustAmount, sculptChest } from '../body-shape.ts'
+import { CHEST_HIGH, CHEST_LOW, SEAT_HIGH, SEAT_LOW, HAIR_SHAPE, RIGID, SCULPTED, applyFigure, bustAmount, sculptChest, sculptSeat } from '../body-shape.ts'
 import type { ShapeNode, ShapedBone } from '../body-shape.ts'
 import { hairGeometry, hairShading } from '../hair-strands.ts'
 import { exportSeed } from '../studio-export.ts'
@@ -58,14 +58,15 @@ export class StudioCharacter {
   /** Every node the figure moves, as the model shipped it. */
   private restPose = new Map<Object3D, [number, number, number]>()
   /*
-   * The chest is sculpted, not scaled, so the untouched geometry has to be kept
-   * to sculpt from: each pass rewrites the vertices from the model's own, never
-   * from the previous pass's, which is what lets the amount go back down again.
+   * Chest/seat sculpting starts from the model's untouched geometry on every
+   * apply, never from the previous pass's, so volume cannot accumulate.
    */
-  private restChest: {
+  private restBody: {
     geometry: BufferGeometry
     position: Float32Array
     normal: Float32Array
+    joints: ArrayLike<number>
+    weights: ArrayLike<number>
     /** A printed badge is small and stiff: it rides the surface whole, or it shears. */
     rigid: boolean
   }[] = []
@@ -117,7 +118,7 @@ export class StudioCharacter {
     this.tailBone = (vrm.humanoid.getRawBoneNode('head')?.children ?? [])
       .find((node) => node.name === 'hair_tail_1') ?? null
     /*
-     * Only the meshes that actually carry geometry across the chest are kept.
+     * Only the meshes carrying chest/seat geometry are kept.
      * The head's skin shares a material name with the body's but sits entirely
      * above the neck, and it holds the forty-three expression morphs, which
      * rewriting base vertices underneath would quietly corrupt.
@@ -136,12 +137,16 @@ export class StudioCharacter {
       if (!position || !normal || seen.has(node.geometry)) return
       for (let i = 0; i < position.count; i++) {
         const y = position.getY(i)
-        if (y <= CHEST_LOW || y >= CHEST_HIGH || position.getZ(i) <= 0) continue
+        if (!(y > CHEST_LOW && y < CHEST_HIGH && position.getZ(i) > 0) && !(y > SEAT_LOW && y < SEAT_HIGH && position.getZ(i) < -.008)) continue
+        const joints = node.geometry.attributes.skinIndex, weights = node.geometry.attributes.skinWeight
+        if (!joints || !weights) continue
         seen.add(node.geometry)
-        this.restChest.push({
+        this.restBody.push({
           geometry: node.geometry,
           position: Float32Array.from(position.array),
           normal: Float32Array.from(normal.array),
+          joints: joints.array,
+          weights: weights.array,
           rigid: mats.every((mat) => RIGID.has(mat.name)),
         })
         return
@@ -261,13 +266,15 @@ export class StudioCharacter {
       this.vrm.expressionManager?.setValue(name, spec.expression === name ? 0.7 : 0)
     applyFigure(spec, this.skeleton)
     const amount = bustAmount(spec)
-    for (const { geometry, rigid, ...rest } of this.restChest) {
+    for (const { geometry, rigid, ...rest } of this.restBody) {
       const position = geometry.attributes.position!
       const normal = geometry.attributes.normal!
-      sculptChest(amount, rigid, rest, {
-        setPosition: (i, x, y, z) => position.setXYZ(i, x, y, z),
-        setNormal: (i, x, y, z) => normal.setXYZ(i, x, y, z),
-      })
+      const into = {
+        setPosition: (i: number, x: number, y: number, z: number) => { position.setXYZ(i, x, y, z) },
+        setNormal: (i: number, x: number, y: number, z: number) => { normal.setXYZ(i, x, y, z) },
+      }
+      sculptChest(amount, rigid, rest, into)
+      if (!rigid) sculptSeat(rest, into)
       position.needsUpdate = true
       normal.needsUpdate = true
     }

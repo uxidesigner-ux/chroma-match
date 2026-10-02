@@ -8,6 +8,7 @@ import { lookFile, parseLookFile, LookHistory } from './studio-library.ts'
 import { buildWardrobe, wardrobeColour } from './wardrobe.ts'
 import { exportSeed, readGlb } from './studio-export.ts'
 import { Ray, Vector3 } from 'three'
+import { sculptSeat } from './body-shape.ts'
 
 const bytes = readFileSync(new URL('../../public/avatars/seed-v1/seed-san.vrm', import.meta.url))
 const source = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
@@ -113,13 +114,17 @@ function bodyTriangles(): [Vector3, Vector3, Vector3][] {
   const primitive = glb.json.meshes[node.mesh!]!.primitives.find(p => glb.json.materials[p.material]!.name === 'body_bake')!
   const position = readAccessor(glb, primitive.attributes.POSITION!), joints = readAccessor(glb, primitive.attributes.JOINTS_0!)
   const weights = readAccessor(glb, primitive.attributes.WEIGHTS_0!), indices = readAccessor(glb, primitive.indices!)
+  const normal = readAccessor(glb, primitive.attributes.NORMAL!), shaped = new Float32Array(position)
+  sculptSeat({ position: new Float32Array(position), normal: new Float32Array(normal), joints, weights }, {
+    setPosition: (i, x, y, z) => shaped.set([x, y, z], i * 3), setNormal: () => {},
+  })
   const body: [Vector3, Vector3, Vector3][] = []
   for (let i = 0; i < indices.length; i += 3) {
     const at = indices.slice(i, i + 3)
     // The body's A-pose includes fingers at waist height; exclude those by
     // actual influences, not a coordinate box that also contains the hands.
     if (at.some(v => [0, 1, 2, 3].some(j => weights[v * 4 + j]! > .1 && joints[v * 4 + j]! >= 30 && joints[v * 4 + j]! <= 78 && joints[v * 4 + j] !== 37))) continue
-    body.push(at.map(v => new Vector3().fromArray(position, v * 3)) as [Vector3, Vector3, Vector3])
+    body.push(at.map(v => new Vector3().fromArray(shaped, v * 3)) as [Vector3, Vector3, Vector3])
   }
   return body
 }

@@ -286,3 +286,87 @@ live deployment was performed for this refinement. Tests use isolated guest
 contexts with Firebase blocked. Physical phones/native Safari, signed-in cloud
 writes, third-party VRM apps, cloth physics and arbitrary poses remain outside
 the verified scope. The previous live release is unchanged.
+
+## Rounded minimum-hip foundation — 2026-10-02
+
+### Brief, decision and acceptance
+
+The user reported a rear silhouette that was too flat even at the minimum hip
+size. The existing hip axis scales the whole pelvis in width/depth, so reducing
+that axis also reduces the already shallow rear of the licensed starter. Keep
+the slider's 0–6 values and existing 0.74–1.26 scale rather than widening the
+whole pelvis or adding a new control.
+
+Add a restrained, symmetric rear-only foundation with at most 32 mm bind-space
+displacement. Its field fades smoothly into the waist, sides and upper thighs;
+it does not move the front, x/y positions, head, height or leg length. The same
+field applies to both character variants before bone scaling, so minimum,
+default and maximum hips remain distinct. Hands overlapping hip height are
+excluded by their actual arm/finger influences. Source weights remain intact;
+normals follow the deformation Jacobian instead of retaining flat highlights.
+
+- Reapply from immutable rest geometry: repeated edits and switching character
+  variants must not accumulate volume or retain the other variant's chest.
+- The original outfit, fitted trousers/shorts, and short/long skirts must fit
+  the newly shaped body, with the same skeleton and export surfaces. Skirt
+  cross-sections must be sampled after sculpting, not from the flatter source.
+- Keep the existing tapered mini and smooth pencil panel. Preserve prior body
+  clearance, all 64 outfit combinations, colours, independent axes, draft,
+  Undo/cancel, Save/reload, PNG/backup and VRM/GLB metadata/geometry parity.
+- Inspect minimum hips in side/rear/three-quarter views in four fitted bottoms,
+  and compare the mini at minimum/default/maximum. Check both variants, the
+  original outfit and actual posed skirt/body clearance during existing gestures.
+- Saved codes and schema stay unchanged. This requested visual baseline
+  refinement deliberately affects previously saved looks too; it is not a new
+  licensed asset or an arbitrary-model anatomy editor. No new UI state,
+  permission, dependency, cloth simulation or animation is introduced.
+
+Visual self-review found the newly shaped shirt's concealed rear binding poking
+through the skirt waistband at larger hip values. Only the tucked overlap now
+tapers from 9 to 2 mm below the visible shirt; the upper shirt's allowance is
+unchanged. The corrected side/rear sheets no longer show that overlap. No skirt
+clearance tolerance was weakened to conceal the issue.
+
+### Verification checkpoint
+
+This is a local refinement on `codex/fitted-skirt-silhouette`, following local
+skirt commit `44b785b`. Artifacts are under `/tmp/chroma-seat-volume.U3QZUy/`.
+It does not publish a new release; verification results are recorded below.
+
+- `npm test`: **200 passed**, including three new bounded-field, source
+  immutability/idempotence and normal-direction regressions. Existing skirt
+  tests now measure against the shaped body, rather than the flatter original.
+  Export tests require the new rear in both variants while retaining the
+  female-only chest and the palette's actual image accessor association.
+- `npm run typecheck`, `BASE_PATH=/chroma-match/ npm run build`, and
+  `git diff --check` passed. The existing large-chunk advisory remains. The
+  pinned VRM SHA-256 remains
+  `624d0d554bc205bbdc33e22a68a2c3c20edebb3e573011ead8878a65e5329b23`.
+- `npm run test:release`: **5 passed** against the local production build,
+  including wardrobe Save/reload/offline recovery, guest flows and Paper lobby
+  drag/focus/hierarchy. Renderer asset: `anime-renderer-B51KbTWv.js`. The local
+  production lobby and offline wardrobe editor screenshots were inspected.
+- The new real-rig rear-volume check passed **30 cases**: both variants,
+  minimum/default/maximum hips and original/mini/long/shorts/trousers. At the
+  measured rear landmark the foundation adds **22.35 / 30.02 / 37.22 mm** at
+  hip steps 0/3/6, respectively. These are posed model-space measurements, not
+  human anthropometry. All three steps remain strictly ordered. **10,520 body
+  vertices** across both minimum-hip original-outfit exports match the actual
+  preview within 0.1 micrometre; x/y values remain unchanged in the rear field.
+- The existing real-rig gesture test passed **240 cases / 1,200 phases**,
+  including **18,420 posed skirt/body samples**. Radial clearance is
+  **3.83–40.21 mm**, with zero sampled penetrations or skeleton/stance mismatches.
+  Larger clearances include joined panels between legs, not a uniform offset.
+  Side/rear/three-quarter minimum-hip, waist-to-hem, gesture, saved lobby and
+  downloaded four-view sheets were visually reviewed, retaining the existing
+  anime/toon tone under the impeccable visual-fit review criteria.
+- Targeted `test:studio` run over `figure.spec.ts`, `seat-volume.spec.ts` and
+  `wardrobe.spec.ts`: **22 passed**. This includes independent body-axis/chest/
+  hair checks, draft/Undo/cancel/Save/reload, PNG/JSON/VRM/GLB, four locales,
+  three themes, 320/390/720/1280 px, keyboard and reduced-motion controls.
+
+Review was performed directly, not by an independent sub-agent/human. No full
+studio-suite rerun, CI, push or live deployment is claimed. Tests use isolated
+guest contexts with Firebase blocked; signed-in cloud writes, physical phones,
+native Safari, third-party VRM apps, cloth physics and arbitrary poses remain
+outside the verified scope. The previous live release is unchanged.

@@ -10,7 +10,7 @@ import { VRMHumanoid } from '@pixiv/three-vrm'
 import type { VRMHumanBones } from '@pixiv/three-vrm'
 import type { AnimeSpec } from './anime-spec.ts'
 import { hasWardrobe } from './anime-spec.ts'
-import { applyFigure, bustAmount, sculptChest } from './body-shape.ts'
+import { applyFigure, bustAmount, sculptChest, sculptSeat } from './body-shape.ts'
 import type { ShapeNode } from './body-shape.ts'
 
 type V3 = [number, number, number]
@@ -258,10 +258,13 @@ function sculpt(source: Source, spec: AnimeSpec): Map<Vertex, Vertex> {
   const amount = bustAmount(spec)
   const positions = Float32Array.from(source.points.flatMap(v => v.p)), normals = Float32Array.from(source.points.flatMap(v => v.n))
   const result = new Map<Vertex, Vertex>()
-  sculptChest(amount, false, { position: positions, normal: normals }, {
-    setPosition: (i, x, y, z) => positions.set([x, y, z], i * 3),
-    setNormal: (i, x, y, z) => normals.set([x, y, z], i * 3),
-  })
+  const rest = { position: positions.slice(), normal: normals.slice(), joints: source.points.flatMap(v => v.joints), weights: source.points.flatMap(v => v.weights) }
+  const into = {
+    setPosition: (i: number, x: number, y: number, z: number) => positions.set([x, y, z], i * 3),
+    setNormal: (i: number, x: number, y: number, z: number) => normals.set([x, y, z], i * 3),
+  }
+  sculptChest(amount, false, rest, into)
+  sculptSeat(rest, into)
   source.points.forEach((v, i) => result.set(v, { ...v, p: Array.from(positions.subarray(i * 3, i * 3 + 3)) as V3, n: Array.from(normals.subarray(i * 3, i * 3 + 3)) as V3 }))
   return result
 }
@@ -653,7 +656,9 @@ function clothes(source: Source, spec: AnimeSpec): WardrobeGeometry[] {
       if (spec.shoes !== 'bare') exposed = exposed.flatMap(t => uncover(t, coverFeet))
       skin.triangles(exposed)
       const offset = (v: Vertex, bottom: boolean): Vertex => {
-        const gap = bottom ? .013 + (spec.bottom === 'trousers' ? smooth((.63 - v.p[1]) / .48) * .013 : .004) : .009
+        // Taper only the concealed tucked-shirt overlap. New rear normals can
+        // otherwise lift its lower binding through an independently scaled waist.
+        const gap = bottom ? .013 + (spec.bottom === 'trousers' ? smooth((.63 - v.p[1]) / .48) * .013 : .004) : .002 + .007 * smooth((v.p[1] - .927) / .022)
         return { ...v, p: v.p.map((n, i) => n + v.n[i]! * gap) as V3 }
       }
       shirt.triangles(keep(triangle, top).map(t => t.map(v => offset(v, false))))
@@ -662,7 +667,7 @@ function clothes(source: Source, spec: AnimeSpec): WardrobeGeometry[] {
     parts.push(skin.shape(name, paint))
   }
   finishOpening(shirt, shirtTrim)
-  if (skirtMode) skirt(source, spec, pants, pantsTrim)
+  if (skirtMode) skirt({ ...source, body: source.body.map(t => t.map(v => shaped.get(v)!)) }, spec, pants, pantsTrim)
   else finishOpening(pants, pantsTrim)
   parts.push(shirt.shape('wardrobe_top', 'top'), shirtTrim.shape('wardrobe_top_binding', 'topTrim', true), pants.shape('wardrobe_bottom', 'bottom', skirtMode), pantsTrim.shape('wardrobe_bottom_binding', 'bottomTrim', true))
   source.clothes.set(key, parts)
