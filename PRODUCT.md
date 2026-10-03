@@ -86,7 +86,16 @@ All cuts use a bleached near-white pigment carrier, preserving neutral strand
 detail rather than multiplying bright selections by the source's mid-gray.
 Bob/long side and back surfaces add sparse curved separation lines with uneven
 spacing, width and length, softly tapered roots/tips, and gentle clump shading.
-The original crown/fringe/ponytail stays intact. Most of the generated map stays
+The authored asset and original fringe/ponytail stay intact. Bob/long use one
+rounded crown-to-curtain shell over the rear crown, rather than a second root
+rim midway down the head. Denser curved-crown rows and one continuous root-to-tip
+UV flow join the silhouette and strand paths. Original rear outline layers stay
+inside this shell; the front opening preserves the original eyes and fringe.
+Below the widest crown, a horizontal tangent joins a gravity-led curtain with
+nondecreasing side width and rear depth, avoiding a neck pinch followed by flare.
+The shell is bounded to 3,250 vertices with no additional meshes/draw calls or
+per-frame rebuilding. See `docs/hair-join.md` for fit and verification evidence.
+Most of the generated map stays
 near-white; only narrow neutral separation cores are darker, so bright pigment
 is not washed out. A single bounded UV texture follows the existing head shell,
 with no extra line meshes, draw calls, runtime noise or per-frame texture work.

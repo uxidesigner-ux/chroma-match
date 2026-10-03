@@ -176,7 +176,7 @@ test('a pre-fix portrait cache regenerates once without changing the saved appea
   await enterLobby(page)
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   const regenerated = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!))
-  expect(regenerated.frame).toBe(5)
+  expect(regenerated.frame).toBe(6)
   expect(regenerated.key).toBe(cachedKey)
   expect(regenerated.png.length).toBeGreaterThan(1000)
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(appearance)

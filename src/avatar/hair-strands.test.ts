@@ -14,7 +14,7 @@ test('both cuts are closed, symmetric, finite shells with usable outward normals
   for (const style of ['bob', 'long'] as const) {
     const shape = hairGeometry(style)!
     const count = shape.positions.length / 3
-    assert.ok(count < 2000, 'bounded mobile geometry')
+    assert.ok(count < 4000, 'bounded mobile geometry including continuous crown')
     for (const values of [shape.positions, shape.normals, shape.uv])
       assert.ok(values.every(Number.isFinite))
     assert.equal(shape.normals.length, shape.positions.length)
@@ -34,15 +34,16 @@ test('both cuts are closed, symmetric, finite shells with usable outward normals
       const n = shape.normals.slice(i * 3, i * 3 + 3)
       assert.ok(Math.abs(Math.hypot(...n) - 1) < 1e-5)
     }
+    const key = (values: number[]) => values.map(v => (Math.abs(v) < .000005 ? 0 : v).toFixed(5)).join('|')
     const points = new Set(Array.from({ length: count }, (_, i) =>
-      Array.from(shape.positions.slice(i * 3, i * 3 + 3)).map(v => v.toFixed(5)).join('|')))
+      key(Array.from(shape.positions.slice(i * 3, i * 3 + 3)))))
     for (let i = 0; i < count; i++) {
       const [x, y, z] = shape.positions.slice(i * 3, i * 3 + 3)
-      const mirrored = [-x!, y!, z!].map(v => (Math.abs(v) < .000005 ? 0 : v).toFixed(5)).join('|')
+      const mirrored = key([-x!, y!, z!])
       assert.ok(points.has(mirrored), `${style} is asymmetric: ${mirrored}`)
     }
     // Centre back, outer layer: face outward toward -Z, not into the scalp.
-    const at = (6 * 65 + 32) * 3
+    const at = (18 * 65 + 32) * 3
     assert.ok(shape.normals[at + 2]! < -.8)
   }
 })
@@ -99,4 +100,47 @@ test('gear clearance moves long hair backward, never widens or changes its cut',
     assert.ok(equipped.positions[i + 2]! <= bare.positions[i + 2]! + 1e-7)
   }
   assert.deepEqual(hairGeometry('bob'), hairGeometry('bob', true))
+})
+
+test('crown and curtain share a continuous rounded silhouette and root-to-tip UV flow', () => {
+  for (const style of ['bob', 'long'] as const) {
+    const shape = hairGeometry(style)!, stride = 65
+    const layer = shape.positions.length / 3 / 2, rows = layer / stride - 1
+    assert.ok(shape.positions[1]! > .25, 'the surface reaches the crown, not a rim halfway down the head')
+    for (let column = 0; column < stride; column++) {
+      assert.ok(Math.abs(shape.uv[column * 2 + 1]!) < 1e-6)
+      assert.ok(Math.abs(shape.uv[(rows * stride + column) * 2 + 1]! - 1) < 1e-6)
+      let previous: number[] | undefined
+      for (let row = 1; row <= rows; row++) {
+        const a = ((row - 1) * stride + column) * 3, b = (row * stride + column) * 3
+        assert.ok(shape.uv[(b / 3) * 2 + 1]! > shape.uv[(a / 3) * 2 + 1]!, 'UV does not restart at the old crown seam')
+        const delta = [0, 1, 2].map(axis => shape.positions[b + axis]! - shape.positions[a + axis]!)
+        const length = Math.hypot(...delta), direction = delta.map(value => value / length)
+        assert.ok(length > 1e-5, 'no collapsed rows')
+        if (previous) {
+          const cosine = Math.min(1, Math.max(-1, direction.reduce((sum, value, axis) => sum + value * previous![axis]!, 0)))
+          assert.ok(Math.acos(cosine) < Math.PI / 9, 'adjacent contour segments turn less than 20 degrees')
+        }
+        previous = direction
+      }
+    }
+  }
+})
+
+test('the curtain falls from the widest crown without an inward neck waist', () => {
+  for (const style of ['bob', 'long'] as const) for (const pack of [false, true]) {
+    const shape = hairGeometry(style, pack)!, stride = 65
+    const rows = shape.positions.length / 3 / 2 / stride - 1
+    for (let column = 0; column < stride; column++) {
+      let lastWidth = 0, lastBack = 0
+      for (let row = 0; row <= rows; row++) {
+        const at = (row * stride + column) * 3
+        if (shape.positions[at + 1]! > .1351) continue
+        const width = Math.abs(shape.positions[at]!), back = -shape.positions[at + 2]!
+        assert.ok(width >= lastWidth - 1e-6, `${style}/${pack}: no inward side pinch below the crown`)
+        if (column === 32) assert.ok(back >= lastBack - 1e-6, `${style}/${pack}: no inward rear pinch below the crown`)
+        lastWidth = width; lastBack = back
+      }
+    }
+  }
 })

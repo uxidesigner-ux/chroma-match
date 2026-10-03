@@ -10,38 +10,55 @@ export interface HairGeometry {
 
 /**
  * Purpose-built, closed toon hair shell in Seed-san's raw head space (metres).
- * The shipped fringe/crown stays intact. A rounded C-section overlaps beneath
- * it, leaves eyes/face open, and carries an unbroken side/back silhouette.
+ * The shipped fringe stays intact. A continuous rounded C-section covers the
+ * rear crown and flows into the curtain, leaving eyes/face open. There is no
+ * second, horizontal root rim halfway down the head.
  * No repeated ponytail ribbons, third-party geometry or textures. Preview and
  * VRM/GLB use these exact arrays. Long is mid-back, not strand physics.
  */
 export function hairGeometry(style: HairStyle, pack = false): HairGeometry | null {
   if (style === 'tails') return null
   const long = style === 'long'
-  const columns = 64, rows = 12
+  const columns = 64, crownRows = 12, lowerRows = 12, rows = crownRows + lowerRows
+  // Denser samples on the curved crown, not extra ribbons or a separate cap.
+  const crownY = [.2598, .258, .253, .245, .235, .222, .208, .192, .175, .157, .135, .113, .09]
+  const length = long ? .54 : .235
+  const join = (.17 - crownY[crownRows]!) / length
   const positions: number[] = [], uv: number[] = [], index: number[] = []
   const stride = columns + 1, layer = stride * (rows + 1)
   for (let inner = 0; inner < 2; inner++) {
     for (let row = 0; row <= rows; row++) {
-      const t = row / rows
-      const sweep = t * t * (3 - 2 * t)
+      const t = row <= crownRows ? (.17 - crownY[row]!) / length : join + (1 - join) * (row - crownRows) / lowerRows
+      const v = (.17 - length * t - crownY[0]!) / (.17 - length - crownY[0]!)
+      const lower = Math.max(0, t)
+      const sweep = lower * lower * (3 - 2 * lower)
       for (let column = 0; column <= columns; column++) {
         const u = column / columns
         const angle = .7 + u * (Math.PI * 2 - 1.4)
         const back = (1 - Math.cos(angle)) / 2
         const frontLock = Math.max(0, Math.cos(angle)) ** 2
-        const groove = Math.cos(u * Math.PI * 32) * .0018 * Math.sin(Math.PI * t)
-        const radiusX = .106 + (long ? .035 : .02) * Math.sin(t * Math.PI * .8) + groove - inner * .006 +
+        const baseY = .17 - length * t
+        // Gravity-led curtain: after the widest part of the crown, never
+        // shrink toward the neck and flare back out. A horizontal tangent
+        // joins the rounded crown to a very gently widening lower fall.
+        const pivotY = .135
+        const cap = baseY >= pivotY ? Math.sqrt(Math.max(0, 1 - ((baseY - pivotY) / .125) ** 2)) : 1
+        const fall = smooth(0, 1, (pivotY - baseY) / (pivotY - (.17 - length)))
+        const groove = Math.cos(u * Math.PI * 32) * .0018 * (1 - smooth(pivotY, crownY[0]!, baseY))
+        const thickness = Math.min(.006, .133 * cap * .3)
+        const radiusX = .133 * cap + (long ? .0065 : .0015) * fall + groove - inner * thickness +
           (long ? .13 * frontLock * sweep : 0)
-        const radiusZ = .111 + .019 * Math.sin(t * Math.PI * .8) + groove - inner * .006
-        const y = .17 - t * (long ? .54 : .235) +
-          (long ? .045 * (1 - back) : .008 * Math.cos(u * Math.PI * 2)) * t * t
+        const radiusZ = .142 * cap + (long ? .003 : .001) * fall + groove - inner * thickness
+        const y = baseY +
+          (long ? .045 * (1 - back) : .008 * Math.cos(u * Math.PI * 2)) * lower * lower
         const clearance = long ? (.065 + (pack ? .055 : 0)) * sweep * (.25 + .75 * back) : .005 * sweep
         // Face-framing locks fall outside/in front of the chest; back curtain
         // clears shoulders and gear. Long must also read from the lobby front.
         positions.push(Math.sin(angle) * radiusX, y, Math.cos(angle) * radiusZ - clearance +
           (long ? .065 * frontLock * sweep : 0))
-        uv.push(u, t)
+        // One root-to-tip UV flow through the crown/curtain, not a reset at
+        // their old overlap. Both cuts and file exports use this exact map.
+        uv.push(u, v)
       }
     }
   }
@@ -81,8 +98,8 @@ const seed = (n: number) => {
  * clumps/curved paths, tapered widths and different start/end points avoid a
  * comb of identical full-length stripes. Only small separation cores fall
  * below the white range: the bulk pigment still carries bright chosen colours.
- * This UV-bound map follows the existing head shell, with no floating line
- * meshes, extra draw calls, geometry/rig changes or per-frame texture work.
+ * This UV-bound map follows the rounded head shell, with no floating line
+ * meshes, extra draw calls or per-frame texture work.
  */
 export function hairShading(): { width: number; height: number; rgba: Uint8ClampedArray<ArrayBuffer> } {
   const width = 512, height = 512, rgba = new Uint8ClampedArray(width * height * 4)
