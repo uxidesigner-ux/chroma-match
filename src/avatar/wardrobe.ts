@@ -12,6 +12,7 @@ import type { AnimeSpec } from './anime-spec.ts'
 import { hasWardrobe } from './anime-spec.ts'
 import { applyFigure, bustAmount, sculptChest, sculptSeat } from './body-shape.ts'
 import type { ShapeNode } from './body-shape.ts'
+import { refineChestSurface } from './chest-surface.ts'
 
 type V3 = [number, number, number]
 type V4 = [number, number, number, number]
@@ -93,11 +94,16 @@ function sourceData(buffer: ArrayBuffer): Source {
   for (const primitive of document.meshes[wear.mesh]!.primitives) {
     const material = document.materials[primitive.material]!.name
     if (!['body_bake', 'body_nm'].includes(material)) continue
-    const p = read(primitive.attributes.POSITION), n = read(primitive.attributes.NORMAL)
-    const uv = read(primitive.attributes.TEXCOORD_0), joints = read(primitive.attributes.JOINTS_0), weights = read(primitive.attributes.WEIGHTS_0)
+    let p = read(primitive.attributes.POSITION), n = read(primitive.attributes.NORMAL)
+    let uv = read(primitive.attributes.TEXCOORD_0), joints = read(primitive.attributes.JOINTS_0), weights = read(primitive.attributes.WEIGHTS_0)
+    let indices = primitive.indices === undefined ? p.map((_, i) => i) : read(primitive.indices).map(row => row[0]!)
+    if (material === 'body_bake') {
+      const shaped = refineChestSurface({ positions: Float32Array.from(p.flat()), normals: Float32Array.from(n.flat()), uv: Float32Array.from(uv.flat()), joints: Uint16Array.from(joints.flat()), weights: Float32Array.from(weights.flat()), index: Uint32Array.from(indices) })
+      const rows = (values: ArrayLike<number>, width: number) => Array.from({ length: values.length / width }, (_, i) => Array.from({ length: width }, (_, j) => values[i * width + j]!))
+      p = rows(shaped.positions, 3); n = rows(shaped.normals, 3); uv = rows(shaped.uv, 2); joints = rows(shaped.joints, 4); weights = rows(shaped.weights, 4); indices = Array.from(shaped.index)
+    }
     const vertices: Vertex[] = p.map((position, i) => ({ p: position as V3, n: n[i] as V3, uv: uv[i] as [number, number], joints: joints[i] as V4, weights: weights[i] as V4 }))
     points.push(...vertices)
-    const indices = primitive.indices === undefined ? vertices.map((_, i) => i) : read(primitive.indices).map(row => row[0]!)
     const triangles = material === 'body_bake' ? body : arm
     for (let i = 0; i < indices.length; i += 3) triangles.push(indices.slice(i, i + 3).map(index => vertices[index]!))
   }
@@ -658,7 +664,10 @@ function clothes(source: Source, spec: AnimeSpec): WardrobeGeometry[] {
       const offset = (v: Vertex, bottom: boolean): Vertex => {
         // Taper only the concealed tucked-shirt overlap. New rear normals can
         // otherwise lift its lower binding through an independently scaled waist.
-        const gap = bottom ? .013 + (spec.bottom === 'trousers' ? smooth((.63 - v.p[1]) / .48) * .013 : .004) : .002 + .007 * smooth((v.p[1] - .927) / .022)
+        // Follow the rounded front with 6.3 mm allowance, fading back to
+        // 9 mm at the collar/sides. Rear waistband and sleeves keep their fit.
+        const chestFit = smooth((v.p[1] - 1.00) / .035) * (1 - smooth((v.p[1] - 1.24) / .045)) * smooth((v.p[2] - .012) / .045) * (1 - smooth((Math.abs(v.p[0]) - .14) / .04))
+        const gap = bottom ? .013 + (spec.bottom === 'trousers' ? smooth((.63 - v.p[1]) / .48) * .013 : .004) : .002 + .007 * smooth((v.p[1] - .927) / .022) - .0027 * chestFit
         return { ...v, p: v.p.map((n, i) => n + v.n[i]! * gap) as V3 }
       }
       shirt.triangles(keep(triangle, top).map(t => t.map(v => offset(v, false))))

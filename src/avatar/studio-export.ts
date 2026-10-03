@@ -18,6 +18,7 @@ import type { ShapeNode, ShapedBone } from './body-shape.ts'
 import { hairGeometry } from './hair-strands.ts'
 import { buildWardrobe, wardrobeColour, wardrobeShade } from './wardrobe.ts'
 import type { Wardrobe } from './wardrobe.ts'
+import { refineChestSurface } from './chest-surface.ts'
 
 type Vec3 = [number, number, number]
 interface TextureInfo { index: number; [key: string]: unknown }
@@ -116,21 +117,21 @@ function glbSkeleton(json: SeedDocument) {
 }
 
 /** Reads vertex/skin attributes with their actual component size and stride. */
-function readVector(json: SeedDocument, binary: Uint8Array, index: number, width: 3 | 4): Float32Array {
+function readVector(json: SeedDocument, binary: Uint8Array, index: number, width: 1 | 2 | 3 | 4): Float32Array {
   const accessor = json.accessors[index]
-  if (!accessor || accessor.type !== `VEC${width}` || ![5126, 5123, 5121].includes(accessor.componentType))
+  if (!accessor || accessor.type !== (width === 1 ? 'SCALAR' : `VEC${width}`) || ![5126, 5125, 5123, 5121].includes(accessor.componentType))
     throw new Error('Unsupported vertex data')
   const view = json.bufferViews[accessor.bufferView]
   if (!view) throw new Error('Unsupported vertex data')
   const data = new DataView(binary.buffer, binary.byteOffset)
   const base = (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0)
-  const size = accessor.componentType === 5126 ? 4 : accessor.componentType === 5123 ? 2 : 1
+  const size = [5126, 5125].includes(accessor.componentType) ? 4 : accessor.componentType === 5123 ? 2 : 1
   const stride = view.byteStride ?? width * size
   const out = new Float32Array(accessor.count * width)
   for (let i = 0; i < accessor.count; i++) {
     const at = base + i * stride
     for (let j = 0; j < width; j++) {
-      let value = size === 4 ? data.getFloat32(at + j * size, true) : size === 2 ? data.getUint16(at + j * size, true) : data.getUint8(at + j * size)
+      let value = size === 4 ? accessor.componentType === 5126 ? data.getFloat32(at + j * size, true) : data.getUint32(at + j * size, true) : size === 2 ? data.getUint16(at + j * size, true) : data.getUint8(at + j * size)
       if (accessor.normalized && size !== 4) value /= size === 2 ? 65535 : 255
       out[i * width + j] = value
     }
@@ -349,8 +350,8 @@ export function exportSeed(
         const positionAt = primitive.attributes.POSITION
         const normalAt = primitive.attributes.NORMAL
         if (positionAt === undefined || normalAt === undefined) continue
-        const position = readVec3(json, binary, positionAt)
-        const normal = readVec3(json, binary, normalAt)
+        let position = readVec3(json, binary, positionAt)
+        let normal = readVec3(json, binary, normalAt)
         /*
          * Only the meshes carrying chest/seat geometry. The
          * head's skin shares a material name with the body's but sits entirely
@@ -361,6 +362,12 @@ export function exportSeed(
         for (let i = 0; i < position.length && !inside; i += 3)
           inside = (amount > 0 && position[i + 1]! > CHEST_LOW && position[i + 1]! < CHEST_HIGH && position[i + 2]! > 0) || (position[i + 1]! > SEAT_LOW && position[i + 1]! < SEAT_HIGH && position[i + 2]! < -.008)
         if (!inside) continue
+        const jointsAt = primitive.attributes.JOINTS_0, weightsAt = primitive.attributes.WEIGHTS_0, uvAt = primitive.attributes.TEXCOORD_0
+        let joints = jointsAt === undefined ? undefined : readVector(json, binary, jointsAt, 4)
+        let weights = weightsAt === undefined ? undefined : readVector(json, binary, weightsAt, 4)
+        const refined = ['body_bake', 'huku_bake'].includes(name) && joints && weights && uvAt !== undefined && primitive.indices !== undefined
+          ? refineChestSurface({ positions: position, normals: normal, uv: readVector(json, binary, uvAt, 2), joints: Uint16Array.from(joints), weights, index: Uint32Array.from(readVector(json, binary, primitive.indices, 1)) }) : undefined
+        if (refined) { position = refined.positions; normal = refined.normals; joints = Float32Array.from(refined.joints); weights = refined.weights }
         const moved = { position: new Float32Array(position), normal: new Float32Array(normal) }
         const into = {
           setPosition: (i: number, x: number, y: number, z: number) => {
@@ -375,12 +382,13 @@ export function exportSeed(
           },
         }
         sculptChest(amount, RIGID.has(name), { position, normal }, into)
-        const jointsAt = primitive.attributes.JOINTS_0, weightsAt = primitive.attributes.WEIGHTS_0
-        if (!RIGID.has(name) && jointsAt !== undefined && weightsAt !== undefined)
-          sculptSeat({ position, normal, joints: readVector(json, binary, jointsAt, 4), weights: readVector(json, binary, weightsAt, 4) }, into)
+        if (!RIGID.has(name) && joints && weights)
+          sculptSeat({ position, normal, joints, weights }, into)
         // Appended rather than written over: the originals stay valid for
         // anything else in the document still pointing at them.
-        for (const [key, values] of [['POSITION', moved.position], ['NORMAL', moved.normal]] as const) {
+        const attributes: [string, Float32Array | Uint16Array | Uint32Array, number][] = [['POSITION', moved.position, 3], ['NORMAL', moved.normal, 3]]
+        if (refined) attributes.push(['TEXCOORD_0', refined.uv, 2], ['JOINTS_0', refined.joints, 4], ['WEIGHTS_0', refined.weights, 4], ['indices', refined.index, 1])
+        for (const [key, values, width] of attributes) {
           const bytes = new Uint8Array(values.buffer, values.byteOffset, values.byteLength)
           const bufferView = json.bufferViews.length
           json.bufferViews.push({ buffer: 0, byteOffset: byteLength, byteLength: bytes.length })
@@ -400,12 +408,13 @@ export function exportSeed(
           }
           json.accessors.push({
             bufferView,
-            componentType: 5126,
-            type: 'VEC3',
-            count: values.length / 3,
+            componentType: values instanceof Uint16Array ? 5123 : values instanceof Uint32Array ? 5125 : 5126,
+            type: width === 1 ? 'SCALAR' : `VEC${width}`,
+            count: values.length / width,
             ...bounds,
           })
-          primitive.attributes[key] = accessor
+          if (key === 'indices') primitive.indices = accessor
+          else primitive.attributes[key] = accessor
           chunks.push(bytes)
           byteLength += padded(bytes.length)
         }

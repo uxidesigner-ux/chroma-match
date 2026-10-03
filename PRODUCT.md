@@ -64,6 +64,14 @@ Even the minimum hip setting retains a modest rounded rear foundation, shared
 by the body, original outfit, fitted wardrobe and exports. Hip size still scales
 independently; this requested baseline refinement also applies to saved looks
 without changing their codes or the face, belly, height and leg length.
+The female chest retains its existing size range, with a gentle upper approach,
+a shorter, firmer rounded lower pole and smooth ribcage transition. Curved local
+torso interpolation uses about 3 mm apex / 5 mm surrounding edges, including
+torso vertices with minor shoulder blends. A smooth central join prevents the
+fitted shell folding across the sternum. Actual posed contour checks bound the
+apex turn and upper straight facets, not just the vertex count or a scalar field.
+The fitted tops and original-outfit exports share the same sculpt and rig.
+See `docs/chest-shape.md` for the fit gate and original-tunic limitations.
 Previous appearances retain the original outfit until a new piece is selected;
 new wardrobe profiles use a bounded v7 code. This is skinned game clothing, not
 cloth simulation or a claim of fit on arbitrary models/animations. See
