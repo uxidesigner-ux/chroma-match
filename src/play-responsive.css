@@ -17,8 +17,26 @@
   padding: 4px;
   display: flex;
   gap: 8px;
-  overflow: hidden;
+  overflow: visible;
 }
+.game-playfield { display: flex; flex-direction: column; gap: 0; flex: 1 1 0; min-width: 0; min-height: 0; }
+.game-feedback { display: grid; place-items: center; flex: 0 0 max(44px, calc(var(--text-xs) * 2.5 + 12px)); min-width: 0; pointer-events: none; }
+.game .combo {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  transform: none;
+  max-width: calc(100% - 12px);
+  min-width: 0;
+  padding: 5px 10px;
+  gap: 6px;
+  white-space: normal;
+}
+.game .combo-avatar { width: 30px; height: 30px; margin: -4px 0; }
+.game .combo-x { flex: none; }
+.game .combo-word { line-height: 1.25; letter-spacing: .02em; text-transform: none; overflow-wrap: anywhere; opacity: 1; }
+.game .combo.is-bump { animation-name: play-feedback-pop; }
+@keyframes play-feedback-pop { from { transform: scale(.92); opacity: .4; } to { transform: scale(1); opacity: 1; } }
 .game .stage {
   /* Nine 44px gems + plate/aspect padding + chain space. Short windows scroll rather than
      hide the game. On narrow phones width still bounds the square cells. */
@@ -30,6 +48,9 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
   grid-area: auto;
+  padding: 4px;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
 }
 .game .game-hud, .game > .goal, .game > .items, .game > .items-hint {
   width: 100%;
@@ -42,6 +63,29 @@
   width: min(100cqw, calc(max(420px, 100cqh) * var(--board-ratio, .6667)));
   margin-inline: auto;
 }
+/* The scroller clips outside outlines; keep all four focus edges visible
+   without adding padding that would force an otherwise fitting board to scroll. */
+.game #board:focus-visible { outline-offset: -3px; }
+.game .hud-label { min-height: 2.7em; line-height: 1.35; display: grid; align-items: center; overflow-wrap: anywhere; }
+.game .goal-token { max-width: 100%; container-type: inline-size; }
+.game #goal-remaining {
+  /* Full localized counts, not an ellipsis or a badge covering the portrait. */
+  right: 0;
+  bottom: 0;
+  padding-inline: 3px;
+  font-size: min(var(--goal-count-size, 26px), calc((100cqw - 6px) / var(--goal-count-chars, 5) / .62));
+}
+.game .hud-face {
+  /* Reserve the round ring's 5px outset and maximum 1.1× reaction scale. */
+  width: min(var(--hud-face-size, 112px), calc((100% - 12px) / 1.1));
+}
+.game .hud-reaction { line-height: 1.3; overflow-wrap: anywhere; white-space: normal; }
+.game .goal-unit { min-height: 1.3em; line-height: 1.3; }
+/* This slot is permanent even when the HTML hidden state removes its message.
+   Item selection/consumption must not resize the board under the next finger. */
+.game .items-hint { display: block; flex: none; height: max(32px, calc(var(--text-xs) * 2.6)); line-height: 1.3; overflow-wrap: anywhere; }
+.game .items-hint[hidden] { display: block; visibility: hidden; }
+html.game-open, html.game-open body { overflow: hidden; overscroll-behavior: none; }
 .app:not(.ignore-rotate) .game .stage { display: block; }
 .app:not(.ignore-rotate) .game .rotate, .game .rotate { display: none; }
 
@@ -49,33 +93,50 @@
    goal / character / moves above the board, with no empty side column. */
 [data-play-layout="wide"] .game:not([hidden]) {
   display: grid;
-  grid-template-columns: minmax(280px, 34%) minmax(0, 1fr);
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
-  column-gap: 24px;
+  grid-template-columns: minmax(216px, 30%) minmax(280px, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  column-gap: 12px;
   min-height: 0;
 }
 [data-play-layout="wide"] .game-hud { grid-area: 1 / 1; align-self: start; }
 [data-play-layout="wide"] .game > .goal { grid-area: 2 / 1; }
-[data-play-layout="wide"] .game .stage { grid-area: 1 / 2 / 4 / 3; }
-[data-play-layout="wide"] .game > .board-scroll-hint { grid-area: 4 / 2; }
-[data-play-layout="wide"] .game > .items { grid-area: 5 / 1 / 6 / 3; max-width: none; }
-[data-play-layout="wide"] .game > .items-hint { grid-area: 6 / 1 / 7 / 3; }
-.board-scroll-hint { display: none; margin: 0; color: var(--muted); font-size: var(--text-sm); text-align: center; align-items: center; justify-content: center; gap: 12px; flex: none; }
+[data-play-layout="wide"] .game-playfield { grid-area: 1 / 2 / 4 / 3; }
+[data-play-layout="wide"] .game > .items { grid-area: 4 / 1 / 5 / 3; max-width: none; }
+[data-play-layout="wide"] .game > .items-hint { grid-area: 5 / 1 / 6 / 3; }
+.board-scroll-hint { display: none; margin: 0; color: var(--muted); font-size: var(--text-sm); text-align: center; align-items: center; justify-content: center; gap: 4px; flex: none; }
 .board-scroll-hint p { margin: 0; }
 [data-board-scroll="true"] .board-scroll-hint { display: flex; }
 .board-scroll-hint button:disabled { opacity: .4; cursor: default; }
 [data-play-short="true"] .game { gap: 6px; }
-[data-play-short="true"] .hud-face { width: 64px; }
+[data-play-short="true"] .hud-face { --hud-face-size: 64px; }
 [data-play-short="true"] .hud-reaction { margin-top: 5px; height: 18px; }
 [data-play-short="true"] .goal-token { width: 66px; height: 50px; }
 [data-play-short="true"] #goal-gem { width: 50px; height: 50px; }
-[data-play-short="true"] #goal-remaining { font-size: 22px; }
+[data-play-short="true"] #goal-remaining { --goal-count-size: 22px; }
 [data-play-short="true"] .hud-moves .stat-value { font-size: 42px; }
 [data-play-short="true"] .game .item, [data-play-short="true"] .game-exit { width: 48px; height: 48px; }
 .goal-unit { display: block; color: var(--muted); font-size: var(--text-sm); margin-top: 4px; }
+@media (min-width: 760px) { .game .items-hint { height: max(24px, calc(var(--text-xs) * 1.3)); } }
+.game .items { gap: 4px; }
+
+/* A narrow split-window cannot fit a side rail. Keep the three readouts and
+   usable gems; only secondary level chrome becomes nonvisual in this case. */
+[data-play-compact="true"] .game { gap: 4px; }
+[data-play-compact="true"] .game .hud-face { --hud-face-size: 48px; }
+[data-play-compact="true"] .game .hud-label { min-height: 1.3em; font-size: var(--text-xs); line-height: 1.3; }
+[data-play-compact="true"] .game .goal-token { height: 40px; width: 60px; }
+[data-play-compact="true"] .game #goal-gem { width: 40px; height: 40px; }
+[data-play-compact="true"] .game #goal-remaining { --goal-count-size: 18px; }
+[data-play-compact="true"] .game .goal-unit { font-size: var(--text-xs); }
+[data-play-compact="true"] .game .hud-moves .stat-value { font-size: 32px; }
+[data-play-compact="true"] .game .hud-reaction { font-size: var(--text-xs); }
+[data-play-compact="true"] .game .item, [data-play-compact="true"] .game .game-exit { width: 44px; height: 44px; }
+[data-play-compact="true"] .game .goal-row { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0; }
+[data-play-compact="true"] .game .goal-unit,
+[data-play-compact="true"] .game .hud-reaction { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0; }
+@media (prefers-reduced-motion: reduce) { .game .combo.is-bump { animation: none; } }
 
 @media (max-width: 360px) {
   .app:has(.game:not([hidden])) { padding-inline: 8px; }
-  .game .items { gap: 8px; }
-  .game .item, .game .game-exit { width: 48px; height: 48px; }
+  .game .item, [data-play-short="true"] .game .item, .game .game-exit { width: 44px; height: 44px; }
 }

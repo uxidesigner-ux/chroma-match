@@ -127,6 +127,9 @@ let itemUsed = hasUsedItem()
 const shop = new Shop()
 const loadout = new Loadout()
 const pause = new PauseSheet()
+// A quit may arrive during an already accepted action. Finish that action
+// before banking its score, or the recorded move and payout cannot replay.
+let endingRun = false
 const screens = new Screens()
 const splash = new Splash(() => welcomeHome())
 const lobby = new Lobby({
@@ -397,6 +400,7 @@ const hooks: Partial<GameHooks> = {
     sfx.levelUp()
     haptics.levelUp()
     tray.arm(null)
+    if (endingRun) return
     const earned = itemForLevel(level)
     overlay.show({
       kicker: t('cleared'),
@@ -413,6 +417,7 @@ const hooks: Partial<GameHooks> = {
     })
   },
   onGameOver(score) {
+    endingRun = false
     reportMission('score', score)
     reportMission('level', game.level)
     sfx.gameOver()
@@ -508,6 +513,7 @@ attachInput(
 // ---- navigation -----------------------------------------------------------
 
 function startRun(boosters: readonly Item[] = []): void {
+  endingRun = false
   clearSuspended()
   effects.clear()
   combo.hide()
@@ -531,6 +537,7 @@ function startRun(boosters: readonly Item[] = []): void {
 }
 
 function goHome(): void {
+  endingRun = false
   commitRecord()
   shop.refresh()
   effects.clear()
@@ -607,9 +614,10 @@ function paintContinue(): void {
 }
 
 screens.onChange((name) => {
+  document.documentElement.classList.toggle('game-open', name === 'game')
   if (name === 'home') lobby.show()
   else lobby.hide()
-  if (name === 'game') hud.reset()
+  hud.reset()
   if (name !== 'creator') creator.close()
   // The canvas is zero-sized while the screen is hidden, so it has to be
   // re-measured on the way back in rather than waiting for a resize event.
@@ -676,14 +684,14 @@ document.getElementById('shop-back')?.addEventListener('click', () => {
 document.getElementById('pause')?.addEventListener('click', () => {
   // Deliberately not gated on the board being still. A pause that only opens
   // between cascades is a pause that refuses exactly when someone is trying to
-  // put their phone down; the sheet is a modal over a board that keeps
-  // settling behind it, and every action on it is safe mid-animation.
+  // put their phone down. Freeze the loop while its sheet (or nested help) is
+  // open, so a level-result modal cannot replace a pause in the background.
   pause.show(game.level, game.score, {
     resume: () => {},
     keep: () => keepRun(),
     // Ending banks the score and pays the run out, which is what leaving used
     // to skip: a level-24 run abandoned from the old footer earned nothing.
-    end: () => game.endRun(),
+    end: () => { endingRun = true },
   })
 })
 
@@ -779,9 +787,13 @@ document.getElementById('lobby-edit')!.addEventListener('click', () => {
 })
 onLanguageChange(repaintText)
 
-const observer = new ResizeObserver(() => renderer.resize())
+const resizeBoard = () => {
+  if (renderer.resize()) effects.clear()
+}
+const observer = new ResizeObserver(resizeBoard)
 observer.observe(canvas)
-window.addEventListener('orientationchange', () => renderer.resize())
+window.addEventListener('resize', resizeBoard)
+window.addEventListener('orientationchange', resizeBoard)
 window.addEventListener('pagehide', () => {
   commitRecord()
   // Phones evict backgrounded tabs without warning, and a run is the one thing
@@ -833,9 +845,13 @@ function frame(now: number): void {
   const dt = Math.min(0.05, (now - previous) / 1000)
   previous = now
 
-  if (screens.active === 'game') {
+  if (screens.active === 'game' && !pause.visible) {
     time += dt
     game.update(dt)
+    if (endingRun && game.phaseKind === 'idle') {
+      endingRun = false
+      game.endRun()
+    }
     effects.update(dt)
     combo.update(dt)
     renderer.settle(dt)

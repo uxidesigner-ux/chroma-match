@@ -42,6 +42,10 @@ of the player's task. The product has one anime character editor and one profile
   without handing vertical panning to browser refresh; rotation help is nonvisual.
 - Use cached still portraits in lists and the event-reactive game HUD; release editor resources.
 - Gameplay HUD has three equal regions: goal, character reaction, remaining moves.
+- Gameplay feedback owns a fixed lane outside the board scroller. Item guidance
+  reserves its slot, and scroll controls share the footer without taking board
+  height. Hits never translate the grid; floating scores stay inside the canvas.
+  Pause freezes a cascade; ending finishes its accepted action before banking.
 - New runs support 2×2 squares as bomb matches, alongside lines, L/T/+ and power fusion.
 - Preserve previous rules when resuming/replaying saved games.
 - Keep stable, versioned choices independent of rendering implementation.

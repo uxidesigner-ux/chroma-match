@@ -58,11 +58,11 @@ export class Hud {
       const face = this.reaction.querySelector('.hud-face')!
       const tilt = this.sequence % 2 ? -1 : 1
       const frames: Record<Reaction, Keyframe[]> = {
-        pop: [{ transform: 'scale(1)' }, { transform: `translateY(-5px) rotate(${tilt * 7}deg) scale(1.07)` }, { transform: 'scale(1)' }],
-        power: [{ transform: 'scale(.92)' }, { transform: 'scale(1.16) rotate(-8deg)' }, { transform: 'scale(1)' }],
-        fusion: [{ transform: 'rotate(-14deg) scale(.94)' }, { transform: 'rotate(12deg) scale(1.18)' }, { transform: 'rotate(0) scale(1)' }],
-        chain: [{ transform: `rotate(${-tilt * 9}deg)` }, { transform: `translateY(-9px) rotate(${tilt * 12}deg) scale(1.12)` }, { transform: 'rotate(0) scale(1)' }],
-        clear: [{ transform: 'scale(1)' }, { transform: 'translateY(-10px) scale(1.2)' }, { transform: 'scale(1)' }],
+        pop: [{ transform: 'scale(1)' }, { transform: `translateY(-3px) rotate(${tilt * 7}deg) scale(1.04)` }, { transform: 'scale(1)' }],
+        power: [{ transform: 'scale(.96)' }, { transform: 'scale(1.08) rotate(-8deg)' }, { transform: 'scale(1)' }],
+        fusion: [{ transform: 'rotate(-10deg) scale(.96)' }, { transform: 'rotate(10deg) scale(1.1)' }, { transform: 'rotate(0) scale(1)' }],
+        chain: [{ transform: `rotate(${-tilt * 7}deg)` }, { transform: `translateY(-4px) rotate(${tilt * 9}deg) scale(1.07)` }, { transform: 'rotate(0) scale(1)' }],
+        clear: [{ transform: 'scale(1)' }, { transform: 'translateY(-4px) scale(1.1)' }, { transform: 'scale(1)' }],
       }
       this.animation = face.animate(frames[kind], { duration: kind === 'pop' ? 420 : 650, easing: 'cubic-bezier(.22,1,.36,1)' })
       this.sparks = this.reaction.querySelector('.hud-sparks')!.animate([
@@ -92,8 +92,10 @@ export class Hud {
     el('goal-text').textContent = what
     const unit = game.goal.kind === 'score' ? copy.points : game.goal.kind === 'power' ? copy.powers : copy.gems
     el('goal-unit').textContent = unit
-    el('goal-remaining').textContent = n(Math.max(0, game.need - game.progress))
-    el('goal-remaining').setAttribute('aria-label', `${what}: ${n(Math.max(0, game.need - game.progress))} ${unit}`)
+    const remaining = n(Math.max(0, game.need - game.progress))
+    el('goal-remaining').textContent = remaining
+    el('goal-remaining').style.setProperty('--goal-count-chars', String(remaining.length))
+    el('goal-remaining').setAttribute('aria-label', `${what}: ${remaining} ${unit}`)
     el('progress').textContent = n(Math.min(game.progress, game.need))
     el('target').textContent = n(game.need)
     el('bar').style.width = `${Math.min(100, game.progress / game.need * 100)}%`

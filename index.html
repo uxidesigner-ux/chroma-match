@@ -309,17 +309,21 @@
           </div>
         </section>
 
-        <div class="stage">
-          <div class="board-wrap">
-            <canvas id="board" role="application" tabindex="0" aria-label="Game board" aria-describedby="board-key-help" data-i18n-attr="aria-label:boardAria"></canvas>
-            <p class="sr-only" id="board-key-help" data-i18n="boardKeys">Arrow keys move. Enter selects or swaps. Escape cancels. Tab leaves the board.</p>
-            <p class="sr-only" id="board-status" role="status"></p>
-            <!-- Announced politely: a chain is feedback, not something a
-                 screen-reader user needs interrupting their move. -->
-            <div class="combo" id="combo" aria-live="polite" hidden>
+        <div class="game-playfield">
+          <!-- Feedback owns a permanent lane outside the scrolling canvas.
+               Showing, wrapping or animating it never moves a gem's target. -->
+          <div class="game-feedback">
+            <div class="combo" id="combo" role="status" aria-live="polite" aria-atomic="true" hidden>
               <canvas id="combo-avatar" class="combo-avatar" aria-hidden="true" hidden></canvas>
               <span class="combo-x" id="combo-x">&times;2</span>
               <span class="combo-word" id="combo-word">chain</span>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="board-wrap">
+              <canvas id="board" role="application" tabindex="0" aria-label="Game board" aria-describedby="board-key-help" data-i18n-attr="aria-label:boardAria"></canvas>
+              <p class="sr-only" id="board-key-help" data-i18n="boardKeys">Arrow keys move. Enter selects or swaps. Escape cancels. Tab leaves the board.</p>
+              <p class="sr-only" id="board-status" role="status"></p>
             </div>
           </div>
         </div>
@@ -329,11 +333,6 @@
           playing, not part of the chrome, and a thumb reaching the board can
           reach it without crossing anything else.
         -->
-        <div class="board-scroll-hint">
-          <button class="circle-button" id="board-scroll-up" type="button" aria-controls="board">↑</button>
-          <p id="board-scroll-hint"></p>
-          <button class="circle-button" id="board-scroll-down" type="button" aria-controls="board">↓</button>
-        </div>
         <div class="items" id="items" role="group" aria-label="Items" data-i18n-attr="aria-label:itemsAria">
           <button class="item" data-item="hammer" type="button" aria-pressed="false" disabled>
             <span class="item-art item-hammer" aria-hidden="true"></span>
@@ -350,6 +349,11 @@
             <span class="item-name" data-i18n="itemBomb">Bomb</span>
             <span class="item-count" data-count="bomb">0</span>
           </button>
+          <div class="board-scroll-hint" role="group" aria-labelledby="board-scroll-hint">
+            <p class="sr-only" id="board-scroll-hint"></p>
+            <button class="circle-button" id="board-scroll-up" type="button" aria-controls="board">↑</button>
+            <button class="circle-button" id="board-scroll-down" type="button" aria-controls="board">↓</button>
+          </div>
           <button class="circle-button game-exit" id="pause" type="button" data-i18n-attr="aria-label:pauseAria title:pauseAria">
             <span class="hud-ico hud-ico-exit" aria-hidden="true"></span>
           </button>

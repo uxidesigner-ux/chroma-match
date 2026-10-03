@@ -25,5 +25,9 @@ Non-goals: special-gem fusion rules, progression rewards, skeletal avatar dance,
 new sounds, paid assets, deployment. Avatar reactions animate the cached portrait;
 they do not run a second real-time 3D scene over the game.
 
+The later gameplay stability pass replaces board shake with a stationary plate
+highlight, fits floating scores inside the canvas and places the chain badge in
+a permanent feedback lane outside the scroller. See `gameplay-stability.md`.
+
 Motion: impact 360–480ms, combo entrance 340ms, portrait cheer 480ms,
 result entrance 480ms, confetti one shot under 1500ms. No infinite decoration.

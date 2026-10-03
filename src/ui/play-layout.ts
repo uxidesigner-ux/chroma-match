@@ -17,8 +17,9 @@ export function playRegion(width: number, height: number, segments: readonly Pla
 }
 
 export function playLayout(rect: PlayRect): 'stack' | 'wide' {
-  // The HUD needs ~300px for three readable equal regions, besides the board.
-  return rect.width >= 760 && rect.height < 600 && rect.width / rect.height >= 1.45 ? 'wide' : 'stack'
+  // Compact landscape fits a 216px three-part rail + 280px board + gutters.
+  // Waiting until 760px left 568/740px phones with barely one visible row.
+  return rect.width >= 560 && rect.height < 600 && rect.width / rect.height >= 1.45 ? 'wide' : 'stack'
 }
 
 export function attachPlayLayout(): void {
@@ -27,9 +28,14 @@ export function attachPlayLayout(): void {
     const segmented = window as Window & {
       viewport?: { segments?: readonly PlayRect[] }
     }
-    const region = playRegion(innerWidth, innerHeight, segmented.viewport?.segments)
+    const viewport = window.visualViewport
+    // Use the visible height when browser chrome/keyboard reduces it. Pinch
+    // zoom is magnification, not a new layout or a reason to shrink the board.
+    const height = viewport && viewport.scale === 1 ? Math.min(innerHeight, viewport.height) : innerHeight
+    const region = playRegion(innerWidth, height, segmented.viewport?.segments)
     root.dataset.playLayout = playLayout(region)
     root.dataset.playShort = String(region.height < (playLayout(region) === 'wide' ? 550 : 640))
+    root.dataset.playCompact = String(region.height < 400 && playLayout(region) === 'stack')
     for (const key of ['left', 'top', 'width', 'height'] as const) {
       root.style.setProperty(`--play-${key}`, `${region[key]}px`)
     }

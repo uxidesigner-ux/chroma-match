@@ -21,6 +21,8 @@ export class BoardViewport {
     this.down.disabled = this.stage.scrollTop + this.stage.clientHeight >= this.stage.scrollHeight - 2
     this.up.setAttribute('aria-label', experienceCopy().scrollUp)
     this.down.setAttribute('aria-label', experienceCopy().scrollDown)
+    this.up.title = experienceCopy().scrollUp
+    this.down.title = experienceCopy().scrollDown
   }
   private scroll(direction: number): void {
     this.stage.scrollBy({ top: direction * this.stage.clientHeight * .7, behavior: reducedMotion() ? 'instant' : 'smooth' })

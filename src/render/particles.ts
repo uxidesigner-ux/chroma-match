@@ -45,6 +45,19 @@ const GRAVITY = 900
  */
 const DRAG = 2.6
 
+export interface EffectBounds { width: number; height: number }
+/** Keep the entire text + halo visible, including its upward drift. */
+export function fitFloatingText(x: number, y: number, width: number, height: number, scale: number, bounds: EffectBounds): { x: number; y: number; scale: number } {
+  const inset = 4
+  const fitted = Math.max(0, Math.min(scale, (bounds.width - inset * 2) / Math.max(1, width), (bounds.height - inset * 2) / Math.max(1, height)))
+  const halfW = width * fitted / 2, halfH = height * fitted / 2
+  return {
+    x: Math.max(inset + halfW, Math.min(bounds.width - inset - halfW, x)),
+    y: Math.max(inset + halfH, Math.min(bounds.height - inset - halfH, y)),
+    scale: fitted,
+  }
+}
+
 /** A tiny, allocation-light pool for the confetti that a match throws off. */
 export class Effects {
   private particles: Particle[] = []
@@ -127,7 +140,7 @@ export class Effects {
     }
   }
 
-  draw(ctx: CanvasRenderingContext2D): void {
+  draw(ctx: CanvasRenderingContext2D, bounds?: EffectBounds): void {
     const calm = this.calm()
     for (const impact of calm ? [] : this.impacts) {
       const age = 1 - impact.life / impact.maxLife
@@ -170,12 +183,18 @@ export class Effects {
       const alpha = Math.min(1, (1 - k) * 2.2)
       ctx.save()
       ctx.globalAlpha = alpha
-      ctx.translate(t.x, t.y)
       const pop = calm ? 1 : 0.88 + 0.12 * Math.min(1, k * 5)
-      ctx.scale(t.scale * pop, t.scale * pop)
       ctx.font = '700 22px ui-rounded, "SF Pro Rounded", system-ui, sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
+      const metrics = bounds ? ctx.measureText(t.text) : null
+      const placement = bounds && metrics
+        ? fitFloatingText(t.x, t.y, metrics.width + 6,
+          Math.max(22, (metrics.actualBoundingBoxAscent || 11) + (metrics.actualBoundingBoxDescent || 11)) + 6,
+          t.scale * pop, bounds)
+        : { x: t.x, y: t.y, scale: t.scale * pop }
+      ctx.translate(placement.x, placement.y)
+      ctx.scale(placement.scale, placement.scale)
       ctx.lineWidth = 5
       ctx.strokeStyle = halo
       ctx.strokeText(t.text, 0, 0)

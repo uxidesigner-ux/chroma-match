@@ -96,7 +96,7 @@ export function attachInput(
   }
 
   canvas.addEventListener('pointerdown', (e) => {
-    if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return
+    if (!e.isPrimary || game.busy || (e.pointerType === 'mouse' && e.button !== 0)) return
     activePointer = e.pointerId
     pointerRect = canvas.getBoundingClientRect()
     onFirstInput()
@@ -180,6 +180,9 @@ export function attachInput(
   new ResizeObserver(cancel).observe(canvas)
   window.addEventListener('resize', cancel)
   window.visualViewport?.addEventListener('resize', cancel)
+  window.addEventListener('blur', cancel)
+  window.addEventListener('pagehide', cancel)
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancel() })
 
   // Stop the browser from treating a drag on the board as a page scroll.
   canvas.style.touchAction = 'none'
