@@ -87,6 +87,30 @@ for (const [width, height] of [
   expect(errors).toEqual([])
 })
 
+test('classic scrollbar width and wide system digits retain targets and complete counts', async ({ page }, info) => {
+  await page.setViewportSize({ width: 320, height: 568 })
+  await start(page)
+  // macOS often uses overlay scrollbars. Reserve an additional full classic
+  // gutter here so the same width failure is covered on every local platform.
+  await page.addStyleTag({ content: '.game .stage { padding-right: 17px; } #goal-remaining { font-family: monospace; }' })
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  expect(await page.evaluate(() => window.chroma.renderer.cellSize)).toBeGreaterThanOrEqual(44)
+  await page.setViewportSize({ width: 568, height: 320 })
+  await page.evaluate(async () => {
+    const { Hud } = await import('/src/ui/hud.ts')
+    const hud = new Hud()
+    hud.update({ ...window.chroma.game, goal: { kind: 'score', need: 99999 }, need: 99999, progress: 0 } as typeof window.chroma.game)
+  })
+  await expect(page.locator('#goal-remaining')).toHaveText('99,999')
+  await expect.poll(() => page.locator('#goal-remaining').evaluate(node => {
+    const box = node.getBoundingClientRect(), allocation = node.closest('.hud-goal')!.getBoundingClientRect()
+    const range = document.createRange(); range.selectNodeContents(node)
+    const text = range.getBoundingClientRect()
+    return box.left >= allocation.left && box.right <= allocation.right && text.left >= box.left && text.right <= box.right
+  })).toBe(true)
+  await page.screenshot({ path: info.outputPath('classic-gutter-wide-digits.png') })
+})
+
 test('real item arming and spending keep the board frame and targets unchanged', async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await start(page, true)

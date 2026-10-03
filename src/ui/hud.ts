@@ -94,7 +94,6 @@ export class Hud {
     el('goal-unit').textContent = unit
     const remaining = n(Math.max(0, game.need - game.progress))
     el('goal-remaining').textContent = remaining
-    el('goal-remaining').style.setProperty('--goal-count-chars', String(remaining.length))
     el('goal-remaining').setAttribute('aria-label', `${what}: ${remaining} ${unit}`)
     el('progress').textContent = n(Math.min(game.progress, game.need))
     el('target').textContent = n(game.need)
@@ -102,6 +101,14 @@ export class Hud {
     el('seed').textContent = `seed ${game.seed.toString(36).toUpperCase()} · ${game.rules === 3 ? playCopy().rules : t(game.rules === 1 ? 'legacyRules' : 'fusionRules')}`
     const canvas = el('goal-gem') as HTMLCanvasElement
     const ctx = canvas.getContext('2d')!
+    // System fonts differ across platforms. Reserve the widest digit for
+    // each character rather than assuming every font has a .62em advance.
+    // Measure at a fixed size so this also works while the game is hidden;
+    // CSS container units keep the result responsive without a resize loop.
+    const countStyle = getComputedStyle(el('goal-remaining'))
+    ctx.font = `${countStyle.fontWeight} 100px ${countStyle.fontFamily}`
+    const digitEm = Math.max(...Array.from('0123456789', digit => ctx.measureText(digit).width)) / 100
+    el('goal-remaining').style.setProperty('--goal-count-em', String(Math.max(1, digitEm * remaining.length)))
     ctx.clearRect(0, 0, 128, 128); ctx.save(); ctx.translate(64, 60)
     if (game.goal.kind === 'colour') {
       gemPath(ctx, style.shape, 45)
