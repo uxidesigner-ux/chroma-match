@@ -151,3 +151,29 @@ none were downloaded. Sizes below the inspected 320px-wide / 320px-high range
 are not claimed to fit all chrome at once. The board remains 6×9, matching the
 existing deterministic saved/replay format. Hosting and full repository-wide
 browser suites are separate from these targeted checks.
+
+## Deployment gate correction — 2026-10-03
+
+The first Pages run for merge `9339667` stopped before building or deploying:
+104/109 browser tests passed, while five exposed cross-platform issues. The
+Linux native scrollbar reduced a 320px phone's gems to 43.67px, and Linux's
+system-font advances made a six-character score badge extend beyond its narrow
+landscape HUD column. An older lobby test also measured newly added scroll
+buttons while they were intentionally hidden on a fitting board.
+
+The correction preserves the original acceptance thresholds. Narrow phones
+reserve room for a classic native scrollbar and use the already inset board
+focus outline rather than extra scroller padding. Goal-count sizing uses the
+actual system font's widest digit advance, not an assumed .62em multiplier.
+The lobby test measures all visible footer controls, including scroll controls
+when present. A new regression reserves another 17px gutter and uses a wide
+monospace digit carrier so both problems are reproducible on overlay-scrollbar
+macOS as well as CI. No workflow gates, scoring, model assets or dependencies
+were changed.
+
+Confirmed corrected local checks: type checking, all 212 unit tests, 24 gameplay
+stability tests, the three previously failing experience/lobby/responsive
+scenarios and the production build. Evidence is under
+`/tmp/chroma-deploy.yy0Mtu`. The first failed run did not modify the live site;
+subsequent CI and live verification must be checked separately before claiming
+deployment success.

@@ -41,7 +41,8 @@ test('lobby rotates with keys and gestures, releases 3D on play and returns safe
   await expect(page.locator('#score, #best')).toHaveCount(0)
   const widths = await page.locator('.game-hud > div').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().width))
   expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1)
-  for (const button of await page.locator('#items button').all()) {
+  // Scroll tools share this toolbar but are absent on a fitting board.
+  for (const button of await page.locator('#items button:visible').all()) {
     const size = (await button.boundingBox())!
     expect(size.width).toBe(size.height)
     expect(size.width).toBeGreaterThanOrEqual(44)

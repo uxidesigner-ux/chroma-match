@@ -73,7 +73,7 @@
   right: 0;
   bottom: 0;
   padding-inline: 3px;
-  font-size: min(var(--goal-count-size, 26px), calc((100cqw - 6px) / var(--goal-count-chars, 5) / .62));
+  font-size: min(var(--goal-count-size, 26px), calc((100cqw - 8px) / var(--goal-count-em, 3.6)));
 }
 .game .hud-face {
   /* Reserve the round ring's 5px outset and maximum 1.1× reaction scale. */
@@ -137,6 +137,10 @@ html.game-open, html.game-open body { overflow: hidden; overscroll-behavior: non
 @media (prefers-reduced-motion: reduce) { .game .combo.is-bump { animation: none; } }
 
 @media (max-width: 360px) {
-  .app:has(.game:not([hidden])) { padding-inline: 8px; }
+  /* Classic scrollbars consume layout width on Linux/Windows. Leave enough
+     room for the six 44px cells even with a 17px native gutter; the inset
+     canvas focus ring needs no extra horizontal scroller padding. */
+  .app:has(.game:not([hidden])) { padding-inline: max(4px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-right)); }
+  .game .stage { padding-inline: 0; }
   .game .item, [data-play-short="true"] .game .item, .game .game-exit { width: 44px; height: 44px; }
 }
