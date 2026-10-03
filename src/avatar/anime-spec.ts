@@ -188,7 +188,7 @@ export const BACKDROPS = ['F4F1EA', 'D8E6EF', 'E6D7C4', 'A8B6A4', '5A6E86', '202
  * Bob and ponytail keep the letters they have always had, so every code saved
  * before the long ponytail existed still names the style it named.
  */
-export const HAIR_STYLES = { tails: 'T', bob: 'B', long: 'L' } as const
+export const HAIR_STYLES = { tails: 'T', bob: 'B', long: 'L', fade: 'F', pomade: 'P' } as const
 export type HairStyle = keyof typeof HAIR_STYLES
 
 /** Original appearances keep their complete Seed outfit until deliberately changed. */

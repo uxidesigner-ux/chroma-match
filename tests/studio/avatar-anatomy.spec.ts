@@ -89,7 +89,7 @@ for (const [style, mark] of [['단발', 'B'], ['긴 머리', 'L']] as const) {
     await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
     expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
     const portrait = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!))
-    expect(portrait.frame).toBe(6)
+    expect(portrait.frame).toBe(7)
     await page.locator('#lobby-edit').click()
     await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
     await page.getByRole('button', { name: '동작 멈춤', exact: true }).click()

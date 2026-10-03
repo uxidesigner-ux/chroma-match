@@ -350,4 +350,6 @@ export const HAIR_SHAPE: Record<HairStyle, { tail: number; ponytail: boolean }> 
   tails: { tail: 1, ponytail: true },
   bob: { tail: 1, ponytail: false },
   long: { tail: 1, ponytail: false },
+  fade: { tail: 1, ponytail: false },
+  pomade: { tail: 1, ponytail: false },
 }

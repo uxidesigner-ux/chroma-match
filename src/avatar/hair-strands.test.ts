@@ -2,6 +2,36 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { hairGeometry, hairShading } from './hair-strands.ts'
 
+test('short styles have distinct bounded fitted crowns, outward normals and continuous UV seams', () => {
+  const fade = hairGeometry('fade')!, pomade = hairGeometry('pomade')!
+  assert.notDeepEqual(fade.positions, pomade.positions)
+  for (const style of ['fade', 'pomade'] as const) {
+    const shape = hairGeometry(style)!, count = shape.positions.length / 3
+    assert.ok(count < 4000)
+    assert.ok([...shape.positions, ...shape.normals, ...shape.uv].every(Number.isFinite))
+    assert.ok([...shape.index].every(i => i < count))
+    assert.equal(shape.normals.length, shape.positions.length)
+    assert.equal(shape.uv.length, count * 2)
+    assert.deepEqual(shape, hairGeometry(style, true), 'short cuts are unaffected by backpack')
+    const layer = 1 + 18 * 65, stride = 65
+    for (let inner = 0; inner < 2; inner++) for (let row = 0; row < 18; row++) {
+      const a = (inner * layer + 1 + row * stride) * 3, b = a + 64 * 3
+      assert.deepEqual(shape.positions.slice(a, a + 3), shape.positions.slice(b, b + 3))
+      assert.deepEqual(shape.normals.slice(a, a + 3), shape.normals.slice(b, b + 3), 'no lighting seam at the rear UV join')
+    }
+    for (let i = 0; i < count; i++) assert.ok(Math.abs(Math.hypot(...shape.normals.slice(i * 3, i * 3 + 3)) - 1) < 1e-5)
+    const front = (1 + 10 * stride) * 3
+    assert.ok(shape.normals[front + 2]! > .4, 'front faces outward, not through the forehead')
+    const pixels = hairShading(style)
+    assert.deepEqual(pixels, hairShading(style))
+    const values = pixels.rgba.filter((_, i) => i % 4 === 0)
+    assert.ok(values.filter(v => v >= 232).length / values.length > .80)
+    for (let i = 0; i < pixels.rgba.length; i += 4) {
+      assert.equal(pixels.rgba[i], pixels.rgba[i + 1]); assert.equal(pixels.rgba[i], pixels.rgba[i + 2]); assert.equal(pixels.rgba[i + 3], 255)
+    }
+  }
+})
+
 test('ponytail remains the licensed original; new cuts carry their own geometry', () => {
   assert.equal(hairGeometry('tails'), null)
   const bob = hairGeometry('bob')!, long = hairGeometry('long')!

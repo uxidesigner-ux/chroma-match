@@ -5,7 +5,7 @@ import { DEFAULT_ANIME, TOP_STYLES, BOTTOM_STYLES, SHOE_STYLES, wear } from './a
 import type { BottomStyle, ShoeStyle, TopStyle } from './anime-spec.ts'
 import { decodeSpec, encodeSpec, isKnownSpec, SPEC_MAX } from './spec.ts'
 import { lookFile, parseLookFile, LookHistory } from './studio-library.ts'
-import { buildWardrobe, wardrobeColour } from './wardrobe.ts'
+import { buildWardrobe, wardrobeColour, shoeBalance } from './wardrobe.ts'
 import { exportSeed, readGlb } from './studio-export.ts'
 import { Ray, Vector3 } from 'three'
 import { sculptSeat } from './body-shape.ts'
@@ -15,6 +15,21 @@ const source = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byt
 const tops = Object.keys(TOP_STYLES) as Exclude<TopStyle, 'seed'>[]
 const bottoms = Object.keys(BOTTOM_STYLES) as Exclude<BottomStyle, 'seed'>[]
 const footwear = Object.keys(SHOE_STYLES) as ShoeStyle[]
+
+test('shoe balance is bounded, gender-neutral and adjusts the last without widening its ankle opening', () => {
+  assert.deepEqual(shoeBalance(DEFAULT_ANIME), { width: 1, length: 1 })
+  const small = { ...DEFAULT_ANIME, hip: 0, shoulder: 0, bust: 0, head: 0 } as typeof DEFAULT_ANIME
+  const large = { ...DEFAULT_ANIME, hip: 6, shoulder: 6, bust: 6, head: 6 } as typeof DEFAULT_ANIME
+  assert.equal(shoeBalance(small).width, .88); assert.equal(shoeBalance(large).width, 1.12)
+  assert.deepEqual(shoeBalance({ ...large, sex: 'female' }), shoeBalance(large))
+  for (const shoes of ['basketball', 'dress', 'heels'] as const) {
+    const a = buildWardrobe(source, wear(small, { shoes }))!.parts.find(p => p.name === 'wardrobe_shoes')!
+    const b = buildWardrobe(source, wear(large, { shoes }))!.parts.find(p => p.name === 'wardrobe_shoes')!
+    assert.notDeepEqual(a.positions, b.positions)
+    assert.deepEqual(a.joints, b.joints); assert.deepEqual(a.weights, b.weights)
+    assert.ok([...a.positions, ...b.positions].every(Number.isFinite))
+  }
+})
 
 test('every fitted wardrobe, colour and figure round trips in a bounded v7 profile/backup', () => {
   for (const sex of ['male', 'female'] as const) for (const top of tops) for (const bottom of bottoms) for (const shoes of footwear) {

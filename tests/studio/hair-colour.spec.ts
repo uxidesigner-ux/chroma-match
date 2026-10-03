@@ -220,7 +220,7 @@ for (const variant of [
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
   const portrait = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!))
-  expect(portrait.frame).toBe(6); expect(portrait.png.length).toBeGreaterThan(1000)
+  expect(portrait.frame).toBe(7); expect(portrait.png.length).toBeGreaterThan(1000)
   await page.screenshot({ path: testInfo.outputPath('yellow-lobby-reloaded.png') })
   await page.locator('#lobby-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')

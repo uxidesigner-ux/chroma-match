@@ -15,7 +15,7 @@ import {
   sculptSeat,
 } from './body-shape.ts'
 import type { ShapeNode, ShapedBone } from './body-shape.ts'
-import { hairGeometry } from './hair-strands.ts'
+import { hairGeometry, ownsHairCrown } from './hair-strands.ts'
 import { buildWardrobe, wardrobeColour, wardrobeShade } from './wardrobe.ts'
 import type { Wardrobe } from './wardrobe.ts'
 import { refineChestSurface } from './chest-surface.ts'
@@ -333,7 +333,7 @@ export function exportSeed(
     return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
   })
   for (const mat of json.materials) {
-    if (mat.name !== 'body_bake') continue
+    if (!['body_bake', 'body_nm'].includes(mat.name) || materials.some(p => p.name === mat.name)) continue
     const base = mat.pbrMetallicRoughness.baseColorFactor ?? [1, 1, 1, 1]
     mat.pbrMetallicRoughness.baseColorFactor = [linear[0]!, linear[1]!, linear[2]!, base[3] ?? 1]
     const toon = mat.extensions?.VRMC_materials_mtoon
@@ -423,7 +423,8 @@ export function exportSeed(
 
   for (const node of json.nodes) {
     if (node.mesh === undefined) continue
-    if ((!hair.ponytail && node.name?.startsWith('hair_tail')) ||
+    if ((ownsHairCrown(spec.hair) && node.name === 'hair') ||
+      (!hair.ponytail && node.name?.startsWith('hair_tail')) ||
       (!spec.arms && node.name?.startsWith('robo_arm'))) {
       delete node.mesh
       delete node.skin

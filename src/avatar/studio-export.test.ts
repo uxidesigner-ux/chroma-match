@@ -44,6 +44,20 @@ test('malformed GLB cannot be exported', () => {
   for (const size of [0, 12, 30]) assert.throws(() => readGlb(new ArrayBuffer(size)))
 })
 
+test('cleaned skin palette bytes and already-applied tint export exactly once', () => {
+  const palettes = ['body_bake', 'body_nm'].map(name => ({ name,
+    colour: [.4, .3, .2], shade: [.4, .1841939808, .10158908], png: new Uint8Array([1, 2, 3, 4, 5]) }))
+  const result = readGlb(exportSeed(source, { ...DEFAULT_ANIME, skinColour: 'A9714B' }, palettes))
+  for (const palette of palettes) {
+    const material = result.json.materials.find(m => m.name === palette.name)!
+    assert.deepEqual(material.pbrMetallicRoughness.baseColorFactor, [...palette.colour, 1], 'do not apply skin tint twice')
+    assert.deepEqual(material.extensions!.VRMC_materials_mtoon!.shadeColorFactor, palette.shade)
+    const texture = result.json.textures[material.pbrMetallicRoughness.baseColorTexture!.index]!
+    const view = result.json.bufferViews[result.json.images[texture.source]!.bufferView]!
+    assert.deepEqual(result.binary.slice(view.byteOffset!, view.byteOffset! + view.byteLength), palette.png)
+  }
+})
+
 test('mixed explorer pieces strip only the hidden primitives', () => {
   const result = readGlb(exportSeed(source, { ...DEFAULT_ANIME, pack: true, arms: false, visor: true }, []))
   assert.equal(result.json.nodes.find(n => n.name === 'robo_arm')?.mesh, undefined)
@@ -167,7 +181,7 @@ test('an exported avatar carries its skin tone, and white leaves the material al
 })
 
 test('the ponytail keeps its own length, and only that style wears it', () => {
-  for (const hair of ['tails', 'bob', 'long'] as const) {
+  for (const hair of ['tails', 'bob', 'long', 'fade', 'pomade'] as const) {
     const glb = readGlb(exportSeed(source, { ...DEFAULT_ANIME, hair }, []))
     assert.equal(glb.json.nodes.find(node => node.name === 'hair_tail')?.mesh !== undefined, hair === 'tails')
     assert.equal(glb.json.nodes.find(node => node.name === 'hair_tail_1')!.scale?.[0] ?? 1, 1)
@@ -175,7 +189,7 @@ test('the ponytail keeps its own length, and only that style wears it', () => {
 })
 
 test('new cuts export the exact preview shell, colour shading and head attachment', () => {
-  for (const hair of ['tails', 'bob', 'long'] as const) for (const pack of [false, true]) {
+  for (const hair of ['tails', 'bob', 'long', 'fade', 'pomade'] as const) for (const pack of [false, true]) {
     const { json, binary } = readGlb(exportSeed(source, { ...DEFAULT_ANIME, hair, pack }, []))
     const shape = hairGeometry(hair, pack)
     const nodes = json.nodes.filter(node => node.name === 'hair_shape')
@@ -202,4 +216,11 @@ test('new cuts export the exact preview shell, colour shading and head attachmen
     assert.deepEqual(json.extensions, original.json.extensions, 'original permission/rig/expression data intact')
   }
   assert.deepEqual(readGlb(source).json, original.json, 'source is never mutated')
+})
+
+test('short cuts replace the original fringe in exports, and switching back retains it', () => {
+  for (const hair of ['tails', 'bob', 'long', 'fade', 'pomade'] as const) {
+    const { json } = readGlb(exportSeed(source, { ...DEFAULT_ANIME, hair }, []))
+    assert.equal(json.nodes.find(node => node.name === 'hair')!.mesh !== undefined, !['fade', 'pomade'].includes(hair))
+  }
 })

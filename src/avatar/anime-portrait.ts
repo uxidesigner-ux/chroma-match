@@ -5,9 +5,9 @@ import { decodeSpec } from './spec.ts'
 import type { AnimeRenderer } from './anime-renderer.ts'
 
 const KEY = 'chroma-match:anime-portrait-v1'
-// Regenerate derived images after joining the bob/long crown and curtain.
+// Regenerate derived images after short-cut support and clean hand materials.
 // Keep appearance codes untouched; only regenerate stale, derived images.
-const FRAME_VERSION = 6
+const FRAME_VERSION = 7
 const cache = new Map<string, Promise<HTMLImageElement>>()
 const requests = new WeakMap<HTMLCanvasElement, symbol>()
 let queue: Promise<unknown> = Promise.resolve()

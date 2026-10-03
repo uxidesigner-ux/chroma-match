@@ -15,8 +15,9 @@ import type { AnimeSpec } from '../anime-spec.ts'
 import { EXPRESSIONS } from '../anime-spec.ts'
 import { CHEST_HIGH, CHEST_LOW, SEAT_HIGH, SEAT_LOW, HAIR_SHAPE, RIGID, SCULPTED, applyFigure, bustAmount, sculptChest, sculptSeat } from '../body-shape.ts'
 import type { ShapeNode, ShapedBone } from '../body-shape.ts'
-import { hairGeometry, hairShading } from '../hair-strands.ts'
+import { hairGeometry, hairShading, ownsHairCrown } from '../hair-strands.ts'
 import { bleachHairPixels } from '../hair-palette.ts'
+import { cleanHandPixels } from '../hand-palette.ts'
 import { exportSeed } from '../studio-export.ts'
 import { BlinkManager } from './blink.ts'
 import { armPose, GESTURE_SECONDS, gestureWeight } from './gesture-pose.ts'
@@ -33,6 +34,7 @@ export class StudioCharacter {
   private blink = new BlinkManager()
   private materials = new Map<string, Toon[]>()
   private tails: Mesh[] = []
+  private originalHair: Mesh[] = []
   private pack: Mesh[] = []
   private arms: Mesh[] = []
   private visor: Mesh[] = []
@@ -55,7 +57,7 @@ export class StudioCharacter {
   /** One dedicated shell, sharing palette factors with the original fringe. */
   private hairMesh: Mesh | null = null
   private hairPaint: Toon | null = null
-  private hairTexture: CanvasTexture | null = null
+  private hairTextures = new Map<string, CanvasTexture>()
   private hairKey: string | null = null
   /** Every node the figure moves, as the model shipped it. */
   private restPose = new Map<Object3D, [number, number, number]>()
@@ -82,6 +84,7 @@ export class StudioCharacter {
       const mats = (Array.isArray(node.material) ? node.material : [node.material]) as Toon[]
       const names = mats.map((mat) => mat.name)
       if (node.name.startsWith('hair_tail')) this.tails.push(node)
+      else if (/^hair(?:_|$)/.test(node.name)) this.originalHair.push(node)
       else if (
         node.name.startsWith('robo_arm') ||
         names.some((name) => name.startsWith('armgear_') || name === 'arm_mat' || name === 'arm_plastic')
@@ -111,7 +114,7 @@ export class StudioCharacter {
       const node = vrm.humanoid.getRawBoneNode(name)
       if (node) this.restShoulder.push({ node, rest: node.position.clone(), lengthwise })
     }
-    for (const mat of this.materials.get('body_bake') ?? [])
+    for (const name of ['body_bake', 'body_nm']) for (const mat of this.materials.get(name) ?? [])
       this.restSkinShade.set(mat, (mat.shadeColorFactor?.toArray() ?? [1, 1, 1]) as [number, number, number])
     /*
      * Reached through the humanoid rather than by node name: the loader
@@ -172,7 +175,7 @@ export class StudioCharacter {
     // Hair gets a bleached white carrier; other palette groups retain their
     // existing grayscale detail. These are owned maps, not source-asset edits.
     const textures = new Map<Texture, CanvasTexture>()
-    for (const name of ['hair', 'eye', 'huku_bake'])
+    for (const name of ['hair', 'eye', 'huku_bake', 'body_bake', 'body_nm'])
       for (const mat of this.materials.get(name) ?? []) {
         for (const key of ['map', 'shadeMultiplyTexture'] as const) {
           const source = mat[key]
@@ -188,6 +191,7 @@ export class StudioCharacter {
             ctx.drawImage(picture, 0, 0)
             const data = ctx.getImageData(0, 0, canvas.width, canvas.height)
             if (name === 'hair') bleachHairPixels(data.data)
+            else if (name === 'body_bake' || name === 'body_nm') cleanHandPixels(data.data, canvas.width, canvas.height)
             else for (let i = 0; i < data.data.length; i += 4) {
               const light = Math.max(data.data[i]!, data.data[i + 1]!, data.data[i + 2]!)
               data.data[i] = data.data[i + 1] = data.data[i + 2] = light
@@ -207,9 +211,13 @@ export class StudioCharacter {
           mat.needsUpdate = true
         }
       }
-    // Original maps are no longer used by these three material groups.
-    // deepDispose owns every remaining texture; released sources are disposed here.
-    for (const texture of textures.keys()) texture.dispose()
+    // A skin atlas can also be used by unchanged gear or normal-map slots.
+    // Dispose replaced sources only when no remaining material references them.
+    const retained = new Set<Texture>()
+    for (const mats of this.materials.values()) for (const mat of mats)
+      for (const value of Object.values(mat))
+        if (value && typeof value === 'object' && 'isTexture' in value && value.isTexture) retained.add(value as Texture)
+    for (const texture of textures.keys()) if (!retained.has(texture)) texture.dispose()
     this.wardrobe = new WardrobeRig(vrm, source)
   }
 
@@ -268,6 +276,7 @@ export class StudioCharacter {
     this.tails.forEach((mesh) => {
       mesh.visible = hair.ponytail
     })
+    this.originalHair.forEach(mesh => { mesh.visible = !ownsHairCrown(spec.hair) })
     this.tailBone?.scale.setScalar(hair.tail)
     this.standHair(spec)
     this.pack.forEach((mesh) => {
@@ -335,7 +344,7 @@ export class StudioCharacter {
   }
 
   export(spec: AnimeSpec): ArrayBuffer {
-    const palettes = ['hair', 'eye', 'huku_bake'].map(name => {
+    const palettes = ['hair', 'eye', 'huku_bake', 'body_bake', 'body_nm'].map(name => {
       const material = this.materials.get(name)?.[0]
       if (!material?.color || !material.shadeColorFactor || !material.map) throw new Error('Missing material')
       const canvas = material.map.image as HTMLCanvasElement
@@ -343,7 +352,7 @@ export class StudioCharacter {
       return { name, colour: material.color.toArray(), shade: material.shadeColorFactor.toArray(), png }
     })
     if (spec.hair !== 'tails') {
-      const canvas = this.shellTexture().image as HTMLCanvasElement
+      const canvas = this.shellTexture(spec.hair).image as HTMLCanvasElement
       const png = Uint8Array.from(atob(canvas.toDataURL('image/png').split(',')[1]!), c => c.charCodeAt(0))
       palettes.push({ name: 'hair_shape', colour: [], shade: [], png })
     }
@@ -410,12 +419,13 @@ export class StudioCharacter {
     if (!this.hairPaint) {
       this.hairPaint = original.clone() as Toon
       // Own grayscale strands, not reused UVs into an unrelated ponytail map.
-      this.hairPaint.map = this.shellTexture()
-      this.hairPaint.shadeMultiplyTexture = this.hairTexture
       this.hairPaint.name = 'hair_shape'
       this.hairPaint.needsUpdate = true
       this.materials.get('hair')!.push(this.hairPaint)
     }
+    this.hairPaint.map = this.shellTexture(spec.hair)
+    this.hairPaint.shadeMultiplyTexture = this.hairPaint.map
+    this.hairPaint.needsUpdate = true
     const geometry = new BufferGeometry()
     geometry.setAttribute('position', new BufferAttribute(shape.positions, 3))
     geometry.setAttribute('normal', new BufferAttribute(shape.normals, 3))
@@ -428,19 +438,22 @@ export class StudioCharacter {
   }
 
   /** Exporting a different cut can create the map without changing the preview. */
-  private shellTexture(): CanvasTexture {
-    if (!this.hairTexture) {
-      const pixels = hairShading()
+  private shellTexture(style: AnimeSpec['hair']): CanvasTexture {
+    const key = ownsHairCrown(style) ? style : 'curtain'
+    let texture = this.hairTextures.get(key)
+    if (!texture) {
+      const pixels = hairShading(style)
       const canvas = document.createElement('canvas')
       canvas.width = pixels.width; canvas.height = pixels.height
       const context = canvas.getContext('2d')
       if (!context) throw new Error('Canvas unavailable')
       context.putImageData(new ImageData(pixels.rgba, pixels.width, pixels.height), 0, 0)
-      this.hairTexture = new CanvasTexture(canvas)
-      this.hairTexture.flipY = false
-      this.hairTexture.colorSpace = SRGBColorSpace
+      texture = new CanvasTexture(canvas)
+      texture.flipY = false
+      texture.colorSpace = SRGBColorSpace
+      this.hairTextures.set(key, texture)
     }
-    return this.hairTexture
+    return texture
   }
 
   dispose(): void {
@@ -450,8 +463,8 @@ export class StudioCharacter {
     this.hairMesh = null
     this.hairPaint?.dispose()
     this.hairPaint = null
-    this.hairTexture?.dispose()
-    this.hairTexture = null
+    for (const texture of this.hairTextures.values()) texture.dispose()
+    this.hairTextures.clear()
     this.vrm.scene.removeFromParent()
     VRMUtils.deepDispose(this.vrm.scene)
   }

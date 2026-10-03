@@ -54,7 +54,7 @@ of the player's task. The product has one anime character editor and one profile
 ## Current scope decision
 
 This release uses one licensed Seed-san asset, with male/female figure variants,
-five independently adjustable body axes, three hairstyles, skin/palette choices,
+five independently adjustable body axes, five hairstyles, skin/palette choices,
 six expressions and independently mixed backpack/arm/visor options. Figure and
 hair variants modify this model; they are not additional licensed model packs.
 New external models and outfit packs still require separately checked permissions
@@ -104,6 +104,19 @@ bundled starter portrait uses a render-versioned URL to bypass stale image cache
 The same geometry and texture are written into VRM/GLB exports; B/L appearance
 codes remain stable and derived portrait caches regenerate. These cuts follow
 the head rigidly; strand physics and cloth/hair collision simulation are excluded.
+Short taper and side-part pomade replace the authored crown/fringe with a fitted
+closed scalp. Pomade's softly rounded combed locks conform to each lateral scalp
+section and enter the cap at both ends, merged into one head-attached mesh.
+These original styles use 2,342 / 3,990 vertices, neutral strand carriers and no
+per-frame generation. T/B/L saved codes stay unchanged; F/P add the new cuts.
+Footwear last width/length follows bounded shoulder/hip/chest/head balance,
+remaining within ±12% / ±9%; ankle openings, leg bones and heel height are not
+scaled. Both sexes use the same sizing rule, and sole contact is re-fitted on
+the posed rig. The left cyan finger paint is removed only from its pinned skin
+atlas island, retaining skin shading, glove/palm, other hand and face pixels.
+Cleaned atlas pixels and skin tint are shared with VRM/GLB downloads; tint must
+not be applied twice. Derived portrait cache frame 7 refreshes images only.
+See `docs/short-hair-footwear.md` for the implementation and validation record.
 Gestures separate shoulder swing/axial rotation, mirrored forward elbow hinges,
 and wrist movement. Elbows never switch to side-flexion or hyperextend; ease-in
 and ease-out return both arms to the same rest without accumulating transforms.

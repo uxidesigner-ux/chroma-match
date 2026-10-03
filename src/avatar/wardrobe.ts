@@ -507,6 +507,7 @@ function barefootFit(source: Source, skin: WardrobeGeometry, matrices: Matrix4[]
 
 function shoes(source: Source, spec: AnimeSpec, upper: Surface, sole: Surface, trim: Surface, feet: Map<number, Matrix4>, lift: number): void {
   const heels = spec.shoes === 'heels', basketball = spec.shoes === 'basketball'
+  const balance = shoeBalance(spec)
   const around = 64, rows = 12
   for (const side of ['left', 'right'] as const) {
     const footAt = source.document.extensions.VRMC_vrm.humanoid.humanBones[`${side}Foot`]!.node
@@ -525,8 +526,8 @@ function shoes(source: Source, spec: AnimeSpec, upper: Surface, sole: Surface, t
         const a = i / around * Math.PI * 2, front = Math.sin(a), sideways = Math.cos(a)
         // Formal lasts are narrow at the heel, broad at the ball and tapered
         // into an almond toe. Do not scale a sneaker's oval into a dress shoe.
-        const tipZ = basketball ? .052 + front * .131 : .06 + front * .141
-        const width = basketball ? .044 + Math.max(0, front) * .010 : .032 + .016 * smooth((front + .8) / .9) - .020 * smooth((front - .55) / .45)
+        const tipZ = (basketball ? .052 + front * .131 : .06 + front * .141) * balance.length
+        const width = (basketball ? .044 + Math.max(0, front) * .010 : .032 + .016 * smooth((front + .8) / .9) - .020 * smooth((front - .55) / .45)) * balance.width
         const ankleX = basketball ? .042 : .032
         const ankleZ = basketball ? .038 : heels ? .059 : .055
         const loft = basketball ? t : smooth((t - .12) / .88)
@@ -545,7 +546,7 @@ function shoes(source: Source, spec: AnimeSpec, upper: Surface, sole: Surface, t
           if (heels) {
             // Pumps have a thin forefoot sole, not a sneaker platform. Ease
             // the ball/toe base onto it while leaving the heel counter high.
-            const forefoot = smooth((z - .03) / .10), base = new Vector3(x, baseY, z).applyMatrix4(heelPose)
+            const forefoot = smooth((z - .03 * balance.length) / (.10 * balance.length)), base = new Vector3(x, baseY, z).applyMatrix4(heelPose)
             p.y += (.010 - base.y) * forefoot * (1 - smooth(t))
           }
           p.y = Math.max(.009, p.y); p.applyMatrix4(heelInverse)
@@ -564,7 +565,7 @@ function shoes(source: Source, spec: AnimeSpec, upper: Surface, sole: Surface, t
     const lower = top.map(v => {
       const p = new Vector3(...v.p).applyMatrix4(bindToNeutral)
       if (heels) {
-        const forefoot = smooth((p.z - .03) / .10)
+        const forefoot = smooth((p.z - .03 * balance.length) / (.10 * balance.length))
         p.applyMatrix4(heelPose); p.y -= .0055
         p.y += (.002 - p.y) * forefoot; p.y = Math.max(.002, p.y)
       } else {
@@ -592,12 +593,12 @@ function shoes(source: Source, spec: AnimeSpec, upper: Surface, sole: Surface, t
       // bind space. Both ends are carried by the same foot; no floating stem.
       const inverse = heelInverse
       const posed = (p: V3) => new Vector3(...p).applyMatrix4(heelPose)
-      const back = posed([centre.x, .020, -.052])
+      const back = posed([centre.x, .020, -.052 * balance.length])
       const high: Vertex[] = [], low: Vertex[] = []
       for (let i = 0; i < 24; i++) {
         const a = i / 24 * Math.PI * 2
-        high.push(make(new Vector3(back.x + Math.cos(a) * .012, back.y, back.z + Math.sin(a) * .010).applyMatrix4(inverse).toArray() as V3))
-        low.push(make(new Vector3(back.x + Math.cos(a) * .006, .002, back.z - .003 + Math.sin(a) * .005).applyMatrix4(inverse).toArray() as V3))
+        high.push(make(new Vector3(back.x + Math.cos(a) * .012 * balance.width, back.y, back.z + Math.sin(a) * .010 * balance.length).applyMatrix4(inverse).toArray() as V3))
+        low.push(make(new Vector3(back.x + Math.cos(a) * .006 * balance.width, .002, back.z - .003 + Math.sin(a) * .005 * balance.length).applyMatrix4(inverse).toArray() as V3))
       }
       const bottom = make(new Vector3(back.x, .002, back.z - .003).applyMatrix4(inverse).toArray() as V3)
       for (let i = 0; i < 24; i++) { const next = (i + 1) % 24; sole.face(high[i]!, low[i]!, high[next]!); sole.face(high[next]!, low[i]!, low[next]!); sole.face(bottom, low[next]!, low[i]!) }
@@ -619,6 +620,17 @@ function shoes(source: Source, spec: AnimeSpec, upper: Surface, sole: Surface, t
   }
   upper.calculateNormals()
   finishOpening(upper, trim, .004)
+}
+
+/** A bounded last-size correction, not global bone scaling. The ankle opening
+ * stays fitted and height/contact are unchanged; both sexes use the same rule.
+ * Normal build is exactly the old size. Head/shoulder/torso balance contributes
+ * without turning every body-axis edit into a radically different shoe.
+ */
+export function shoeBalance(spec: AnimeSpec): { width: number; length: number } {
+  const step = (value: number) => (Math.max(0, Math.min(6, value)) - 3) / 3
+  const amount = .04 * step(spec.hip) + .04 * step(spec.shoulder) + .02 * step(spec.bust) + .02 * step(spec.head)
+  return { width: 1 + amount, length: 1 + amount * .75 }
 }
 
 export function wardrobeKey(spec: AnimeSpec): string {

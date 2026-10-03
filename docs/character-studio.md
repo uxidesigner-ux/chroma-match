@@ -8,8 +8,8 @@ distinguishes shipped player features from upstream authoring features not porte
 
 One licensed Seed-san starter model, reproportioned rather than swapped: a male
 or female character, five figure axes (shoulders, chest, waist, hips, head size)
-at seven steps each, four builds as starting points, three hair silhouettes
-(original ponytail, rounded bob, mid-back long hair), eight starting palettes, independently mixed
+at seven steps each, four builds as starting points, five hair silhouettes
+(original ponytail, rounded bob, mid-back long hair, short taper, side-part pomade), eight starting palettes, independently mixed
 backpack / arm gear / visor, hair/eye/skin/outfit/background colours, six
 expressions, rotation, face/full-body framing, idle breathing and blinking. Apply commits a
 draft; leaving a changed draft asks before discarding it. This is the only
@@ -105,13 +105,23 @@ pass rewrites from the model's own vertices, so male restores the shipped mesh.
 The shipped hair cap is weighted mostly to the head; scaling its tip chains
 cannot produce distinct cuts. Bob and long now add purpose-built closed shells
 under the original crown/fringe instead of copies of the 156-vertex ponytail.
-Each uses 1,690 vertices and an original 128×64 grayscale strand map, with a
+Each uses 3,250 vertices and an original 512×512 grayscale strand map, with a
 continuous side/back silhouette and no alpha-card sorting. Long hair includes
 extra rear clearance when a backpack is selected. Geometry, UVs and the PNG map
 are included in VRM/GLB exports. These are rigid head attachments, not simulated
 strand physics; broad collision or independently licensed hairstyle packs remain
-out of scope. Existing T/B/L codes are preserved, portrait cache frame 3 refreshes
+out of scope. Existing T/B/L codes are preserved, portrait cache frame 7 refreshes
 derived images only, and the pinned original VRM is unchanged.
+
+Short taper and pomade replace the whole original crown/fringe (including its
+tie) rather than leaving long bangs over a short cap. Their fitted closed scalps
+and combed pomade locks use 2,342 / 3,990 vertices, one owned neutral texture per
+short cut, and one head-attached mesh. The rounded pomade locks enter the fitted
+scalp at root/tip and follow its lateral curvature instead of forming a flat
+brush. F/P add new stable choices without changing older appearance letters.
+Footwear is modestly balanced to the figure, not simply scaled with leg bones;
+the left cyan finger paint is cleaned on owned skin-atlas pixels in preview and
+downloads. See [Short hair and footwear checkpoint](short-hair-footwear.md).
 
 Gesture rotations operate in normalized T-pose space: ±X arm directions, +Z
 front. Elbows flex on mirrored Y hinges within 0.12–1.62 radians. Shoulder axial
