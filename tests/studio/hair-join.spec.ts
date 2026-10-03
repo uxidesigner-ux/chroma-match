@@ -25,7 +25,7 @@ test('bob and long crown join covers the rear seam without obscuring the eyes', 
     const metrics: { hair: string; head: number; eyesVisible: boolean[]; rearCovered: number; sampled: number; exportMatches: boolean; eyePixels?: number[] }[] = []
     const views: { hair: string; view: string; png: string }[] = []
     try {
-      for (const hair of ['bob', 'long'] as const) for (const headSize of [0, 2, 4]) {
+      for (const hair of ['bob', 'long'] as const) for (const headSize of [0, 3, 6]) {
         const spec = { ...DEFAULT_ANIME, hair, head: headSize, hairColour: 'FFFFFF', pack: false, arms: false, visor: false }
         character.apply(spec); character.tick(0, false); character.vrm.scene.updateMatrixWorld(true)
         const head = character.vrm.humanoid.getRawBoneNode('head')!
@@ -80,7 +80,7 @@ test('bob and long crown join covers the rear seam without obscuring the eyes', 
           exportMatches &&= bytes.every((value, i) => value === values[i])
         }
         let eyePixels: number[] | undefined
-        if (headSize === 2) {
+        if (headSize === 3) {
           const row = hair === 'bob' ? 0 : 1, centre = head.getWorldPosition(new Vector3()); centre.y += .02
           for (const [column, angle] of [0, Math.PI / 2, Math.PI].entries()) {
             camera.position.set(Math.sin(angle) * 1.03, centre.y, Math.cos(angle) * 1.03); camera.lookAt(0, centre.y, 0)

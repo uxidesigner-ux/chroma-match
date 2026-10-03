@@ -104,6 +104,22 @@ working tree. The built entry is `index-CR2TDZLK.js`, with renderer
 `anime-renderer-0cR3yria.js`. No push, PR or live deployment is included in this
 implementation request.
 
+### Pre-release coverage correction
+
+After the local checkpoint, the user explicitly requested live deployment.
+Pre-release review found that the join fixture sampled head values 0/2/4,
+although the actual figure axis spans 0 through 6 and defaults to 3. The fixture
+now checks 0/3/6 for both cuts and captures the default-3 views. The corrected
+test passed (11.6 seconds): all six cases covered 190/190 rear-crown samples and
+matched preview/export geometry, while both default-3 views retained 100% of
+visible iris pixels. Geometry, shaders, appearance codes and production assets
+are unchanged by this test-only correction. Evidence is in
+`/tmp/chroma-hair-release.VhJ3sr/head-extremes`.
+
+Existing full CI and Pages gates remain intact. A release is not complete until
+the latest main commit passes them and the deployed hashes/runtime are checked;
+the local checkpoints above do not themselves establish live deployment.
+
 ## Limits
 
 The full studio suite was not rerun for this scoped geometry change.
