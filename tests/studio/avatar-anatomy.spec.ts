@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test'
 import { writeFile } from 'node:fs/promises'
 import { enterLobby } from './boot.ts'
 
+// Geometry/save checks need real WebGL pixels, not continuous idle frames.
+const staticTest = test.extend({ reducedMotion: 'reduce' as const })
+
 test('real character gestures keep anatomical hinges at every phase and reset without drift', async ({ page }, testInfo) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
   await page.goto('/')
@@ -62,16 +65,17 @@ test('real character gestures keep anatomical hinges at every phase and reset wi
   expect(result.failures).toEqual([])
 })
 
-test('bob and long hair save their geometry/texture without changing the appearance format', async ({ page }, testInfo) => {
-  await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
-  await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'ko'))
-  await page.goto('/')
-  await enterLobby(page)
-  await page.locator('#lobby-edit').click()
-  await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
-  await page.getByRole('button', { name: '동작 멈춤', exact: true }).click()
-  await page.getByRole('tab', { name: '헤어', exact: true }).click()
-  for (const [style, mark] of [['단발', 'B'], ['긴 머리', 'L']] as const) {
+for (const [style, mark] of [['단발', 'B'], ['긴 머리', 'L']] as const) {
+  staticTest(`bob and long hair save their geometry/texture without changing the appearance format (${mark})`, async ({ page }, testInfo) => {
+    expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
+    await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
+    await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'ko'))
+    await page.goto('/')
+    await enterLobby(page)
+    await page.locator('#lobby-edit').click()
+    await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
+    await page.getByRole('button', { name: '동작 멈춤', exact: true }).click()
+    await page.getByRole('tab', { name: '헤어', exact: true }).click()
     await page.getByRole('button', { name: style, exact: true }).click()
     for (const view of ['정면', '측면', '후면']) {
       await page.getByRole('button', { name: view, exact: true }).click()
@@ -91,5 +95,5 @@ test('bob and long hair save their geometry/texture without changing the appeara
     await page.getByRole('button', { name: '동작 멈춤', exact: true }).click()
     await page.getByRole('tab', { name: '헤어', exact: true }).click()
     await expect(page.getByRole('button', { name: style, exact: true })).toHaveAttribute('aria-pressed', 'true')
-  }
-})
+  })
+}

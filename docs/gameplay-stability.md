@@ -166,7 +166,7 @@ reserve room for a classic native scrollbar and use the already inset board
 focus outline rather than extra scroller padding. Goal-count sizing uses the
 actual system font's widest digit advance, not an assumed .62em multiplier.
 The lobby test measures all visible footer controls, including scroll controls
-when present. A new regression reserves another 17px gutter and uses a wide
+when present. A new regression reserves a total 17px gutter and uses a wide
 monospace digit carrier so both problems are reproducible on overlay-scrollbar
 macOS as well as CI. No workflow gates, scoring, model assets or dependencies
 were changed.
@@ -177,3 +177,33 @@ scenarios and the production build. Evidence is under
 `/tmp/chroma-deploy.yy0Mtu`. The first failed run did not modify the live site;
 subsequent CI and live verification must be checked separately before claiming
 deployment success.
+
+A second CI run confirmed the original five layout failures were resolved
+(106/110 browser checks passed). Its remaining geometry failure was in the new
+fixture: adding 17px to Linux's existing native gutter counted the scrollbar
+twice. The fixture now adds only the difference to a total 17px gutter; the 44px
+acceptance threshold is unchanged. Three existing multi-step 3D checks exceeded
+their 120-second budget, with a fourth static contrast/modal check timing out
+on the parallel PR run. These static pixel/save/target/contrast checks now use
+the reduced-motion fixture from page creation, suppressing unnecessary idle
+WebGL rendering while retaining real model loads, all views, saved pixels,
+reopening, size/contrast and focus assertions. Motion-specific tests keep their
+original fixture; no timeout, retry or skipped-test allowance was added. CI
+preserves failed browser traces/screenshots for subsequent diagnosis, without
+changing any validation or Pages deployment gate.
+
+The hair variants and CSS-contrast/editor-discard paths are independent cases
+with the same assertions rather than several model boots competing for one
+test's budget. CSS contrast alone aborts the optional model; the separate modal
+case requires the fully loaded real character. Control dimensions are measured
+in one DOM snapshot rather than dozens of browser protocol round trips. Static
+cases assert the reduced-motion preference is actually active. The original
+motion scenarios remain unchanged, and no timeout/retry thresholds are relaxed.
+
+Local corrected acceptance evidence: the seven bounded paths passed twice
+(14/14; each within 42 seconds), and the unchanged anatomical gesture/real lobby
+motion paths passed (2/2). Type checking, whitespace checks and workflow YAML
+parsing passed. The full studio collection now contains 112 cases: the two
+extra cases separate existing assertions rather than removing any. Production
+source/assets are unchanged by this second correction. Main CI and live release
+verification remain mandatory; these local results do not claim deployment.
