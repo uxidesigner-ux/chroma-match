@@ -55,11 +55,39 @@ test('strand shading is opaque, neutral, bounded and deterministic', () => {
     assert.equal(pixels.rgba[i], pixels.rgba[i + 1])
     assert.equal(pixels.rgba[i], pixels.rgba[i + 2])
     assert.equal(pixels.rgba[i + 3], 255)
-    assert.ok(pixels.rgba[i]! >= 232 && pixels.rgba[i]! <= 255)
+    assert.ok(pixels.rgba[i]! >= 158 && pixels.rgba[i]! <= 255)
   }
   const shades = pixels.rgba.filter((_, i) => i % 4 === 0)
-  assert.equal(Math.min(...shades), 232)
-  assert.equal(Math.max(...shades), 255)
+  assert.ok(shades.reduce((a, b) => Math.min(a, b), 255) < 200, 'sparse separations must survive the lit white surface')
+  assert.equal(shades.reduce((a, b) => Math.max(a, b), 0), 255)
+  assert.ok(shades.filter(value => value >= 232).length / shades.length > .85, 'most of the carrier remains near-white')
+  assert.ok(shades.filter(value => value < 220).length / shades.length < .12, 'no all-over grey wash')
+})
+
+test('strand lines vary their spacing, width and length, taper and curve without noisy texels', () => {
+  const { width, height, rgba } = hairShading()
+  assert.ok(width <= 512 && height <= 512, 'one bounded mobile texture, not strand geometry')
+  const at = (x: number, y: number) => rgba[(y * width + x) * 4]!
+  const runs = (y: number) => {
+    const out: { middle: number; width: number }[] = []
+    let start = -1
+    for (let x = 0; x <= width; x++) {
+      if (x < width && at(x, y) < 220) { if (start < 0) start = x }
+      else if (start >= 0) { out.push({ middle: (start + x - 1) / 2, width: x - start }); start = -1 }
+    }
+    return out
+  }
+  const middle = runs(Math.floor(height / 2)), early = runs(Math.floor(height * .25))
+  assert.ok(middle.length >= 12 && middle.length <= 20)
+  assert.ok(new Set(middle.map(run => run.width)).size >= 2, 'not identical line weights')
+  assert.ok(new Set(middle.slice(1).map((run, i) => run.middle - middle[i]!.middle)).size >= 4, 'not a regular comb')
+  assert.notDeepEqual(middle, early, 'paths follow the length rather than straight UV stripes')
+  assert.equal(runs(0).length, 0, 'soft root, not an ink seam')
+  assert.equal(runs(height - 1).length, 0, 'tapered ends, not squared-off lines')
+  let maximumStep = 0
+  for (let y = 0; y < height - 1; y++) for (let x = 0; x < width; x++)
+    maximumStep = Math.max(maximumStep, Math.abs(at(x, y + 1) - at(x, y)))
+  assert.ok(maximumStep < 12, 'smooth along the hair flow, no random speckle')
 })
 
 test('gear clearance moves long hair backward, never widens or changes its cut', () => {

@@ -65,14 +65,59 @@ export function hairGeometry(style: HairStyle, pack = false): HairGeometry | nul
   return { positions: points, normals: normalsFor(points, faces), uv: Float32Array.from(uv), index: faces }
 }
 
-/** Same bleached-white range as the crown; keep subtle strand detail when tinted. */
+const smooth = (a: number, b: number, value: number) => {
+  const t = Math.max(0, Math.min(1, (value - a) / (b - a)))
+  return t * t * (3 - 2 * t)
+}
+
+// Stable across preview, reload and exports; never randomize a saved hairstyle.
+const seed = (n: number) => {
+  const value = Math.sin(n * 127.1 + 311.7) * 43758.5453
+  return value - Math.floor(value)
+}
+
+/**
+ * A white pigment carrier with sparse, neutral strand separations. Uneven
+ * clumps/curved paths, tapered widths and different start/end points avoid a
+ * comb of identical full-length stripes. Only small separation cores fall
+ * below the white range: the bulk pigment still carries bright chosen colours.
+ * This UV-bound map follows the existing head shell, with no floating line
+ * meshes, extra draw calls, geometry/rig changes or per-frame texture work.
+ */
 export function hairShading(): { width: number; height: number; rgba: Uint8ClampedArray<ArrayBuffer> } {
-  const width = 128, height = 64, rgba = new Uint8ClampedArray(width * height * 4)
+  const width = 512, height = 512, rgba = new Uint8ClampedArray(width * height * 4)
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-    const shade = Math.round(HAIR_WHITE_FLOOR + 8 + Math.cos(x / (width - 1) * Math.PI * 32) * 8 + Math.sin(y / (height - 1) * Math.PI) * 7)
+    const u = x / (width - 1), t = y / (height - 1)
+    const flow = u + .006 * Math.sin(t * Math.PI) * Math.sin(u * Math.PI * 5)
+    const shade = Math.round(Math.min(255, Math.max(HAIR_WHITE_FLOOR,
+      246 + 4 * Math.cos(flow * Math.PI * 14.6 + .7) + 3 * Math.cos(flow * Math.PI * 22.2 - .4) + 3 * Math.sin(t * Math.PI))))
     const at = (y * width + x) * 4
     rgba[at] = rgba[at + 1] = rgba[at + 2] = shade
     rgba[at + 3] = 255
+  }
+  for (let strand = 0; strand < 18; strand++) {
+    const root = .032 + strand * .055 + (seed(strand + 1) - .5) * .022
+    const start = .035 + seed(strand + 21) * .17
+    const end = .66 + seed(strand + 41) * .31
+    const bend = (seed(strand + 61) - .5) * .025
+    const lean = (seed(strand + 81) - .5) * .017
+    const radius = .002 + seed(strand + 101) * .002
+    const ink = 158 + seed(strand + 121) * 32
+    for (let y = Math.ceil(start * (height - 1)); y <= Math.floor(end * (height - 1)); y++) {
+      const t = y / (height - 1), along = (t - start) / (end - start)
+      const fade = smooth(start, start + .07, t) * (1 - smooth(end - .1, end, t))
+      const centre = root + bend * Math.sin(along * Math.PI) + lean * along
+      const tapered = radius * (.3 + .7 * Math.sin(along * Math.PI) ** .6) * fade
+      const feather = .0011
+      const left = Math.max(0, Math.floor((centre - tapered - feather) * (width - 1)))
+      const right = Math.min(width - 1, Math.ceil((centre + tapered + feather) * (width - 1)))
+      for (let x = left; x <= right; x++) {
+        const alpha = fade * (1 - smooth(tapered * .25, tapered + feather, Math.abs(x / (width - 1) - centre)))
+        const at = (y * width + x) * 4
+        const shade = Math.round(rgba[at]! * (1 - alpha) + ink * alpha)
+        rgba[at] = rgba[at + 1] = rgba[at + 2] = shade
+      }
+    }
   }
   return { width, height, rgba }
 }

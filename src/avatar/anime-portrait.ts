@@ -5,9 +5,9 @@ import { decodeSpec } from './spec.ts'
 import type { AnimeRenderer } from './anime-renderer.ts'
 
 const KEY = 'chroma-match:anime-portrait-v1'
-// Regenerate derived images after bleaching every hair cut to a white carrier.
+// Regenerate derived images after adding visible bob/long strand separations.
 // Keep appearance codes untouched; only regenerate stale, derived images.
-const FRAME_VERSION = 4
+const FRAME_VERSION = 5
 const cache = new Map<string, Promise<HTMLImageElement>>()
 const requests = new WeakMap<HTMLCanvasElement, symbol>()
 let queue: Promise<unknown> = Promise.resolve()

@@ -63,7 +63,7 @@ test('production long hair retains a regenerated portrait and requested still ge
   await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!).frame)).toBe(4)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!).frame)).toBe(5)
   await page.setViewportSize({ width: 430, height: 852 })
   const canvas = page.locator('#lobby-canvas')
   const hash = async () => createHash('sha256').update(await canvas.evaluate(e => (e as HTMLCanvasElement).toDataURL())).digest('hex')
@@ -254,10 +254,10 @@ test('bleached starter portrait bypasses the old image cache and remains availab
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
-  expect(portraitRequests.some(url => new URL(url).searchParams.get('v') === '4')).toBe(true)
+  expect(portraitRequests.some(url => new URL(url).searchParams.get('v') === '5')).toBe(true)
   const cache = await page.evaluate(async ({ raw, key }) => {
     const bucket = await caches.open(key)
-    const previous = await bucket.match(raw), current = await bucket.match(`${raw}?v=4`)
+    const previous = await bucket.match(raw), current = await bucket.match(`${raw}?v=5`)
     return { previous: Array.from(new Uint8Array(await previous!.arrayBuffer())), current: current ? Array.from(new Uint8Array(await current.arrayBuffer())) : null }
   }, old)
   expect(cache.previous).toEqual(old.bytes)
