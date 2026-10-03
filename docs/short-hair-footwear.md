@@ -106,3 +106,26 @@ strand/cloth collision physics are outside this checkpoint. No separate reviewer
 agent is available; source review and actual screenshot review are performed
 directly. The shared experience playbook was not found in the workspace or
 ancestor locations; repository PRODUCT and existing acceptance tests are used.
+
+## Live release follow-up — 2026-10-04
+
+The user subsequently requested live publication. Commit `909f657` was
+fast-forwarded to main without changing other history. CI run `37134602862`
+passed type checking and 220 unit tests, then 117 of 118 studio cases; Pages
+publication was correctly skipped when the legacy toolkit export assertion
+expected 19 images instead of the now-required 21. The two extra images are
+the cleaned `body_bake` / `body_nm` skin palettes, not an export regression.
+
+The toolkit assertion now derives the count from the pinned source plus the
+six expected painted materials, preserves every original image descriptor,
+requires distinct appended PNGs for each palette, and reloads both VRM / GLB
+to verify cleaned finger pixels alongside the existing rig, permissions,
+hair geometry and colour checks. No production source or workflow gate changed.
+All five toolkit browser checks, type checking and `git diff --check` passed
+locally before resubmission. The complete CI and actual-live checks remain
+required; this follow-up does not claim successful publication.
+
+Release evidence is preserved under `/tmp/chroma-short-release.X8c3Lv`:
+failed CI log/artifacts, the targeted toolkit rerun, a Pages build snapshot,
+and an isolated persistent guest browser prepared on the old live version
+to verify saved-avatar preservation and frame-6 to frame-7 portrait recovery.

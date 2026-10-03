@@ -110,6 +110,10 @@ test('PNG downloads have real pixels, transparent backgrounds and camera restora
 })
 
 test('VRM and GLB exports load again, retain permissions and match selected palette/visibility', async ({ page }) => {
+  const source = await readFile(new URL('../../public/avatars/seed-v1/seed-san.vrm', import.meta.url))
+  const original = readGlb(source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength)).json
+  // Five recoloured/cleaned atlases plus the generated bob's strand texture.
+  const paintedMaterials = ['hair', 'eye', 'huku_bake', 'body_bake', 'body_nm', 'hair_shape']
   await page.getByRole('button', { name: 'Ember', exact: true }).click()
   await page.getByRole('tab', { name: 'Hair', exact: true }).click()
   await page.getByRole('button', { name: 'Short bob', exact: true }).click()
@@ -124,7 +128,18 @@ test('VRM and GLB exports load again, retain permissions and match selected pale
     expect(json.extensions.VRMC_vrm.meta.creditNotation).toBe('required')
     expect(json.nodes.find(n => n.name === 'hair_tail')?.mesh).toBeUndefined()
     expect(json.nodes.find(n => n.name === 'robo_arm')?.mesh).toBeUndefined()
-    expect(json.images.length).toBe(19)
+    expect(json.images.length).toBe(original.images.length + paintedMaterials.length)
+    expect(json.images.slice(0, original.images.length)).toEqual(original.images)
+    const paintedImages: number[] = []
+    for (const name of paintedMaterials) {
+      const material = json.materials.find(material => material.name === name)!
+      const texture = json.textures[material.pbrMetallicRoughness.baseColorTexture!.index]!
+      expect(texture.source).toBeGreaterThanOrEqual(original.images.length)
+      expect(texture.source).toBeLessThan(json.images.length)
+      expect(json.images[texture.source]!.mimeType).toBe('image/png')
+      paintedImages.push(texture.source)
+    }
+    expect(new Set(paintedImages).size).toBe(paintedMaterials.length)
     const shell = json.nodes.find(n => n.name === 'hair_shape')!
     expect(shell.mesh).toBeDefined()
     const primitive = json.meshes[shell.mesh!]!.primitives[0]!
@@ -140,12 +155,26 @@ test('VRM and GLB exports load again, retain permissions and match selected pale
       const vrm = gltf.userData.vrm
       const materials: string[] = []
       const colours: string[] = []
+      const skinTextures: string[] = []
+      let cleanSkinTextures = true
       let shapeMatches = false, textureMatches = false
       vrm.scene.traverse(node => {
         if (!node.isMesh) return
         for (const material of Array.isArray(node.material) ? node.material : [node.material]) {
           materials.push(material.name)
           if (material.name === 'hair' || material.name === 'hair_shape') colours.push(material.color.getHexString())
+          if (material.name === 'body_bake' || material.name === 'body_nm') {
+            skinTextures.push(material.name)
+            const texture = material.map.image
+            const canvas = document.createElement('canvas'); canvas.width = texture.width; canvas.height = texture.height
+            const ctx = canvas.getContext('2d')!; ctx.drawImage(texture, 0, 0)
+            const x = Math.floor(canvas.width * .79), y = 0
+            const width = Math.ceil(canvas.width * .99) - x, height = Math.ceil(canvas.height * .15)
+            const pixels = ctx.getImageData(x, y, width, height).data
+            for (let i = 0; i < pixels.length; i += 4) {
+              if (pixels[i + 2]! > pixels[i]! * 1.2 + 10 && pixels[i + 1]! > pixels[i]! * 1.1 + 5) cleanSkinTextures = false
+            }
+          }
           if (material.name === 'hair_shape') {
             const expected = hairGeometry('bob')!
             shapeMatches = JSON.stringify(Array.from(node.geometry.attributes.position.array)) === JSON.stringify(Array.from(expected.positions))
@@ -156,7 +185,7 @@ test('VRM and GLB exports load again, retain permissions and match selected pale
           }
         }
       })
-      const result = { head: !!vrm.humanoid.getNormalizedBoneNode('head'), expressions: Object.keys(vrm.expressionManager.expressionMap), materials, colours, shapeMatches, textureMatches }
+      const result = { head: !!vrm.humanoid.getNormalizedBoneNode('head'), expressions: Object.keys(vrm.expressionManager.expressionMap), materials, colours, skinTextures, cleanSkinTextures, shapeMatches, textureMatches }
       VRMUtils.deepDispose(vrm.scene)
       return result
     })
@@ -167,6 +196,8 @@ test('VRM and GLB exports load again, retain permissions and match selected pale
     expect(result.colours.length).toBeGreaterThan(0)
     expect(result.shapeMatches).toBe(true)
     expect(result.textureMatches).toBe(true)
+    expect(new Set(result.skinTextures)).toEqual(new Set(['body_bake', 'body_nm']))
+    expect(result.cleanSkinTextures).toBe(true)
     await page.unroute('**/test-export.vrm')
   }
 })
