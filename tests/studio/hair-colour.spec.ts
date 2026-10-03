@@ -47,14 +47,16 @@ test('white-based hair preserves bright pigment, strands and preview/export pari
       return context.getImageData(0, 0, sample.width, sample.height).data
     }
     const stats = (data: Uint8ClampedArray) => {
-      let min = 255, max = 0, total = 0, count = 0, chroma = 0
+      let min = 255, max = 0, total = 0, count = 0, chroma = 0, bright = 0, detail = 0
       for (let i = 0; i < data.length; i += 4) {
         if (data[i + 3]! < 250) continue
         min = Math.min(min, data[i]!); max = Math.max(max, data[i]!)
         total += data[i]!; count++
+        if (data[i]! >= 232) bright++
+        if (data[i]! < 220) detail++
         chroma = Math.max(chroma, Math.abs(data[i]! - data[i + 1]!), Math.abs(data[i]! - data[i + 2]!))
       }
-      return { min, max, mean: total / count, count, chroma }
+      return { min, max, mean: total / count, count, chroma, bright: bright / count, detail: detail / count }
     }
     const hue = (rgb: number[]) => {
       const [r, g, b] = rgb, max = Math.max(...rgb), min = Math.min(...rgb), delta = max - min
@@ -62,7 +64,7 @@ test('white-based hair preserves bright pigment, strands and preview/export pari
       const raw = max === r ? (g! - b!) / delta : max === g ? (b! - r!) / delta + 2 : (r! - g!) / delta + 4
       return ((raw * 60) % 360 + 360) % 360
     }
-    const textureRows: { style: string; name: string; min: number; max: number; mean: number; count: number; chroma: number }[] = []
+    const textureRows: { style: string; name: string; min: number; max: number; mean: number; count: number; chroma: number; bright: number; detail: number }[] = []
     const rendered: { style: string; colour: string; rgb: number[]; hueError: number; coverage: number; saturation: number }[] = []
     const exports: { style: string; name: string; colour: string; matches: boolean; selectedFactor: string; exportedFactor: string }[] = []
     const unaffected: { name: string; matches: boolean }[] = []
@@ -139,7 +141,13 @@ test('white-based hair preserves bright pigment, strands and preview/export pari
   expect(result.textureRows).toHaveLength(5)
   for (const texture of result.textureRows) {
     expect(texture.chroma).toBe(0)
-    expect(texture.min, `${texture.style}/${texture.name} must use white, not mid-gray`).toBeGreaterThanOrEqual(232)
+    if (texture.name === 'hair_shape') {
+      expect(texture.min).toBeGreaterThanOrEqual(158)
+      expect(texture.mean, 'detail cannot turn the white carrier into a gray filter').toBeGreaterThan(240)
+      expect(texture.bright).toBeGreaterThan(.85)
+      expect(texture.detail).toBeGreaterThan(.005)
+      expect(texture.detail).toBeLessThan(.12)
+    } else expect(texture.min, `${texture.style}/${texture.name} must use white, not mid-gray`).toBeGreaterThanOrEqual(232)
     expect(texture.max).toBe(255)
     expect(texture.max - texture.min).toBeGreaterThanOrEqual(8)
   }
@@ -166,7 +174,7 @@ test('white-based hair preserves bright pigment, strands and preview/export pari
 for (const variant of [
   { width: 1280, height: 800, style: 'Short bob', hair: 'bob' },
   { width: 390, height: 844, style: 'Long hair', hair: 'long' },
-] as const) test(`hair picker saves the exact yellow and refreshes pre-bleach portraits at ${variant.width}px`, async ({ page }, testInfo) => {
+] as const) test(`hair picker saves the exact yellow and refreshes previous-render portraits at ${variant.width}px`, async ({ page }, testInfo) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
   await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'en'))
   await page.setViewportSize({ width: variant.width, height: variant.height })
@@ -205,14 +213,14 @@ for (const variant of [
     const saved = JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!)
     const gray = document.createElement('canvas'); gray.width = gray.height = 1
     const ctx = gray.getContext('2d')!; ctx.fillStyle = '#a0a0a0'; ctx.fillRect(0, 0, 1, 1)
-    localStorage.setItem('chroma-match:anime-portrait-v1', JSON.stringify({ ...saved, frame: 3, png: gray.toDataURL() }))
+    localStorage.setItem('chroma-match:anime-portrait-v1', JSON.stringify({ ...saved, frame: 4, png: gray.toDataURL() }))
   })
   await page.reload(); await enterLobby(page)
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
   const portrait = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!))
-  expect(portrait.frame).toBe(4); expect(portrait.png.length).toBeGreaterThan(1000)
+  expect(portrait.frame).toBe(5); expect(portrait.png.length).toBeGreaterThan(1000)
   await page.screenshot({ path: testInfo.outputPath('yellow-lobby-reloaded.png') })
   await page.locator('#lobby-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')

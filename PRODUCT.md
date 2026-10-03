@@ -84,6 +84,12 @@ Bob and mid-back long hair use dedicated closed meshes and an original neutral
 strand texture over the licensed crown/fringe, not repeated ponytail ribbons.
 All cuts use a bleached near-white pigment carrier, preserving neutral strand
 detail rather than multiplying bright selections by the source's mid-gray.
+Bob/long side and back surfaces add sparse curved separation lines with uneven
+spacing, width and length, softly tapered roots/tips, and gentle clump shading.
+The original crown/fringe/ponytail stays intact. Most of the generated map stays
+near-white; only narrow neutral separation cores are darker, so bright pigment
+is not washed out. A single bounded UV texture follows the existing head shell,
+with no extra line meshes, draw calls, runtime noise or per-frame texture work.
 Selected colour codes stay unchanged. Derived portraits regenerate, and the
 bundled starter portrait uses a render-versioned URL to bypass stale image caches.
 The same geometry and texture are written into VRM/GLB exports; B/L appearance

@@ -19,6 +19,11 @@ their existing textures; no production dependency or external asset was added.
 | Crown/fringe/ponytail, actual opaque texture pixels | 152–173 | 234–255 |
 | Generated bob/long strands | 144–166 | 232–255 |
 
+These are the bleaching-baseline measurements. The subsequent
+[strand-detail refinement](hair-detail.md) keeps the bright carrier but adds
+sparse darker neutral separation cores to the generated bob/long map. The
+licensed crown/fringe/ponytail range remains unchanged.
+
 The selected colour remains the material's sRGB input, converted to linear
 factors by Three.js. A neutral map cannot inject an old green/brown hue. Actual
 lit pixels still vary with toon shading and lights; this is not a promise that
