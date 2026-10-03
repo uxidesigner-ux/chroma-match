@@ -180,9 +180,16 @@ export function bustField(amount: number, x: number, y: number, z: number, out: 
   // arrive at the torso with zero slope instead of a hard crease.
   const dy = y - BUST_Y
   const rise = dy < 0 ? dy / BUST_UNDER : dy * BUST_OVER
+  // A hard nearest-lobe switch has opposite depth slopes at the centre.
+  // Fine tessellation exposes that normal jump as a slit in offset clothing.
+  // Round only the 18 mm centre join; retain each lobe's apex and outer shape.
+  // The join must also leave room for the fitted shell's normal offset rather
+  // than letting neighbouring cloth faces fold over one another.
+  const join = .018, absolute = Math.abs(x), t = Math.min(1, absolute / join)
+  const fieldX = absolute < join ? Math.sign(x) * join * (3 * t * t - 3 * t ** 3 + t ** 4) : x
   let strongest = 0
   for (const side of [-BUST_X, BUST_X]) {
-    const across = Math.hypot(x - side, rise)
+    const across = Math.hypot(fieldX - side, rise)
     if (across >= BUST_REACH) continue
     // A rounded cap with zero slope at the apex AND its outer boundary.
     // Keep the lower half full instead of stretching a narrow peak into a
@@ -203,7 +210,7 @@ export function bustField(amount: number, x: number, y: number, z: number, out: 
      */
     if (fall <= strongest) continue
     strongest = fall
-    let ox = x - side
+    let ox = fieldX - side
     // Most volume projects forward. A small downward component rounds the
     // underside without pulling the shirt's rows into a drooping point.
     let oy = dy * .35

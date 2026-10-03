@@ -127,13 +127,25 @@ test('fitted tops keep chest clearance through size extremes and gestures', asyn
             character.tick(phase - previous, true); previous = phase
             character.vrm.scene.updateMatrixWorld(true); body.skeleton.update()
             const skin = Array.from({ length: rest.count }, (_, i) => body.localToWorld(body.getVertexPosition(i, new Vector3())))
+            // Keep all the same rays/triangles, but index posed triangles by
+            // height. Fine tessellation must not turn each ray into a scan of
+            // tens of thousands of triangles that cannot intersect its plane.
+            const slices = new Map<number, [Vector3, Vector3, Vector3][]>()
+            for (const face of faces) {
+              const tri = face.map(i => skin[i]!) as [Vector3, Vector3, Vector3]
+              const low = Math.floor(Math.min(...tri.map(p => p.y)) / .005), high = Math.floor(Math.max(...tri.map(p => p.y)) / .005)
+              for (let row = low; row <= high; row++) {
+                let entries = slices.get(row)
+                if (!entries) { entries = []; slices.set(row, entries) }
+                entries.push(tri)
+              }
+            }
             const centre = character.vrm.humanoid.getRawBoneNode('chest')!.getWorldPosition(new Vector3())
             for (const at of vertices) {
               const p = shirt.localToWorld(shirt.getVertexPosition(at, new Vector3())), origin = new Vector3(centre.x, p.y, centre.z)
               const ray = new Ray(origin, p.clone().sub(origin).normalize())
               let radius = 0
-              for (const face of faces) {
-                const [a, b, c] = face.map(i => skin[i]!) as [Vector3, Vector3, Vector3]
+              for (const [a, b, c] of slices.get(Math.floor(p.y / .005)) ?? []) {
                 if ([a, b, c].every(v => v.y < p.y) || [a, b, c].every(v => v.y > p.y)) continue
                 const hit = ray.intersectTriangle(a, b, c, false, new Vector3())
                 if (hit) radius = Math.max(radius, hit.distanceTo(origin))

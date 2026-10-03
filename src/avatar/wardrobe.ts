@@ -664,10 +664,10 @@ function clothes(source: Source, spec: AnimeSpec): WardrobeGeometry[] {
       const offset = (v: Vertex, bottom: boolean): Vertex => {
         // Taper only the concealed tucked-shirt overlap. New rear normals can
         // otherwise lift its lower binding through an independently scaled waist.
-        // Follow the rounded lower front with 7 mm allowance, fading back to
+        // Follow the rounded front with 6.3 mm allowance, fading back to
         // 9 mm at the collar/sides. Rear waistband and sleeves keep their fit.
-        const chestFit = smooth((v.p[1] - 1.00) / .035) * (1 - smooth((v.p[1] - 1.20) / .065)) * smooth((v.p[2] - .012) / .045) * (1 - smooth((Math.abs(v.p[0]) - .14) / .04))
-        const gap = bottom ? .013 + (spec.bottom === 'trousers' ? smooth((.63 - v.p[1]) / .48) * .013 : .004) : .002 + .007 * smooth((v.p[1] - .927) / .022) - .002 * chestFit
+        const chestFit = smooth((v.p[1] - 1.00) / .035) * (1 - smooth((v.p[1] - 1.24) / .045)) * smooth((v.p[2] - .012) / .045) * (1 - smooth((Math.abs(v.p[0]) - .14) / .04))
+        const gap = bottom ? .013 + (spec.bottom === 'trousers' ? smooth((.63 - v.p[1]) / .48) * .013 : .004) : .002 + .007 * smooth((v.p[1] - .927) / .022) - .0027 * chestFit
         return { ...v, p: v.p.map((n, i) => n + v.n[i]! * gap) as V3 }
       }
       shirt.triangles(keep(triangle, top).map(t => t.map(v => offset(v, false))))
