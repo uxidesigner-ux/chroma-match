@@ -16,6 +16,7 @@ import { EXPRESSIONS } from '../anime-spec.ts'
 import { CHEST_HIGH, CHEST_LOW, SEAT_HIGH, SEAT_LOW, HAIR_SHAPE, RIGID, SCULPTED, applyFigure, bustAmount, sculptChest, sculptSeat } from '../body-shape.ts'
 import type { ShapeNode, ShapedBone } from '../body-shape.ts'
 import { hairGeometry, hairShading } from '../hair-strands.ts'
+import { bleachHairPixels } from '../hair-palette.ts'
 import { exportSeed } from '../studio-export.ts'
 import { BlinkManager } from './blink.ts'
 import { armPose, GESTURE_SECONDS, gestureWeight } from './gesture-pose.ts'
@@ -168,8 +169,8 @@ export class StudioCharacter {
         return
       }
     })
-    // Preserve texture shading while removing the original green hue so an
-    // orange swatch really produces orange. These generated maps are owned.
+    // Hair gets a bleached white carrier; other palette groups retain their
+    // existing grayscale detail. These are owned maps, not source-asset edits.
     const textures = new Map<Texture, CanvasTexture>()
     for (const name of ['hair', 'eye', 'huku_bake'])
       for (const mat of this.materials.get(name) ?? []) {
@@ -186,10 +187,10 @@ export class StudioCharacter {
             if (!ctx) throw new Error('Canvas unavailable')
             ctx.drawImage(picture, 0, 0)
             const data = ctx.getImageData(0, 0, canvas.width, canvas.height)
-            for (let i = 0; i < data.data.length; i += 4) {
+            if (name === 'hair') bleachHairPixels(data.data)
+            else for (let i = 0; i < data.data.length; i += 4) {
               const light = Math.max(data.data[i]!, data.data[i + 1]!, data.data[i + 2]!)
-              const value = name === 'hair' ? 150 + light * 0.41 : light
-              data.data[i] = data.data[i + 1] = data.data[i + 2] = value
+              data.data[i] = data.data[i + 1] = data.data[i + 2] = light
             }
             ctx.putImageData(data, 0, 0)
             gray = new CanvasTexture(canvas)

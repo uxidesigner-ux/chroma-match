@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Effects, EFFECT_LIMITS } from './particles.ts'
+import { Effects, EFFECT_LIMITS, fitFloatingText } from './particles.ts'
 
 test('effects have fixed upper bounds even during simultaneous blasts', () => {
   const effects = new Effects(() => false)
@@ -50,4 +50,22 @@ test('reduced motion draws score feedback at its original position and scale', (
   effects.draw(ctx)
   assert.deepEqual(positions, [[20, 30]])
   assert.deepEqual(scales, [[1, 1]])
+})
+
+test('floating scores keep text and halo inside all four canvas edges, even after drift', () => {
+  for (const scale of [1, 1.35, 3]) for (const [x, y] of [[-60, -40], [0, 0], [280, 420], [400, 600], [140, 210]]) {
+    const placed = fitFloatingText(x!, y!, 180, 28, scale, { width: 280, height: 420 })
+    assert.ok(placed.x - 90 * placed.scale >= 4)
+    assert.ok(placed.x + 90 * placed.scale <= 276)
+    assert.ok(placed.y - 14 * placed.scale >= 4)
+    assert.ok(placed.y + 14 * placed.scale <= 416)
+    assert.ok(placed.scale <= scale)
+  }
+})
+
+test('an unusually wide score is fitted, rather than truncated or sent outside the canvas', () => {
+  const placed = fitFloatingText(0, 0, 1000, 30, 1.35, { width: 280, height: 420 })
+  assert.equal(placed.scale, .272)
+  assert.equal(placed.x, 140)
+  assert.ok(placed.y >= 4)
 })

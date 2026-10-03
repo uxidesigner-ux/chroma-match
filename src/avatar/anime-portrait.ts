@@ -5,9 +5,9 @@ import { decodeSpec } from './spec.ts'
 import type { AnimeRenderer } from './anime-renderer.ts'
 
 const KEY = 'chroma-match:anime-portrait-v1'
-// Regenerate derived images after replacing ribbon hair with dedicated shells.
+// Regenerate derived images after bleaching every hair cut to a white carrier.
 // Keep appearance codes untouched; only regenerate stale, derived images.
-const FRAME_VERSION = 3
+const FRAME_VERSION = 4
 const cache = new Map<string, Promise<HTMLImageElement>>()
 const requests = new WeakMap<HTMLCanvasElement, symbol>()
 let queue: Promise<unknown> = Promise.resolve()
@@ -78,7 +78,9 @@ function portrait(spec: AnimeSpec): Promise<HTMLImageElement> {
       }
       // New and migrated profiles do not need to download the 11 MB model.
       if (key === encodeAnime(DEFAULT_ANIME)) {
-        return image(`${import.meta.env.BASE_URL}avatars/seed-v1/default-portrait.png`)
+        // This public asset is not content-hashed. A render-versioned URL also
+        // bypasses cache-first service workers holding the previous hair colour.
+        return image(`${import.meta.env.BASE_URL}avatars/seed-v1/default-portrait.png?v=${FRAME_VERSION}`)
       }
       const { AnimeRenderer } = await import('./anime-renderer.ts')
       const renderer = new AnimeRenderer(document.createElement('canvas'))

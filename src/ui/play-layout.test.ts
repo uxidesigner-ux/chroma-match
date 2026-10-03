@@ -5,7 +5,8 @@ import { playLayout, playRegion } from './play-layout.ts'
 test('phone, unfolded, tablet and desktop layouts depend on usable space', () => {
   for (const [w, h, expected] of [[320, 568, 'stack'], [390, 844, 'stack'],
     [720, 720, 'stack'], [900, 720, 'stack'], [844, 390, 'wide'],
-    [1280, 800, 'stack'], [480, 800, 'stack']] as const) {
+    [1280, 800, 'stack'], [480, 800, 'stack'], [568, 320, 'wide'],
+    [740, 360, 'wide'], [480, 320, 'stack']] as const) {
     assert.equal(playLayout(playRegion(w, h)), expected)
   }
 })

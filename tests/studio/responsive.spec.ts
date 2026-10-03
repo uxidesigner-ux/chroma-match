@@ -29,7 +29,7 @@ test('fold, unfold, rotate and split-window preserve the exact run and touch tar
     expect(Math.max(...columns) - Math.min(...columns)).toBeLessThan(1)
     await page.locator('#pause').scrollIntoViewIfNeeded()
     await expect(page.locator('#pause')).toBeInViewport()
-    for (const button of await page.locator('#items button').all()) {
+    for (const button of await page.locator('#items button:visible').all()) {
       const box = (await button.boundingBox())!
       expect(box.width).toBeGreaterThanOrEqual(44)
       expect(box.height).toBeGreaterThanOrEqual(44)

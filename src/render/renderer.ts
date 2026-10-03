@@ -26,24 +26,16 @@ const BOARD_PAD = 8
 /** Below this a cell is too small to draw anything legible into. */
 const MIN_CELL = 6
 
-/**
- * How hard the board is allowed to be hit, in CSS pixels of travel.
- *
- * Kept small on purpose. A shake that moves the board far enough to notice as
- * movement is a shake that costs the player track of where their gems are; the
- * job here is to make a big clear land in the body, not to animate the screen.
- */
-const SHAKE_MAX = 7
-/** Shakes are short — past this the hit reads as a wobble rather than an impact. */
-const SHAKE_TIME = 0.26
+/** A short plate highlight, never a translation of the grid/hit-test space. */
+const IMPACT_TIME = 0.26
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D
   private layout: Layout = { x: 0, y: 0, cell: 1, w: 1, h: 1 }
   private width = 0
   private height = 0
-  private shake = 0
-  private shakeSeed = 0
+  private impact = 0
+  private dpr = 0
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -56,16 +48,20 @@ export class Renderer {
   }
 
   /** Matches the backing store to the element's CSS size and the device DPR. */
-  resize(): void {
+  resize(): boolean {
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5)
     const rect = this.canvas.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return false
     const w = Math.max(1, Math.round(rect.width))
     const h = Math.max(1, Math.round(rect.height))
+    if (w === this.width && h === this.height && dpr === this.dpr) return false
     this.canvas.width = Math.round(w * dpr)
     this.canvas.height = Math.round(h * dpr)
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     this.width = w
     this.height = h
+    this.dpr = dpr
+    this.impact = 0
 
     // The board is not square, so the cell size is whichever of the two axes
     // runs out first. The stylesheet can also land a frame after this module
@@ -81,6 +77,7 @@ export class Renderer {
     const bw = cell * this.geom.cols
     const bh = cell * this.geom.rows
     this.layout = { cell, w: bw, h: bh, x: (w - bw) / 2, y: (h - bh) / 2 }
+    return true
   }
 
   /** Grid index under a point given in CSS pixels relative to the canvas. */
@@ -115,35 +112,19 @@ export class Renderer {
   hit(force: number): void {
     if (reducedMotion()) return
     const next = Math.max(0, Math.min(1, force))
-    if (next <= this.shake) return
-    this.shake = next
-    this.shakeSeed = Math.random() * Math.PI * 2
+    this.impact = Math.max(this.impact, next)
   }
 
   /** Decays the hit. Called with the frame's delta, not with the clock. */
   settle(dt: number): void {
-    if (reducedMotion()) this.shake = 0
-    if (this.shake <= 0) return
-    this.shake = Math.max(0, this.shake - dt / SHAKE_TIME)
+    if (reducedMotion()) this.impact = 0
+    this.impact = Math.max(0, this.impact - dt / IMPACT_TIME)
   }
 
   draw(game: Game, effects: Effects, time: number): void {
     const ctx = this.ctx
     ctx.clearRect(0, 0, this.width, this.height)
     if (this.layout.cell < MIN_CELL) return
-
-    // Everything below moves together — plate, gems and confetti — because a
-    // board whose contents shake independently of it reads as a rendering bug.
-    const shaking = this.shake > 0 && !reducedMotion()
-    if (shaking) {
-      const decay = this.shake * this.shake
-      const amp = SHAKE_MAX * decay
-      // Two frequencies rather than one so successive hits do not land on the
-      // same path and start to look like a loop.
-      const t = time * 46 + this.shakeSeed
-      ctx.save()
-      ctx.translate(Math.sin(t) * amp, Math.cos(t * 1.37) * amp * 0.7)
-    }
 
     this.drawBoardPlate()
     this.drawWells()
@@ -194,9 +175,7 @@ export class Renderer {
       ctx.restore()
     }
 
-    effects.draw(ctx)
-
-    if (shaking) ctx.restore()
+    effects.draw(ctx, { width: this.width, height: this.height })
   }
 
   private boardClip(): void {
@@ -210,13 +189,20 @@ export class Renderer {
     const { x, y, w, h } = this.layout
     ctx.save()
     ctx.beginPath()
-    ctx.roundRect(x - BOARD_PAD, y - BOARD_PAD, w + BOARD_PAD * 2, h + BOARD_PAD * 2, 26)
+    // Keep the whole stroke inside the backing canvas, including Paper's ink.
+    ctx.roundRect(x - BOARD_PAD + 1.5, y - BOARD_PAD + 1.5, w + BOARD_PAD * 2 - 3, h + BOARD_PAD * 2 - 3, 26)
     const board = activeSkin().board
     ctx.fillStyle = board.boardFill
     ctx.fill()
     ctx.lineWidth = board.lineWidth
     ctx.strokeStyle = board.boardStroke
     ctx.stroke()
+    if (this.impact > 0 && !reducedMotion()) {
+      ctx.globalAlpha = this.impact * .65
+      ctx.lineWidth = 3
+      ctx.strokeStyle = board.selectRing
+      ctx.stroke()
+    }
     ctx.restore()
   }
 
