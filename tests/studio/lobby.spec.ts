@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { enterLobby } from './boot.ts'
 
+// Hit targets, contrast and modal focus do not require idle WebGL animation.
+const staticTest = test.extend({ reducedMotion: 'reduce' as const })
+
 test.beforeEach(async ({ page }) => {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
   await page.addInitScript(() => {
@@ -168,7 +171,8 @@ test('lobby separates profile and footer destinations, with play actions in one 
   expect(startBox.x).toBeGreaterThan(continueBox.x + continueBox.width - 1)
 })
 
-test('lobby and studio chrome hold a 44px target on narrow phones, and the studio follows the skin', async ({ page }) => {
+staticTest('lobby and studio chrome hold a 44px target on narrow phones, and the studio follows the skin', async ({ page }) => {
+  expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
   // The suite runs on the Paper skin, so the studio's own colours are the test:
   // it used to paint itself from hardcoded navy and stayed dark while the rest
   // of the app turned to paper.
@@ -178,8 +182,10 @@ test('lobby and studio chrome hold a 44px target on narrow phones, and the studi
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
       .toBe(true)
     const chrome = page.locator('.lobby-nav .quick-btn, .lobby-head .circle-button, #lobby-edit, #lobby-tools button')
-    for (const button of await chrome.all()) {
-      const box = (await button.boundingBox())!
+    for (const box of await chrome.evaluateAll(nodes => nodes.map(node => {
+      const { width, height } = node.getBoundingClientRect()
+      return { width, height }
+    }))) {
       expect(box.width).toBeGreaterThanOrEqual(44)
       expect(box.height).toBeGreaterThanOrEqual(44)
     }
@@ -189,8 +195,10 @@ test('lobby and studio chrome hold a 44px target on narrow phones, and the studi
   await page.locator('#lobby-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
 
-  for (const button of await page.locator('.studio-hud button').all()) {
-    const box = (await button.boundingBox())!
+  for (const box of await page.locator('.studio-hud button').evaluateAll(nodes => nodes.map(node => {
+    const { width, height } = node.getBoundingClientRect()
+    return { width, height }
+  }))) {
     expect(box.width).toBeGreaterThanOrEqual(44)
     expect(box.height).toBeGreaterThanOrEqual(44)
   }
@@ -227,7 +235,11 @@ test('lobby and studio chrome hold a 44px target on narrow phones, and the studi
   expect(parseFloat(overflow.pad)).toBeGreaterThanOrEqual(8)
 })
 
-test('accent chips clear WCAG AA on every skin, and the discard prompt is a real modal', async ({ page }) => {
+staticTest('accent chips clear WCAG AA on every skin and keep readable type', async ({ page }) => {
+  expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
+  // This CSS-only check does not need repeated GPU/model boots. The real
+  // editor, model and discard interaction are checked independently below.
+  await page.route('**/seed-san.vrm', route => route.abort())
   const contrast = (a: string, b: string) => {
     const rgb = (c: string) => c.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number)
     const lum = (c: string) =>
@@ -266,6 +278,11 @@ test('accent chips clear WCAG AA on every skin, and the discard prompt is a real
       .filter(px => px > 0 && px < 11).length,
   )
   expect(tiny).toBe(0)
+})
+
+staticTest('the discard prompt is a real modal over the fully loaded character editor', async ({ page }) => {
+  expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
+  await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
 
   // Gestures lie across the stage instead of stacking down one edge.
   const stage = (await page.locator('#lobby-stage').boundingBox())!

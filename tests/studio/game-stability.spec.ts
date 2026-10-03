@@ -90,9 +90,14 @@ for (const [width, height] of [
 test('classic scrollbar width and wide system digits retain targets and complete counts', async ({ page }, info) => {
   await page.setViewportSize({ width: 320, height: 568 })
   await start(page)
-  // macOS often uses overlay scrollbars. Reserve an additional full classic
-  // gutter here so the same width failure is covered on every local platform.
-  await page.addStyleTag({ content: '.game .stage { padding-right: 17px; } #goal-remaining { font-family: monospace; }' })
+  // Reserve a total 17px classic gutter, including any native gutter already
+  // present. Adding another 17px on Linux double-counts its real scrollbar.
+  await page.evaluate(() => {
+    const stage = document.querySelector<HTMLElement>('.game .stage')!
+    const nativeGutter = stage.offsetWidth - stage.clientWidth
+    stage.style.paddingRight = `${Math.max(0, 17 - nativeGutter)}px`
+  })
+  await page.addStyleTag({ content: '#goal-remaining { font-family: monospace; }' })
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
   expect(await page.evaluate(() => window.chroma.renderer.cellSize)).toBeGreaterThanOrEqual(44)
   await page.setViewportSize({ width: 568, height: 320 })

@@ -3,6 +3,10 @@ import type { Page } from '@playwright/test'
 import { enterLobby } from './boot.ts'
 import { portraitFrame } from '../../src/avatar/portrait-frame.ts'
 
+// Saved pixels, framing and recovery are static assertions. Animation tests
+// keep the original fixture and still exercise normal-motion gestures.
+const staticTest = test.extend({ reducedMotion: 'reduce' as const })
+
 async function openCreator(page: Page) {
   await page.locator('#profile-face').click()
   await page.locator('#profile-edit').click()
@@ -60,9 +64,10 @@ test.beforeEach(async ({ page }) => {
   await enterLobby(page)
 })
 
-test('a saved draft reaches the profile and 3D lobby and survives reload', async ({
+staticTest('a saved draft reaches the profile and 3D lobby and survives reload', async ({
   page,
 }) => {
+  expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
