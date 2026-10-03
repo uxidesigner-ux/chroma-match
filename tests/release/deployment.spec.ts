@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createHash } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 
 test('production wardrobe v7 survives save/reload and offline editor recovery', async ({ page, context }, testInfo) => {
   await context.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
@@ -62,7 +63,7 @@ test('production long hair retains a regenerated portrait and requested still ge
   await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!).frame)).toBe(3)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!).frame)).toBe(4)
   await page.setViewportSize({ width: 430, height: 852 })
   const canvas = page.locator('#lobby-canvas')
   const hash = async () => createHash('sha256').update(await canvas.evaluate(e => (e as HTMLCanvasElement).toDataURL())).digest('hex')
@@ -226,5 +227,55 @@ test('production Paper lobby has no drag frame, preserves keyboard focus and sep
   await page.keyboard.press('Home')
   expect(await canvas.evaluate(node => getComputedStyle(node).outlineStyle)).toBe('solid')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(avatar)
+  expect(errors).toEqual([])
+})
+
+test('bleached starter portrait bypasses the old image cache and remains available offline', async ({ page, context }, testInfo) => {
+  await context.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com/, route => route.abort())
+  const errors: string[] = [], portraitRequests: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/default-portrait.png')) portraitRequests.push(request.url()) })
+  await page.goto('licenses/anime-assets.html')
+  const old = await page.evaluate(async () => {
+    localStorage.setItem('chroma-match:lang', 'en')
+    const base = new URL('../', location.href), raw = new URL('avatars/seed-v1/default-portrait.png', base).href
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1
+    const ctx = canvas.getContext('2d')!; ctx.fillStyle = '#a0a0a0'; ctx.fillRect(0, 0, 1, 1)
+    const bytes = Uint8Array.from(atob(canvas.toDataURL().split(',')[1]!), c => c.charCodeAt(0))
+    const key = `chroma-match:${base.pathname}:v2`
+    await (await caches.open(key)).put(raw, new Response(bytes, { headers: { 'content-type': 'image/png' } }))
+    await navigator.serviceWorker.register(new URL('../sw.js', location.href))
+    await navigator.serviceWorker.ready
+    return { raw, key, bytes: Array.from(bytes) }
+  })
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
+  await page.goto('./')
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
+  await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+  await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
+  expect(portraitRequests.some(url => new URL(url).searchParams.get('v') === '4')).toBe(true)
+  const cache = await page.evaluate(async ({ raw, key }) => {
+    const bucket = await caches.open(key)
+    const previous = await bucket.match(raw), current = await bucket.match(`${raw}?v=4`)
+    return { previous: Array.from(new Uint8Array(await previous!.arrayBuffer())), current: current ? Array.from(new Uint8Array(await current.arrayBuffer())) : null }
+  }, old)
+  expect(cache.previous).toEqual(old.bytes)
+  const expected = await readFile(new URL('../../public/avatars/seed-v1/default-portrait.png', import.meta.url))
+  expect(cache.current).not.toBeNull()
+  expect(createHash('sha256').update(Buffer.from(cache.current!)).digest('hex')).toBe(createHash('sha256').update(expected).digest('hex'))
+  const avatar = await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))
+  await page.reload()
+  await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
+  await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
+  await context.setOffline(true)
+  try {
+    await page.reload()
+    await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
+    await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
+    await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
+    expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(avatar)
+    await page.screenshot({ path: testInfo.outputPath('bleached-starter-offline.png') })
+  } finally { await context.setOffline(false) }
   expect(errors).toEqual([])
 })

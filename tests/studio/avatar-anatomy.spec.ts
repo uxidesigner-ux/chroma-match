@@ -85,7 +85,7 @@ test('bob and long hair save their geometry/texture without changing the appeara
     await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
     expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
     const portrait = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:anime-portrait-v1')!))
-    expect(portrait.frame).toBe(3)
+    expect(portrait.frame).toBe(4)
     await page.locator('#lobby-edit').click()
     await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
     await page.getByRole('button', { name: '동작 멈춤', exact: true }).click()

@@ -1,4 +1,5 @@
 import type { HairStyle } from './anime-spec.ts'
+import { HAIR_WHITE_FLOOR } from './hair-palette.ts'
 
 export interface HairGeometry {
   positions: Float32Array
@@ -64,11 +65,11 @@ export function hairGeometry(style: HairStyle, pack = false): HairGeometry | nul
   return { positions: points, normals: normalsFor(points, faces), uv: Float32Array.from(uv), index: faces }
 }
 
-/** Own neutral strand map; MToon intentionally ignores glTF vertex colours. */
+/** Same bleached-white range as the crown; keep subtle strand detail when tinted. */
 export function hairShading(): { width: number; height: number; rgba: Uint8ClampedArray<ArrayBuffer> } {
   const width = 128, height = 64, rgba = new Uint8ClampedArray(width * height * 4)
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-    const shade = Math.round(152 + Math.cos(x / (width - 1) * Math.PI * 32) * 8 + Math.sin(y / (height - 1) * Math.PI) * 6)
+    const shade = Math.round(HAIR_WHITE_FLOOR + 8 + Math.cos(x / (width - 1) * Math.PI * 32) * 8 + Math.sin(y / (height - 1) * Math.PI) * 7)
     const at = (y * width + x) * 4
     rgba[at] = rgba[at + 1] = rgba[at + 2] = shade
     rgba[at + 3] = 255

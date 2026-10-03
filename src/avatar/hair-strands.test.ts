@@ -55,8 +55,11 @@ test('strand shading is opaque, neutral, bounded and deterministic', () => {
     assert.equal(pixels.rgba[i], pixels.rgba[i + 1])
     assert.equal(pixels.rgba[i], pixels.rgba[i + 2])
     assert.equal(pixels.rgba[i + 3], 255)
-    assert.ok(pixels.rgba[i]! >= 144 && pixels.rgba[i]! <= 166)
+    assert.ok(pixels.rgba[i]! >= 232 && pixels.rgba[i]! <= 255)
   }
+  const shades = pixels.rgba.filter((_, i) => i % 4 === 0)
+  assert.equal(Math.min(...shades), 232)
+  assert.equal(Math.max(...shades), 255)
 })
 
 test('gear clearance moves long hair backward, never widens or changes its cut', () => {

@@ -78,6 +78,10 @@ cloth simulation or a claim of fit on arbitrary models/animations. See
 `docs/wardrobe.md` for acceptance evidence and limits.
 Bob and mid-back long hair use dedicated closed meshes and an original neutral
 strand texture over the licensed crown/fringe, not repeated ponytail ribbons.
+All cuts use a bleached near-white pigment carrier, preserving neutral strand
+detail rather than multiplying bright selections by the source's mid-gray.
+Selected colour codes stay unchanged. Derived portraits regenerate, and the
+bundled starter portrait uses a render-versioned URL to bypass stale image caches.
 The same geometry and texture are written into VRM/GLB exports; B/L appearance
 codes remain stable and derived portrait caches regenerate. These cuts follow
 the head rigidly; strand physics and cloth/hair collision simulation are excluded.
