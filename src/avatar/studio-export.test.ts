@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { DEFAULT_ANIME, gearFromBits } from './anime-spec.ts'
-import { bustAmount } from './body-shape.ts'
+import { bustAmount, CHEST_LOW, CHEST_HIGH } from './body-shape.ts'
 import { exportSeed, readGlb } from './studio-export.ts'
 import { hairGeometry } from './hair-strands.ts'
 
@@ -125,7 +125,8 @@ test('both exports have the rounded seat, while only the female chest carries th
 
   // The chest comes forward, and only the chest.
   const sculpted = positions(female, 'huku_bake')
-  assert.equal(sculpted.length, shipped.length)
+  assert.equal(sculpted.length, baseline.length)
+  assert.ok(sculpted.length > shipped.length, 'the lower chest still uses the coarse source surface')
   let chest = 0
   for (let i = 0; i < shipped.length; i += 3) {
     const moved = Math.hypot(
@@ -136,12 +137,11 @@ test('both exports have the rounded seat, while only the female chest carries th
     if (moved <= 1e-6) continue
     chest++
     /*
-     * The shape's own reach: a centre at 1.155 and a base of 0.105, which
-     * counts for a sixth again more below the centre than above so the
-     * underside runs out into the ribcage. Nothing outside that may move.
+     * The apex stays in the same place; the upper approach is gentle and
+     * the lower return shorter/tighter. Nothing outside its support may move.
      */
     assert.ok(
-      shipped[i + 1]! > 1.155 - 0.105 * 1.6 && shipped[i + 1]! < 1.155 + 0.105,
+      shipped[i + 1]! > CHEST_LOW && shipped[i + 1]! < CHEST_HIGH,
       `a vertex at y=${shipped[i + 1]} moved, which is outside the bust`,
     )
     assert.ok(shipped[i + 2]! > 0, 'a vertex behind the spine moved')

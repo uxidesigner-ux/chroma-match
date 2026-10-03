@@ -121,8 +121,8 @@ export function applyFigure(spec: AnimeSpec, skeleton: Skeleton): void {
  * in these coordinates, because a skinned mesh's vertices are stored in bind
  * space and this model stands in its bind pose at the origin.
  */
-export const CHEST_LOW = 1.06
-export const CHEST_HIGH = 1.29
+export const CHEST_LOW = 1.05
+export const CHEST_HIGH = 1.28
 /*
  * The centre of one breast, and the point it domes away from.
  *
@@ -135,16 +135,16 @@ const BUST_Y = 1.155
 const BUST_X = 0.062
 const BUST_ANCHOR_Z = -0.11
 /*
- * How wide each side reaches, and how much further it reaches downward.
+ * How wide each side reaches, with independent upper/lower curvature.
  *
  * The width matters more than it looks: a dome as tall as it is wide comes to a
  * point, so the base is kept well over half again the height the amount can
- * add. Below the centre the distance counts for less, which carries the shape
- * on down and lets it run out into the ribcage rather than stopping on a rim —
- * a breast is not symmetric about its own middle.
+ * add. Above the apex, a longer approach makes the curve gentle; below it,
+ * a shorter rounded return makes the lower pole firmer without a sharp rim.
  */
 const BUST_REACH = 0.105
-const BUST_UNDER = 1.6
+const BUST_UNDER = 1
+const BUST_OVER = .85
 /** The body, the clothing on it, and the badge printed on that clothing. */
 export const SCULPTED = new Set(['body_bake', 'body_nm', 'huku_bake', 'anim_logo'])
 /*
@@ -175,23 +175,19 @@ export function bustAmount(spec: AnimeSpec): number {
  */
 export function bustField(amount: number, x: number, y: number, z: number, out: number[]): number {
   out[0] = out[1] = out[2] = 0
-  if (amount <= 0 || z <= 0) return 0
-  // Below the centre the distance counts for less, so the shape carries on down
-  // and runs out into the ribcage instead of ending on a rim.
+  if (amount <= 0 || z <= 0 || y <= BUST_Y - BUST_REACH * BUST_UNDER || y >= BUST_Y + BUST_REACH / BUST_OVER) return 0
+  // Longer/gentler above the apex, shorter/tighter below it. Both sides
+  // arrive at the torso with zero slope instead of a hard crease.
   const dy = y - BUST_Y
-  const rise = dy < 0 ? dy / BUST_UNDER : dy
+  const rise = dy < 0 ? dy / BUST_UNDER : dy * BUST_OVER
   let strongest = 0
   for (const side of [-BUST_X, BUST_X]) {
     const across = Math.hypot(x - side, rise)
     if (across >= BUST_REACH) continue
-    const t = 1 - across / BUST_REACH
-    /*
-     * Smoothstep squared. Plain smoothstep is already flat at the peak, but it
-     * sheds height too quickly on the way out and leaves a shape that reads as
-     * a cone; squaring it holds the top rounder and spends the falloff over the
-     * outer half, which is where a breast actually curves.
-     */
-    const smooth = t * t * (3 - 2 * t)
+    // A rounded cap with zero slope at the apex AND its outer boundary.
+    // Keep the lower half full instead of stretching a narrow peak into a
+    // long flat tail. Its existing reach still blends into the ribcage.
+    const cap = 1 - (across / BUST_REACH) ** 2
     /*
      * And held back over the breastbone, which does not come forward on
      * anybody. Without this the neckline's own slit is pulled open from inside
@@ -199,7 +195,7 @@ export function bustField(amount: number, x: number, y: number, z: number, out: 
      */
     const inner = Math.min(1, Math.abs(x) / BUST_X)
     const sternum = 0.3 + 0.7 * inner * inner * (3 - 2 * inner)
-    const fall = smooth * smooth * (3 - 2 * smooth) * sternum
+    const fall = cap * cap * sternum
     /*
      * The nearer side wins rather than the two being added. Summed, the pair
      * merge into one shelf across the sternum; taken one at a time they stay
@@ -208,21 +204,23 @@ export function bustField(amount: number, x: number, y: number, z: number, out: 
     if (fall <= strongest) continue
     strongest = fall
     let ox = x - side
-    let oy = dy
+    // Most volume projects forward. A small downward component rounds the
+    // underside without pulling the shirt's rows into a drooping point.
+    let oy = dy * .35
     let oz = z - BUST_ANCHOR_Z
     const reach = Math.hypot(ox, oy, oz) || 1
     ox /= reach
     oy /= reach
     oz /= reach
-    out[0] = ox * amount * fall
+    // Welded centre vertices must stay centred. Choosing the nearer lobe is
+    // symmetric in depth, but its sideways direction flips at x=0. Fade that
+    // component to zero over the breastbone instead of opening a centre seam.
+    out[0] = ox * amount * fall * inner * inner * (3 - 2 * inner)
     out[1] = oy * amount * fall
     out[2] = oz * amount * fall
   }
   return strongest
 }
-
-/** How far a normal leans past the turn the surface itself makes. */
-const BUST_LEAN = 1.4
 
 /**
  * Sculpts one mesh's vertices, from the model's own vertices rather than from
@@ -240,6 +238,7 @@ export function sculptChest(
 ): void {
   const count = rest.position.length / 3
   const move = [0, 0, 0]
+  const before = [0, 0, 0], after = [0, 0, 0], jacobian = new Array<number>(9)
   if (rigid) {
     const centre = [0, 0, 0]
     for (let i = 0; i < count; i++)
@@ -263,18 +262,20 @@ export function sculptChest(
       into.setNormal(i, rest.normal[o]!, rest.normal[o + 1]!, rest.normal[o + 2]!)
       continue
     }
-    /*
-     * Shading has to follow the new surface or the bust reads flat. The normal
-     * leans the way the vertex moved; it leans further than the surface itself
-     * turns because this model is shaded in toon bands, and a lean that does
-     * not carry a normal across a band edge produces a shape that is there in
-     * the silhouette and invisible from the front.
-     */
-    const length = Math.hypot(move[0]!, move[1]!, move[2]!) || 1
-    const lean = fall * BUST_LEAN
-    let nx = rest.normal[o]! + (move[0]! / length) * lean
-    let ny = rest.normal[o + 1]! + (move[1]! / length) * lean
-    let nz = rest.normal[o + 2]! + (move[2]! / length) * lean
+    // Transport the source normal by the inverse-transpose deformation
+    // Jacobian, not the displacement direction. Below the rounded cap the
+    // surface turns down into the ribs; its toon shadow must turn with it.
+    const epsilon = .0001
+    for (let axis = 0; axis < 3; axis++) {
+      bustField(amount, px - (axis === 0 ? epsilon : 0), py - (axis === 1 ? epsilon : 0), pz - (axis === 2 ? epsilon : 0), before)
+      bustField(amount, px + (axis === 0 ? epsilon : 0), py + (axis === 1 ? epsilon : 0), pz + (axis === 2 ? epsilon : 0), after)
+      for (let component = 0; component < 3; component++) jacobian[axis * 3 + component] = (after[component]! - before[component]!) / (2 * epsilon) + (axis === component ? 1 : 0)
+    }
+    const [a, b, c, d, e, f, g, h, j] = jacobian as [number, number, number, number, number, number, number, number, number]
+    const x = rest.normal[o]!, y = rest.normal[o + 1]!, z = rest.normal[o + 2]!
+    let nx = (e * j - f * h) * x + (h * c - j * b) * y + (b * f - c * e) * z
+    let ny = (f * g - d * j) * x + (j * a - g * c) * y + (c * d - a * f) * z
+    let nz = (d * h - e * g) * x + (g * b - h * a) * y + (a * e - b * d) * z
     const unit = Math.hypot(nx, ny, nz) || 1
     nx /= unit
     ny /= unit

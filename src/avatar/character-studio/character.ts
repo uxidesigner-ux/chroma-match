@@ -20,6 +20,7 @@ import { exportSeed } from '../studio-export.ts'
 import { BlinkManager } from './blink.ts'
 import { armPose, GESTURE_SECONDS, gestureWeight } from './gesture-pose.ts'
 import { WardrobeRig } from '../wardrobe-rig.ts'
+import { refineChestSurface } from '../chest-surface.ts'
 
 type Toon = Material &
   Partial<Pick<MToonMaterial, 'color' | 'shadeColorFactor' | 'map' | 'shadeMultiplyTexture'>>
@@ -133,6 +134,21 @@ export class StudioCharacter {
        */
       const mats = (Array.isArray(node.material) ? node.material : [node.material]) as Toon[]
       if (!mats.some((mat) => SCULPTED.has(mat.name))) return
+      // Only the non-morph torso/garment. Keep face, fingers, rear, rig and
+      // author UVs intact; subdivide in immutable bind space before shaping.
+      if (mats.some(mat => ['body_bake', 'huku_bake'].includes(mat.name)) && !seen.has(node.geometry)) {
+        const attrs = node.geometry.attributes, index = node.geometry.index
+        if (index && attrs.position && attrs.normal && attrs.uv && attrs.skinIndex && attrs.skinWeight) {
+          const shape = refineChestSurface({ positions: Float32Array.from(attrs.position.array), normals: Float32Array.from(attrs.normal.array), uv: Float32Array.from(attrs.uv.array), joints: Uint16Array.from(attrs.skinIndex.array), weights: Float32Array.from(attrs.skinWeight.array), index: Uint32Array.from(index.array) })
+          for (const [name, values, width] of [['position', shape.positions, 3], ['normal', shape.normals, 3], ['uv', shape.uv, 2], ['skinIndex', shape.joints, 4], ['skinWeight', shape.weights, 4]] as const) node.geometry.setAttribute(name, new BufferAttribute(values, width))
+          node.geometry.setIndex(new BufferAttribute(shape.index, 1))
+          // MToon draws base and outline through separate full-primitive
+          // groups. Their old index counts would silently cut off the newly
+          // subdivided torso even though the exported attributes were right.
+          for (const group of node.geometry.groups) if (group.start === 0 && group.count === index.count) group.count = shape.index.length
+          if (node.geometry.drawRange.start === 0 && node.geometry.drawRange.count === index.count) node.geometry.drawRange.count = shape.index.length
+        }
+      }
       const { position, normal } = node.geometry.attributes
       if (!position || !normal || seen.has(node.geometry)) return
       for (let i = 0; i < position.count; i++) {
