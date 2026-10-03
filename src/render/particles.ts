@@ -45,15 +45,16 @@ const GRAVITY = 900
  */
 const DRAG = 2.6
 
-export interface EffectBounds { width: number; height: number }
+export interface EffectBounds { left?: number; top?: number; width: number; height: number }
 /** Keep the entire text + halo visible, including its upward drift. */
 export function fitFloatingText(x: number, y: number, width: number, height: number, scale: number, bounds: EffectBounds): { x: number; y: number; scale: number } {
   const inset = 4
+  const left = bounds.left ?? 0, top = bounds.top ?? 0
   const fitted = Math.max(0, Math.min(scale, (bounds.width - inset * 2) / Math.max(1, width), (bounds.height - inset * 2) / Math.max(1, height)))
   const halfW = width * fitted / 2, halfH = height * fitted / 2
   return {
-    x: Math.max(inset + halfW, Math.min(bounds.width - inset - halfW, x)),
-    y: Math.max(inset + halfH, Math.min(bounds.height - inset - halfH, y)),
+    x: Math.max(left + inset + halfW, Math.min(left + bounds.width - inset - halfW, x)),
+    y: Math.max(top + inset + halfH, Math.min(top + bounds.height - inset - halfH, y)),
     scale: fitted,
   }
 }
@@ -189,8 +190,9 @@ export class Effects {
       ctx.textBaseline = 'middle'
       const metrics = bounds ? ctx.measureText(t.text) : null
       const placement = bounds && metrics
-        ? fitFloatingText(t.x, t.y, metrics.width + 6,
-          Math.max(22, (metrics.actualBoundingBoxAscent || 11) + (metrics.actualBoundingBoxDescent || 11)) + 6,
+        ? fitFloatingText(t.x, t.y, Math.max(metrics.width,
+          2 * Math.max(metrics.actualBoundingBoxLeft || 0, metrics.actualBoundingBoxRight || 0)) + 6,
+          2 * Math.max(11, metrics.actualBoundingBoxAscent || 0, metrics.actualBoundingBoxDescent || 0) + 6,
           t.scale * pop, bounds)
         : { x: t.x, y: t.y, scale: t.scale * pop }
       ctx.translate(placement.x, placement.y)

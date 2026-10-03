@@ -24,7 +24,7 @@ export function attachInput(
    * arming is a mode, and a tap belongs to one handler or the other.
    */
   onAim: (cell: number) => boolean = () => false,
-): void {
+): () => void {
   let startCell: number | null = null
   let startX = 0
   let startY = 0
@@ -32,6 +32,7 @@ export function attachInput(
   let activePointer: number | null = null
   let pointerRect: DOMRect | null = null
   let keyboardCell = 0
+  const interactive = () => !document.hidden && !canvas.closest('[hidden], [inert]')
   const status = document.getElementById('board-status')
   const revealCell = () => {
     const stage = canvas.closest<HTMLElement>('.stage')
@@ -54,18 +55,21 @@ export function attachInput(
     }) + (game.selected === keyboardCell ? ` ${t('boardSelected')}` : '')
   }
   canvas.addEventListener('focus', () => {
+    // Pointer focus must not reveal a clipped row: that moves the board under
+    // the finger and invalidates the gesture's starting coordinates.
+    if (activePointer !== null || !interactive()) return
     game.press(keyboardCell)
     revealCell()
     announce()
   })
-  canvas.addEventListener('blur', () => game.cancelPress())
+  canvas.addEventListener('blur', () => cancel())
   canvas.addEventListener('keydown', event => {
     const step: Record<string, [number, number]> = {
       ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
     }
     if (!(event.key in step) && !['Enter', ' ', 'Escape'].includes(event.key)) return
     event.preventDefault()
-    if (game.busy || event.repeat && (event.key === 'Enter' || event.key === ' ')) return
+    if (!interactive() || game.busy || event.repeat && (event.key === 'Enter' || event.key === ' ')) return
     if (event.key === 'Escape') {
       game.selected = null
       game.cancelPress()
@@ -96,13 +100,15 @@ export function attachInput(
   }
 
   canvas.addEventListener('pointerdown', (e) => {
-    if (!e.isPrimary || game.busy || (e.pointerType === 'mouse' && e.button !== 0)) return
+    if (!interactive() || !e.isPrimary || game.busy || (e.pointerType === 'mouse' && e.button !== 0)) return
+    e.preventDefault()
     activePointer = e.pointerId
     pointerRect = canvas.getBoundingClientRect()
     onFirstInput()
     const { x, y } = localPoint(e)
     startCell = renderer.cellAtPoint(x, y)
     if (startCell !== null) keyboardCell = startCell
+    canvas.focus({ preventScroll: true })
     startX = x
     startY = y
     dragged = false
@@ -111,12 +117,14 @@ export function attachInput(
       // and waiting for the release would make the most decisive action in the
       // game the slowest one.
       startCell = null
+      announce()
       return
     }
     if (startCell !== null) {
       canvas.setPointerCapture(e.pointerId)
       // Light the gem up on contact rather than waiting for the release.
       game.press(startCell)
+      announce()
     }
   })
 
@@ -154,8 +162,9 @@ export function attachInput(
     if (startCell !== null && !dragged) {
       const { x, y } = localPoint(e)
       const cell = renderer.cellAtPoint(x, y)
-      if (cell !== null) game.tap(cell)
+      if (cell !== null) { keyboardCell = cell; game.tap(cell) }
     }
+    announce()
     startCell = null
     dragged = false
     activePointer = null
@@ -180,10 +189,18 @@ export function attachInput(
   new ResizeObserver(cancel).observe(canvas)
   window.addEventListener('resize', cancel)
   window.visualViewport?.addEventListener('resize', cancel)
+  window.visualViewport?.addEventListener('scroll', cancel)
   window.addEventListener('blur', cancel)
   window.addEventListener('pagehide', cancel)
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancel() })
 
   // Stop the browser from treating a drag on the board as a page scroll.
   canvas.style.touchAction = 'none'
+  // A fresh/restored run starts at the first row. Resize alone never resets
+  // the player's chosen cell or the deterministic game state.
+  return () => {
+    cancel()
+    keyboardCell = 0
+    if (status) status.textContent = ''
+  }
 }

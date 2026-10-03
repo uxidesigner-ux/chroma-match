@@ -69,3 +69,14 @@ test('an unusually wide score is fitted, rather than truncated or sent outside t
   assert.equal(placed.x, 140)
   assert.ok(placed.y >= 4)
 })
+
+test('scores respect a scrolled visible slice, not the entire backing canvas', () => {
+  for (const [x, y] of [[0, 0], [280, 420], [140, 85]]) {
+    const placed = fitFloatingText(x!, y!, 180, 28, 1.35, { left: 10, top: 80, width: 260, height: 150 })
+    assert.ok(placed.x - 90 * placed.scale >= 14 - 1e-9)
+    assert.ok(placed.x + 90 * placed.scale <= 266 + 1e-9)
+    assert.ok(placed.y - 14 * placed.scale >= 84 - 1e-9)
+    assert.ok(placed.y + 14 * placed.scale <= 226 + 1e-9)
+  }
+  assert.equal(fitFloatingText(0, 0, 180, 28, 1, { width: 0, height: 0 }).scale, 0)
+})

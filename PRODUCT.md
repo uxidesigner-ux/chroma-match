@@ -44,8 +44,12 @@ of the player's task. The product has one anime character editor and one profile
 - Gameplay HUD has three equal regions: goal, character reaction, remaining moves.
 - Gameplay feedback owns a fixed lane outside the board scroller. Item guidance
   reserves its slot, and scroll controls share the footer without taking board
-  height. Hits never translate the grid; floating scores stay inside the canvas.
-  Pause freezes a cascade; ending finishes its accepted action before banking.
+  height. Hits never translate the grid; floating scores stay inside the visible
+  board slice, including scroll and text-halo bounds. Pointer focus never moves
+  that slice under a finger; keyboard arrows still reveal the chosen cell.
+  Celebrations outrank contextual hints and animated decoration stays in its lane.
+  Pause/background freeze a cascade; ending finishes its accepted action before
+  banking. Fresh/restored runs reset view/input focus, not saved puzzle rules.
 - New runs support 2×2 squares as bomb matches, alongside lines, L/T/+ and power fusion.
 - Preserve previous rules when resuming/replaying saved games.
 - Keep stable, versioned choices independent of rendering implementation.

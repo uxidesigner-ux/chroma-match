@@ -48,6 +48,7 @@ for (const [width, height] of [
         window.chroma.combo.report(combo)
         labels.push({ kind: `chain${combo}`, fits: fits(rect('#combo'), rect('.game-feedback')), wordFits: fits(rect('#combo-word'), rect('#combo')) })
       }
+      window.chroma.combo.hide()
       window.chroma.combo.fusionHint(true)
       labels.push({ kind: 'hint', fits: fits(rect('#combo'), rect('.game-feedback')), wordFits: fits(rect('#combo-word'), rect('#combo')) })
       const tools = Array.from(document.querySelectorAll<HTMLElement>('#items button')).filter(e => e.getClientRects().length).map(e => {

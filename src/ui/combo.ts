@@ -67,7 +67,9 @@ export class ComboMeter {
       if (this.hinting) this.hide()
       return
     }
-    if (this.hinting) return
+    // A contextual hint is lower priority than the result of an actual move.
+    // The frame loop can offer it again once the announcement has expired.
+    if (this.hinting || this.remaining > 0) return
     this.hinting = true
     this.remaining = 0
     this.shown = 0

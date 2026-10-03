@@ -20,7 +20,7 @@
   overflow: visible;
 }
 .game-playfield { display: flex; flex-direction: column; gap: 0; flex: 1 1 0; min-width: 0; min-height: 0; }
-.game-feedback { display: grid; place-items: center; flex: 0 0 max(44px, calc(var(--text-xs) * 2.5 + 12px)); min-width: 0; pointer-events: none; }
+.game-feedback { --feedback-height: max(48px, calc(var(--text-xs) * 2.5 + 16px)); display: grid; place-items: center; flex: 0 0 var(--feedback-height); min-width: 0; pointer-events: none; }
 .game .combo {
   position: relative;
   bottom: auto;
@@ -36,6 +36,10 @@
 .game .combo-x { flex: none; }
 .game .combo-word { line-height: 1.25; letter-spacing: .02em; text-transform: none; overflow-wrap: anywhere; opacity: 1; }
 .game .combo.is-bump { animation-name: play-feedback-pop; }
+/* Keep the decorative wave within the badge, not across the progress bar or
+   the board scroller. Typography and portrait motion keep their own space. */
+.game .combo::after { inset: 2px; animation-name: play-feedback-wave; }
+@keyframes play-feedback-wave { from { transform: scale(.9); opacity: .8; } to { transform: scale(1); opacity: 0; } }
 @keyframes play-feedback-pop { from { transform: scale(.92); opacity: .4; } to { transform: scale(1); opacity: 1; } }
 .game .stage {
   /* Nine 44px gems + plate/aspect padding + chain space. Short windows scroll rather than
@@ -122,6 +126,7 @@ html.game-open, html.game-open body { overflow: hidden; overscroll-behavior: non
 /* A narrow split-window cannot fit a side rail. Keep the three readouts and
    usable gems; only secondary level chrome becomes nonvisual in this case. */
 [data-play-compact="true"] .game { gap: 4px; }
+[data-play-compact="true"] .game .game-hud { padding-block: 2px; }
 [data-play-compact="true"] .game .hud-face { --hud-face-size: 48px; }
 [data-play-compact="true"] .game .hud-label { min-height: 1.3em; font-size: var(--text-xs); line-height: 1.3; }
 [data-play-compact="true"] .game .goal-token { height: 40px; width: 60px; }
@@ -134,6 +139,11 @@ html.game-open, html.game-open body { overflow: hidden; overscroll-behavior: non
 [data-play-compact="true"] .game .goal-row { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0; }
 [data-play-compact="true"] .game .goal-unit,
 [data-play-compact="true"] .game .hud-reaction { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0; }
+/* In an exceptionally short split window, do not collapse the playable slice
+   to a few pixels. Only this fallback scrolls game chrome; the page stays locked
+   and the board retains its separate, explicit scroll controls. */
+[data-play-tiny="true"] .game { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; overflow-anchor: none; }
+[data-play-tiny="true"] .game-playfield { flex-shrink: 0; min-height: calc(max(48px, var(--text-xs) * 2.5 + 16px) + 84px); }
 @media (prefers-reduced-motion: reduce) { .game .combo.is-bump { animation: none; } }
 
 @media (max-width: 360px) {

@@ -491,7 +491,7 @@ const hooks: Partial<GameHooks> = {
 
 const game = new Game(hooks, seedFromUrl() ?? randomSeed())
 
-attachInput(
+const resetInput = attachInput(
   canvas,
   game,
   renderer,
@@ -512,6 +512,12 @@ attachInput(
 
 // ---- navigation -----------------------------------------------------------
 
+function resetPlayView(): void {
+  resetInput()
+  document.querySelector<HTMLElement>('.game .stage')!.scrollTop = 0
+  document.getElementById('screen-game')!.scrollTop = 0
+}
+
 function startRun(boosters: readonly Item[] = []): void {
   endingRun = false
   clearSuspended()
@@ -521,6 +527,9 @@ function startRun(boosters: readonly Item[] = []): void {
   tray.arm(null)
   overlay.hide()
   game.restart(seedFromUrl() ?? randomSeed())
+  resetPlayView()
+  // Play again stays on the same screen, so its screen-change hook won't run.
+  if (screens.active === 'game') hud.reset()
 
   // Applied before anything else touches the board, because the record only
   // accepts a booster at its head — and taken out of the stash here, so a run
@@ -596,6 +605,7 @@ function continueRun(): boolean {
   }
 
   clearSuspended()
+  resetPlayView()
   screens.show('game')
   renderer.resize()
   return true
@@ -845,7 +855,7 @@ function frame(now: number): void {
   const dt = Math.min(0.05, (now - previous) / 1000)
   previous = now
 
-  if (screens.active === 'game' && !pause.visible) {
+  if (screens.active === 'game' && !pause.visible && !document.hidden) {
     time += dt
     game.update(dt)
     if (endingRun && game.phaseKind === 'idle') {

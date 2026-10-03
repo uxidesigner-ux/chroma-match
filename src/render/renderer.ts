@@ -1,7 +1,7 @@
 import type { Game } from '../game/game.ts'
 import { at } from '../game/types.ts'
 import type { Gem, Geom } from '../game/types.ts'
-import type { Effects } from './particles.ts'
+import type { Effects, EffectBounds } from './particles.ts'
 import { gemPath } from './shapes.ts'
 import { activeSkin } from './skins/index.ts'
 import { drawStrikes } from './strikes.ts'
@@ -175,7 +175,22 @@ export class Renderer {
       ctx.restore()
     }
 
-    effects.draw(ctx, { width: this.width, height: this.height })
+    // Read clipping geometry only while score text exists. Scroll changes the
+    // visible slice without resizing the canvas, so cached canvas bounds alone
+    // would still clip labels at the scroller's top/bottom.
+    effects.draw(ctx, effects.counts?.texts ? this.visibleEffectBounds() : { width: this.width, height: this.height })
+  }
+
+  private visibleEffectBounds(): EffectBounds {
+    const board = this.canvas.getBoundingClientRect()
+    const stage = this.canvas.closest('.stage')?.getBoundingClientRect() ?? board
+    const screen = this.canvas.closest('.game')?.getBoundingClientRect() ?? stage
+    if (!board.width || !board.height) return { width: 0, height: 0 }
+    const left = Math.max(board.left, stage.left, screen.left, 0), top = Math.max(board.top, stage.top, screen.top, 0)
+    const right = Math.min(board.right, stage.right, screen.right, innerWidth), bottom = Math.min(board.bottom, stage.bottom, screen.bottom, innerHeight)
+    const sx = this.width / board.width, sy = this.height / board.height
+    return { left: (left - board.left) * sx, top: (top - board.top) * sy,
+      width: Math.max(0, right - left) * sx, height: Math.max(0, bottom - top) * sy }
   }
 
   private boardClip(): void {
