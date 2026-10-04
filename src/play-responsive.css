@@ -8,19 +8,26 @@
   height: var(--play-height, 100dvh);
   max-width: none;
   margin: 0;
-  padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+  padding: max(12px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
 }
 .game:not([hidden]) {
   width: 100%;
   max-width: 1040px;
   margin-inline: auto;
-  padding: 4px;
+  padding: 0;
   display: flex;
-  gap: 8px;
+  gap: 4px;
   overflow: visible;
 }
 .game-playfield { display: flex; flex-direction: column; gap: 0; flex: 1 1 0; min-width: 0; min-height: 0; }
 .game-feedback { --feedback-height: max(48px, calc(var(--text-xs) * 2.5 + 16px)); display: grid; place-items: center; flex: 0 0 var(--feedback-height); min-width: 0; pointer-events: none; }
+.game-feedback > * { grid-area: 1 / 1; }
+/* Guidance and celebration share space, never cover gems or resize targets.
+   Arming outranks an idle hint; earned results outrank guidance until they end. */
+.game-feedback .items-hint { margin: 0; max-width: calc(100% - 12px); color: var(--text); font-size: var(--text-xs); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.game-feedback .items-hint[hidden] { display: none; }
+.game-feedback:has(.items-hint:not([hidden])) .combo[data-feedback="hint"] { display: none; }
+.game-feedback:has(.combo:not([hidden]):not([data-feedback="hint"])) .items-hint { visibility: hidden; }
 .game .combo {
   position: relative;
   bottom: auto;
@@ -52,11 +59,11 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
   grid-area: auto;
-  padding: 4px;
+  padding: 0;
   overflow-anchor: none;
   scrollbar-gutter: stable;
 }
-.game .game-hud, .game > .goal, .game > .items, .game > .items-hint {
+.game .game-hud, .game > .goal, .game > .items {
   width: 100%;
   max-width: 680px;
   margin-inline: auto;
@@ -70,7 +77,12 @@
 /* The scroller clips outside outlines; keep all four focus edges visible
    without adding padding that would force an otherwise fitting board to scroll. */
 .game #board:focus-visible { outline-offset: -3px; }
-.game .hud-label { min-height: 2.7em; line-height: 1.35; display: grid; align-items: center; overflow-wrap: anywhere; }
+.game .hud-label { min-height: 1.35em; line-height: 1.35; display: grid; align-items: center; overflow-wrap: anywhere; }
+.game .goal-token { width: 76px; height: 56px; }
+.game #goal-gem { width: 56px; height: 56px; }
+.game .goal { display: flex; align-items: center; gap: 8px; }
+.game .goal-row { flex: none; margin: 0; line-height: 1.1; }
+.game .bar { flex: 1; min-width: 0; }
 .game .goal-token { max-width: 100%; container-type: inline-size; }
 .game #goal-remaining {
   /* Full localized counts, not an ellipsis or a badge covering the portrait. */
@@ -81,14 +93,12 @@
 }
 .game .hud-face {
   /* Reserve the round ring's 5px outset and maximum 1.1× reaction scale. */
-  width: min(var(--hud-face-size, 112px), calc((100% - 12px) / 1.1));
+  width: min(var(--hud-face-size, var(--play-face-size, 80px)), calc((100% - 12px) / 1.1));
 }
-.game .hud-reaction { line-height: 1.3; overflow-wrap: anywhere; white-space: normal; }
-.game .goal-unit { min-height: 1.3em; line-height: 1.3; }
-/* This slot is permanent even when the HTML hidden state removes its message.
-   Item selection/consumption must not resize the board under the next finger. */
-.game .items-hint { display: block; flex: none; height: max(32px, calc(var(--text-xs) * 2.6)); line-height: 1.3; overflow-wrap: anywhere; }
-.game .items-hint[hidden] { display: block; visibility: hidden; }
+.game .hud-reaction { margin-top: 4px; height: max(20px, calc(var(--text-sm) * 1.3)); line-height: 1.3; overflow-wrap: anywhere; white-space: normal; }
+/* Goal labels already name points / gems / powers, and the localized remaining
+   count retains its full accessible unit. Do not repeat the same unit below. */
+.game .goal-unit { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0; }
 html.game-open, html.game-open body { overflow: hidden; overscroll-behavior: none; }
 .app:not(.ignore-rotate) .game .stage { display: block; }
 .app:not(.ignore-rotate) .game .rotate, .game .rotate { display: none; }
@@ -98,7 +108,7 @@ html.game-open, html.game-open body { overflow: hidden; overscroll-behavior: non
 [data-play-layout="wide"] .game:not([hidden]) {
   display: grid;
   grid-template-columns: minmax(216px, 30%) minmax(280px, 1fr);
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   column-gap: 12px;
   min-height: 0;
 }
@@ -106,22 +116,22 @@ html.game-open, html.game-open body { overflow: hidden; overscroll-behavior: non
 [data-play-layout="wide"] .game > .goal { grid-area: 2 / 1; }
 [data-play-layout="wide"] .game-playfield { grid-area: 1 / 2 / 4 / 3; }
 [data-play-layout="wide"] .game > .items { grid-area: 4 / 1 / 5 / 3; max-width: none; }
-[data-play-layout="wide"] .game > .items-hint { grid-area: 5 / 1 / 6 / 3; }
 .board-scroll-hint { display: none; margin: 0; color: var(--muted); font-size: var(--text-sm); text-align: center; align-items: center; justify-content: center; gap: 4px; flex: none; }
 .board-scroll-hint p { margin: 0; }
 [data-board-scroll="true"] .board-scroll-hint { display: flex; }
 .board-scroll-hint button:disabled { opacity: .4; cursor: default; }
-[data-play-short="true"] .game { gap: 6px; }
+[data-play-short="true"] .game { gap: 4px; }
+[data-play-short="true"] .game .game-hud { padding-block: 2px; }
 [data-play-short="true"] .hud-face { --hud-face-size: 64px; }
-[data-play-short="true"] .hud-reaction { margin-top: 5px; height: 18px; }
-[data-play-short="true"] .goal-token { width: 66px; height: 50px; }
-[data-play-short="true"] #goal-gem { width: 50px; height: 50px; }
+[data-play-short="true"] .game .hud-reaction { font-size: var(--text-xs); height: max(18px, calc(var(--text-xs) * 1.3)); }
+[data-play-short="true"] .game .goal-token { width: 66px; height: 50px; }
+[data-play-short="true"] .game #goal-gem { width: 50px; height: 50px; }
 [data-play-short="true"] #goal-remaining { --goal-count-size: 22px; }
 [data-play-short="true"] .hud-moves .stat-value { font-size: 42px; }
-[data-play-short="true"] .game .item, [data-play-short="true"] .game-exit { width: 48px; height: 48px; }
+[data-play-short="true"] .game .item, [data-play-short="true"] .game .game-exit { width: 44px; height: 44px; }
 .goal-unit { display: block; color: var(--muted); font-size: var(--text-sm); margin-top: 4px; }
-@media (min-width: 760px) { .game .items-hint { height: max(24px, calc(var(--text-xs) * 1.3)); } }
-.game .items { gap: 4px; }
+.game .items { gap: 8px; justify-content: flex-start; padding: 0; }
+.game .item, .game .game-exit { width: 48px; height: 48px; }
 
 /* A narrow split-window cannot fit a side rail. Keep the three readouts and
    usable gems; only secondary level chrome becomes nonvisual in this case. */

@@ -11,7 +11,9 @@ async function start(page: Page, width = 320, height = 568) {
 }
 
 test('touching a partially visible row never focus-scrolls or discards the tap', async ({ page }) => {
-  await start(page)
+  // Keep a genuinely clipped board: the optimized 568px shell now reveals
+  // row nine at scrollTop 80, so keyboard scrolling is not needed there.
+  await start(page, 320, 500)
   await page.evaluate(() => {
     document.querySelector('.game .stage')!.scrollTop = 80
     document.getElementById('pause')!.focus()

@@ -42,8 +42,15 @@ of the player's task. The product has one anime character editor and one profile
   without handing vertical panning to browser refresh; rotation help is nonvisual.
 - Use cached still portraits in lists and the event-reactive game HUD; release editor resources.
 - Gameplay HUD has three equal regions: goal, character reaction, remaining moves.
-- Gameplay feedback owns a fixed lane outside the board scroller. Item guidance
-  reserves its slot, and scroll controls share the footer without taking board
+- Gameplay feedback and item guidance share one fixed lane outside the board
+  scroller: targeting/nudges outrank idle fusion hints, earned celebrations
+  briefly outrank guidance. Stage and progress share one compact row. Goal
+  labels identify the unit without a repeated subtitle; accessible counts keep
+  the full unit. Size the nine-row board to the largest complete rectangle in
+  the remaining viewport, with a 44px minimum cell/toolbar target. Narrow phone
+  portraits remain 80px (64px below 700px usable height); wider surfaces retain
+  112px. Preserve headroom for peak portrait motion and OS safe areas.
+  Scroll controls share the footer without taking board
   height. Hits never translate the grid; floating scores stay inside the visible
   board slice, including scroll and text-halo bounds. Pointer focus never moves
   that slice under a finger; keyboard arrows still reveal the chosen cell.

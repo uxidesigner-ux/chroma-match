@@ -48,6 +48,7 @@ export class ComboMeter {
   }
 
   reportFusion(kind: FusionKind): void {
+    this.root.dataset.feedback = 'fusion'
     this.hinting = false
     this.remaining = 1.4
     this.shown = 0
@@ -71,6 +72,7 @@ export class ComboMeter {
     // The frame loop can offer it again once the announcement has expired.
     if (this.hinting || this.remaining > 0) return
     this.hinting = true
+    this.root.dataset.feedback = 'hint'
     this.remaining = 0
     this.shown = 0
     delete this.root.dataset.fusion
@@ -85,6 +87,7 @@ export class ComboMeter {
   /** Called for every clear; anything under the floor ends the chain instead. */
   report(combo: number): void {
     if (combo < FLOOR) return
+    this.root.dataset.feedback = 'chain'
     this.hinting = false
     delete this.root.dataset.fusion
     this.remaining = LINGER
@@ -127,6 +130,7 @@ export class ComboMeter {
     this.remaining = 0
     this.shown = 0
     this.root.hidden = true
+    delete this.root.dataset.feedback
     delete this.root.dataset.fusion
     this.avatar.hidden = true
     this.root.classList.remove('is-bump')

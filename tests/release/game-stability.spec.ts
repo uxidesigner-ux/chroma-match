@@ -22,7 +22,7 @@ test('production game keeps a real top-row chain, fixed targets and reachable to
   await expect(page.locator('#moves')).toHaveText('24')
   await expect(page.locator('#goal-remaining')).toHaveText('1,590')
   await expect(page.locator('#combo')).toBeHidden()
-  for (const [width, height] of [[320, 568], [390, 844], [568, 320], [844, 390], [720, 720], [1280, 800]]) {
+  for (const [width, height] of [[320, 568], [390, 844], [390, 650], [568, 320], [844, 390], [720, 720], [1280, 800]]) {
     await page.setViewportSize({ width: width!, height: height! })
     await expect.poll(() => page.locator('html').evaluate(e => e.style.getPropertyValue('--play-width'))).toBe(`${width}px`)
     await expect(page.locator('#pause')).toBeInViewport()
@@ -32,6 +32,15 @@ test('production game keeps a real top-row chain, fixed targets and reachable to
       const r = e.getBoundingClientRect()
       return r.width >= 44 && r.height >= 44 && r.x >= 0 && r.right <= innerWidth && r.bottom <= innerHeight
     }))).toBe(true)
+    if (width === 390) {
+      // Verify the actual Pages build, without a development game hook.
+      await expect.poll(() => page.evaluate(() => {
+        const b = document.getElementById('board')!.getBoundingClientRect(), s = document.querySelector('.game .stage')!.getBoundingClientRect()
+        return b.top >= s.top && b.bottom <= s.bottom + .1
+      })).toBe(true)
+      await expect(page.locator('.board-scroll-hint')).toBeHidden()
+      if (height === 844) expect((await page.locator('#board').boundingBox())!.width).toBeGreaterThan(350)
+    }
     await page.screenshot({ path: info.outputPath(`game-${width}x${height}.png`) })
   }
   await page.locator('#pause').click()

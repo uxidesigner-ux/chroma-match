@@ -99,6 +99,9 @@ test('reported dual-screen hinge confines gameplay to one usable pane', async ({
     window.dispatchEvent(new Event('resize'))
   })
   await expect(page.locator('html')).toHaveAttribute('data-play-layout', 'stack')
+  // Both the old and new layout are stack. Wait for the actual coalesced
+  // pane geometry, not an attribute that was already true before the resize.
+  await expect.poll(() => page.locator('.app').evaluate(e => e.getBoundingClientRect().width)).toBe(400)
   const app = (await page.locator('.app').boundingBox())!
   expect(app.x).toBe(0)
   expect(app.width).toBe(400)

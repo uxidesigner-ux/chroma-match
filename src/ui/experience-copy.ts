@@ -15,7 +15,7 @@ const en = {
 }
 type Copy = typeof en
 const ko: Copy = {
-  remaining: '남은 목표', scoreGoal: '목표까지', powerGoal: '특수 보석 만들기',
+  remaining: '남은 목표', scoreGoal: '남은 목표 점수', powerGoal: '특수 보석 만들기',
   points: '점 남음', gems: '개 남음', powers: '개 더 만들기', skip: '로비 먼저 보기',
   skipNote: '3D 캐릭터를 기다리지 않고 게임을 시작할 수 있어요.', saving: '저장 중…',
   loadout: limit => `최대 ${limit}개를 고르세요. 아이템은 이동 횟수를 쓰지 않아요.`,
@@ -27,7 +27,7 @@ const ko: Copy = {
   detailed: '전체 규칙과 키보드 조작', scrollBoard: '위아래 줄 보기', scrollUp: '위쪽 줄 보기', scrollDown: '아래쪽 줄 보기',
 }
 const ja: Copy = {
-  remaining: '残りの目標', scoreGoal: '目標まで', powerGoal: '特殊ジェムを作る',
+  remaining: '残りの目標', scoreGoal: '残りポイント', powerGoal: '特殊ジェムを作る',
   points: 'ポイント残り', gems: '個残り', powers: '個作ろう', skip: '先にロビーへ',
   skipNote: '3Dの読み込みを待たずにプレイできます。', saving: '保存中…',
   loadout: limit => `最大${limit}個。アイテムは手数を使いません。`,
@@ -38,7 +38,7 @@ const ja: Copy = {
   detailed: '全ルールとキー操作', scrollBoard: '全行を表示', scrollUp: '上の行を表示', scrollDown: '下の行を表示',
 }
 const zh: Copy = {
-  remaining: '剩余目标', scoreGoal: '距目标', powerGoal: '生成特殊宝石',
+  remaining: '剩余目标', scoreGoal: '剩余目标分数', powerGoal: '生成特殊宝石',
   points: '分剩余', gems: '个剩余', powers: '个待生成', skip: '先进入大厅',
   skipNote: '无需等待3D角色加载即可开始游戏。', saving: '正在保存…',
   loadout: limit => `最多选${limit}个，道具不消耗步数。`,

@@ -292,10 +292,9 @@
         </section>
 
         <!--
-          A nine-row board cannot fit a phone on its side at a usable gem size —
-          the arithmetic does not work at any padding. Rather than silently
-          shipping a 37px tap target, short landscape viewports get asked to turn
-          back, with an escape for anyone who means it.
+          The legacy rotation prompt stays hidden: gameplay now uses a side
+          rail in wide windows and explicit row controls when a complete
+          nine-row board cannot fit at a usable gem size.
         -->
         <section class="rotate" id="rotate" role="alert" aria-live="assertive">
           <div class="rotate-card">
@@ -318,6 +317,9 @@
               <span class="combo-x" id="combo-x">&times;2</span>
               <span class="combo-word" id="combo-word">chain</span>
             </div>
+            <!-- One stable status lane: item targeting replaces idle fusion
+                 hints; a just-earned celebration briefly takes priority. -->
+            <p class="items-hint" id="items-hint" role="status" hidden></p>
           </div>
           <div class="stage">
             <div class="board-wrap">
@@ -358,7 +360,6 @@
             <span class="hud-ico hud-ico-exit" aria-hidden="true"></span>
           </button>
         </div>
-        <p class="items-hint" id="items-hint" role="status" hidden></p>
 
       </section>
 

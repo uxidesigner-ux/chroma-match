@@ -47,7 +47,9 @@ export function attachPlayLayout(): void {
     } : undefined
     const region = playRegion(innerWidth, innerHeight, segmented.viewport?.segments, visible)
     root.dataset.playLayout = playLayout(region)
-    root.dataset.playShort = String(region.height < (playLayout(region) === 'wide' ? 550 : 640))
+    root.dataset.playShort = String(region.height < (playLayout(region) === 'wide' ? 550 : 700))
+    const faceSize = region.width < 560 ? '80px' : '112px'
+    if (root.style.getPropertyValue('--play-face-size') !== faceSize) root.style.setProperty('--play-face-size', faceSize)
     root.dataset.playCompact = String(region.height < 400 && playLayout(region) === 'stack')
     root.dataset.playTiny = String(region.height < 300 && playLayout(region) === 'stack')
     for (const key of ['left', 'top', 'width', 'height'] as const) {

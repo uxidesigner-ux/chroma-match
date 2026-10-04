@@ -31,6 +31,7 @@ export function attachInput(
   let dragged = false
   let activePointer: number | null = null
   let pointerRect: DOMRect | null = null
+  let pointerViewport = ''
   let keyboardCell = 0
   const interactive = () => !document.hidden && !canvas.closest('[hidden], [inert]')
   const status = document.getElementById('board-status')
@@ -92,8 +93,15 @@ export function attachInput(
     const rect = canvas.getBoundingClientRect()
     return { x: e.clientX - rect.left, y: e.clientY - rect.top }
   }
+  const viewportState = () => {
+    const v = window.visualViewport
+    return `${innerWidth}:${innerHeight}:${v?.width}:${v?.height}:${v?.offsetLeft}:${v?.offsetTop}:${v?.scale}`
+  }
   const layoutShifted = () => {
     if (!pointerRect) return false
+    // The viewport changes before resize/RAF are necessarily delivered. Do
+    // not let that timing gap turn an old held gem into a newly accepted swap.
+    if (pointerViewport !== viewportState()) return true
     const rect = canvas.getBoundingClientRect()
     return rect.left !== pointerRect.left || rect.top !== pointerRect.top ||
       rect.width !== pointerRect.width || rect.height !== pointerRect.height
@@ -104,6 +112,7 @@ export function attachInput(
     e.preventDefault()
     activePointer = e.pointerId
     pointerRect = canvas.getBoundingClientRect()
+    pointerViewport = viewportState()
     onFirstInput()
     const { x, y } = localPoint(e)
     startCell = renderer.cellAtPoint(x, y)
@@ -169,6 +178,7 @@ export function attachInput(
     dragged = false
     activePointer = null
     pointerRect = null
+    pointerViewport = ''
   }
 
   canvas.addEventListener('pointerup', end)
@@ -181,6 +191,7 @@ export function attachInput(
     }
     activePointer = null
     pointerRect = null
+    pointerViewport = ''
   }
   canvas.addEventListener('pointercancel', cancel)
   canvas.addEventListener('lostpointercapture', cancel)
