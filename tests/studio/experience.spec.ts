@@ -17,7 +17,7 @@ test('3D loading never blocks a player who chooses to enter now', async ({ page 
   await expect(page.locator('#loadout-body')).toContainText('이동 횟수를 쓰지 않아요')
   await page.locator('#loadout-start').click()
   await expect(page.locator('#screen-game')).toBeVisible()
-  await expect(page.locator('#goal-text')).toHaveText('목표까지')
+  await expect(page.locator('#goal-text')).toHaveText('남은 목표 점수')
   await expect(page.locator('#goal-unit')).toHaveText('점 남음')
   expect(await page.evaluate(() => window.chroma.game.moves)).toBe(25)
   release()
