@@ -146,6 +146,12 @@ test('lobby separates profile and footer destinations, with play actions in one 
   await page.locator('#pause').click()
   await page.locator('#paused-keep').click()
   await expect(page.locator('#continue-run')).toBeVisible()
+  // The secondary surface has a 150ms background transition when Continue
+  // becomes visible. Verify the intended settled default, not its first red
+  // frame; do not remove motion or relax the hierarchy assertions.
+  await page.mouse.move(0, 0)
+  await expect(page.locator('#continue-run')).toHaveCSS('background-color', 'rgb(197, 49, 41)')
+  await expect(page.locator('#start-game')).toHaveCSS('background-color', 'rgb(255, 247, 230)')
   const continueBox = (await page.locator('#continue-run').boundingBox())!
   const startBox = (await page.locator('#start-game').boundingBox())!
   const [continueBg, startBg, pageBg] = await page.evaluate(() => {
@@ -169,6 +175,9 @@ test('lobby separates profile and footer destinations, with play actions in one 
   expect(Math.abs(continueBox.y - startBox.y)).toBeLessThan(2)
   expect(Math.abs(continueBox.height - startBox.height)).toBeLessThan(2)
   expect(startBox.x).toBeGreaterThan(continueBox.x + continueBox.width - 1)
+  await page.locator('#start-game').hover()
+  await expect(page.locator('#start-game')).toHaveCSS('background-color', 'rgb(255, 253, 246)')
+  await expect(page.locator('#continue-run')).toHaveCSS('background-color', 'rgb(197, 49, 41)')
 })
 
 staticTest('lobby and studio chrome hold a 44px target on narrow phones, and the studio follows the skin', async ({ page }) => {

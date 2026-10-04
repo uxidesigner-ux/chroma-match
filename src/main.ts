@@ -802,8 +802,21 @@ const resizeBoard = () => {
 }
 const observer = new ResizeObserver(resizeBoard)
 observer.observe(canvas)
-window.addEventListener('resize', resizeBoard)
-window.addEventListener('orientationchange', resizeBoard)
+// Native media queries change before the frame-coalesced shell variables.
+// A phone and desktop may share the same final canvas size, so ResizeObserver
+// will not repair a backing store measured during that intermediate layout.
+// Measure after the shell frame, independent of resize/orientation event order.
+let boardResizePending = false
+const scheduleBoardResize = () => {
+  if (boardResizePending) return
+  boardResizePending = true
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    boardResizePending = false
+    resizeBoard()
+  }))
+}
+window.addEventListener('resize', scheduleBoardResize)
+window.addEventListener('orientationchange', scheduleBoardResize)
 window.addEventListener('pagehide', () => {
   commitRecord()
   // Phones evict backgrounded tabs without warning, and a run is the one thing

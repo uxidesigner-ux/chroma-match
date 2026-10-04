@@ -18,11 +18,24 @@ test('fold, unfold, rotate and split-window preserve the exact run and touch tar
     return JSON.stringify({ grid: g.grid, moves: g.moves, score: g.score, goal: g.goal })
   })
   const before = await state()
+  // Preserve a classic 17px gutter on overlay-scrollbar hosts too. A phone
+  // and desktop can then have the same final 280px canvas, while media-query
+  // padding briefly changes before the frame-coalesced shell update.
+  await page.evaluate(() => {
+    const stage = document.querySelector<HTMLElement>('.game .stage')!
+    const nativeGutter = stage.offsetWidth - stage.clientWidth
+    stage.style.paddingRight = `${Math.max(0, 17 - nativeGutter)}px`
+  })
   for (const [width, height] of [[390, 844], [720, 720], [900, 720], [844, 390], [320, 568], [1280, 800], [480, 800]]) {
     await page.setViewportSize({ width: width!, height: height! })
     await expect.poll(() => page.locator('html').evaluate(e => e.style.getPropertyValue('--play-width'))).toBe(`${width}px`)
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await expect.poll(() => page.evaluate(() => window.chroma.renderer.cellSize)).toBeGreaterThanOrEqual(44)
+    await expect.poll(() => page.evaluate(() => {
+      const box = document.getElementById('board')!.getBoundingClientRect(), { geom } = window.chroma.game
+      const visibleCell = Math.min((Math.round(box.width) - 16) / geom.cols, (Math.round(box.height) - 16) / geom.rows)
+      return Math.abs(window.chroma.renderer.cellSize - visibleCell)
+    })).toBeLessThan(1e-9)
     expect(await state()).toBe(before)
     await expect(page.locator('#rotate')).not.toBeVisible()
     const columns = await page.locator('.game-hud > div').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().width))
