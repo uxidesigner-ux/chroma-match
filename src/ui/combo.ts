@@ -63,14 +63,24 @@ export class ComboMeter {
     this.root.classList.add('is-bump')
   }
 
-  fusionHint(available: boolean): void {
+  reportEvent(message: string): void {
+    this.hinting = false; this.remaining = 2.2; this.shown = 0
+    this.root.dataset.feedback = 'event'; this.root.dataset.heat = '3'
+    delete this.root.dataset.fusion
+    this.value.textContent = '✦'; this.word.textContent = message
+    this.avatar.hidden = false; this.root.hidden = false
+    this.root.classList.remove('is-bump'); void this.root.offsetWidth; this.root.classList.add('is-bump')
+  }
+
+  fusionHint(available: boolean, message = t('fusionHint')): void {
     if (!available) {
       if (this.hinting) this.hide()
       return
     }
     // A contextual hint is lower priority than the result of an actual move.
     // The frame loop can offer it again once the announcement has expired.
-    if (this.hinting || this.remaining > 0) return
+    if (this.hinting) { this.word.textContent = message; return }
+    if (this.remaining > 0) return
     this.hinting = true
     this.root.dataset.feedback = 'hint'
     this.remaining = 0
@@ -78,7 +88,7 @@ export class ComboMeter {
     delete this.root.dataset.fusion
     this.root.dataset.heat = '0'
     this.value.textContent = '+'
-    this.word.textContent = t('fusionHint')
+    this.word.textContent = message
     this.avatar.hidden = true
     this.root.hidden = false
     this.root.classList.remove('is-bump')

@@ -249,8 +249,8 @@ test('the target never outruns what a strong run can score', () => {
   }
 })
 
-test('a level transition applies both halves of the curve', () => {
-  const game = newGame(5)
+test('a legacy level transition applies both halves of the original curve', () => {
+  const game = new Game({}, 5, G, 3)
   const startMoves = game.moves
   for (let i = 0; i < 12; i++) {
     const before = game.level

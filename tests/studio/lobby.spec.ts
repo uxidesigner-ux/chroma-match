@@ -42,7 +42,8 @@ test('lobby rotates with keys and gestures, releases 3D on play and returns safe
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'idle')
   await expect(page.locator('#hud-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   await expect(page.locator('#score, #best')).toHaveCount(0)
-  const widths = await page.locator('.game-hud > div').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().width))
+  const widths = await page.locator('.game-hud > .hud-goal, .game-hud > .hud-character, .game-hud > .hud-moves').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().width))
+  expect(widths).toHaveLength(3)
   expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1)
   // Scroll tools share this toolbar but are absent on a fitting board.
   for (const button of await page.locator('#items button:visible').all()) {
@@ -60,7 +61,7 @@ test('lobby rotates with keys and gestures, releases 3D on play and returns safe
   await page.locator('#pause').click(); await page.locator('#paused-keep').click()
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   await page.locator('#continue-run').click()
-  expect(await page.evaluate(() => window.chroma.game.rules)).toBe(3)
+  expect(await page.evaluate(() => window.chroma.game.rules)).toBe(4)
   expect(errors).toEqual([])
 })
 

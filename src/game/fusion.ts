@@ -2,6 +2,7 @@ import { areNeighbours, expandClears } from './board.ts'
 import type { Blast, BlastKind, ClearExpansion } from './board.ts'
 import { at } from './types.ts'
 import type { Geom, Grid, Power } from './types.ts'
+import type { Upgrades } from './variety.ts'
 
 export type FusionKind = 'cross' | 'wideCross' | 'megaBomb' | 'prismStripe' | 'prismBomb' | 'prismPair'
 export interface Fusion { kind: FusionKind; a: number; b: number }
@@ -16,7 +17,7 @@ export function fusionKind(a: Power, b: Power): FusionKind | null {
 }
 
 /** Pure preview and resolution share the exact same target list; no RNG or grid mutation. */
-export function fusionClear(geom: Geom, grid: Grid, a: number, b: number): (ClearExpansion & Fusion) | null {
+export function fusionClear(geom: Geom, grid: Grid, a: number, b: number, boosts?: Pick<Upgrades, 'blast' | 'stripe'>): (ClearExpansion & Fusion) | null {
   if (!areNeighbours(geom, a, b)) return null
   const ga = at(grid, a)
   const gb = at(grid, b)
@@ -57,11 +58,11 @@ export function fusionClear(geom: Geom, grid: Grid, a: number, b: number): (Clea
       // Each transformed cell fires once as the partner's power. It must not
       // additionally detonate an old power that it carried before the fusion.
       consumed.add(cell)
-      if (kind === 'prismBomb') add(cell, 'square', area(cell, 1))
+      if (kind === 'prismBomb') add(cell, 'square', area(cell, 1 + (boosts?.blast ?? 0)))
       else add(cell, partner.power === 'colClear' ? 'col' : 'row', line(cell, partner.power === 'colClear'))
     }
   } else if (kind === 'megaBomb') {
-    add(b, 'square', area(b, 2))
+    add(b, 'square', area(b, 2 + (boosts?.blast ?? 0)))
   } else {
     const width = kind === 'wideCross' ? 1 : 0
     for (let offset = -width; offset <= width; offset++) {
@@ -77,6 +78,6 @@ export function fusionClear(geom: Geom, grid: Grid, a: number, b: number): (Clea
       }
     }
   }
-  const expanded = expandClears(geom, grid, seeds, consumed)
+  const expanded = expandClears(geom, grid, seeds, consumed, boosts)
   return { kind, a, b, cleared: expanded.cleared, blasts: [...blasts, ...expanded.blasts] }
 }

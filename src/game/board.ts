@@ -3,6 +3,8 @@ import { at } from './types.ts'
 import type { Gem, Geom, Grid, Kind, Power } from './types.ts'
 import { canFuse, CURRENT_RULES } from './rules.ts'
 import type { RulesVersion } from './rules.ts'
+import { areaCells } from './variety.ts'
+import type { Upgrades } from './variety.ts'
 
 let nextId = 1
 
@@ -156,7 +158,7 @@ export function powerFor(group: MatchGroup): Power {
 }
 
 /** Cells a power gem takes out when it goes off. */
-export function blastRadius(geom: Geom, grid: Grid, i: number): number[] {
+export function blastRadius(geom: Geom, grid: Grid, i: number, boosts?: Pick<Upgrades, 'blast' | 'stripe'>): number[] {
   const gem = at(grid, i)
   if (!gem) return []
   const c = geom.colOf(i)
@@ -164,14 +166,15 @@ export function blastRadius(geom: Geom, grid: Grid, i: number): number[] {
   const out: number[] = []
   switch (gem.power) {
     case 'rowClear':
-      for (let x = 0; x < geom.cols; x++) out.push(geom.idx(x, r))
+      for (const y of stripeLines(r, geom.rows, boosts?.stripe ?? 0))
+        for (let x = 0; x < geom.cols; x++) out.push(geom.idx(x, y))
       break
     case 'colClear':
-      for (let y = 0; y < geom.rows; y++) out.push(geom.idx(c, y))
+      for (const x of stripeLines(c, geom.cols, boosts?.stripe ?? 0))
+        for (let y = 0; y < geom.rows; y++) out.push(geom.idx(x, y))
       break
     case 'bomb':
-      for (let y = r - 1; y <= r + 1; y++)
-        for (let x = c - 1; x <= c + 1; x++) if (geom.inBounds(x, y)) out.push(geom.idx(x, y))
+      out.push(...areaCells(geom, i, 1 + (boosts?.blast ?? 0)))
       break
     case 'rainbow': {
       // Caught in someone else's blast: takes its own colour with it.
@@ -185,6 +188,13 @@ export function blastRadius(geom: Geom, grid: Grid, i: number): number[] {
       break
   }
   return out
+}
+
+function stripeLines(line: number, size: number, tier: number): number[] {
+  const out = [line]
+  if (tier > 0) out.push(line + 1 < size ? line + 1 : line - 1)
+  if (tier > 1) out.push(line > 0 && line + 1 < size ? line - 1 : line === 0 ? 2 : line - 2)
+  return [...new Set(out)].filter(n => n >= 0 && n < size)
 }
 
 /**
@@ -233,6 +243,7 @@ const BLAST_KINDS: Partial<Record<Power, BlastKind>> = {
  */
 export function expandClears(
   geom: Geom, grid: Grid, seeds: Iterable<number>, consumed: ReadonlySet<number> = new Set(),
+  boosts?: Pick<Upgrades, 'blast' | 'stripe'>,
 ): ClearExpansion {
   const cleared = new Set<number>()
   const blasts: Blast[] = []
@@ -248,7 +259,7 @@ export function expandClears(
     if (consumed.has(i)) continue
     const gem = at(grid, i)
     const kind = gem ? BLAST_KINDS[gem.power] : undefined
-    const reach = blastRadius(geom, grid, i)
+    const reach = blastRadius(geom, grid, i, boosts)
     if (gem && kind) {
       const targets = reach.filter((cell) => cell !== i)
       blasts.push(kind === 'colour' ? { cell: i, kind, targets, colour: gem.kind } : { cell: i, kind, targets })

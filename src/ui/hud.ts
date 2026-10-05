@@ -9,6 +9,8 @@ import { reducedMotion } from '../render/motion.ts'
 import { playCopy } from './play-copy.ts'
 import { experienceCopy } from './experience-copy.ts'
 import { hasPortrait } from '../avatar/anime-portrait.ts'
+import { varietyCopy } from './variety-copy.ts'
+import { FEVER_CHARGE } from '../game/variety.ts'
 
 const el = (id: string) => document.getElementById(id)!
 type Reaction = 'pop' | 'power' | 'fusion' | 'chain' | 'clear'
@@ -21,6 +23,8 @@ export class Hud {
   private sparks: Animation | undefined
   private timer: ReturnType<typeof setTimeout> | undefined
   private sequence = 0
+  private idleText = ''
+  private feverText = ''
 
   constructor() {
     this.refreshAvatar()
@@ -38,7 +42,7 @@ export class Hud {
     clearTimeout(this.timer)
     this.animation?.cancel(); this.sparks?.cancel()
     this.reaction.dataset.reaction = 'ready'
-    el('hud-reaction').textContent = playCopy().ready
+    el('hud-reaction').textContent = this.idleText || playCopy().ready
     this.refreshAvatar()
   }
   react(kind: Reaction, chain = 1): void {
@@ -46,7 +50,7 @@ export class Hud {
     this.animation?.cancel(); this.sparks?.cancel()
     this.reaction.dataset.reaction = kind
     this.reaction.dataset.sequence = String(++this.sequence)
-    el('hud-reaction').textContent = kind === 'chain' ? `${playCopy().chain} ×${chain}` : playCopy()[kind]
+    el('hud-reaction').textContent = this.feverText || (kind === 'chain' ? `${playCopy().chain} ×${chain}` : playCopy()[kind])
     const expression = kind === 'fusion' || kind === 'power' ? 'surprised'
       : kind === 'pop' ? 'relaxed' : 'happy'
     const look = { ...myAvatar(), expression } as const
@@ -72,13 +76,33 @@ export class Hud {
     }
     this.timer = setTimeout(() => {
       this.reaction.dataset.reaction = 'ready'
-      el('hud-reaction').textContent = playCopy().ready
+      el('hud-reaction').textContent = this.idleText || playCopy().ready
       this.reaction.dataset.expression = myAvatar().expression
       this.refreshAvatar()
     }, 1400)
   }
 
   update(game: Game, _best?: number): void {
+    const variety = varietyCopy()
+    const enabled = game.rules >= 4
+    const feverState = game.feverTurns > 0 ? 'active' : game.feverCharge >= FEVER_CHARGE ? 'ready' : 'charging'
+    const feverSignature = `${enabled}:${feverState}:${game.feverCharge}:${game.feverTurns}:${game.busy}:${variety.rules}`
+    if (this.reaction.dataset.feverSignature !== feverSignature) {
+      this.reaction.dataset.feverSignature = feverSignature
+      this.reaction.dataset.fever = enabled ? feverState : 'legacy'
+      const ring = this.reaction.querySelector<SVGElement>('.fever-ring')!
+      ring.toggleAttribute('hidden', !enabled)
+      this.reaction.tabIndex = enabled ? 0 : -1
+      const canActivate = enabled && feverState === 'ready' && !game.busy
+      this.reaction.setAttribute('aria-disabled', String(!canActivate))
+      this.idleText = enabled ? game.feverTurns > 0 ? variety.active(game.feverTurns)
+        : feverState === 'ready' ? variety.ready : variety.charge(game.feverCharge) : playCopy().ready
+      this.feverText = enabled && feverState !== 'charging' ? this.idleText : ''
+      this.reaction.setAttribute('aria-label', enabled ? `${this.idleText}. ${variety.activate}` : playCopy().ready)
+      this.reaction.title = enabled ? variety.activate : ''
+      ring.style.setProperty('--fever-charge', String(game.feverTurns > 0 ? game.feverTurns / 3 * 100 : game.feverCharge))
+      if (this.feverText || this.reaction.dataset.reaction === 'ready') el('hud-reaction').textContent = this.idleText
+    }
     const copy = experienceCopy()
     const what = goalLabel(game.goal, gemName, { score: copy.scoreGoal, power: copy.powerGoal, gems: colour => t('goalGems', { colour }) })
     const colour = game.goal.kind === 'colour' ? game.goal.colour : 3
@@ -86,9 +110,13 @@ export class Hud {
     const signature = `${game.moves}:${game.level}:${game.progress}:${game.need}:${game.seed}:${game.rules}:${what}:${style.base}`
     if (signature === this.last) return
     this.last = signature
+    const newStage = el('bar').dataset.stage !== `${game.seed}:${game.level}`
+    el('bar').dataset.stage = `${game.seed}:${game.level}`
+    el('bar').style.transition = newStage ? 'none' : ''
     el('moves').textContent = String(game.moves)
     el('moves').closest('.stat')!.classList.toggle('urgent', game.moves <= 5)
-    el('level').textContent = t('levelN', { level: game.level })
+    el('level').textContent = `${t('levelN', { level: game.level })}${game.bonusRound ? ` · ${variety.bonus[game.bonusRound]}` : ''}`
+    el('level').title = game.bonusRound ? `${variety.bonusPreview}. ${variety.bonusDetail[game.bonusRound]}` : ''
     el('goal-text').textContent = what
     const unit = game.goal.kind === 'score' ? copy.points : game.goal.kind === 'power' ? copy.powers : copy.gems
     el('goal-unit').textContent = unit
@@ -98,7 +126,7 @@ export class Hud {
     el('progress').textContent = n(Math.min(game.progress, game.need))
     el('target').textContent = n(game.need)
     el('bar').style.width = `${Math.min(100, game.progress / game.need * 100)}%`
-    el('seed').textContent = `seed ${game.seed.toString(36).toUpperCase()} · ${game.rules === 3 ? playCopy().rules : t(game.rules === 1 ? 'legacyRules' : 'fusionRules')}`
+    el('seed').textContent = `seed ${game.seed.toString(36).toUpperCase()} · ${game.rules === 4 ? variety.rules : game.rules === 3 ? playCopy().rules : t(game.rules === 1 ? 'legacyRules' : 'fusionRules')}`
     const canvas = el('goal-gem') as HTMLCanvasElement
     const ctx = canvas.getContext('2d')!
     // System fonts differ across platforms. Reserve the widest digit for

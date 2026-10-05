@@ -19,8 +19,9 @@ import type { Action } from './game.ts'
 import { ITEMS } from './items.ts'
 import type { Item } from './items.ts'
 import type { Geom } from './types.ts'
-import { FUSION_HEADER, SQUARE_HEADER } from './rules.ts'
+import { FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER } from './rules.ts'
 import type { RulesVersion } from './rules.ts'
+import { UPGRADES } from './variety.ts'
 
 const FRAME = 1 / 60
 /** Frames to give one swap before calling it stuck. A cascade is well under this. */
@@ -29,6 +30,7 @@ const SETTLE_LIMIT = 4000
 export const MAX_MOVES = 4000
 /** Two base36 characters carry one action, so everything below has to fit. */
 const PACK_LIMIT = 36 * 36
+const FIRST_HEADER = Math.min(...[VARIETY_HEADER, SQUARE_HEADER, FUSION_HEADER].map(h => Number.parseInt(h, 36)))
 
 /** Neighbour offsets, in the order their index is encoded. */
 const DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
@@ -56,17 +58,22 @@ export interface RunRecord {
 }
 
 export function hasRunActions(record: RunRecord): boolean {
-  return record.moves.length > ([FUSION_HEADER, SQUARE_HEADER].some(h => record.moves.startsWith(h)) ? 2 : 0)
+  return record.moves.length > ([FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER].some(h => record.moves.startsWith(h)) ? 2 : 0)
 }
 
+export function rulesOf(record: RunRecord): RulesVersion {
+  // Ranking labels can be painted before asynchronous verification rejects a
+  // malformed remote row. Detection must not take the entire list down.
+  const moves = typeof record.moves === 'string' ? record.moves : ''
+  return moves.startsWith(VARIETY_HEADER) ? 4 : moves.startsWith(SQUARE_HEADER) ? 3
+    : moves.startsWith(FUSION_HEADER) ? 2 : 1
+}
 function decodeRecord(geom: Geom, record: RunRecord): { rules: RulesVersion; actions: Action[] } {
-  if (record.moves.startsWith(SQUARE_HEADER)) {
-    return { rules: 3, actions: decodeMoves(geom, record.moves.slice(2)) }
-  }
-  if (record.moves.startsWith(FUSION_HEADER)) {
-    return { rules: 2, actions: decodeMoves(geom, record.moves.slice(2)) }
-  }
-  return { rules: 1, actions: decodeMoves(geom, record.moves) }
+  const rules = rulesOf(record)
+  const actions = decodeMoves(geom, rules > 1 ? record.moves.slice(2) : record.moves)
+  if (rules < 4 && actions.some(a => a.kind === 'fever' || a.kind === 'upgrade' || a.kind === 'advance'))
+    throw new Error('this rules version does not have variety actions')
+  return { rules, actions }
 }
 
 export function boardOf(geom: Geom): RunBoard {
@@ -104,8 +111,9 @@ function boosterBase(geom: Geom): number {
 }
 
 function packLimitFor(geom: Geom): number {
-  return boosterBase(geom) + ITEMS.length
+  return varietyBase(geom) + 2 + UPGRADES.length
 }
+const varietyBase = (geom: Geom): number => boosterBase(geom) + ITEMS.length
 
 /**
  * Packs the action list into a string.
@@ -116,13 +124,21 @@ function packLimitFor(geom: Geom): number {
  * aimed at. Both fit in two base36 characters.
  */
 export function encodeMoves(geom: Geom, actions: readonly Action[]): string {
-  if (packLimitFor(geom) > PACK_LIMIT) {
+  if (packLimitFor(geom) > Math.min(PACK_LIMIT, FIRST_HEADER)) {
     throw new Error(`a ${geom.cols}x${geom.rows} board does not fit the two-character action encoding`)
   }
   let out = ''
   for (const action of actions) {
     let packed: number
-    if (action.kind === 'booster') {
+    if (action.kind === 'advance') {
+      packed = varietyBase(geom) + 1 + UPGRADES.length
+    } else if (action.kind === 'fever') {
+      packed = varietyBase(geom)
+    } else if (action.kind === 'upgrade') {
+      const index = UPGRADES.indexOf(action.upgrade)
+      if (index < 0) throw new Error('unknown upgrade')
+      packed = varietyBase(geom) + 1 + index
+    } else if (action.kind === 'booster') {
       const index = ITEMS.indexOf(action.item)
       if (index < 0) throw new Error(`unknown item ${action.item}`)
       packed = boosterBase(geom) + index
@@ -156,6 +172,17 @@ export function decodeMoves(geom: Geom, encoded: string): Action[] {
     if (!/^[0-9a-z]{2}$/.test(chunk)) throw new Error(`move ${n} is not valid base36`)
     const packed = Number.parseInt(chunk, 36)
 
+    if (packed >= varietyBase(geom)) {
+      const index = packed - varietyBase(geom)
+      if (index === 0) actions.push({ kind: 'fever' })
+      else if (index === 1 + UPGRADES.length) actions.push({ kind: 'advance' })
+      else {
+        const upgrade = UPGRADES[index - 1]
+        if (!upgrade) throw new Error(`move ${n} names an action this version does not have`)
+        actions.push({ kind: 'upgrade', upgrade })
+      }
+      continue
+    }
     if (packed >= boosters) {
       const index = packed - boosters
       const item = ITEMS[index]
@@ -193,6 +220,27 @@ function settle(game: Game): boolean {
     game.update(FRAME)
   }
   return false
+}
+
+/** Same phase and eligibility checks for ranking and local restore. */
+function replayAction(game: Game, action: Action): string | null {
+  if (action.kind === 'upgrade') return game.chooseUpgrade(action.upgrade) ? null : 'claims an unavailable upgrade'
+  if (action.kind === 'advance') return game.nextLevel() ? null : game.upgradeDue ? 'skips a required upgrade' : 'claims unavailable stage continuation'
+  if (game.status === 'levelComplete') {
+    if (game.rules >= 4) return game.upgradeDue ? 'skips a required upgrade' : 'comes before stage continuation'
+    game.nextLevel()
+  }
+  if (game.status === 'gameOver') return 'comes after the run ended'
+  if (action.kind === 'fever') return game.activateFever() ? null : 'claims unearned fever'
+  if (action.kind === 'booster') return game.addBooster(action.item, BOOSTER_LIMIT) ? null : 'claims a booster the run may not have'
+  if (action.kind === 'item') {
+    if (!game.useItem(action.item, action.cell)) return `spends a ${action.item} the run never had`
+  } else {
+    if (!areNeighbours(game.geom, action.a, action.b)) return 'is not between neighbours'
+    if (!isLegalSwap(game.geom, game.grid, action.a, action.b, game.rules)) return 'does not make a match'
+    game.drag(action.a, action.b)
+  }
+  return settle(game) ? null : 'never settled'
 }
 
 export interface VerifyResult {
@@ -244,40 +292,8 @@ export function verifyRun(record: RunRecord, geom: Geom): VerifyResult {
 
   const game = new Game({}, record.seed, geom, rules)
   for (let i = 0; i < actions.length; i++) {
-    // The player can only have kept playing past a cleared level by continuing.
-    if (game.status === 'levelComplete') game.nextLevel()
-    if (game.status === 'gameOver') return fail(`move ${i + 1} comes after the run ended`)
-
-    const action = actions[i] as Action
-    if (action.kind === 'booster') {
-      // Bounded, and only before the run starts. addBooster refuses once any
-      // other action has been taken, so a booster spliced into the middle of a
-      // record fails here rather than quietly arming the player mid-run.
-      if (!game.addBooster(action.item, BOOSTER_LIMIT)) {
-        return fail(`move ${i + 1} claims a booster the run may not have`)
-      }
-      continue
-    }
-    if (action.kind === 'item') {
-      // No inventory is carried alongside the record: this replay earned its
-      // own items by finishing the same levels and hitting the same chains the
-      // run did, so a submission claiming an item it never earned fails here.
-      // There is nothing to forge, because there is nothing to declare.
-      if (!game.useItem(action.item, action.cell)) {
-        return fail(`move ${i + 1} spends a ${action.item} the run never had`)
-      }
-    } else {
-      if (!areNeighbours(geom, action.a, action.b)) {
-        return fail(`move ${i + 1} is not between neighbours`)
-      }
-      // This is the load-bearing check: a fabricated move list cannot score,
-      // because every swap in it has to be one the board would actually have taken.
-      if (!isLegalSwap(geom, game.grid, action.a, action.b, game.rules)) {
-        return fail(`move ${i + 1} does not make a match`)
-      }
-      game.drag(action.a, action.b)
-    }
-    if (!settle(game)) return fail(`move ${i + 1} never settled`)
+    const reason = replayAction(game, actions[i]!)
+    if (reason) return fail(`move ${i + 1} ${reason}`)
   }
 
   return {
@@ -331,46 +347,23 @@ export function restoreRun(game: Game, record: RunRecord): boolean {
   }
   if (record.moves.length > MAX_MOVES * 2) return false
 
-  game.restart(record.seed, rules)
-  for (const action of actions) {
-    if (game.status === 'levelComplete') game.nextLevel()
-    if (game.status !== 'playing') {
-      game.restart(record.seed, rules)
-      return false
-    }
-
-    if (action.kind === 'booster') {
-      if (!game.addBooster(action.item, BOOSTER_LIMIT)) {
+  return game.withHooksMuted(() => {
+    game.restart(record.seed, rules)
+    for (const action of actions) {
+      if (replayAction(game, action)) {
         game.restart(record.seed, rules)
         return false
       }
-      continue
     }
-    if (action.kind === 'item') {
-      if (!game.useItem(action.item, action.cell)) {
-        game.restart(record.seed, rules)
-        return false
-      }
-    } else {
-      if (!isLegalSwap(geom, game.grid, action.a, action.b, game.rules)) {
-        game.restart(record.seed, rules)
-        return false
-      }
-      game.drag(action.a, action.b)
-    }
-    if (!settle(game)) {
-      game.restart(record.seed, rules)
-      return false
-    }
-  }
-  return true
+    return true
+  })
 }
 
 /** Builds the submission for a finished run. */
 export function recordOf(game: Game): RunRecord {
   return {
     seed: game.seed,
-    moves: (game.rules === 3 ? SQUARE_HEADER : game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
+    moves: (game.rules === 4 ? VARIETY_HEADER : game.rules === 3 ? SQUARE_HEADER : game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
     score: game.score,
     level: game.level,
     board: boardOf(game.geom),

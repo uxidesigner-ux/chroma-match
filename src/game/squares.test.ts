@@ -56,7 +56,7 @@ test('v3 fresh boards contain neither free lines nor squares on 100 seeds', () =
 })
 test('v3 actions replay and resume exactly, with a distinct non-action header', () => {
   for (let seed = 1; seed <= 20; seed++) {
-    const game = new Game({}, seed)
+    const game = new Game({}, seed, BOARD, 3)
     assert.equal(hasRunActions(recordOf(game)), false)
     game.addBooster('bomb', 2)
     for (let turn = 0; turn < 30 && game.status !== 'gameOver'; turn++) {

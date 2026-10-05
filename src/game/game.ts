@@ -22,6 +22,8 @@ import { CURRENT_RULES, canFuse } from './rules.ts'
 import type { RulesVersion } from './rules.ts'
 import { fusionClear } from './fusion.ts'
 import type { Fusion } from './fusion.ts'
+import { areaCells, bonusForLevel, emptyUpgrades, FEVER_CHARGE, FEVER_TURNS, stageGoal, UPGRADE_CAP, UPGRADES } from './variety.ts'
+import type { Upgrade, Upgrades } from './variety.ts'
 
 export const MOVES_PER_LEVEL = 25
 /**
@@ -100,6 +102,9 @@ export type Action =
   | { kind: 'item'; item: Item; cell: number }
   /** A booster the run began holding. Only ever at the head of the record. */
   | { kind: 'booster'; item: Item }
+  | { kind: 'fever' }
+  | { kind: 'upgrade'; upgrade: Upgrade }
+  | { kind: 'advance' }
 
 export interface GameHooks {
   /** A group of gems just started clearing. `cells` are grid indices. */
@@ -117,6 +122,8 @@ export interface GameHooks {
   onItemEarned(item: Item, reason: 'level' | 'chain'): void
   /** An item was spent on a cell. */
   onItemUsed(item: Item, cell: number): void
+  onFever(): void
+  onCascadeCapped(): void
 }
 
 interface PendingPower {
@@ -200,6 +207,16 @@ export class Game {
   combo = 0
   bestCombo = 0
   status: Status = 'playing'
+  feverCharge = 0
+  feverTurns = 0
+  upgrades: Upgrades = emptyUpgrades()
+  private lastUpgradeLevel = 0
+  private actionCharge = 0
+  private feverSwap = false
+  private acceptedSwap = false
+  private relayFusion = false
+  private echoUsed = false
+  private actionCell = 0
 
   /** The gem committed by a completed tap, waiting for a partner. */
   selected: number | null = null
@@ -226,6 +243,13 @@ export class Game {
   private pendingFusion: ReturnType<typeof fusionClear> = null
   private idleTime = 0
   private hooks: Partial<GameHooks>
+
+  /** Rebuilding history must not pay missions, play effects or open past dialogs. */
+  withHooksMuted<T>(run: () => T): T {
+    const hooks = this.hooks
+    this.hooks = {}
+    try { return run() } finally { this.hooks = hooks }
+  }
 
   constructor(
     hooks: Partial<GameHooks> = {},
@@ -270,6 +294,42 @@ export class Game {
 
   get busy(): boolean {
     return this.phase.kind !== 'idle' || this.status !== 'playing'
+  }
+
+  get bonusRound() { return bonusForLevel(this.level, this.rules) }
+  get upgradeOptions(): Upgrade[] { return UPGRADES.filter(u => this.upgrades[u] < UPGRADE_CAP) }
+  get upgradeDue(): boolean {
+    return this.rules >= 4 && this.status === 'levelComplete' && this.level % 3 === 0
+      && this.lastUpgradeLevel !== this.level && this.upgradeOptions.length > 0
+  }
+  private get boosts(): Upgrades | undefined { return this.rules >= 4 ? this.upgrades : undefined }
+  private get refillGeom(): Geom {
+    return this.bonusRound === 'festival' ? { ...this.geom, kinds: 3 } : this.geom
+  }
+  activateFever(): boolean {
+    if (this.rules < 4 || this.busy || this.feverTurns > 0 || this.feverCharge < FEVER_CHARGE) return false
+    this.feverCharge = 0
+    this.feverTurns = FEVER_TURNS
+    this.log.push({ kind: 'fever' })
+    this.selected = null; this.held = null; this.hint = null; this.idleTime = 0
+    this.hooks.onFever?.()
+    return true
+  }
+  chooseUpgrade(upgrade: Upgrade): boolean {
+    if (!this.upgradeDue || this.phaseKind !== 'idle' || !this.upgradeOptions.includes(upgrade)) return false
+    this.upgrades[upgrade] += 1
+    this.lastUpgradeLevel = this.level
+    this.log.push({ kind: 'upgrade', upgrade })
+    return true
+  }
+
+  private beginAction(cell: number, swap: boolean): void {
+    this.actionCharge = 0
+    this.echoUsed = false
+    this.actionCell = cell
+    this.acceptedSwap = swap
+    this.feverSwap = swap && this.feverTurns > 0
+    this.relayFusion = false
   }
 
   /** Only adjacent partners of the current selection, never decorative suggestions. */
@@ -376,6 +436,7 @@ export class Game {
     if (!at(this.grid, cell)) return false
 
     this.items[item] -= 1
+    this.beginAction(cell, false)
     this.log.push({ kind: 'item', item, cell })
     this.selected = null
     this.held = null
@@ -387,10 +448,11 @@ export class Game {
     // cascade it sets off multiplies from here exactly as a match would.
     this.combo = 1
     this.bestCombo = Math.max(this.bestCombo, this.combo)
-    const seeds = blastCells(item, cell, this.geom)
+    const seeds = item === 'bomb' && this.boosts?.blast
+      ? areaCells(this.geom, cell, 1 + this.boosts.blast) : blastCells(item, cell, this.geom)
     // Routed through the same expansion a match uses, so a power gem caught in
     // a blast goes off instead of being quietly deleted.
-    const { cleared, blasts } = expandClears(this.geom, this.grid, seeds)
+    const { cleared, blasts } = expandClears(this.geom, this.grid, seeds, new Set(), this.boosts)
     // An item is aimed by hand, so it is the most deliberate thing a player
     // does on this board and the one that most deserves to be seen leaving.
     const shape = item === 'rocket' ? 'row' : item === 'bomb' ? 'square' : 'point'
@@ -444,6 +506,7 @@ export class Game {
     this.swapCells(a, b)
     this.startPhase('swap', SWAP_TIME, { a, b, doomed: !legal })
     if (legal) {
+      this.beginAction(b, true)
       this.moves = Math.max(0, this.moves - 1)
       this.log.push({ kind: 'swap', a, b })
       this.hooks.onSwapAccepted?.()
@@ -574,11 +637,12 @@ export class Game {
     const ga = at(this.grid, a)
     const gb = at(this.grid, b)
     if (ga && gb && canFuse(ga.power, gb.power, this.rules)) {
-      const result = fusionClear(this.geom, this.grid, a, b)
+      const result = fusionClear(this.geom, this.grid, a, b, this.boosts)
       if (result) {
         this.combo = 1
         this.bestCombo = Math.max(1, this.bestCombo)
         this.pendingFusion = result
+        this.relayFusion = this.bonusRound === 'relay'
         this.fusion = { kind: result.kind, a, b }
         this.startPhase('fusion', 0.3)
         this.hooks.onFusion?.(this.fusion)
@@ -613,7 +677,7 @@ export class Game {
       seeds = [aIsRainbow ? a : b]
     }
     const origin = seeds[0] ?? 0
-    const { cleared, blasts } = expandClears(this.geom, this.grid, seeds)
+    const { cleared, blasts } = expandClears(this.geom, this.grid, seeds, new Set(), this.boosts)
     // The prism that was swapped is the origin of the sweep. Its own blast is
     // reported by the expansion only when it is caught in someone else's, so
     // firing it by hand has to say so here.
@@ -658,7 +722,7 @@ export class Game {
     }
     for (const p of powers) seeds.delete(p.cell)
 
-    const { cleared, blasts } = expandClears(this.geom, this.grid, seeds)
+    const { cleared, blasts } = expandClears(this.geom, this.grid, seeds, new Set(), this.boosts)
     for (const p of powers) cleared.delete(p.cell)
 
     const first = groups[0]
@@ -672,6 +736,19 @@ export class Game {
     originCell: number,
     blasts: readonly Blast[] = [],
   ): void {
+    if (this.boosts?.echo && !this.echoUsed && blasts.length > 0) {
+      this.echoUsed = true
+      const colour = this.goal.kind === 'colour' ? this.goal.colour : at(this.grid, originCell)?.kind
+      const reserved = new Set(powers.map(p => p.cell))
+      const extra = this.grid.flatMap((gem, cell) => gem?.kind === colour && !cleared.has(cell) && !reserved.has(cell) ? [cell] : [])
+        .slice(0, this.boosts.echo * 2)
+      if (extra.length && colour !== undefined) {
+        const echo = expandClears(this.geom, this.grid, [...cleared, ...extra], new Set(cleared), this.boosts)
+        reserved.forEach(cell => echo.cleared.delete(cell))
+        cleared = echo.cleared
+        blasts = [...blasts, { cell: originCell, kind: 'colour', targets: extra, colour }, ...echo.blasts]
+      }
+    }
     if (cleared.size === 0) {
       this.settle()
       return
@@ -679,6 +756,11 @@ export class Game {
     let points = cleared.size * POINTS_PER_GEM * this.combo
     for (const p of powers) points += POWER_BONUS[p.power]
     this.score += points
+    if (this.rules >= 4 && this.feverTurns === 0 && !this.feverSwap) {
+      const earned = Math.min(35 - this.actionCharge, 4 + Math.ceil(cleared.size / 2) + this.combo * 2 + blasts.length * 3)
+      this.actionCharge += earned
+      this.feverCharge = Math.min(FEVER_CHARGE, this.feverCharge + earned)
+    }
 
     this.pendingPowers = powers
     this.pendingClear = {
@@ -737,18 +819,41 @@ export class Game {
     }
     this.pendingPowers = []
 
-    const { maxDrop } = applyGravity(this.geom, this.grid, this.rng)
+    const { maxDrop } = applyGravity(this.refillGeom, this.grid, this.rng)
     const d = Math.min(FALL_MAX, Math.max(FALL_MIN, maxDrop * FALL_PER_ROW))
     this.startPhase('fall', d)
   }
 
   private finishFall(): void {
+    // Three-colour bonus boards can otherwise cascade for tens of seconds.
+    // v4 has a declared eight-link budget, not a hidden change in refill odds.
+    // Keep every surviving power at its cell and prepare a match-free deal.
+    if (this.rules >= 4 && this.combo >= MAX_COMBO && findMatches(this.geom, this.grid, this.rules).length > 0) {
+      const deal = createBoard(this.refillGeom, this.rng, this.rules)
+      for (let cell = 0; cell < this.geom.cells; cell++) {
+        const previous = at(this.grid, cell), next = at(deal, cell)
+        if (previous && next) next.power = previous.power
+      }
+      this.grid = deal
+      this.hooks.onCascadeCapped?.()
+      this.startPhase('shuffle', SHUFFLE_TIME)
+      return
+    }
     if (this.beginClear()) return
     this.settle()
   }
 
   /** The board has stopped moving: check the level, then hand control back. */
   private settle(): void {
+    if (this.rules >= 4 && this.acceptedSwap) {
+      // Earned fever stacks with a bonus round; activating it in the factory
+      // must not replace its promised bomb or spend three turns for no benefit.
+      if (this.feverSwap) this.supplyPower(this.feverTurns === 2 ? 'rowClear' : 'bomb')
+      if (this.bonusRound === 'factory') this.supplyPower('bomb')
+      if (this.relayFusion) this.supplyPair()
+      if (this.feverSwap) this.feverTurns = Math.max(0, this.feverTurns - 1)
+    }
+    this.acceptedSwap = false; this.feverSwap = false; this.relayFusion = false
     this.combo = 0
     this.startPhase('idle', 0)
     this.idleTime = 0
@@ -774,7 +879,7 @@ export class Game {
           gem.oy = 0
         }
       }
-      shuffleBoard(this.geom, this.grid, this.rng, this.rules)
+      shuffleBoard(this.refillGeom, this.grid, this.rng, this.rules)
       this.hooks.onShuffle?.()
       this.startPhase('shuffle', SHUFFLE_TIME)
     }
@@ -782,17 +887,52 @@ export class Game {
 
   // ---- progression ---------------------------------------------------------
 
-  nextLevel(): void {
+  private supplyPower(power: Power): boolean {
+    for (let offset = 0; offset < this.geom.cells; offset++) {
+      const cell = (this.actionCell + offset) % this.geom.cells
+      const gem = at(this.grid, cell)
+      if (!gem || gem.power !== 'none') continue
+      gem.power = power; gem.flash = .45
+      if (this.goal.kind === 'power') this.goalDone += 1
+      this.hooks.onPowerCreated?.(cell, power)
+      this.actionCell = (cell + 1) % this.geom.cells
+      return true
+    }
+    return false
+  }
+  private supplyPair(): void {
+    for (let offset = 0; offset < this.geom.cells; offset++) {
+      const a = (this.actionCell + offset) % this.geom.cells, b = a + 1
+      if (this.geom.colOf(a) === this.geom.cols - 1) continue
+      if (at(this.grid, a)?.power !== 'none' || at(this.grid, b)?.power !== 'none') continue
+      this.actionCell = a; this.supplyPower('rowClear')
+      this.actionCell = b; this.supplyPower('bomb')
+      return
+    }
+  }
+
+  nextLevel(): boolean {
+    if (this.rules >= 4 && (this.status !== 'levelComplete' || this.upgradeDue)) return false
+    if (this.rules >= 4) this.log.push({ kind: 'advance' })
+    const previousBonus = this.bonusRound
     this.level += 1
     this.levelStartScore = this.score
-    this.goal = goalForLevel(this.level, this.geom.kinds)
+    this.goal = stageGoal(this.level, this.geom.kinds, this.rules)
     this.goalDone = 0
     this.target = targetForLevel(this.level)
-    this.moves = movesForLevel(this.level)
+    this.moves = movesForLevel(this.level) + (this.bonusRound ? 5 : 0)
     this.status = 'playing'
     this.selected = null
     this.held = null
     this.idleTime = 0
+    this.hint = null
+    if (this.bonusRound || previousBonus) {
+      this.grid = createBoard(this.refillGeom, this.rng, this.rules)
+      this.actionCell = 0
+      if (this.bonusRound === 'factory') for (let i = 0; i < 3; i++) this.supplyPower('bomb')
+      if (this.bonusRound === 'relay') for (let i = 0; i < 3; i++) this.supplyPair()
+    }
+    return true
   }
 
   restart(seed: number = randomSeed(), rules: RulesVersion = CURRENT_RULES): void {
@@ -802,6 +942,9 @@ export class Game {
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
     this.log.length = 0
     this.items = emptyInventory()
+    this.feverCharge = 0; this.feverTurns = 0; this.upgrades = emptyUpgrades()
+    this.lastUpgradeLevel = 0; this.actionCharge = 0; this.echoUsed = false; this.actionCell = 0
+    this.feverSwap = false; this.acceptedSwap = false; this.relayFusion = false
     this.grid = createBoard(this.geom, this.rng, rules)
     this.score = 0
     this.level = 1

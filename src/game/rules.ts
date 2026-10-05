@@ -1,7 +1,8 @@
 import type { Power } from './types.ts'
 
-export type RulesVersion = 1 | 2 | 3
-export const CURRENT_RULES: RulesVersion = 3
+export type RulesVersion = 1 | 2 | 3 | 4
+export const CURRENT_RULES: RulesVersion = 4
+export const VARIETY_HEADER = 'zw'
 export const SQUARE_HEADER = 'zx'
 /** Reserved, outside every supported board's action range; valid only at the start. */
 export const FUSION_HEADER = 'zy'

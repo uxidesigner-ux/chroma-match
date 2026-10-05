@@ -55,7 +55,7 @@ for (const [width, height] of [
         const b = e.getBoundingClientRect()
         return { fits: b.x >= 0 && b.y >= 0 && b.right <= innerWidth && b.bottom <= innerHeight, w: b.width, h: b.height }
       })
-      const hud = Array.from(document.querySelectorAll<HTMLElement>('.game-hud > div')).map(e => e.getBoundingClientRect().width)
+      const hud = Array.from(document.querySelectorAll<HTMLElement>('.game-hud > .hud-goal, .game-hud > .hud-character, .game-hud > .hud-moves')).map(e => e.getBoundingClientRect().width)
       const hint = document.getElementById('items-hint')!
       hint.textContent = 'Select a gem to use the item.'; hint.hidden = false
       const withHint = rect('#board'); hint.hidden = true
@@ -77,6 +77,7 @@ for (const [width, height] of [
     const label = `${width}/${height}/${row.skin}/${row.lang}`
     expect(row.labels.every(x => x.fits && x.wordFits), label).toBe(true)
     expect(row.tools.every(x => x.fits && x.w >= 44 && x.h >= 44), label).toBe(true)
+    expect(row.hud).toHaveLength(3)
     expect(Math.max(...row.hud) - Math.min(...row.hud), label).toBeLessThan(1)
     expect(row.withHint, label).toEqual(row.before)
     expect(row.cell, label).toBeGreaterThanOrEqual(44)

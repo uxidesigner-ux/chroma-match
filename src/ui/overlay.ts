@@ -17,6 +17,11 @@ export interface OverlayContent {
   /** The primary button. */
   action: string
   onAction: () => void
+  choices?: {
+    legend: string
+    options: ReadonlyArray<{ value: string; label: string; detail: string }>
+    onConfirm: (value: string) => void
+  }
   celebration?: 'clear' | 'record'
   /** An optional second way out, e.g. back to the launch screen. */
   secondary?: { label: string; onAction: () => void }
@@ -51,6 +56,9 @@ export class Overlay {
   private status = el('post-status')
   private victory = el('overlay-victory')
   private avatar = el<HTMLCanvasElement>('victory-avatar')
+  private choices = el<HTMLFieldSetElement>('upgrade-choices')
+  private options = el('upgrade-options')
+  private selectedChoice: string | null = null
   private modal = new ModalLayer(this.root, this.root.querySelector<HTMLElement>('.card')!)
 
   private onAction: (() => void) | null = null
@@ -69,6 +77,7 @@ export class Overlay {
       confetti.append(chip)
     }
     this.action.addEventListener('click', () => {
+      if (this.action.disabled) return
       const run = this.onAction
       this.hide()
       run?.()
@@ -140,6 +149,28 @@ export class Overlay {
     this.body.hidden = content.body.length === 0
     this.action.textContent = content.action
     this.onAction = content.onAction
+    this.selectedChoice = null
+    this.choices.hidden = !content.choices
+    this.options.replaceChildren()
+    this.action.disabled = !!content.choices
+    if (content.choices) {
+      const choices = content.choices
+      el('upgrade-legend').textContent = choices.legend
+      for (const option of choices.options) {
+        const label = document.createElement('label')
+        const input = document.createElement('input')
+        input.type = 'radio'; input.name = 'run-upgrade'; input.value = option.value
+        const text = document.createElement('span'), title = document.createElement('strong'), detail = document.createElement('span')
+        title.textContent = option.label; detail.textContent = option.detail
+        text.append(title, detail); label.append(input, text); this.options.append(label)
+        input.addEventListener('change', () => { this.selectedChoice = input.value; this.action.disabled = false })
+      }
+      this.onAction = () => {
+        const chosen = this.selectedChoice
+        // hide() resets callbacks but leaves this value until the next show.
+        if (chosen !== null) choices.onConfirm(chosen)
+      }
+    }
 
     this.onSecondary = content.secondary?.onAction ?? null
     this.home.hidden = !content.secondary
@@ -154,7 +185,7 @@ export class Overlay {
       this.setStatus('', null)
     }
 
-    this.modal.open(this.action)
+    this.modal.open(content.choices ? this.options.querySelector<HTMLInputElement>('input')! : this.action)
   }
 
   hide(): void {

@@ -2,6 +2,7 @@ import './style.css'
 import './anime-studio.css'
 import './play-lobby.css'
 import './play-responsive.css'
+import './variety.css'
 import { attachPlayLayout } from './ui/play-layout.ts'
 import { Lobby } from './ui/lobby.ts'
 import { Splash } from './ui/splash.ts'
@@ -15,7 +16,9 @@ import { Game, movesForLevel } from './game/game.ts'
 import type { GameHooks } from './game/game.ts'
 import { randomSeed } from './game/rng.ts'
 import { hasRunActions, recordOf, restoreRun } from './game/replay.ts'
-import { goalForLevel } from './game/goals.ts'
+import { bonusForLevel, stageGoal } from './game/variety.ts'
+import type { Upgrade } from './game/variety.ts'
+import { varietyCopy } from './ui/variety-copy.ts'
 import { itemForLevel } from './game/items.ts'
 import type { Item } from './game/items.ts'
 import { BOARD } from './game/types.ts'
@@ -72,10 +75,12 @@ function totalHeld(inventory: { hammer: number; rocket: number; bomb: number }):
 
 /** What the next level wants, in one sentence for the level-complete card. */
 function nextLevelAsk(level: number): string {
-  const goal = goalForLevel(level, BOARD.kinds)
-  const moves = movesForLevel(level)
+  const goal = stageGoal(level, BOARD.kinds, game.rules)
+  const bonus = bonusForLevel(level, game.rules)
+  const moves = movesForLevel(level) + (bonus ? 5 : 0)
+  const note = bonus ? `${varietyCopy().bonus[bonus]}. ${varietyCopy().bonusPreview}. ${varietyCopy().bonusDetail[bonus]} ` : ''
   if (goal.kind === 'score') {
-    return t('askScore', { level, need: n(goal.need), moves })
+    return note + t('askScore', { level, need: n(goal.need), moves })
   }
   if (goal.kind === 'power') {
     return t('askPower', { level, need: goal.need, moves })
@@ -281,6 +286,15 @@ function seedFromUrl(): number | null {
 // ---- game -----------------------------------------------------------------
 
 const hooks: Partial<GameHooks> = {
+  onCascadeCapped() {
+    combo.reportEvent(varietyCopy().chainFinish)
+    sfx.shuffle()
+  },
+  onFever() {
+    hud.react('fusion')
+    combo.reportEvent(varietyCopy().started)
+    sfx.power(); haptics.power(); renderer.hit(.8)
+  },
   onFusion(fusion) {
     hud.react('fusion')
     combo.reportFusion(fusion.kind)
@@ -401,20 +415,7 @@ const hooks: Partial<GameHooks> = {
     haptics.levelUp()
     tray.arm(null)
     if (endingRun) return
-    const earned = itemForLevel(level)
-    overlay.show({
-      kicker: t('cleared'),
-      celebration: 'clear',
-      title: t('levelComplete', { level }),
-      hero: {
-        value: n(game.score),
-        caption: t('pointsBanked'),
-        flair: t('itemEarned', { item: ITEM_LABELS[earned]() }),
-      },
-      body: nextLevelAsk(level + 1),
-      action: t('nextLevel'),
-      onAction: () => game.nextLevel(),
-    })
+    showLevelComplete(level)
   },
   onGameOver(score) {
     endingRun = false
@@ -518,6 +519,38 @@ function resetPlayView(): void {
   document.getElementById('screen-game')!.scrollTop = 0
 }
 
+function advanceStage(): void {
+  if (!game.nextLevel()) return
+  effects.clear()
+  combo.hide()
+  if (game.bonusRound) combo.reportEvent(varietyCopy().bonus[game.bonusRound])
+}
+
+function showLevelComplete(level: number): void {
+  const copy = varietyCopy()
+  const choose = game.upgradeDue
+  overlay.show({
+    kicker: t('cleared'), celebration: 'clear', title: t('levelComplete', { level }),
+    hero: { value: n(game.score), caption: t('pointsBanked'), flair: t('itemEarned', { item: ITEM_LABELS[itemForLevel(level)]() }) },
+    body: nextLevelAsk(level + 1), action: choose ? copy.confirm : t('nextLevel'),
+    onAction: advanceStage,
+    ...(choose ? { choices: {
+      legend: copy.choose,
+      options: game.upgradeOptions.map(upgrade => ({ value: upgrade,
+        label: `${copy.upgrade[upgrade]} · ${copy.tier(game.upgrades[upgrade] + 1)}`,
+        detail: copy.detail(upgrade, game.upgrades[upgrade] + 1),
+      })),
+      onConfirm: (value: string) => { if (game.chooseUpgrade(value as Upgrade)) advanceStage() },
+    } } : {}),
+  })
+}
+
+document.getElementById('hud-character')!.addEventListener('click', () => {
+  if (screens.active !== 'game' || pause.visible || document.hidden || endingRun) return
+  sfx.unlock()
+  if (game.activateFever()) { tray.arm(null); hud.update(game) }
+})
+
 function startRun(boosters: readonly Item[] = []): void {
   endingRun = false
   clearSuspended()
@@ -608,6 +641,7 @@ function continueRun(): boolean {
   resetPlayView()
   screens.show('game')
   renderer.resize()
+  if (game.status === 'levelComplete') showLevelComplete(game.level)
   return true
 }
 
@@ -692,6 +726,10 @@ document.getElementById('shop-back')?.addEventListener('click', () => {
   void home.refresh()
 })
 document.getElementById('pause')?.addEventListener('click', () => {
+  const copy = varietyCopy(), held = Object.entries(game.upgrades).filter(([, tier]) => tier > 0)
+  const upgrades = document.getElementById('run-upgrades')!
+  upgrades.hidden = held.length === 0
+  upgrades.textContent = held.map(([upgrade, tier]) => `${copy.upgrade[upgrade as Upgrade]} · ${copy.tier(tier)}`).join(' / ')
   // Deliberately not gated on the board being still. A pause that only opens
   // between cascades is a pause that refuses exactly when someone is trying to
   // put their phone down. Freeze the loop while its sheet (or nested help) is
@@ -777,6 +815,7 @@ function repaintText(): void {
   paintPlayText()
   rulesHelp.paint()
   boardViewport.paint()
+  if (screens.active === 'game' && game.status === 'levelComplete') showLevelComplete(game.level)
 
   today.refresh()
   shop.refresh()
@@ -785,6 +824,7 @@ function repaintText(): void {
 }
 applyLanguage()
 function paintPlayText(): void {
+  document.getElementById('help-variety')!.textContent = varietyCopy().help
   document.getElementById('board-scroll-hint')!.textContent = experienceCopy().scrollBoard
   document.querySelector('[data-i18n="helpLT"]')!.textContent = playCopy().square
   document.getElementById('pause')!.setAttribute('aria-label', playCopy().exit)
@@ -862,6 +902,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 
 let previous = performance.now()
 let time = 0
+let feverReadyNotified = false
 
 function frame(now: number): void {
   // Clamped so a backgrounded tab does not resolve the whole board on return.
@@ -880,8 +921,13 @@ function frame(now: number): void {
     renderer.settle(dt)
     renderer.draw(game, effects, time)
     hud.update(game, displayBest())
+    const feverReady = game.rules >= 4 && game.feverCharge >= 100 && !game.busy
+    if (game.feverCharge < 100 || game.rules < 4) feverReadyNotified = false
+    if (feverReady && !feverReadyNotified) { combo.reportEvent(varietyCopy().charged); feverReadyNotified = true }
     tray.update(game.items)
-    combo.fusionHint(!tray.armed && game.fusionPartners.length > 0)
+    const fusionAvailable = game.fusionPartners.length > 0
+    combo.fusionHint(!tray.armed && !game.busy && (fusionAvailable || !!game.bonusRound),
+      fusionAvailable ? t('fusionHint') : game.bonusRound ? varietyCopy().bonusCue[game.bonusRound] : t('fusionHint'))
     if (!itemUsed) tray.nudge(!tray.armed && totalHeld(game.items) > 0)
   }
 

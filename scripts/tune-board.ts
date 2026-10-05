@@ -19,6 +19,9 @@ import type { Geom } from '../src/game/types.ts'
 
 const FRAME = 1 / 60
 const SEEDS = 60
+// This comparison measures the released difficulty curve, not an unspecified
+// v4 upgrade/fever policy. Keep its baseline reproducible after rules evolve.
+const CURVE_RULES = 3 as const
 
 /**
  * The portrait phone the board has to fit, measured in the browser at 375x812
@@ -91,6 +94,7 @@ function evaluate(geom: Geom, label: string): Report {
       },
       seed,
       geom,
+      CURVE_RULES,
     )
     // Without this the run stops the moment it crosses level 1's goal, so the
     // board would be measured through the very curve the second table is meant
@@ -210,7 +214,7 @@ console.log(`A cell under ${MIN_TOUCH}px is below the minimum comfortable touch 
  * would credit the target change with gains that came from the moves.
  */
 function runToEnd(seed: number, base: number, step: number, moveBonus: boolean): number {
-  const game = new Game({}, seed, BOARD)
+  const game = new Game({}, seed, BOARD, CURVE_RULES)
   const target = (level: number) => base + (level - 1) * step
 
   // The curve under test replaces the score goal and nothing else. Writing it
@@ -346,7 +350,7 @@ function probeGoal(level: number): GoalProbe {
   const reached: number[] = []
 
   for (let seed = 1; seed <= SEEDS; seed++) {
-    const game = new Game({}, seed + level * 1000, BOARD)
+    const game = new Game({}, seed + level * 1000, BOARD, CURVE_RULES)
     // Drop the run straight onto the level under test: the goal, its budget,
     // and a board that owes nothing to how the previous level ended.
     game.goal = goal
@@ -380,7 +384,7 @@ function probeGoal(level: number): GoalProbe {
 }
 
 console.log()
-console.log('Each level played alone on a fresh board, with its own move budget.')
+console.log('Legacy v3 baseline: each level played alone on a fresh board, with its own move budget.')
 console.log()
 console.log(' level  goal     need  cleared  median reached  moves used')
 console.log('------------------------------------------------------------')

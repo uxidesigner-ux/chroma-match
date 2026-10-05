@@ -7,6 +7,7 @@ import { bestMove } from './autoplay.ts'
 import { hasRunActions, recordOf, restoreRun, verifyRun } from './replay.ts'
 import { BOARD, makeGeom } from './types.ts'
 import type { Grid, Power } from './types.ts'
+import { CURRENT_RULES } from './rules.ts'
 
 const G = makeGeom(7, 7, 5)
 const POWERS: Power[] = ['rowClear', 'colClear', 'bomb', 'rainbow']
@@ -120,7 +121,7 @@ test('pre-fusion production fixture keeps its exact score, board and rules after
   game.nextLevel()
   assert.equal(game.rules, 1)
   game.restart(18)
-  assert.equal(game.rules, 3)
+  assert.equal(game.rules, CURRENT_RULES)
 })
 
 test('naturally earned fusions replay and resume in v2, including chains and items', () => {

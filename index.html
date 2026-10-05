@@ -272,10 +272,10 @@
             <span class="goal-unit" id="goal-unit"></span>
             <span class="sr-only"><span id="progress">0</span> / <span id="target">1,800</span></span>
           </div>
-          <div class="hud-character" id="hud-character">
-            <div class="hud-face"><canvas id="hud-avatar" aria-hidden="true"></canvas><span class="hud-sparks" aria-hidden="true">✦</span></div>
+          <button class="hud-character" id="hud-character" type="button" aria-disabled="true">
+            <span class="hud-face"><canvas id="hud-avatar" aria-hidden="true"></canvas><svg class="fever-ring" viewBox="0 0 100 100" aria-hidden="true" hidden><circle class="fever-track" cx="50" cy="50" r="47"/><circle class="fever-fill" cx="50" cy="50" r="47" pathLength="100"/></svg><span class="hud-sparks" aria-hidden="true">✦</span></span>
             <span class="hud-reaction" id="hud-reaction"></span>
-          </div>
+          </button>
           <div class="stat hud-moves">
             <span class="stat-label" data-i18n="statMoves">Moves</span>
             <strong class="stat-value" id="moves">25</strong>
@@ -370,6 +370,7 @@
         <h2 id="help-title" tabindex="-1" data-i18n="howToPlay">How to play</h2>
         <p class="card-body" id="help-intro"></p>
         <div class="rule-patterns" id="rule-patterns"></div>
+        <p class="card-body" id="help-variety"></p>
         <details class="rule-details"><summary id="help-details-title"></summary><ul>
           <li data-i18n="helpSwap">Swap two neighbouring gems to line up three or more of a colour.</li>
           <li data-i18n="helpShapes">Every colour has its own shape, so the board reads without relying on hue.</li>
@@ -597,6 +598,7 @@
         <p class="card-kicker" data-i18n="paused">Paused</p>
         <h2 id="paused-title">Level 1</h2>
         <p class="card-body" id="paused-body"></p>
+        <p class="card-body" id="run-upgrades" hidden></p>
 
         <button class="btn btn-primary" id="paused-resume" type="button" data-i18n="resume">Resume</button>
         <!--
@@ -668,6 +670,7 @@
           <span class="card-flair" id="overlay-flair" hidden></span>
         </div>
         <p class="card-body" id="overlay-body"></p>
+        <fieldset class="upgrade-choices" id="upgrade-choices" hidden><legend id="upgrade-legend"></legend><div id="upgrade-options"></div></fieldset>
 
         <!-- Only shown when a finished run can be posted to the board. -->
         <form class="post-run" id="post-run" hidden>

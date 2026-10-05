@@ -59,6 +59,12 @@ of the player's task. The product has one anime character editor and one profile
   banking. Fresh/restored runs reset view/input focus, not saved puzzle rules.
 - New runs support 2×2 squares as bomb matches, alongside lines, L/T/+ and power fusion.
 - Preserve previous rules when resuming/replaying saved games.
+- New v4 runs add an earned, manually activated three-swap character fever,
+  capped run-long upgrades chosen at every third completed stage, and three
+  beneficial bonus-round types rotating every fifth stage. Cascade links cap
+  at eight while retaining surviving powers. All choices and continuations are
+  replay actions. No timer, geometry changes, gameplay WebGL or paid gates.
+  See `docs/gameplay-variety.md` for the state, accessibility and validation gate.
 - Keep stable, versioned choices independent of rendering implementation.
 - Library, undo and file restore edit a draft; only explicit Apply changes the profile.
 

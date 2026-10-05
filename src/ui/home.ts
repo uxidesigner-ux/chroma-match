@@ -2,6 +2,8 @@ import { checkEntries } from '../leaderboard/verify.ts'
 import type { EntryCheck, Leaderboard, LeaderboardEntry } from '../leaderboard/types.ts'
 import { avatarCanvas, myAvatar } from '../avatar/store.ts'
 import { t } from '../i18n/index.ts'
+import { rulesOf } from '../game/replay.ts'
+import { varietyCopy } from './variety-copy.ts'
 
 const SHOWN = 20
 
@@ -110,6 +112,7 @@ export class HomeScreen {
     if (generation !== this.generation) return
 
     this.renderList(entries)
+    if (entries.some(entry => entry.run && rulesOf(entry.run) >= 4)) this.note.textContent += ` · ${varietyCopy().ranking}`
     this.best.textContent = Math.max(mine?.score ?? 0, this.personalBest()).toLocaleString()
     const position = mine ? entries.findIndex((e) => e.id === mine.id) + 1 : 0
     this.rank.textContent = position > 0 ? `#${position}` : '—'
@@ -196,6 +199,11 @@ export class HomeScreen {
       const name = document.createElement('span')
       name.className = 'rank-name'
       name.textContent = entry.name
+      if (entry.run && rulesOf(entry.run) >= 4) {
+        const rules = document.createElement('span')
+        rules.className = 'rank-rules'; rules.textContent = varietyCopy().rules
+        rules.title = varietyCopy().ranking; name.append(rules)
+      }
 
       const check = document.createElement('span')
       check.className = 'rank-check'

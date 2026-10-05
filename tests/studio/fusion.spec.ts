@@ -115,7 +115,7 @@ test('fusion run survives the real keep/reload/continue UI', async ({ page }) =>
   expect(await page.evaluate(() => window.chroma.game.score)).toBe(2290)
 })
 
-test('legacy saved runs keep original rules and the next new run opts into fusion', async ({ page }) => {
+test('legacy saved runs keep original rules and the next new run opts into v4', async ({ page }) => {
   await page.evaluate(() => {
     localStorage.setItem('chroma-match:suspended', JSON.stringify({
       record: { seed: 3, moves: '3s', score: 1150, level: 1, board: { cols: 6, rows: 9, kinds: 5 } },
@@ -135,5 +135,5 @@ test('legacy saved runs keep original rules and the next new run opts into fusio
   await page.locator('#start-game').click()
   await page.locator('#overlay-action').click() // Explicitly replace the saved run.
   await page.locator('#loadout-start').click()
-  expect(await page.evaluate(() => window.chroma.game.rules)).toBe(3)
+  expect(await page.evaluate(() => window.chroma.game.rules)).toBe(4)
 })

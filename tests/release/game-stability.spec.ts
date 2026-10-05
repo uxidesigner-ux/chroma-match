@@ -8,7 +8,7 @@ test('production game keeps a real top-row chain, fixed targets and reachable to
   await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
   if (await page.locator('#overlay-action').isVisible()) await page.locator('#overlay-action').click()
   await page.locator('#start-game').click(); await page.locator('#loadout-start').click()
-  // A naturally legal v3 move for seed 18, independently replayed in the unit
+  // A naturally legal move for seed 18 (unchanged in v4), replayed in the unit
   // engine: 16 → 22 earns a two-chain and 210 points. No production debug hook.
   await page.locator('#board').focus()
   for (let i = 0; i < 2; i++) await page.keyboard.press('ArrowDown')
