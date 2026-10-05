@@ -19,6 +19,10 @@ for (const [width, height] of [
   [320, 568], [360, 640], [390, 844], [430, 932], [480, 320], [568, 320],
   [740, 360], [844, 390], [720, 720], [900, 720], [1280, 800], [1440, 900],
 ]) test(`game stability matrix: ${width}×${height}, all themes/locales/messages`, async ({ page }, info) => {
+  // Measure idle fusion labels as a returning player. Fresh supplied stock
+  // intentionally shows first-use item guidance instead; its shared-lane
+  // priority is independently covered in game-space.spec.ts and supplies.
+  await page.addInitScript(() => localStorage.setItem('chroma-match:used-item', '1'))
   await page.setViewportSize({ width: width!, height: height! })
   await page.emulateMedia({ reducedMotion: 'reduce' })
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message))
@@ -400,8 +404,10 @@ test('keyboard board focus stays inside its canvas rather than clipping at the s
         setSkin(skinById(skin)!, false)
       }, skin)
       await page.locator('#pause').focus(); await page.keyboard.press('Shift+Tab')
-      // Shift+Tab from Exit may first visit the enabled board scroll control.
-      for (let i = 0; i < 3 && !await page.locator('#board').evaluate(e => e === document.activeElement); i++) await page.keyboard.press('Shift+Tab')
+      // All three supplied items are now focusable. Follow the actual visible,
+      // enabled tray controls rather than assuming a legacy empty inventory.
+      const controls = await page.locator('#items button:enabled:visible').count()
+      for (let i = 0; i < controls && !await page.locator('#board').evaluate(e => e === document.activeElement); i++) await page.keyboard.press('Shift+Tab')
       await expect(page.locator('#board')).toBeFocused()
       const focus = await page.locator('#board').evaluate(e => {
         const css = getComputedStyle(e)

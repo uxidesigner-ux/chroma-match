@@ -135,6 +135,24 @@ Local shard inventory validation found 42/46/23/28 cases respectively: their
 disjoint union is exactly the full 139-case suite. YAML parsing and deployment
 dependency checks passed. No timeout, assertion or test coverage was removed.
 
+The first parallel CI pass exposed two legacy test assumptions, not a map
+geometry failure: fresh supplied stock deliberately gives first-use item guidance
+priority over the idle fusion hint, and three enabled items add keyboard stops.
+The returning-player geometry matrix now declares `used-item`; fresh guidance
+retains its separate shared-lane priority test. Reverse tab traversal counts the
+actual visible enabled tray controls instead of assuming empty inventory. All
+13 affected cases and the fresh guidance test passed locally after this fixture
+update. A new full CI pass remains required before release.
+
+Dependency audit still reports four transitive high warnings inherited from
+Firebase's Node-only `@grpc/grpc-js` dependency. The browser Firestore export is
+used by this static build, and the served bundle does not contain the affected
+server credential/auth-context path. This is a scope assessment, not a clean
+security audit or permission to deploy a Node gRPC server. Track a separate
+compatible dependency update before using that server path; do not force the
+audit's proposed Firebase downgrade. Primary advisory:
+https://github.com/advisories/GHSA-m9gg-hp2v-232j.
+
 Deliberate exclusions: boss phases, terrain/obstacles, cloud progress, regional
 rankings, timers, paid gates and external model packs. Balance playtests and
 physical iOS/Android/screen-reader checks remain distinct from deterministic
