@@ -27,10 +27,8 @@ jobs:
       - run: npm run typecheck
       # The test suite runs on Node's own type stripping — no build step needed.
       - run: npm test
-      - name: Install browser for interaction checks
+      - name: Install browser for production checks
         run: npx playwright install --with-deps chromium
-      - name: Verify character editor and gameplay
-        run: npm run test:studio
       - name: Build
         run: npm run build
         env:
@@ -51,9 +49,38 @@ jobs:
         with:
           path: dist
 
+  studio:
+    name: Character and game regression (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install browser for interaction checks
+        run: npx playwright install --with-deps chromium
+      # Independent runners retain one worker each. Sharding partitions all
+      # existing cases; deploy waits for every shard and the production job.
+      - name: Verify character editor and gameplay
+        run: npm run test:studio -- --shard=${{ matrix.shard }}/4
+      - name: Preserve browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-failure-${{ github.run_id }}-${{ matrix.shard }}
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
   deploy:
     name: Deploy to GitHub Pages
-    needs: check
+    needs: [check, studio]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

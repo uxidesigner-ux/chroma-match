@@ -116,11 +116,24 @@ Local release acceptance on 2026-10-05:
   action with `aria-busy`, and restores state in `finally`; both mission recovery
   and terminal-result regression cases now pass without page errors.
 - Diff review performed directly; no independent reviewer agent was available.
+- Additional acceptance: played all 20 missions through the production screen
+  using keyboard swaps/items, following a source-side deterministic policy (not
+  a development browser API). Every clear's score, remaining inventory and the
+  legitimate progress ledger matched; all four regions reached 5/5, exactly
+  1,700 first-clear coins were credited, and no page errors occurred. Long Prism
+  cascades settled in roughly 5.4–5.9 seconds under the normal 30s release
+  assertion budget. This is functional proof, not human difficulty/retention research.
 
-Release is gated by the unchanged GitHub workflow: full units, full studio,
-production build and full production suite, then Pages deployment. Push does
+Release is gated by the GitHub workflow: full units, all four studio shards,
+production build and full production suite, then Pages deployment. The existing
+139 studio cases are partitioned across four independent runners, with one
+worker per runner and no omitted cases. Deploy explicitly needs both the
+production job and the complete studio matrix. Push does
 not itself prove deployment. Check the exact commit, successful deployment job,
 served asset bytes and fresh-browser live mission flow before reporting live.
+Local shard inventory validation found 42/46/23/28 cases respectively: their
+disjoint union is exactly the full 139-case suite. YAML parsing and deployment
+dependency checks passed. No timeout, assertion or test coverage was removed.
 
 Deliberate exclusions: boss phases, terrain/obstacles, cloud progress, regional
 rankings, timers, paid gates and external model packs. Balance playtests and
