@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 
+// This suite explicitly exercises the preserved Character/free-play destination.
+// Fresh-map entry and regional campaign flows are covered in world-map.spec.ts.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('chroma-match:destination', 'character'))
+})
+
 test('production game keeps a real top-row chain, fixed targets and reachable tools across folds', async ({ page, context }, info) => {
   await context.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com|seed-san\.vrm/, route => route.abort())
   await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'en'))

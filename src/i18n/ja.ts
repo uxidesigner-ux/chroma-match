@@ -99,11 +99,11 @@ export const JA: Strings = {
   endRunNow: 'ここで終える',
   seedTitle: 'ボードシード — 共有すると同じボードを遊べます',
 
-  loadoutTitle: 'アイテムを持ち込む?',
-  loadoutBody: '2つまで選べます。最初からトレイに入ります。',
-  loadoutEmpty: 'まだアイテムがありません。ショップで買うか、レベルをクリアすると手に入ります。',
+  loadoutTitle: '初期アイテムの準備完了！',
+  loadoutBody: '任意で保管庫から追加アイテムを2つまで選べます。',
+  loadoutEmpty: '追加アイテムはありません。初期アイテムでそのまま始められます。',
   loadoutStart: 'はじめる',
-  loadoutStartEmpty: '持たずにはじめる',
+  loadoutStartEmpty: '初期アイテムではじめる',
 
   cleared: 'クリア',
   outOfMoves: '手数切れ',

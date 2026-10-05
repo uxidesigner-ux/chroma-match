@@ -1,11 +1,17 @@
 import { expect, test } from '@playwright/test'
+
+// This suite explicitly exercises the preserved Character/free-play destination.
+// Fresh-map entry and regional campaign flows are covered in world-map.spec.ts.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('chroma-match:destination', 'character'))
+})
 import { Game } from '../../src/game/game.ts'
 import { bestMove } from '../../src/game/autoplay.ts'
 import { recordOf, verifyRun } from '../../src/game/replay.ts'
-import { makeGeom } from '../../src/game/types.ts'
+import { BOARD, makeGeom } from '../../src/game/types.ts'
 
 function boundaryFixture() {
-  const game = new Game({}, 7)
+  const game = new Game({}, 7, BOARD, 4)
   for (let turn = 0; turn < 180; turn++) {
     if (game.level === 3 && game.status === 'levelComplete') {
       const record = recordOf(game)

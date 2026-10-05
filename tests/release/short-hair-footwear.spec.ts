@@ -1,4 +1,10 @@
 import { expect, test } from '@playwright/test'
+
+// This suite explicitly exercises the preserved Character/free-play destination.
+// Fresh-map entry and regional campaign flows are covered in world-map.spec.ts.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('chroma-match:destination', 'character'))
+})
 import { decodeSpec } from '../../src/avatar/spec.ts'
 
 test('production short hairstyles save, restore and reopen offline with stable new codes', async ({ page, context }, testInfo) => {

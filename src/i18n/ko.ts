@@ -105,11 +105,11 @@ export const KO: Strings = {
   endRunNow: '지금 끝내기',
   seedTitle: '보드 시드 — 공유하면 같은 보드를 다시 할 수 있어요',
 
-  loadoutTitle: '아이템을 가져갈까요?',
-  loadoutBody: '최대 두 개까지. 시작할 때 아이템 칸에 들어가요.',
-  loadoutEmpty: '아직 가진 아이템이 없어요. 상점에서 사거나, 한 단계를 클리어하면 하나 받아요.',
+  loadoutTitle: '기본 아이템 준비 완료!',
+  loadoutBody: '보관함에서 추가 아이템을 최대 두 개 선택할 수 있어요.',
+  loadoutEmpty: '보관함에 추가 아이템은 없어요. 기본 지급 아이템으로 바로 시작할 수 있어요.',
   loadoutStart: '시작하기',
-  loadoutStartEmpty: '그냥 시작하기',
+  loadoutStartEmpty: '기본 아이템으로 시작하기',
 
   cleared: '클리어',
   outOfMoves: '횟수 소진',

@@ -31,7 +31,9 @@ of the player's task. The product has one anime character editor and one profile
 - Preserve anime appearances until an explicitly chosen replacement is saved.
 - Retired or invalid appearance formats display the anime starter; never reintroduce removed renderers.
 - Offer only customization actually supported by the licensed starter model.
-- Home is a rotatable full-body 3D lobby; release its renderer when leaving home.
+- The default home is a four-region adventure map. Character remains the
+  rotatable full-body 3D lobby; release its renderer when leaving Character.
+  Remember the last Map/Character destination. Map never waits for a VRM load.
 - Profile and icon-only utilities own the lobby header. Ranks/missions/shop use
   a separate footer row, above Play. Play remains primary, labeled customization secondary,
   gestures a quiet grouped toolbar, and help/settings unframed utility icons.
@@ -66,6 +68,18 @@ of the player's task. The product has one anime character editor and one profile
   replay actions. No timer, geometry changes, gameplay WebGL or paid gates.
   See `docs/gameplay-variety.md` for the state, accessibility and validation gate.
 - Keep stable, versioned choices independent of rendering implementation.
+- New v5 runs supply three of every item without a stash purchase. Two optional
+  carried extras still fit, with five held per kind; v1-v4 stock stays unchanged.
+  Continue restores stock exactly and never grants a second supply. Preparation
+  distinguishes base supply from optional extras. See `docs/starting-items.md`.
+  Approved v6 campaign missions add four distinct rules and five authored
+  missions per region. Clearing Forest 1 opens all regions; each region's
+  missions then open in order. First-clear rewards are device-local and paid
+  once after replay verification. Keep mission goals/moves/rules in the record,
+  retain v1-v5 saves and do not post campaign scores to endless rankings.
+  Map has a fixed reachable Start/Continue strip and a native region-list
+  alternative. No timers, paid unlocks, boss phases or cloud-progress claim.
+  See `docs/world-map.md`; the original proposal is preserved separately.
 - Library, undo and file restore edit a draft; only explicit Apply changes the profile.
 
 ## Current scope decision

@@ -1,4 +1,10 @@
 import { expect, test } from '@playwright/test'
+
+// This suite explicitly exercises the preserved Character/free-play destination.
+// Fresh-map entry and regional campaign flows are covered in world-map.spec.ts.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('chroma-match:destination', 'character'))
+})
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 

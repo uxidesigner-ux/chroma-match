@@ -2,6 +2,7 @@ import { onLanguageChange, t } from '../i18n/index.ts'
 import { playCopy } from './play-copy.ts'
 import { experienceCopy } from './experience-copy.ts'
 import { ModalLayer } from './modal.ts'
+import { worldCopy } from './world-copy.ts'
 
 /**
  * The boot screen: the game's name, and a bar that only fills when the lobby
@@ -43,9 +44,11 @@ export class Splash {
   }
 
   paint(): void {
-    if (!this.done) this.status.textContent = playCopy().loading
+    let character = false
+    try { character = localStorage.getItem('chroma-match:destination') === 'character' } catch { /* map */ }
+    if (!this.done) this.status.textContent = character ? playCopy().loading : worldCopy().loading
     this.skip.textContent = experienceCopy().skip
-    document.getElementById('splash-skip-note')!.textContent = experienceCopy().skipNote
+    document.getElementById('splash-skip-note')!.textContent = character ? experienceCopy().skipNote : worldCopy().loadingNote
   }
 
   async finish(ok: boolean): Promise<void> {

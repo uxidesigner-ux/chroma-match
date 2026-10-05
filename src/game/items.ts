@@ -5,28 +5,33 @@
  * The distinction matters. A power gem is made by a match and has to be swapped
  * to fire, so it is a board state the player works with. An item is held, aimed
  * anywhere, and costs no move — it is the player acting on the board directly.
- * That is the whole appeal, and it is also why the supply has to be earned
- * rather than bought.
+ * New v5 games supply three of each up front, then replenish through play.
+ * That starting supply is part of the rules, not a mutable account balance.
  *
- * WHY THERE IS NO PERSISTENT INVENTORY
+ * WHY THE RUN SUPPLY IS REPLAYABLE
  *
- * Items are earned inside a run and die with it. This is not a scope cut, it is
- * what the leaderboard requires. A posted run is verified by replaying its seed
- * and its actions, so everything a run depends on has to be inside that record:
- * an inventory carried in from previous sessions would make two players with
- * identical seeds and identical moves score differently, and the replay would
- * have no way to tell an honest run from a forged one. It would also mean the
- * top of the board belongs to whoever hoarded the longest, which is a different
- * game from the one this is.
+ * Supplied/earned run stock expires with the run. The engine never reads an
+ * account or stash balance: starting supply follows the recorded rules version,
+ * and optional carried extras are bounded booster actions at the record's head.
+ * Seed, version and actions reconstruct every remaining item. Verification can
+ * therefore reject unearned spending without trusting mutable local balances.
  */
+
+import type { RulesVersion } from './rules.ts'
 
 export type Item = 'hammer' | 'rocket' | 'bomb'
 
 /** Order is the encoding: an item's index is written into the run record. */
 export const ITEMS: readonly Item[] = ['hammer', 'rocket', 'bomb']
 
-/** How many of one item can be held at once. */
+/** Legacy v1-v4 capacity per item. */
 export const MAX_HELD = 3
+/** Guaranteed in every new v5 run, independently of the optional stash. */
+export const START_HELD = 3
+/** Room for the standard supply plus the two existing optional boosters. */
+export const SUPPLIED_MAX_HELD = 5
+
+export const inventoryCap = (rules: RulesVersion): number => rules >= 5 ? SUPPLIED_MAX_HELD : MAX_HELD
 
 /** The chain that pays out a bomb. Reachable, but not by accident. */
 export const CHAIN_REWARD_AT = 5
@@ -35,6 +40,10 @@ export type Inventory = Record<Item, number>
 
 export function emptyInventory(): Inventory {
   return { hammer: 0, rocket: 0, bomb: 0 }
+}
+
+export function startingInventory(rules: RulesVersion): Inventory {
+  return rules >= 5 ? { hammer: START_HELD, rocket: START_HELD, bomb: START_HELD } : emptyInventory()
 }
 
 /**

@@ -85,7 +85,7 @@ test('progress is reported in the goal it belongs to', () => {
 })
 
 test('a booster is recorded, and the record replays it', () => {
-  const game = new Game({}, 909090)
+  const game = new Game({}, 909090, BOARD, 4)
   assert.equal(game.addBooster('bomb', BOOSTER_LIMIT), true)
   assert.equal(game.items.bomb, 1)
   assert.deepEqual(game.boosters, ['bomb'])

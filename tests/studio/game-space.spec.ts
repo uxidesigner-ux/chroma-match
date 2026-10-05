@@ -86,7 +86,7 @@ test('one feedback lane preserves arming, celebration priority and fixed targets
   expect(await page.locator('#board').boundingBox()).toEqual(before)
   const point = await page.evaluate(() => window.chroma.renderer.centreOf(12))
   await page.mouse.click(before!.x + point.x, before!.y + point.y)
-  await expect(page.locator('[data-count="hammer"]')).toHaveText('0')
+  await expect(page.locator('[data-count="hammer"]')).toHaveText('3')
   await expect(page.locator('#items-hint')).toBeHidden()
   expect(await page.locator('#board').boundingBox()).toEqual(before)
 })

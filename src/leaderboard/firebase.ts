@@ -1,4 +1,4 @@
-import { verifyRun } from '../game/replay.ts'
+import { verifyRun, rulesOf } from '../game/replay.ts'
 import type { RunRecord } from '../game/replay.ts'
 import { BOARD } from '../game/types.ts'
 import { session, uid as currentUid } from './session.ts'
@@ -68,6 +68,7 @@ export class FirebaseLeaderboard implements Leaderboard {
   }
 
   async submit(run: RunRecord, name: string): Promise<SubmitResult> {
+    if (rulesOf(run) === 6) return { accepted: false, reason: t('postRejected'), rank: null, score: 0 }
     // Replayed here first: a run that will not survive the board's own
     // verification should never become a row for everyone else to filter out.
     const verdict = verifyRun(run, BOARD)

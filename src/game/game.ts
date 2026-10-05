@@ -13,7 +13,7 @@ import {
 import type { Blast, Move } from './board.ts'
 import { goalForLevel, scoreTargetForLevel } from './goals.ts'
 import type { Goal } from './goals.ts'
-import { CHAIN_REWARD_AT, MAX_HELD, blastCells, emptyInventory, itemForLevel } from './items.ts'
+import { CHAIN_REWARD_AT, blastCells, inventoryCap, startingInventory, itemForLevel } from './items.ts'
 import type { Inventory, Item } from './items.ts'
 import { makeRng, randomSeed, type Rng } from './rng.ts'
 import { at, BOARD } from './types.ts'
@@ -24,6 +24,7 @@ import { fusionClear } from './fusion.ts'
 import type { Fusion } from './fusion.ts'
 import { areaCells, bonusForLevel, emptyUpgrades, FEVER_CHARGE, FEVER_TURNS, stageGoal, UPGRADE_CAP, UPGRADES } from './variety.ts'
 import type { Upgrade, Upgrades } from './variety.ts'
+import { missionFor, missionGoal, missionMode, type Mission } from './campaign.ts'
 
 export const MOVES_PER_LEVEL = 25
 /**
@@ -146,6 +147,7 @@ export function movesForLevel(level: number): number {
 export class Game {
   readonly geom: Geom
   rules: RulesVersion
+  mission: Mission | null = null
   grid: Grid
   rng: Rng
   /**
@@ -165,10 +167,10 @@ export class Game {
   readonly log: Action[] = []
 
   /**
-   * Items in hand: earned during the run, plus whatever boosters it started
-   * with. See items.ts for what earning them costs and why.
+   * Items in hand: versioned starting supply, earned rewards and recorded
+   * optional boosters. See items.ts for capacities and replay boundaries.
    */
-  items: Inventory = emptyInventory()
+  items: Inventory
 
   /**
    * The boosters this run began with.
@@ -256,15 +258,22 @@ export class Game {
     seed: number = randomSeed(),
     geom: Geom = BOARD,
     rules: RulesVersion = CURRENT_RULES,
+    missionId: string | null = null,
   ) {
     this.hooks = hooks
     this.seed = seed
     this.geom = geom
     this.rules = rules
+    this.mission = missionFor(missionId)
+    if ((rules === 6) !== Boolean(this.mission)) throw new Error('campaign rules require a valid mission')
+    this.items = startingInventory(rules)
     this.rng = makeRng(seed)
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
-    this.goal = goalForLevel(1, geom.kinds)
-    this.grid = createBoard(geom, this.rng, rules)
+    this.goal = this.mission ? missionGoal(this.mission, this.refillGeom.kinds) : goalForLevel(1, geom.kinds)
+    this.level = this.mission?.step ?? 1
+    this.moves = this.mission?.moves ?? movesForLevel(1)
+    this.grid = createBoard(this.refillGeom, this.rng, rules)
+    this.withHooksMuted(() => this.seedMissionPowers())
   }
 
   // ---- read-only view helpers used by the renderer -------------------------
@@ -296,10 +305,10 @@ export class Game {
     return this.phase.kind !== 'idle' || this.status !== 'playing'
   }
 
-  get bonusRound() { return bonusForLevel(this.level, this.rules) }
+  get bonusRound() { return this.mission ? missionMode(this.mission) : bonusForLevel(this.level, this.rules) }
   get upgradeOptions(): Upgrade[] { return UPGRADES.filter(u => this.upgrades[u] < UPGRADE_CAP) }
   get upgradeDue(): boolean {
-    return this.rules >= 4 && this.status === 'levelComplete' && this.level % 3 === 0
+    return !this.mission && this.rules >= 4 && this.status === 'levelComplete' && this.level % 3 === 0
       && this.lastUpgradeLevel !== this.level && this.upgradeOptions.length > 0
   }
   private get boosts(): Upgrades | undefined { return this.rules >= 4 ? this.upgrades : undefined }
@@ -470,7 +479,7 @@ export class Game {
     // has started, and a booster arriving mid-run is a forged record.
     if (this.log.some((action) => action.kind !== 'booster')) return false
     if (this.boosters.length >= limit) return false
-    if (this.items[item] >= MAX_HELD) return false
+    if (this.items[item] >= inventoryCap(this.rules)) return false
     this.log.push({ kind: 'booster', item })
     this.items[item] += 1
     return true
@@ -496,7 +505,7 @@ export class Game {
 
   /** Adds to the inventory, capped. A payout over the cap is simply lost. */
   private earn(item: Item, reason: 'level' | 'chain'): void {
-    if ((this.items[item] ?? 0) >= MAX_HELD) return
+    if ((this.items[item] ?? 0) >= inventoryCap(this.rules)) return
     this.items[item] += 1
     this.hooks.onItemEarned?.(item, reason)
   }
@@ -911,7 +920,17 @@ export class Game {
     }
   }
 
+  private seedMissionPowers(): void {
+    if (!this.mission) return
+    this.actionCell = 0
+    if (this.bonusRound === 'factory') for (let i = 0; i < 3; i++) this.supplyPower('bomb')
+    if (this.bonusRound === 'relay') for (let i = 0; i < 3; i++) this.supplyPair()
+    // Initial board gifts are not earned progress towards a power goal.
+    this.goalDone = 0
+  }
+
   nextLevel(): boolean {
+    if (this.mission) return false
     if (this.rules >= 4 && (this.status !== 'levelComplete' || this.upgradeDue)) return false
     if (this.rules >= 4) this.log.push({ kind: 'advance' })
     const previousBonus = this.bonusRound
@@ -935,24 +954,27 @@ export class Game {
     return true
   }
 
-  restart(seed: number = randomSeed(), rules: RulesVersion = CURRENT_RULES): void {
+  restart(seed: number = randomSeed(), rules: RulesVersion = CURRENT_RULES, missionId: string | null = null): void {
+    const mission = missionFor(missionId)
+    if ((rules === 6) !== Boolean(mission)) throw new Error('campaign rules require a valid mission')
+    this.mission = mission
     this.rules = rules
     this.seed = seed
     this.rng = makeRng(seed)
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
     this.log.length = 0
-    this.items = emptyInventory()
+    this.items = startingInventory(rules)
     this.feverCharge = 0; this.feverTurns = 0; this.upgrades = emptyUpgrades()
     this.lastUpgradeLevel = 0; this.actionCharge = 0; this.echoUsed = false; this.actionCell = 0
     this.feverSwap = false; this.acceptedSwap = false; this.relayFusion = false
-    this.grid = createBoard(this.geom, this.rng, rules)
+    this.grid = createBoard(this.refillGeom, this.rng, rules)
     this.score = 0
-    this.level = 1
+    this.level = mission?.step ?? 1
     this.levelStartScore = 0
-    this.goal = goalForLevel(1, this.geom.kinds)
+    this.goal = mission ? missionGoal(mission, this.refillGeom.kinds) : goalForLevel(1, this.geom.kinds)
     this.goalDone = 0
     this.target = targetForLevel(1)
-    this.moves = movesForLevel(1)
+    this.moves = mission?.moves ?? movesForLevel(1)
     this.combo = 0
     this.bestCombo = 0
     this.status = 'playing'
@@ -967,6 +989,7 @@ export class Game {
     this.strikes = []
     this.idleTime = 0
     this.startPhase('idle', 0)
+    this.withHooksMuted(() => this.seedMissionPowers())
   }
 }
 

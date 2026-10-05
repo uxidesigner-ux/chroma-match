@@ -116,11 +116,11 @@ export const EN = {
   seedTitle: 'Board seed — share it to replay the same board',
 
   /* ---- loadout -------------------------------------------------------- */
-  loadoutTitle: 'Take anything in?',
-  loadoutBody: 'Pick up to two. They start in your tray.',
-  loadoutEmpty: 'Nothing in the bag yet. The shop sells them, and finishing a level earns one.',
+  loadoutTitle: 'Your starting items are ready',
+  loadoutBody: 'Optionally take up to two extra items from your stash.',
+  loadoutEmpty: 'No extras in your stash. You can start with the supplied items.',
   loadoutStart: 'Start run',
-  loadoutStartEmpty: 'Start with nothing',
+  loadoutStartEmpty: 'Start with supplied items',
 
   /* ---- run cards ------------------------------------------------------ */
   cleared: 'Cleared',

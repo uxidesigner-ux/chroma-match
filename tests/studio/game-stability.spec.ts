@@ -128,7 +128,7 @@ test('real item arming and spending keep the board frame and targets unchanged',
   const point = await page.evaluate(() => window.chroma.renderer.centreOf(12))
   await page.mouse.click(before!.x + point.x, before!.y + point.y)
   await page.waitForFunction(() => !window.chroma.game.busy)
-  await expect(page.locator('[data-count="hammer"]')).toHaveText('0')
+  await expect(page.locator('[data-count="hammer"]')).toHaveText('3')
   await expect(page.locator('#items-hint')).toBeHidden()
   expect(await page.locator('#board').boundingBox()).toEqual(before)
   expect(await page.evaluate(() => window.chroma.game.log.filter(a => a.kind === 'item').length)).toBe(1)

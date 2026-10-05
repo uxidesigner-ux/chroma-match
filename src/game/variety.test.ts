@@ -17,7 +17,7 @@ function swap(game: Game): void {
   game.drag(move.a, move.b); settle(game)
 }
 function run(seed: number, turns = 120): Game {
-  const game = new Game({}, seed)
+  const game = new Game({}, seed, BOARD, 4)
   game.addBooster('bomb', 2)
   for (let turn = 0; turn < turns && game.status !== 'gameOver'; turn++) {
     if (game.status === 'levelComplete') {
@@ -32,7 +32,7 @@ function run(seed: number, turns = 120): Game {
 }
 
 test('v4 has a distinct header and ordered bounded action codes', () => {
-  const game = new Game({}, 7)
+  const game = new Game({}, 7, BOARD, 4)
   assert.equal(rulesOf(recordOf(game)), 4)
   assert.equal(hasRunActions(recordOf(game)), false)
   const malformed = { ...recordOf(game), moves: undefined } as unknown as ReturnType<typeof recordOf>

@@ -28,10 +28,19 @@ Gems that fall into a new match keep the chain going, and each step of a cascade
 multiplies the score, up to ×8. Power gems caught in someone else's blast go off
 too, so a well-placed bomb can unzip half the board.
 
-Adjacent power gems fuse even without matching colours. New runs use rules v3
-(`zx`); saved v1/v2 runs retain their original board and scoring. The game HUD
+The default lobby is Chroma Isles: four original-art regions with five missions
+each. Forest 1 opens every region; each region then progresses in order. Preview
+the rule, goal, moves and first-clear reward before entry. Volcano supplies bombs,
+Prism Coast uses three colours, and Relay City supplies fusion pairs. Saved missions
+restore their exact state, and first-clear rewards pay once. Progress is device-local,
+not cloud-synced. [Campaign implementation and original-art prompt](docs/world-map.md).
+
+Adjacent power gems fuse even without matching colours. New endless runs use rules v5
+(`zv`), supply three of each item, and retain fever, upgrades and bonus rounds.
+Saved v1-v4 runs keep their original rules and inventory. The game HUD
 shows the goal, an event-reactive profile and remaining moves. Home is a rotatable
-full-body lobby with breathing, blinking, wave, cheer and pose gestures.
+full-body Character lobby with breathing, blinking, wave, cheer and pose gestures.
+Campaign uses separately versioned v6 rules (`zu`); it does not affect endless rankings.
 See [the implementation checkpoint](docs/expressive-lobby.md).
 
 ## A few decisions worth explaining
@@ -80,7 +89,7 @@ legal swap still exists and reshuffles the gems in place if it doesn't. The
 opening deal is built constructively — no colour is placed where it would
 complete a run — so a new game never starts with points it didn't earn.
 
-**Nothing is a binary, including the icons.** `npm run icons` rasterises the
+**Icons are generated from the same palette.** `npm run icons` rasterises the
 app icons from the same palette the board uses and encodes the PNGs against
 Node's zlib, so changing a colour is a one-line edit rather than a round trip
 through a design tool. No dependency does the drawing.

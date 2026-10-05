@@ -1,7 +1,7 @@
-import { ITEMS } from '../game/items.ts'
+import { ITEMS, START_HELD } from '../game/items.ts'
 import type { Item } from '../game/items.ts'
 import { BOOSTER_LIMIT, stash, totalStashed } from '../meta.ts'
-import { t } from '../i18n/index.ts'
+import { onLanguageChange, t } from '../i18n/index.ts'
 import { ModalLayer } from './modal.ts'
 import { experienceCopy } from './experience-copy.ts'
 
@@ -25,6 +25,7 @@ export class Loadout {
   private grid = el('loadout-grid')
   private empty = el('loadout-empty')
   private body = el('loadout-body')
+  private supply = el('loadout-supply')
   private start = el<HTMLButtonElement>('loadout-start')
   private cancel = el<HTMLButtonElement>('loadout-cancel')
   private picked: Item[] = []
@@ -32,6 +33,7 @@ export class Loadout {
   private modal = new ModalLayer(this.root, this.root.querySelector<HTMLElement>('.card')!, () => this.hide())
 
   constructor() {
+    onLanguageChange(() => this.paint())
     for (const item of ITEMS) {
       const button = this.grid.querySelector<HTMLButtonElement>(`[data-load="${item}"]`)
       button?.addEventListener('click', () => this.toggle(item))
@@ -72,13 +74,14 @@ export class Loadout {
 
     const room = BOOSTER_LIMIT - this.picked.length
     const copy = experienceCopy()
+    this.supply.textContent = copy.supplies(START_HELD)
     this.body.textContent =
       this.picked.length === 0
         ? copy.loadout(BOOSTER_LIMIT)
         : room > 0
           ? copy.picked(this.picked.length, room)
           : copy.full(this.picked.length)
-    this.start.textContent = this.picked.length > 0 ? t('loadoutStart') : t('loadoutStartEmpty')
+    this.start.textContent = t('loadoutStart')
   }
 
   show(onStart: (picked: Item[]) => void): void {

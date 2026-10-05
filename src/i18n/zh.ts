@@ -96,11 +96,11 @@ export const ZH: Strings = {
   endRunNow: '现在结束',
   seedTitle: '棋盘种子 — 分享后可以重玩同一个棋盘',
 
-  loadoutTitle: '要带道具进去吗?',
-  loadoutBody: '最多选两个，开局就在道具栏里。',
-  loadoutEmpty: '还没有道具。可以在商店购买，或者通关一次获得一个。',
+  loadoutTitle: '初始道具已准备好！',
+  loadoutBody: '可以从库存额外选择最多两个道具。',
+  loadoutEmpty: '库存中没有额外道具，可以使用初始道具直接开始。',
   loadoutStart: '开始',
-  loadoutStartEmpty: '空手开始',
+  loadoutStartEmpty: '使用初始道具开始',
 
   cleared: '通过',
   outOfMoves: '步数用尽',

@@ -89,7 +89,53 @@
       <!-- ---------------------------------------------------------------- -->
       <!-- Launch screen                                                    -->
       <!-- ---------------------------------------------------------------- -->
-      <section class="screen home" id="screen-home">
+      <section class="screen world" id="screen-map" aria-labelledby="world-heading">
+        <header class="world-header">
+          <div class="world-identity">
+            <button id="map-profile" type="button" aria-label="Your profile"><canvas id="map-avatar" aria-hidden="true"></canvas></button>
+            <div><strong id="map-name">Player</strong><span class="world-wallet"><span class="coin" aria-hidden="true"></span><span id="map-coins">0</span></span></div>
+          </div>
+          <div class="world-utilities">
+            <button class="circle-button" data-action="how-to" type="button" aria-expanded="false" data-i18n-attr="aria-label:howToPlay title:howToPlay"><span class="hud-ico hud-ico-help" aria-hidden="true"></span></button>
+            <button class="circle-button" id="map-settings" type="button" aria-label="Settings"><span class="hud-ico hud-ico-gear" aria-hidden="true"></span></button>
+          </div>
+        </header>
+        <div class="world-content">
+          <div class="world-title"><div><h1 id="world-heading">Chroma Isles</h1><p id="world-subtitle">Choose your adventure</p></div><span id="world-progress">0/20 cleared</span></div>
+          <div class="world-layout">
+            <div class="world-map-area">
+              <div class="world-art" id="world-art">
+                <img id="world-image" src="%BASE_URL%chroma-world-v1.jpg" alt="" width="1024" height="1536" fetchpriority="high" />
+                <div class="world-pins" id="world-pins" role="group" aria-label="Choose a region"></div>
+              </div>
+              <details class="world-list"><summary id="world-list-label">Region list</summary><div id="world-region-list"></div></details>
+            </div>
+            <section class="world-detail" aria-labelledby="world-region">
+              <h2 id="world-region">Gem Forest</h2>
+              <p id="world-rule"></p>
+              <div class="world-missions" id="world-missions" role="group" aria-label="Missions"></div>
+              <h3 id="world-mission-title"></h3>
+              <p id="world-goal"></p>
+              <div class="world-rewards"><span id="world-reward"></span><span id="world-supply"></span></div>
+              <p id="world-note" role="status"></p>
+              <div class="world-secondary"><button id="map-freeplay" type="button">Free play</button><button id="map-ranks" type="button">Ranks</button><button id="map-today" type="button">Today</button></div>
+            </section>
+          </div>
+        </div>
+        <div class="world-footer">
+          <div class="world-start-preview"><strong id="world-current"></strong><span id="world-start-rule"></span><span id="world-start-goal"></span><span id="world-start-note" role="status"></span></div>
+          <div class="world-actions">
+            <button class="btn btn-ghost" id="map-continue" type="button" hidden><span id="map-continue-label">Continue</span><span id="map-continue-sub"></span></button>
+            <button class="btn btn-primary" id="world-play" type="button">Start mission</button>
+          </div>
+        </div>
+        <nav class="world-nav" aria-label="Main">
+          <button id="map-nav-current" type="button" aria-current="page"><span class="world-nav-mark" aria-hidden="true">⌖</span><span>Map</span></button>
+          <button id="map-character" type="button"><span class="world-nav-mark" aria-hidden="true">♙</span><span>Character</span></button>
+          <button id="map-shop" type="button"><span class="hud-ico hud-ico-shop" aria-hidden="true"></span><span>Shop</span></button>
+        </nav>
+      </section>
+      <section class="screen home" id="screen-home" hidden>
         <!--
           Identity owns the top row with icon-only utilities. Destinations have
           their own footer row so they cannot squeeze or cover the profile.
@@ -123,6 +169,7 @@
             </div>
           </section>
           <div class="lobby-utilities">
+            <button class="lobby-map" id="lobby-map" type="button">Map</button>
             <button class="circle-button" data-action="how-to" type="button" aria-expanded="false" data-i18n-attr="aria-label:howToPlay title:howToPlay"><span class="hud-ico hud-ico-help" aria-hidden="true"></span></button>
             <button class="circle-button" id="open-settings" type="button" data-i18n-attr="aria-label:settings title:settings"><span class="hud-ico hud-ico-gear" aria-hidden="true"></span></button>
           </div>
@@ -622,10 +669,12 @@
     </div>
 
     <div class="overlay" id="loadout" hidden>
-      <div class="card" role="dialog" aria-modal="true" aria-labelledby="loadout-title">
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="loadout-title" aria-describedby="loadout-supply">
         <p class="card-kicker" data-i18n="beforeYouStart">Before you start</p>
-        <h2 id="loadout-title" data-i18n="loadoutTitle">Take anything in?</h2>
-        <p class="card-body" id="loadout-body" data-i18n="loadoutBody">Pick up to two. They start in your tray.</p>
+        <h2 id="loadout-title" data-i18n="loadoutTitle">Your starting items are ready</h2>
+        <section class="loadout-content" id="loadout-content" tabindex="0" aria-labelledby="loadout-title">
+        <p class="card-body" id="loadout-supply">Every new run includes 3 hammers, 3 rockets and 3 bombs. Items cost no moves.</p>
+        <p class="card-body" id="loadout-body" data-i18n="loadoutBody">Optionally take up to two extra items from your stash.</p>
 
         <div class="loadout-grid" id="loadout-grid">
           <button class="loadout-pick" data-load="hammer" type="button" aria-pressed="false">
@@ -646,11 +695,13 @@
         </div>
 
         <p class="loadout-empty" id="loadout-empty" data-i18n="loadoutEmpty" hidden>
-          Nothing in the bag yet. The shop sells them, and finishing a level earns one.
+          No extras in your stash. You can start with the supplied items.
         </p>
-
+        </section>
+        <div class="loadout-actions">
         <button class="btn btn-primary" id="loadout-start" type="button" data-i18n="loadoutStart">Start run</button>
         <button class="btn btn-ghost" id="loadout-cancel" type="button" data-i18n="back">Back</button>
+        </div>
       </div>
     </div>
 

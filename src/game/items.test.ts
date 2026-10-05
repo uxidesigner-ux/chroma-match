@@ -48,8 +48,8 @@ test('level payouts rotate so a player can plan around them', () => {
   }
 })
 
-test('an item cannot be spent unless it was earned', () => {
-  const game = new Game({}, 12345)
+test('legacy runs cannot spend an item unless it was earned', () => {
+  const game = new Game({}, 12345, BOARD, 4)
   // Nothing is held at the start of a run, so every one of these is a forgery.
   for (const item of ITEMS) {
     assert.equal(game.useItem(item, BOARD.idx(2, 2)), false)
@@ -75,8 +75,8 @@ test('spending an item clears the board and is recorded', () => {
   assert.deepEqual(game.log.at(-1), { kind: 'item', item: 'bomb', cell: target })
 })
 
-test('the inventory is capped', () => {
-  const game = new Game({}, 77)
+test('legacy inventory uses its original cap', () => {
+  const game = new Game({}, 77, BOARD, 4)
   for (let i = 0; i < MAX_HELD + 4; i++) {
     // Reaching in rather than playing to it: the cap is what is under test,
     // not the route a run takes to reach it.
@@ -102,7 +102,7 @@ test('an item survives the round trip through the run record', () => {
 })
 
 test('a run that used items verifies, and a forged one does not', () => {
-  const game = new Game({}, 20260916)
+  const game = new Game({}, 20260916, BOARD, 4)
   assert.ok(playUntilHeld(game, 'bomb'), 'a run should pay out a bomb')
   assert.equal(game.useItem('bomb', BOARD.idx(3, 4)), true)
   settle(game)

@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 
+// This suite explicitly exercises the preserved Character/free-play destination.
+// Fresh-map entry and regional campaign flows are covered in world-map.spec.ts.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('chroma-match:destination', 'character'))
+})
+
 test.use({ reducedMotion: 'no-preference', deviceScaleFactor: 3 })
 
 for (const [width, height] of [[320, 568], [568, 320]]) test(`production scrolled contact and live score ink stay stable at ${width}×${height}/DPR3`, async ({ page, context }, info) => {
@@ -39,7 +45,7 @@ for (const [width, height] of [[320, 568], [568, 320]]) test(`production scrolle
   await page.mouse.move(before.x + before.width / 2, stage.y + 6); await page.mouse.down()
   expect(await page.locator('#board').boundingBox()).toEqual(before)
   await page.mouse.up()
-  await expect(page.locator('[data-count="hammer"]')).toHaveText('0')
+  await expect(page.locator('[data-count="hammer"]')).toHaveText('3')
   await expect.poll(() => page.evaluate(() => (window as unknown as { releaseInk: unknown[] }).releaseInk.length)).toBeGreaterThan(0)
   const ink = await page.evaluate(() => (window as unknown as { releaseInk: { visible: boolean; text: string }[] }).releaseInk)
   expect(ink.every(t => t.visible), JSON.stringify(ink)).toBe(true)

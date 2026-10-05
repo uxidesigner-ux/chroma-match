@@ -1861,6 +1861,29 @@ html.splash-open body {
 
 /* ---- loadout ------------------------------------------------------------ */
 
+/* Match the overlay's 24px gutter; long guidance scrolls, title/actions do not. */
+#loadout {
+  padding-block: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-bottom));
+}
+#loadout .card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - max(24px, env(safe-area-inset-bottom)));
+  overflow: hidden;
+}
+#loadout .card > :not(.loadout-content) { flex: none; }
+.loadout-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Reserve the existing 3px focus outline plus 3px offset inside the scroller. */
+  padding: 6px;
+  margin-inline: -6px;
+}
+.loadout-actions { display: grid; gap: 8px; margin-top: 12px; }
+#loadout .loadout-actions .btn { width: 100%; margin: 0; }
+
 .loadout-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1873,6 +1896,7 @@ html.splash-open body {
 }
 
 .loadout-pick {
+  min-width: 0;
   appearance: none;
   display: flex;
   flex-direction: column;
@@ -1907,6 +1931,7 @@ html.splash-open body {
 }
 
 .loadout-name {
+  overflow-wrap: anywhere;
   font-size: var(--text-xs);
   font-weight: 650;
   letter-spacing: 0.05em;

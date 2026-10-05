@@ -7,6 +7,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('3D loading never blocks a player who chooses to enter now', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('chroma-match:destination', 'character'))
   let release!: () => void
   const loading = new Promise<void>(resolve => { release = resolve })
   await page.route('**/seed-san.vrm', async route => { await loading; await route.abort() })
@@ -14,7 +15,7 @@ test('3D loading never blocks a player who chooses to enter now', async ({ page 
   await page.locator('#splash-skip').click()
   await enterLobby(page)
   await page.locator('#start-game').click()
-  await expect(page.locator('#loadout-body')).toContainText('이동 횟수를 쓰지 않아요')
+  await expect(page.locator('#loadout-supply')).toContainText('이동 횟수를 쓰지 않아요')
   await page.locator('#loadout-start').click()
   await expect(page.locator('#screen-game')).toBeVisible()
   await expect(page.locator('#goal-text')).toHaveText('남은 목표 점수')

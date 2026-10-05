@@ -11,6 +11,7 @@ import { experienceCopy } from './experience-copy.ts'
 import { hasPortrait } from '../avatar/anime-portrait.ts'
 import { varietyCopy } from './variety-copy.ts'
 import { FEVER_CHARGE } from '../game/variety.ts'
+import { missionCaption, worldCopy } from './world-copy.ts'
 
 const el = (id: string) => document.getElementById(id)!
 type Reaction = 'pop' | 'power' | 'fusion' | 'chain' | 'clear'
@@ -107,7 +108,7 @@ export class Hud {
     const what = goalLabel(game.goal, gemName, { score: copy.scoreGoal, power: copy.powerGoal, gems: colour => t('goalGems', { colour }) })
     const colour = game.goal.kind === 'colour' ? game.goal.colour : 3
     const style = styleFor(colour)
-    const signature = `${game.moves}:${game.level}:${game.progress}:${game.need}:${game.seed}:${game.rules}:${what}:${style.base}`
+    const signature = `${game.moves}:${game.level}:${game.progress}:${game.need}:${game.seed}:${game.rules}:${game.mission?.id}:${what}:${style.base}`
     if (signature === this.last) return
     this.last = signature
     const newStage = el('bar').dataset.stage !== `${game.seed}:${game.level}`
@@ -115,8 +116,9 @@ export class Hud {
     el('bar').style.transition = newStage ? 'none' : ''
     el('moves').textContent = String(game.moves)
     el('moves').closest('.stat')!.classList.toggle('urgent', game.moves <= 5)
-    el('level').textContent = `${t('levelN', { level: game.level })}${game.bonusRound ? ` · ${variety.bonus[game.bonusRound]}` : ''}`
-    el('level').title = game.bonusRound ? `${variety.bonusPreview}. ${variety.bonusDetail[game.bonusRound]}` : ''
+    el('level').textContent = game.mission ? `${worldCopy().regions[game.mission.region]} · ${game.mission.step}/5`
+      : `${t('levelN', { level: game.level })}${game.bonusRound ? ` · ${variety.bonus[game.bonusRound]}` : ''}`
+    el('level').title = game.mission ? worldCopy().rules[game.mission.region] : game.bonusRound ? `${variety.bonusPreview}. ${variety.bonusDetail[game.bonusRound]}` : ''
     el('goal-text').textContent = what
     const unit = game.goal.kind === 'score' ? copy.points : game.goal.kind === 'power' ? copy.powers : copy.gems
     el('goal-unit').textContent = unit
@@ -126,7 +128,7 @@ export class Hud {
     el('progress').textContent = n(Math.min(game.progress, game.need))
     el('target').textContent = n(game.need)
     el('bar').style.width = `${Math.min(100, game.progress / game.need * 100)}%`
-    el('seed').textContent = `seed ${game.seed.toString(36).toUpperCase()} · ${game.rules === 4 ? variety.rules : game.rules === 3 ? playCopy().rules : t(game.rules === 1 ? 'legacyRules' : 'fusionRules')}`
+    el('seed').textContent = `seed ${game.seed.toString(36).toUpperCase()} · ${game.mission ? missionCaption(game.mission) : game.rules === 5 ? copy.suppliedRules : game.rules === 4 ? variety.rules : game.rules === 3 ? playCopy().rules : t(game.rules === 1 ? 'legacyRules' : 'fusionRules')}`
     const canvas = el('goal-gem') as HTMLCanvasElement
     const ctx = canvas.getContext('2d')!
     // System fonts differ across platforms. Reserve the widest digit for

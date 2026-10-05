@@ -61,7 +61,7 @@ test('lobby rotates with keys and gestures, releases 3D on play and returns safe
   await page.locator('#pause').click(); await page.locator('#paused-keep').click()
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
   await page.locator('#continue-run').click()
-  expect(await page.evaluate(() => window.chroma.game.rules)).toBe(4)
+  expect(await page.evaluate(() => window.chroma.game.rules)).toBe(5)
   expect(errors).toEqual([])
 })
 

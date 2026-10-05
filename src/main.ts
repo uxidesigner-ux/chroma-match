@@ -3,6 +3,11 @@ import './anime-studio.css'
 import './play-lobby.css'
 import './play-responsive.css'
 import './variety.css'
+import './world-map.css'
+import { WorldMap } from './ui/world-map.ts'
+import { worldCopy, missionCaption } from './ui/world-copy.ts'
+import { CampaignProgress, unlocked } from './campaign-progress.ts'
+import { MISSIONS, type Mission } from './game/campaign.ts'
 import { attachPlayLayout } from './ui/play-layout.ts'
 import { Lobby } from './ui/lobby.ts'
 import { Splash } from './ui/splash.ts'
@@ -15,7 +20,7 @@ import { Haptics } from './haptics.ts'
 import { Game, movesForLevel } from './game/game.ts'
 import type { GameHooks } from './game/game.ts'
 import { randomSeed } from './game/rng.ts'
-import { hasRunActions, recordOf, restoreRun } from './game/replay.ts'
+import { hasRunActions, recordOf, restoreRun, missionOf } from './game/replay.ts'
 import { bonusForLevel, stageGoal } from './game/variety.ts'
 import type { Upgrade } from './game/variety.ts'
 import { varietyCopy } from './ui/variety-copy.ts'
@@ -105,8 +110,9 @@ const NAME_KEY = 'chroma-match:name'
 initSkin()
 attachPlayLayout()
 
-const canvas = document.getElementById('board')
-if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #board canvas')
+const canvasNode = document.getElementById('board')
+if (!(canvasNode instanceof HTMLCanvasElement)) throw new Error('Missing #board canvas')
+const canvas: HTMLCanvasElement = canvasNode
 
 // The board's proportions live in one place. CSS sizes the box the canvas
 // fills, so it is told the ratio rather than having it duplicated.
@@ -156,6 +162,13 @@ const profile = new ProfileCard(
     screens.show('creator')
   },
 )
+let campaignStorage: Storage | null = null
+try { campaignStorage = localStorage } catch { /* unavailable storage remains a playable session */ }
+const campaign = new CampaignProgress(campaignStorage)
+const world = new WorldMap(campaign, mission => requestNewRun(mission),
+  () => readStored(NAME_KEY) || account()?.name || '')
+let returnDestination: 'map' | 'home' = screens.active === 'home' ? 'home' : 'map'
+let shopDestination: 'map' | 'home' = returnDestination
 
 /**
  * The local board is used immediately so the launch screen has something to
@@ -175,6 +188,7 @@ friends.onChange(() => void home.refresh())
 // avatar changes what every row of it looks like, so the board is re-read
 // rather than left showing the previous account's.
 profile.onChange(() => {
+  world.refresh()
   if (screens.active === 'home') void home.refresh()
 })
 
@@ -187,6 +201,7 @@ profile.onChange(() => {
  * publishProfile reads the avatar itself rather than taking it as an argument.
  */
 creator.onChange(async () => {
+  world.refresh()
   profile.refresh()
   hud.refreshAvatar()
   void home.refresh()
@@ -201,8 +216,9 @@ creator.onChange(async () => {
   }
 })
 
-today.onChange(() => shop.refresh())
-packs.onBuy(() => shop.refresh())
+today.onChange(() => { shop.refresh(); world.refresh() })
+packs.onBuy(() => { shop.refresh(); world.refresh() })
+document.getElementById('profile-name-input')!.addEventListener('input', () => world.refresh())
 
 void openLeaderboard().then((board) => {
   if (board === leaderboard) return
@@ -243,6 +259,7 @@ let record = Number(readStored(BEST_KEY)) || 0
 let furthest = Math.max(1, Number(readStored(LEVEL_KEY)) || 1)
 
 function commitRecord(): boolean {
+  if (game.mission) return false // Authored missions are not comparable to endless rankings.
   if (game.level > furthest) {
     furthest = game.level
     writeStored(LEVEL_KEY, String(furthest))
@@ -410,10 +427,11 @@ const hooks: Partial<GameHooks> = {
     hud.react('clear')
     // Reaching level N+1 is what finishing level N means; a mission that asks
     // for level 6 should tick on the card that hands out level 6.
-    reportMission('level', level + 1)
+    if (!game.mission) reportMission('level', level + 1)
     sfx.levelUp()
     haptics.levelUp()
     tray.arm(null)
+    if (game.mission) { endingRun = false; showLevelComplete(level); return }
     if (endingRun) return
     showLevelComplete(level)
   },
@@ -426,6 +444,15 @@ const hooks: Partial<GameHooks> = {
     tray.arm(null)
     // The run is over, so there is nothing left to come back to.
     clearSuspended()
+    if (game.mission) {
+      const m = game.mission, copy = worldCopy()
+      overlay.show({ kicker: missionCaption(m), title: copy.failed, body: copy.retryNote,
+        hero: { value: n(game.progress), caption: `${n(game.need)}` },
+        action: copy.retry, onAction: () => startRun([], m),
+        secondary: { label: copy.back, onAction: goHome },
+      })
+      return
+    }
     const previous = record
     const isRecord = commitRecord()
     const run = recordOf(game)
@@ -527,6 +554,22 @@ function advanceStage(): void {
 }
 
 function showLevelComplete(level: number): void {
+  if (game.mission) {
+    const m = game.mission, copy = worldCopy(), claim = campaign.claim(recordOf(game))
+    if (claim.ok) clearSuspended()
+    world.select(m.id)
+    const next = MISSIONS.find(a => a.region === m.region && a.step === m.step + 1 && unlocked(campaign.state, a))
+    overlay.show({
+      kicker: missionCaption(m), title: copy.cleared, celebration: 'clear',
+      hero: { value: n(game.score), caption: t('pointsBanked'),
+        flair: claim.reward ? `${copy.first} · +${claim.reward} ${t('starterCoins')}` : copy.complete },
+      body: !claim.ok ? copy.invalid : !claim.persistent ? copy.storage : claim.first ? copy.saved : copy.replayNote,
+      action: next && claim.ok ? copy.next : copy.back,
+      onAction: next && claim.ok ? () => { world.select(next.id); startRun([], next) } : goHome,
+      ...(next && claim.ok ? { secondary: { label: copy.back, onAction: goHome } } : {}),
+    })
+    return
+  }
   const copy = varietyCopy()
   const choose = game.upgradeDue
   overlay.show({
@@ -551,7 +594,7 @@ document.getElementById('hud-character')!.addEventListener('click', () => {
   if (game.activateFever()) { tray.arm(null); hud.update(game) }
 })
 
-function startRun(boosters: readonly Item[] = []): void {
+function startRun(boosters: readonly Item[] = [], mission: Mission | null = null): void {
   endingRun = false
   clearSuspended()
   effects.clear()
@@ -559,7 +602,9 @@ function startRun(boosters: readonly Item[] = []): void {
   combo.prepare()
   tray.arm(null)
   overlay.hide()
-  game.restart(seedFromUrl() ?? randomSeed())
+  if (screens.active === 'home' || screens.active === 'map') returnDestination = mission ? 'map' : screens.active
+  if (mission) returnDestination = 'map'
+  game.restart(mission?.seed ?? seedFromUrl() ?? randomSeed(), mission ? 6 : 5, mission?.id)
   resetPlayView()
   // Play again stays on the same screen, so its screen-change hook won't run.
   if (screens.active === 'game') hud.reset()
@@ -575,6 +620,7 @@ function startRun(boosters: readonly Item[] = []): void {
   shop.refresh()
 
   screens.show('game')
+  hud.invalidate()
   renderer.resize()
 }
 
@@ -587,7 +633,8 @@ function goHome(): void {
   tray.arm(null)
   overlay.hide()
   pause.hide()
-  screens.show('home')
+  screens.show(returnDestination)
+  world.refresh()
   paintContinue()
   today.refresh()
   paintLevel()
@@ -638,6 +685,8 @@ function continueRun(): boolean {
   }
 
   clearSuspended()
+  if (game.mission) { returnDestination = 'map'; world.select(game.mission.id) }
+  else returnDestination = screens.active === 'home' ? 'home' : 'map'
   resetPlayView()
   screens.show('game')
   renderer.resize()
@@ -647,18 +696,22 @@ function continueRun(): boolean {
 
 /** Shows or hides the launch screen's Continue button. */
 function paintContinue(): void {
+  world.refresh()
   const kept = suspendedRun()
   const button = document.getElementById('continue-run')
   const sub = document.getElementById('continue-sub')
   if (!button) return
   button.hidden = kept === null
   if (kept && sub) {
-    sub.textContent = t('continueSub', { level: kept.level, score: n(kept.score) })
+    const mission = missionOf(kept.record)
+    sub.textContent = mission ? missionCaption(mission) : t('continueSub', { level: kept.level, score: n(kept.score) })
   }
 }
 
 screens.onChange((name) => {
   document.documentElement.classList.toggle('game-open', name === 'game')
+  document.documentElement.classList.toggle('map-open', name === 'map')
+  if (name === 'map') world.refresh()
   if (name === 'home') lobby.show()
   else lobby.hide()
   hud.reset()
@@ -668,45 +721,68 @@ screens.onChange((name) => {
   if (name === 'game') renderer.resize()
 })
 
-document.getElementById('continue-run')?.addEventListener('click', (event) => {
+for (const id of ['continue-run', 'map-continue']) document.getElementById(id)?.addEventListener('click', (event) => {
   sfx.unlock()
   // Restoring is a replay, and a replay of a long run is not instant — roughly
   // six milliseconds an action, so a couple of hundred moves is over a second
   // of a synchronous loop. Say so and give the browser a frame to paint it,
   // because a button that does nothing for a second has been pressed twice.
   const button = event.currentTarget as HTMLButtonElement
-  const label = button.innerHTML
+  const label = button.querySelector<HTMLElement>('#map-continue-label, [data-i18n="continueRun"]')!
+  const text = label.textContent
   button.disabled = true
-  button.textContent = t('restoring')
+  button.setAttribute('aria-busy', 'true')
+  label.textContent = t('restoring')
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      continueRun()
-      button.disabled = false
-      button.innerHTML = label
+      try { continueRun() }
+      finally {
+        // Refresh can update the saved mission while restoring. Keep these
+        // labelled nodes mounted rather than replacing the button's subtree.
+        button.disabled = false
+        button.removeAttribute('aria-busy')
+        label.textContent = text
+        paintContinue()
+      }
     })
   })
 })
 
 document.getElementById('start-game')?.addEventListener('click', () => {
+  requestNewRun()
+})
+function requestNewRun(mission: Mission | null = null): void {
+  if (mission && !unlocked(campaign.state, mission)) return
   sfx.unlock()
   const kept = suspendedRun()
   if (!kept) {
-    loadout.show((picked) => startRun(picked))
+    loadout.show((picked) => startRun(picked, mission))
     return
   }
   // A new run overwrites the kept one, so it is asked for rather than assumed.
   overlay.show({
     kicker: t('runWaiting'),
-    title: t('levelN', { level: kept.level }),
+    title: missionOf(kept.record) ? missionCaption(missionOf(kept.record)!) : t('levelN', { level: kept.level }),
     body: t('runWaitingBody', { score: n(kept.score) }),
     action: t('startANewRun'),
     onAction: () => {
-      clearSuspended()
-      paintContinue()
-      loadout.show((picked) => startRun(picked))
+      // Confirmation permits replacing the old run, but cancellation of the
+      // preparation dialog still keeps it. Only startRun clears the old save.
+      loadout.show((picked) => startRun(picked, mission))
     },
     secondary: { label: t('continueThatOne'), onAction: () => continueRun() },
   })
+}
+
+document.getElementById('map-character')!.addEventListener('click', () => screens.show('home'))
+document.getElementById('lobby-map')!.addEventListener('click', () => screens.show('map'))
+document.getElementById('map-nav-current')!.addEventListener('click', () => document.querySelector('.world-content')!.scrollTo({ top: 0 }))
+document.getElementById('map-freeplay')!.addEventListener('click', () => requestNewRun())
+document.getElementById('map-profile')!.addEventListener('click', () => profile.open())
+document.getElementById('map-ranks')!.addEventListener('click', () => { ranksSheet.show(); void home.refresh() })
+document.getElementById('map-today')!.addEventListener('click', () => document.getElementById('today-row')!.click())
+document.getElementById('map-shop')!.addEventListener('click', () => {
+  shopDestination = 'map'; shop.reset(); screens.show('shop')
 })
 
 document.getElementById('open-ranks')?.addEventListener('click', () => {
@@ -717,11 +793,12 @@ document.getElementById('open-ranks')?.addEventListener('click', () => {
 })
 
 document.getElementById('open-shop')?.addEventListener('click', () => {
+  shopDestination = 'home'
   shop.reset()
   screens.show('shop')
 })
 document.getElementById('shop-back')?.addEventListener('click', () => {
-  screens.show('home')
+  screens.show(shopDestination)
   shop.refresh()
   void home.refresh()
 })
@@ -790,6 +867,7 @@ const settings = new SettingsSheet({
 })
 
 const rulesHelp = new RulesHelp()
+document.getElementById('map-settings')!.addEventListener('click', () => settings.show())
 const boardViewport = new BoardViewport()
 
 // ---- loop -----------------------------------------------------------------
@@ -821,6 +899,7 @@ function repaintText(): void {
   shop.refresh()
   packs.refresh()
   void home.refresh()
+  world.refresh()
 }
 applyLanguage()
 function paintPlayText(): void {
@@ -912,6 +991,8 @@ function frame(now: number): void {
   if (screens.active === 'game' && !pause.visible && !document.hidden) {
     time += dt
     game.update(dt)
+    const boardBusy = String(game.phaseKind !== 'idle')
+    if (canvas.getAttribute('aria-busy') !== boardBusy) canvas.setAttribute('aria-busy', boardBusy)
     if (endingRun && game.phaseKind === 'idle') {
       endingRun = false
       game.endRun()
@@ -993,5 +1074,7 @@ function welcomeHome(): void {
     onAction: () => {},
   })
 }
-lobby.show()
+document.documentElement.classList.toggle('map-open', screens.active === 'map')
+if (screens.active === 'home') lobby.show()
+else { splash.setProgress(100); void splash.finish(true) }
 requestAnimationFrame(frame)

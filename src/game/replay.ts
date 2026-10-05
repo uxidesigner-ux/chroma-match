@@ -19,7 +19,8 @@ import type { Action } from './game.ts'
 import { ITEMS } from './items.ts'
 import type { Item } from './items.ts'
 import type { Geom } from './types.ts'
-import { FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER } from './rules.ts'
+import { FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER, SUPPLIES_HEADER, CAMPAIGN_HEADER } from './rules.ts'
+import { MISSIONS, type Mission } from './campaign.ts'
 import type { RulesVersion } from './rules.ts'
 import { UPGRADES } from './variety.ts'
 
@@ -30,7 +31,7 @@ const SETTLE_LIMIT = 4000
 export const MAX_MOVES = 4000
 /** Two base36 characters carry one action, so everything below has to fit. */
 const PACK_LIMIT = 36 * 36
-const FIRST_HEADER = Math.min(...[VARIETY_HEADER, SQUARE_HEADER, FUSION_HEADER].map(h => Number.parseInt(h, 36)))
+const FIRST_HEADER = Math.min(...[CAMPAIGN_HEADER, SUPPLIES_HEADER, VARIETY_HEADER, SQUARE_HEADER, FUSION_HEADER].map(h => Number.parseInt(h, 36)))
 
 /** Neighbour offsets, in the order their index is encoded. */
 const DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
@@ -58,22 +59,30 @@ export interface RunRecord {
 }
 
 export function hasRunActions(record: RunRecord): boolean {
-  return record.moves.length > ([FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER].some(h => record.moves.startsWith(h)) ? 2 : 0)
+  if (rulesOf(record) === 6) return record.moves.length > 4
+  return record.moves.length > ([FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER, SUPPLIES_HEADER].some(h => record.moves.startsWith(h)) ? 2 : 0)
 }
 
 export function rulesOf(record: RunRecord): RulesVersion {
   // Ranking labels can be painted before asynchronous verification rejects a
   // malformed remote row. Detection must not take the entire list down.
   const moves = typeof record.moves === 'string' ? record.moves : ''
-  return moves.startsWith(VARIETY_HEADER) ? 4 : moves.startsWith(SQUARE_HEADER) ? 3
+  return moves.startsWith(CAMPAIGN_HEADER) ? 6 : moves.startsWith(SUPPLIES_HEADER) ? 5 : moves.startsWith(VARIETY_HEADER) ? 4 : moves.startsWith(SQUARE_HEADER) ? 3
     : moves.startsWith(FUSION_HEADER) ? 2 : 1
 }
-function decodeRecord(geom: Geom, record: RunRecord): { rules: RulesVersion; actions: Action[] } {
+export function missionOf(record: RunRecord): Mission | null {
+  if (rulesOf(record) !== 6 || !/^[0-9a-z]{2}$/.test(record.moves.slice(2, 4))) return null
+  return MISSIONS[Number.parseInt(record.moves.slice(2, 4), 36)] ?? null
+}
+function decodeRecord(geom: Geom, record: RunRecord): { rules: RulesVersion; actions: Action[]; mission: Mission | null } {
   const rules = rulesOf(record)
-  const actions = decodeMoves(geom, rules > 1 ? record.moves.slice(2) : record.moves)
+  const mission = missionOf(record)
+  if (rules === 6 && !mission) throw new Error('campaign mission is missing or unknown')
+  if (mission && record.seed !== mission.seed) throw new Error('seed does not match the authored mission')
+  const actions = decodeMoves(geom, rules === 6 ? record.moves.slice(4) : rules > 1 ? record.moves.slice(2) : record.moves)
   if (rules < 4 && actions.some(a => a.kind === 'fever' || a.kind === 'upgrade' || a.kind === 'advance'))
     throw new Error('this rules version does not have variety actions')
-  return { rules, actions }
+  return { rules, actions, mission }
 }
 
 export function boardOf(geom: Geom): RunBoard {
@@ -283,14 +292,15 @@ export function verifyRun(record: RunRecord, geom: Geom): VerifyResult {
 
   let actions: Action[]
   let rules: RulesVersion
+  let mission: Mission | null
   try {
-    ;({ actions, rules } = decodeRecord(geom, record))
+    ;({ actions, rules, mission } = decodeRecord(geom, record))
   } catch (error) {
     return fail(error instanceof Error ? error.message : 'move list could not be decoded')
   }
   if (record.moves.length > MAX_MOVES * 2) return fail('move list is longer than any real run')
 
-  const game = new Game({}, record.seed, geom, rules)
+  const game = new Game({}, record.seed, geom, rules, mission?.id)
   for (let i = 0; i < actions.length; i++) {
     const reason = replayAction(game, actions[i]!)
     if (reason) return fail(`move ${i + 1} ${reason}`)
@@ -340,18 +350,19 @@ export function restoreRun(game: Game, record: RunRecord): boolean {
 
   let actions: Action[]
   let rules: RulesVersion
+  let mission: Mission | null
   try {
-    ;({ actions, rules } = decodeRecord(geom, record))
+    ;({ actions, rules, mission } = decodeRecord(geom, record))
   } catch {
     return false
   }
   if (record.moves.length > MAX_MOVES * 2) return false
 
   return game.withHooksMuted(() => {
-    game.restart(record.seed, rules)
+    game.restart(record.seed, rules, mission?.id)
     for (const action of actions) {
       if (replayAction(game, action)) {
-        game.restart(record.seed, rules)
+        game.restart(record.seed, rules, mission?.id)
         return false
       }
     }
@@ -363,7 +374,7 @@ export function restoreRun(game: Game, record: RunRecord): boolean {
 export function recordOf(game: Game): RunRecord {
   return {
     seed: game.seed,
-    moves: (game.rules === 4 ? VARIETY_HEADER : game.rules === 3 ? SQUARE_HEADER : game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
+    moves: (game.rules === 6 ? CAMPAIGN_HEADER + MISSIONS.findIndex(m => m.id === game.mission?.id).toString(36).padStart(2, '0') : game.rules === 5 ? SUPPLIES_HEADER : game.rules === 4 ? VARIETY_HEADER : game.rules === 3 ? SQUARE_HEADER : game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
     score: game.score,
     level: game.level,
     board: boardOf(game.geom),
