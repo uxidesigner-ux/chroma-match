@@ -776,12 +776,11 @@ function requestNewRun(mission: Mission | null = null): void {
 
 document.getElementById('map-character')!.addEventListener('click', () => screens.show('home'))
 document.getElementById('lobby-map')!.addEventListener('click', () => screens.show('map'))
-document.getElementById('map-nav-current')!.addEventListener('click', () => document.querySelector('.world-content')!.scrollTo({ top: 0 }))
 document.getElementById('map-freeplay')!.addEventListener('click', () => requestNewRun())
 document.getElementById('map-profile')!.addEventListener('click', () => profile.open())
 document.getElementById('map-ranks')!.addEventListener('click', () => { ranksSheet.show(); void home.refresh() })
 document.getElementById('map-today')!.addEventListener('click', () => document.getElementById('today-row')!.click())
-document.getElementById('map-shop')!.addEventListener('click', () => {
+for (const id of ['map-shop', 'map-wallet']) document.getElementById(id)!.addEventListener('click', () => {
   shopDestination = 'map'; shop.reset(); screens.show('shop')
 })
 

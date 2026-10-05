@@ -7,12 +7,12 @@ type Copy = {
   unlock: string; previous: string; list: string; supplies: string; reward: string;
   moves: string; first: string; cleared: string; next: string; back: string; retry: string;
   failed: string; retryNote: string; saved: string; replayNote: string; storage: string;
-  invalid: string; chapterDone: string; progress: string; loading: string; loadingNote: string;
+  invalid: string; chapterDone: string; progress: string; loading: string; loadingNote: string; required: string;
   regions: Record<Region, string>; rules: Record<Region, string>; titles: Record<Region, readonly string[]>;
 }
 const en: Copy = {
   world: 'Chroma Isles', map: 'Map', character: 'Character', explore: 'Choose your adventure', missions: 'Missions',
-  play: 'Start mission', replay: 'Replay mission', free: 'Free play', complete: 'Cleared', available: 'Ready', locked: 'Locked',
+  play: 'Play', replay: 'Replay', free: 'Free play', complete: 'Cleared', available: 'Ready', locked: 'Locked',
   unlock: 'Clear Gem Forest mission 1 to open this region.', previous: 'Clear the previous mission to continue.',
   list: 'Region list', supplies: '3 of every item · no move cost', reward: 'First-clear coins', moves: 'moves',
   first: 'First clear', cleared: 'Mission cleared!', next: 'Next mission', back: 'Back to map', retry: 'Try again',
@@ -22,6 +22,7 @@ const en: Copy = {
   invalid: 'This result could not be verified. Your previous progress is safe.',
   chapterDone: 'All 20 missions cleared! Revisit any region or enjoy free play.', progress: 'cleared',
   loading: 'Preparing your map…', loadingNote: 'Your 3D character is available in Character.',
+  required: 'Clear {mission}',
   regions: { forest: 'Gem Forest', volcano: 'Blast Volcano', prism: 'Prism Coast', relay: 'Relay City' },
   rules: { forest: 'Match lines and squares. Make power gems, then combine them.',
     volcano: 'Start with bombs. Every valid swap supplies another bomb.',
@@ -34,7 +35,7 @@ const en: Copy = {
 }
 const ko: Copy = {
   world: '크로마 아일즈', map: '지도', character: '캐릭터', explore: '오늘은 어디로 떠날까요?', missions: '미션',
-  play: '미션 시작', replay: '다시 도전', free: '자유 플레이', complete: '완료', available: '도전 가능', locked: '잠김',
+  play: '플레이', replay: '재도전', free: '자유 플레이', complete: '완료', available: '도전 가능', locked: '잠김',
   unlock: '보석숲 1번 미션을 깨면 이 지역이 열려요.', previous: '이전 미션을 완료하면 열려요.',
   list: '지역 목록', supplies: '아이템 각각 3개 · 이동 횟수 차감 없음', reward: '첫 클리어 코인', moves: '회 이동',
   first: '첫 클리어', cleared: '미션 클리어!', next: '다음 미션', back: '지도로 돌아가기', retry: '다시 도전',
@@ -44,6 +45,7 @@ const ko: Copy = {
   invalid: '결과를 검증하지 못했어요. 이전 진행 상황은 유지돼요.',
   chapterDone: '20개 미션 모두 완료! 좋아하는 지역에 다시 도전하거나 자유 플레이를 즐겨보세요.', progress: '완료',
   loading: '지도를 준비하고 있어요…', loadingNote: '전신 3D 캐릭터는 캐릭터 화면에서 만나요.',
+  required: '{mission} 완료 필요',
   regions: { forest: '보석숲', volcano: '폭발화산', prism: '프리즘해변', relay: '기계도시' },
   rules: { forest: '일자·네모로 맞추고 특수 보석을 만들어 합체해요.',
     volcano: '폭탄을 들고 시작! 유효한 교환마다 폭탄이 하나 더 생겨요.',
@@ -56,7 +58,7 @@ const ko: Copy = {
 }
 const ja: Copy = {
   world: 'クロマ諸島', map: 'マップ', character: 'キャラクター', explore: '冒険の行き先を選ぼう', missions: 'ミッション',
-  play: 'ミッション開始', replay: '再挑戦', free: 'フリープレイ', complete: 'クリア', available: '挑戦可能', locked: 'ロック',
+  play: 'プレイ', replay: '再挑戦', free: 'フリープレイ', complete: 'クリア', available: '挑戦可能', locked: 'ロック',
   unlock: '宝石の森のミッション1をクリアすると開放。', previous: '前のミッションをクリアすると開放。',
   list: '地域一覧', supplies: '各アイテム3個・手数消費なし', reward: '初クリアコイン', moves: '手',
   first: '初クリア', cleared: 'ミッションクリア！', next: '次のミッション', back: 'マップへ', retry: '再挑戦',
@@ -66,6 +68,7 @@ const ja: Copy = {
   invalid: '結果を検証できません。以前の進行は保持しています。',
   chapterDone: '全20ミッション達成！好きな地域やフリープレイを楽しもう。', progress: 'クリア',
   loading: 'マップを準備中…', loadingNote: '全身3Dはキャラクター画面で確認できます。',
+  required: '{mission}のクリアが必要',
   regions: { forest: '宝石の森', volcano: '爆発火山', prism: 'プリズム海岸', relay: '機械都市' },
   rules: { forest: '列や四角を揃えて特殊ジェムを作り、合体させよう。', volcano: '爆弾で開始。有効な交換ごとに爆弾を追加。',
     prism: '3色のみ。長い連鎖で消し、フィーバーをチャージ。', relay: '特殊ジェム3組で開始。合体ごとに隣接する1組を追加。' },
@@ -76,7 +79,7 @@ const ja: Copy = {
 }
 const zh: Copy = {
   world: '克罗马群岛', map: '地图', character: '角色', explore: '选择今天的冒险', missions: '任务',
-  play: '开始任务', replay: '再次挑战', free: '自由模式', complete: '已完成', available: '可挑战', locked: '未解锁',
+  play: '开始', replay: '再挑战', free: '自由模式', complete: '已完成', available: '可挑战', locked: '未解锁',
   unlock: '完成宝石森林任务1即可解锁。', previous: '完成前一个任务即可解锁。',
   list: '地区列表', supplies: '每种道具3个 · 不消耗步数', reward: '首次通关金币', moves: '步',
   first: '首次通关', cleared: '任务完成！', next: '下一个任务', back: '返回地图', retry: '再次挑战',
@@ -85,6 +88,7 @@ const zh: Copy = {
   storage: '无法保存。进度仅在本次访问保留，未发放首次通关金币。', invalid: '无法验证结果，之前的进度仍保留。',
   chapterDone: '20个任务全部完成！重游喜欢的地区或体验自由模式。', progress: '已完成',
   loading: '正在准备地图…', loadingNote: '完整3D角色可在角色页面查看。',
+  required: '需完成{mission}',
   regions: { forest: '宝石森林', volcano: '爆发火山', prism: '棱镜海岸', relay: '机械城市' },
   rules: { forest: '匹配直线或方块，生成特殊宝石并合体。', volcano: '以炸弹开始，每次有效交换再提供一个炸弹。',
     prism: '只有3种颜色。用长连锁消除并充满狂热。', relay: '以3对特殊宝石开始，每次合体再提供相邻的一对。' },

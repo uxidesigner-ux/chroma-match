@@ -77,9 +77,15 @@ of the player's task. The product has one anime character editor and one profile
   missions then open in order. First-clear rewards are device-local and paid
   once after replay verification. Keep mission goals/moves/rules in the record,
   retain v1-v5 saves and do not post campaign scores to endless rankings.
-  Map has a fixed reachable Start/Continue strip and a native region-list
-  alternative. No timers, paid unlocks, boss phases or cloud-progress claim.
-  See `docs/world-map.md`; the original proposal is preserved separately.
+  Map is a full-viewport game scene, not an explanatory page. Compact landmark
+  markers, five numbered mission nodes, earned path, reward and Play/Continue
+  are the visible hierarchy. Rules/goals stay in accessible action context and
+  actual game preparation; only a lock prerequisite or storage failure adds a
+  visible note. Native Map-tab region list, Character and Shop remain reachable.
+  First clears select the next node; coins travel from the cleared node to the
+  wallet once, with static feedback for reduced motion. No timers, paid unlocks,
+  boss phases or cloud-progress claim. See `docs/world-map.md` for rules and
+  `docs/fullscreen-map.md` for the current lobby; original proposal is preserved.
 - Library, undo and file restore edit a draft; only explicit Apply changes the profile.
 
 ## Current scope decision
