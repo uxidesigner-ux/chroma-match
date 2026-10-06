@@ -82,6 +82,7 @@ test('earned cosmetics retain keyboard focus and apply to profile, hub and gamep
   await expect(page.locator('#hub-level')).toHaveText('Lv.5')
   await expect(page.locator('#map-profile')).toHaveAccessibleName(/내 프로필/)
   await page.locator('#map-profile').click()
+  await expect(page.locator('#sheet-profile-title')).toBeFocused()
   await page.locator('#cosmetics-heading').click()
   const leaf=page.locator('[data-choice="frame:leaf"]')
   await leaf.focus();await page.keyboard.press('Enter')
@@ -159,6 +160,9 @@ test('My Play shows actual sample/average and reset preserves growth, wallet and
   await page.locator('[data-mode="free"]').click()
   await expect(page.locator('#stats-average')).toHaveText('—')
   await page.locator('[data-mode="adventure"]').click()
+  await page.locator('#stats-reset').scrollIntoViewIfNeeded()
+  await expect(page.locator('#profile-close')).toBeInViewport()
+  await expect(page.locator('#profile-close')).toHaveAccessibleName('닫기')
   const before=await readPlayer(page),avatar=await page.evaluate(()=>localStorage.getItem('chroma-match:avatar'))
   await page.screenshot({path:info.outputPath('player-growth-stats.png')})
   await page.locator('#stats-reset').click(); await page.locator('#stats-confirm-no').click()
@@ -169,6 +173,9 @@ test('My Play shows actual sample/average and reset preserves growth, wallet and
   expect(after.growth).toEqual(before.growth); expect(after.coins).toBe(before.coins)
   expect(after.campaign).toEqual(before.campaign)
   expect(await page.evaluate(()=>localStorage.getItem('chroma-match:avatar'))).toBe(avatar)
+  await page.locator('#profile-close').click()
+  await expect(page.locator('#sheet-profile')).toBeHidden()
+  await expect(page.locator('#map-profile')).toBeFocused()
 })
 
 test('an aborted result write rolls back XP, coins, completion and round together',async({page})=>{

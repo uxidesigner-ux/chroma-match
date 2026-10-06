@@ -10,6 +10,7 @@ import type { Strings } from './en.ts'
 export const KO: Strings = {
   tagline: '가로 여섯, 세로 아홉. 같은 색 셋을 맞추세요.',
   moreLabel: '더보기',
+  close: '닫기',
   lobbyNav: '순위, 미션, 상점',
   walletAria: '코인',
   splashReady: '입장해요',

@@ -29,6 +29,9 @@ replay encoding remain immutable; new play uses the separate v7 `zt` header.
   browser group: 21/21 passed. Production board/map/storage/offline group: 9/9 passed.
   Previous feedback/fusion cases passed before the narrow navigation fix. Interrupted
   broader local runs are not treated as whole-suite passes.
+- The data-hardened production candidate subsequently passed ALL 23/23 release checks.
+  The final narrow profile-dismiss change passed type checking and the 8/8 ledger/profile
+  browser rerun; final main CI rechecks every case on the exact publishing commit.
 - Production build and type checking pass. Native multi-tab serialization, genuine replay,
   invalid proof rejection, quota retry and stats-only reset have passed targeted browser checks.
 - Runtime review found and fixed hidden shared HUD interception and duplicate-map framing.
@@ -57,6 +60,9 @@ replay encoding remain immutable; new play uses the separate v7 `zt` header.
 - A cached completed legacy mission already included in migration is not a genuine replay:
   reopening it pays no extra XP/coins and fabricates no old round statistics.
   Final ledger browser rerun, including both data regressions: 8/8 passed.
+- Visual review of long My Play content added a sticky, labelled >=44px profile close
+  control. Opening focuses the profile heading, not the name field (no unsolicited
+  mobile keyboard); closing restores the invoking profile control.
 - New HUD/nav/play/progress text against the lightest opaque material stop measures
   7.14 / 6.42 / 4.97 / 7.79 / 5.98 contrast ratios, above the 4.5 body-text threshold.
 - Full regression is running in separate one-worker CI shards. A local three-worker

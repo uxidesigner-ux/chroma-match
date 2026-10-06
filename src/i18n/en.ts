@@ -14,6 +14,7 @@ export const EN = {
   /* ---- shell ---------------------------------------------------------- */
   tagline: 'Six across, nine down. Line up three.',
   moreLabel: 'More',
+  close: 'Close',
   lobbyNav: 'Ranks, missions and shop',
   walletAria: 'Coins',
   splashReady: 'Ready',

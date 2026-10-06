@@ -52,6 +52,7 @@ export class ProfileCard {
     private openCreator: () => void,
   ) {
     this.face.addEventListener('click', () => this.open())
+    el('profile-close').addEventListener('click', () => this.sheet.hide())
     this.action.addEventListener('click', () => void this.toggleAccount())
 
     this.nameInput.addEventListener('input', () => {
@@ -89,7 +90,7 @@ export class ProfileCard {
   open(): void {
     this.nameInput.value = this.storedName()
     this.refresh()
-    this.sheet.show()
+    this.sheet.show(el('sheet-profile-title'))
   }
 
   /** Repaints the face this sheet shows, after the creator changed it. */

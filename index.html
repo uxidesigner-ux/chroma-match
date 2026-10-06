@@ -456,7 +456,10 @@
     <div class="overlay sheet" id="sheet-profile" hidden>
       <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-profile-title">
         <span class="sheet-handle" aria-hidden="true"></span>
-        <h2 class="sheet-title" id="sheet-profile-title" data-i18n="profileTitle">Your profile</h2>
+        <header class="profile-sheet-head">
+          <h2 class="sheet-title" id="sheet-profile-title" tabindex="-1" data-i18n="profileTitle">Your profile</h2>
+          <button class="circle-button" id="profile-close" type="button" data-i18n-attr="aria-label:close title:close"><span aria-hidden="true">×</span></button>
+        </header>
 
         <div class="editor">
           <canvas class="editor-preview" id="profile-preview" aria-hidden="true"></canvas>
