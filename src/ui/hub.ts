@@ -5,7 +5,7 @@ import type { Shop } from './shop.ts'
 import { player } from '../player/ledger.ts'
 import { levelFor } from '../player/model.ts'
 import { growthCopy } from './growth-copy.ts'
-import { onLanguageChange } from '../i18n/index.ts'
+import { onLanguageChange, t } from '../i18n/index.ts'
 
 /** The same mounted HUD/navigation survives map, character and shop switches. */
 export class Hub {
@@ -15,6 +15,10 @@ export class Hub {
     const app = document.querySelector('.app')!
     this.header.classList.add('hub-header'); this.nav.classList.add('hub-nav')
     app.append(this.header, this.nav)
+    new ResizeObserver(() => {
+      const height = this.header.getBoundingClientRect().height
+      if (height) document.documentElement.style.setProperty('--hub-header-height', `${Math.ceil(height)}px`)
+    }).observe(this.header)
     const profile = document.getElementById('map-profile')!
     const badge = document.createElement('span'); badge.id = 'hub-level'; badge.className = 'level-badge'
     const xp = document.createElement('span'); xp.id = 'hub-xp'; xp.className = 'xp-track'; xp.setAttribute('aria-hidden', 'true')
@@ -45,7 +49,7 @@ export class Hub {
     document.getElementById('hud-player-level')!.textContent = `Lv.${progress.level}`
     document.getElementById('hud-character')!.dataset.frame = player.state.growth.frame
     document.querySelector<HTMLElement>('#hub-xp > i')!.style.setProperty('--xp', String(progress.xp / progress.need))
-    document.getElementById('map-profile')!.setAttribute('aria-label', `${growthCopy().level} ${progress.level}, ${progress.xp}/${progress.need} XP`)
+    document.getElementById('map-profile')!.setAttribute('aria-label', `${t('profileAria')} · ${growthCopy().level} ${progress.level}, ${progress.xp}/${progress.need} XP`)
     this.header.dataset.frame = player.state.growth.frame
     const title = player.state.growth.title
     document.getElementById('hub-title')!.textContent = title ? growthCopy().names[title as keyof ReturnType<typeof growthCopy>['names']] : ''

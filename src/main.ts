@@ -692,6 +692,7 @@ async function startRun(boosters: readonly Item[] = [], mission: Mission | null 
   if (game.bonusRound) combo.reportEvent(varietyCopy().bonus[game.bonusRound])
   hud.invalidate()
   renderer.resize()
+  canvas.focus({ preventScroll: true })
 }
 
 function goHome(): void {
@@ -766,6 +767,7 @@ async function continueRun(): Promise<boolean> {
   resetPlayView()
   screens.show('game')
   renderer.resize()
+  canvas.focus({ preventScroll: true })
   if (game.status === 'levelComplete') showLevelComplete(game.level)
   else if (kept.outcome === 'quit') game.endRun()
   else if (game.status === 'gameOver') void finishRun(game.score)

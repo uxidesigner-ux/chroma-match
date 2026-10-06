@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { Game } from '../../src/game/game.ts'
 import { missionFor } from '../../src/game/campaign.ts'
 import { bestMove } from '../../src/game/autoplay.ts'
-import { recordOf, type RunRecord } from '../../src/game/replay.ts'
+import { recordOf, missionOf, type RunRecord } from '../../src/game/replay.ts'
 import { BOARD } from '../../src/game/types.ts'
 import type { PlayerLedger } from '../../src/player/ledger.ts'
 import { readPlayer } from '../release/player-helper.ts'
@@ -24,11 +24,11 @@ async function boot(page: Page) {
   await page.goto('/?seed=7'); await expect(page.locator('#splash')).toBeHidden()
 }
 async function claim(page: Page, id: string, record: RunRecord) {
-  return page.evaluate(async ({id,record}) => {
+  return page.evaluate(async ({id,record,mission}) => {
     const player = (window as unknown as {chroma: {player: PlayerLedger}}).chroma.player
-    await player.begin(id, true, 0, Date.now(), [], `7:${record.seed >>> 0}:forest-1`)
+    await player.begin(id, true, 0, Date.now(), [], `7:${record.seed >>> 0}:${mission}`)
     return player.settle(id, record, 'cleared', true)
-  }, {id,record})
+  }, {id,record,mission:missionOf(record)?.id ?? ''})
 }
 
 test('native transactions serialize tabs, deduplicate rewards and distinguish a genuine replay', async ({page, context}) => {
@@ -51,6 +51,33 @@ test('native transactions serialize tabs, deduplicate rewards and distinguish a 
   expect(invalid.map(r=>r.ok)).toEqual([false,false,false])
   expect((await readPlayer(page)).campaign.completed['forest-2']).toBeUndefined()
   await second.close()
+})
+
+test('earned cosmetics retain keyboard focus and apply to profile, hub and gameplay',async({page})=>{
+  await boot(page)
+  for (let step=1;step<=5;step++) await claim(page,`cosmetic-${step}`,cleared(`forest-${step}`))
+  await expect(page.locator('#hub-level')).toHaveText('Lv.5')
+  await expect(page.locator('#map-profile')).toHaveAccessibleName(/내 프로필/)
+  await page.locator('#map-profile').click()
+  await page.locator('#cosmetics-heading').click()
+  const leaf=page.locator('[data-choice="frame:leaf"]')
+  await leaf.focus();await page.keyboard.press('Enter')
+  await expect(leaf).toHaveAttribute('aria-pressed','true')
+  await expect(leaf).toBeFocused()
+  await expect(page.locator('#profile-preview')).toHaveAttribute('data-frame','leaf')
+  const title=page.locator('[data-choice="title:spark"]')
+  await title.focus();await page.keyboard.press('Enter')
+  await expect(title).toHaveAttribute('aria-pressed','true');await expect(title).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.hub-header')).toHaveAttribute('data-frame','leaf')
+  await expect(page.locator('#hub-title')).toHaveText('반짝임을 만드는 자')
+  await expect.poll(()=>page.evaluate(()=>{
+    const header=document.querySelector('.hub-header')!.getBoundingClientRect()
+    return [...document.querySelectorAll<HTMLElement>('.world-pin')].every(e=>e.getBoundingClientRect().top>=header.bottom+4)
+  })).toBe(true)
+  await page.locator('#world-play').click();await page.locator('#loadout-start').click()
+  await expect(page.locator('#hud-character')).toHaveAttribute('data-frame','leaf')
+  expect((await readPlayer(page)).growth.frame).toBe('leaf')
 })
 
 test('legacy campaign migration pays only proved clears once; old wallet changes cannot overwrite it', async ({page}) => {

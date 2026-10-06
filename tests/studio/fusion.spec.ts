@@ -140,5 +140,6 @@ test('legacy saved runs keep original rules and the next new run opts into v5', 
   await page.locator('#start-game').click()
   await page.locator('#overlay-action').click() // Explicitly replace the saved run.
   await page.locator('#loadout-start').click()
+  await expect(page.locator('#board')).toBeVisible()
   expect(await page.evaluate(() => window.chroma.game.rules)).toBe(5)
 })

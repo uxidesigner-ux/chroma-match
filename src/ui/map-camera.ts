@@ -52,7 +52,13 @@ export class MapCamera {
       if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId)
       if (this.pointers.size) this.captureStart(); else this.initial = null
     }
-    viewport.addEventListener('pointerup', end); viewport.addEventListener('pointercancel', end)
+    viewport.addEventListener('pointerup', end)
+    viewport.addEventListener('pointercancel', event => { end(event); if (!this.pointers.size) this.moved = false })
+    viewport.addEventListener('lostpointercapture', event => {
+      // A normal pointerup already removed this pointer. Only unexpected
+      // capture loss cancels the gesture; preserve suppression of drag clicks.
+      if (this.pointers.has(event.pointerId)) { end(event); if (!this.pointers.size) this.moved = false }
+    })
     viewport.addEventListener('click', event => { if (this.moved) { event.preventDefault(); event.stopPropagation(); this.moved = false } }, true)
     viewport.addEventListener('wheel', event => {
       if (this.mode !== 'region') return
@@ -82,9 +88,11 @@ export class MapCamera {
     }).observe(viewport)
     // Error/continue copy changes the action dock's height without resizing
     // the viewport. Re-fit landmarks when that reserved space changes too.
-    new ResizeObserver(() => {
+    const chromeObserver = new ResizeObserver(() => {
       if (viewport.getBoundingClientRect().width) viewport.dispatchEvent(new CustomEvent('mapresize'))
-    }).observe(viewport.parentElement!.querySelector('.world-footer')!)
+    })
+    chromeObserver.observe(viewport.parentElement!.querySelector('.world-footer')!)
+    chromeObserver.observe(document.querySelector('.world-header')!)
     onLanguageChange(() => this.labels())
     this.labels(); this.overview(false)
   }

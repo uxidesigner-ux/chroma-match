@@ -69,9 +69,18 @@ export class PlayerPanel {
         button.textContent = option.id ? `${copy.names[option.id as typeof COSMETICS[number]['id']]}${p.level < option.level ? ` · Lv.${option.level}` : ''}` : `${copy.basic} · ${kind === 'frame' ? '○' : '✦'}`
         button.disabled = p.level < option.level; button.setAttribute('aria-pressed', String(state.growth[kind] === option.id))
         button.addEventListener('click', async () => {
+          const wasFocused = document.activeElement === button
           button.disabled = true
           try { await player.equip(kind, option.id); this.refresh() }
           catch { this.el('player-status').textContent = copy.saveError; button.disabled = false }
+          finally {
+            const next = list.querySelector<HTMLButtonElement>(`[data-choice="${kind}:${option.id}"]`)
+            // Disabling/repainting a committed choice removes browser focus.
+            // Restore it only while this panel is visible and focus was not
+            // deliberately moved to another control during the save.
+            if (wasFocused && (document.activeElement === document.body || document.activeElement === button)
+              && next?.getClientRects().length && !next.disabled) next.focus({ preventScroll: true })
+          }
         })
         list.append(button)
       }

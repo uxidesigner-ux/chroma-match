@@ -68,6 +68,7 @@ test('lobby rotates with keys and gestures, releases 3D on play and returns safe
 test('square-only pointer swap, goal countdown and reduced-motion avatar feedback', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.locator('#start-game').click(); await page.locator('#loadout-start').click()
+  await expect(page.locator('#board')).toBeVisible()
   await page.evaluate(() => {
     const g = window.chroma.game
     g.grid.forEach((gem, i) => { if (gem) { gem.kind = (g.geom.colOf(i) + g.geom.rowOf(i) * 2) % 4; gem.power = 'none' } })
@@ -147,12 +148,11 @@ test('lobby separates profile and footer destinations, with play actions in one 
   await page.locator('#pause').click()
   await page.locator('#paused-keep').click()
   await expect(page.locator('#continue-run')).toBeVisible()
-  // The secondary surface has a 150ms background transition when Continue
-  // becomes visible. Verify the intended settled default, not its first red
-  // frame; do not remove motion or relax the hierarchy assertions.
+  // Continue retains the primary green material; a new run becomes the
+  // smaller blue secondary surface. Verify settled styling and geometry.
   await page.mouse.move(0, 0)
-  await expect(page.locator('#continue-run')).toHaveCSS('background-color', 'rgb(197, 49, 41)')
-  await expect(page.locator('#start-game')).toHaveCSS('background-color', 'rgb(255, 247, 230)')
+  await expect(page.locator('#continue-run')).toHaveCSS('background-image', 'linear-gradient(rgb(142, 228, 160), rgb(66, 177, 107))')
+  await expect(page.locator('#start-game')).toHaveCSS('background-image', 'linear-gradient(rgb(56, 93, 109), rgb(28, 59, 77))')
   const continueBox = (await page.locator('#continue-run').boundingBox())!
   const startBox = (await page.locator('#start-game').boundingBox())!
   const [continueBg, startBg, pageBg] = await page.evaluate(() => {
@@ -162,8 +162,8 @@ test('lobby separates profile and footer destinations, with play actions in one 
     const pageFill = getComputedStyle(probe).backgroundColor
     probe.remove()
     return [
-      getComputedStyle(document.getElementById('continue-run')!).backgroundColor,
-      getComputedStyle(document.getElementById('start-game')!).backgroundColor,
+      getComputedStyle(document.getElementById('continue-run')!).backgroundImage,
+      getComputedStyle(document.getElementById('start-game')!).backgroundImage,
       pageFill,
     ]
   })
@@ -177,8 +177,8 @@ test('lobby separates profile and footer destinations, with play actions in one 
   expect(Math.abs(continueBox.height - startBox.height)).toBeLessThan(2)
   expect(startBox.x).toBeGreaterThan(continueBox.x + continueBox.width - 1)
   await page.locator('#start-game').hover()
-  await expect(page.locator('#start-game')).toHaveCSS('background-color', 'rgb(255, 253, 246)')
-  await expect(page.locator('#continue-run')).toHaveCSS('background-color', 'rgb(197, 49, 41)')
+  await expect(page.locator('#start-game')).toHaveCSS('background-image', 'linear-gradient(rgb(56, 93, 109), rgb(28, 59, 77))')
+  await expect(page.locator('#continue-run')).toHaveCSS('background-image', 'linear-gradient(rgb(142, 228, 160), rgb(66, 177, 107))')
 })
 
 staticTest('lobby and studio chrome hold a 44px target on narrow phones, and the studio follows the skin', async ({ page }) => {
@@ -191,7 +191,7 @@ staticTest('lobby and studio chrome hold a 44px target on narrow phones, and the
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
       .toBe(true)
-    const chrome = page.locator('.lobby-nav .quick-btn, .hub-header .circle-button, #lobby-edit, #lobby-tools button')
+    const chrome = page.locator('.lobby-nav .quick-btn:visible, .hub-header .circle-button:visible, #lobby-edit, #lobby-tools button')
     for (const box of await chrome.evaluateAll(nodes => nodes.map(node => {
       const { width, height } = node.getBoundingClientRect()
       return { width, height }

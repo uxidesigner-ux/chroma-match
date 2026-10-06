@@ -28,6 +28,24 @@ replay encoding remain immutable; new play uses the separate v7 `zt` header.
 - Production build and type checking pass. Native multi-tab serialization, genuine replay,
   invalid proof rejection, quota retry and stats-only reset have passed targeted browser checks.
 - Runtime review found and fixed hidden shared HUD interception and duplicate-map framing.
+- Storage/art-unavailable 320x568 fallback now passes geometry and play-entry checks.
+  Landmarks re-fit the real dock height when an error/continue row appears; boot/resize
+  camera positioning is immediate rather than an unstable entrance animation.
+- Earned cosmetics pass keyboard-focus retention and identical profile/hub/game framing.
+  The profile button announces its action as well as player level and XP.
+- Shared-header height now reserves real space in the lobby, shop and camera controls,
+  including earned titles. Kept runs retain the larger green primary action; new runs
+  become the smaller blue secondary action. Shop content scrolls beneath fixed navigation.
+- Local production regression: 22/23 passed on the initial build. The remaining keyboard
+  case entered before the new atomic attempt transaction completed; entry now focuses the
+  visible board and checks wait for committed entry. Production/map checks are rerunning.
+- Initial CI production job passed, as did the fourth studio shard. Second/third-shard
+  findings identify the asynchronous-entry test race, old page-scroll expectation, hidden
+  duplicate control sampling and lobby header clearance; fixes require a fresh full CI run.
+- New HUD/nav/play/progress text against the lightest opaque material stop measures
+  7.14 / 6.42 / 4.97 / 7.79 / 5.98 contrast ratios, above the 4.5 body-text threshold.
+- Full regression is running in separate one-worker CI shards. A local three-worker
+  graphics-heavy run was interrupted after loading timeouts; it is not counted as a pass.
 - Existing regression expectations are being updated for the intentionally changed shared HUD,
   30 forest stages and authoritative IndexedDB wallet. Release is NOT yet verified or deployed.
 - Real-device iOS browser chrome/hinge behavior and human difficulty/fatigue remain separate
