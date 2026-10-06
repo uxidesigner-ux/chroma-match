@@ -113,17 +113,21 @@ test('portrait decoration is unclipped, customization is labeled, gestures group
 test('localized customization captions fit beside the gesture group on a narrow phone', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 })
   for (const [lang, caption] of [['en', 'Customize'], ['ko', '꾸미기'], ['ja', '着せ替え'], ['zh-Hans', '装扮']]) {
-    await page.evaluate(value => localStorage.setItem('chroma-match:lang', value), lang!)
-    await page.reload()
-    await enterLobby(page)
-    await expect(page.locator('#lobby-edit')).toHaveText(caption!)
-    const boxes = await page.evaluate(() => ({
-      tools: document.getElementById('lobby-tools')!.getBoundingClientRect().toJSON(),
-      edit: document.getElementById('lobby-edit')!.getBoundingClientRect().toJSON(),
-      stage: document.getElementById('lobby-stage')!.getBoundingClientRect().toJSON(),
-    }))
-    expect(boxes.tools.right + 8).toBeLessThanOrEqual(boxes.edit.left)
-    expect(boxes.edit.right).toBeLessThanOrEqual(boxes.stage.right)
-    await expect(page.locator('#start-game')).toBeInViewport()
+    for (const skin of ['paper', 'jewel', 'glass']) {
+      await page.evaluate(value => localStorage.setItem('chroma-match:lang', value), lang!)
+      await page.goto(`/?seed=3&skin=${skin}`)
+      await enterLobby(page)
+      await expect(page.locator('#lobby-edit')).toHaveText(caption!)
+      const boxes = await page.evaluate(() => ({
+        tools: document.getElementById('lobby-tools')!.getBoundingClientRect().toJSON(),
+        edit: document.getElementById('lobby-edit')!.getBoundingClientRect().toJSON(),
+        stage: document.getElementById('lobby-stage')!.getBoundingClientRect().toJSON(),
+      }))
+      expect(boxes.tools.right + 8).toBeLessThanOrEqual(boxes.edit.left)
+      expect(boxes.edit.right).toBeLessThanOrEqual(boxes.stage.right)
+      expect(boxes.edit.height).toBeGreaterThanOrEqual(44)
+      expect(boxes.edit.width).toBeGreaterThanOrEqual(44)
+      await expect(page.locator('#start-game')).toBeInViewport()
+    }
   }
 })

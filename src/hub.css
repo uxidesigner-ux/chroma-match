@@ -90,7 +90,14 @@ html.hub-open .shop-head .wallet-coins { display: none; }
 .result-growth[data-level-up='true'] { border-color: var(--accent); animation: earned-growth .5s ease-out; }
 @keyframes earned-growth { from { scale: .96; opacity: .6; } to { scale: 1; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .result-growth { animation: none !important; } }
-@media (max-width: 360px) { .hub-header .world-identity { padding-right: 8px; gap: 8px; max-width: calc(100% - 96px); } .hub-header .world-utilities { gap: 4px; } .hub-header #map-name { font-size: .875rem; } }
+@media (max-width: 360px) {
+  .hub-header .world-identity { padding-right: 8px; gap: 8px; max-width: calc(100% - 96px); }
+  .hub-header .world-utilities { gap: 4px; }
+  .hub-header #map-name { font-size: .875rem; }
+  /* Preserve the caption and 52px target; reserve the gesture group's gap
+     even when the platform's system font makes "Customize" wider. */
+  html.hub-open #lobby-edit { padding-inline: 8px; gap: 6px; }
+}
 @media (max-height: 540px) and (min-width: 480px) { .hub-header { right: auto; width: min(380px, calc(100% - 180px)); } .hub-nav { left: auto; right: 12px; transform: none; width: min(360px, 45vw); } html.hub-open .home { padding-top: 8px; } }
 @media (prefers-reduced-motion: reduce) { .xp-track > i { transition: none; } }
 
