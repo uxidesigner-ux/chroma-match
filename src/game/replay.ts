@@ -381,3 +381,13 @@ export function recordOf(game: Game): RunRecord {
     board: boardOf(game.geom),
   }
 }
+
+/** Snapshot a live accepted action stream, without freezing its half-earned
+ * score during an animation. Only save callers use this; untrusted submitted
+ * score claims still pass the normal strict verification in the ledger. */
+export function settledRecordOf(game: Game): RunRecord {
+  const record = recordOf(game)
+  if (game.phaseKind === 'idle') return record
+  const snapshot = new Game({}, game.seed, game.geom)
+  return restoreRun(snapshot, record) ? recordOf(snapshot) : record
+}

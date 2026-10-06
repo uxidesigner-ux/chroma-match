@@ -25,7 +25,7 @@ replay encoding remain immutable; new play uses the separate v7 `zt` header.
 ## Pre-release verification snapshot — 2026-10-06
 
 - Initial full unit suite: 261 passed. Targeted new XP/30-stage replay tests passed.
-- Final local unit rerun: 261/261 passed. Final camera/lobby/shop/cosmetic/ledger
+- Final local unit rerun: 263/263 passed. Final camera/lobby/shop/cosmetic/ledger
   browser group: 21/21 passed. Production board/map/storage/offline group: 9/9 passed.
   Previous feedback/fusion cases passed before the narrow navigation fix. Interrupted
   broader local runs are not treated as whole-suite passes.
@@ -50,6 +50,13 @@ replay encoding remain immutable; new play uses the separate v7 `zt` header.
   returned to the map. Back now restores the actual origin, entry focus and map camera;
   re-selecting the current shop tab cannot overwrite that origin. Browser shards distribute
   individual independent tests while retaining one serial worker per runner.
+- Pre-deploy data review found that keeping mid-cascade captured an unfinished score;
+  replacing that saved run could fail strict settlement and omit its accepted statistics.
+  Live save paths now snapshot the settled accepted action stream in an isolated engine,
+  without advancing the paused board. Submitted score claims remain strictly checked.
+- A cached completed legacy mission already included in migration is not a genuine replay:
+  reopening it pays no extra XP/coins and fabricates no old round statistics.
+  Final ledger browser rerun, including both data regressions: 8/8 passed.
 - New HUD/nav/play/progress text against the lightest opaque material stop measures
   7.14 / 6.42 / 4.97 / 7.79 / 5.98 contrast ratios, above the 4.5 body-text threshold.
 - Full regression is running in separate one-worker CI shards. A local three-worker

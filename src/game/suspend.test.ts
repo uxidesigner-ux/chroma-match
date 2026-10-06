@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { findMoves } from './board.ts'
 import { Game } from './game.ts'
-import { BOOSTER_LIMIT, recordOf, restoreRun, verifyRun } from './replay.ts'
+import { BOOSTER_LIMIT, recordOf, settledRecordOf, restoreRun, verifyRun } from './replay.ts'
+import { missionFor } from './campaign.ts'
 import { BOARD } from './types.ts'
 
 const FRAME = 1 / 60
@@ -112,4 +113,36 @@ test('ending a run deliberately settles it like running out of moves', () => {
   ended = null
   game.endRun()
   assert.equal(ended, null)
+})
+
+test('saving mid-strike stores the settled proof without mutating the paused live game', () => {
+  const game = new Game({}, 7, BOARD, 5)
+  assert.equal(game.useItem('bomb', BOARD.idx(2,4)), true)
+  assert.equal(game.phaseKind, 'strike')
+  const before = { record: recordOf(game), grid: structuredClone(game.grid), items: {...game.items} }
+  const saved = settledRecordOf(game)
+  assert.equal(before.record.score, 90)
+  assert.equal(saved.score, 750)
+  assert.deepEqual(recordOf(game), before.record)
+  assert.deepEqual(game.grid, before.grid)
+  assert.deepEqual(game.items, before.items)
+  assert.equal(game.phaseKind, 'strike')
+  const resumed = new Game({},7,BOARD)
+  assert.equal(restoreRun(resumed,saved),true)
+  assert.deepEqual(recordOf(resumed),saved)
+  assert.equal(verifyRun(saved,BOARD).claimMatches,true)
+  settle(game)
+  assert.deepEqual(recordOf(game),saved)
+})
+
+test('a busy adventure save retains exact mission identity and accepted inventory actions', () => {
+  const m = missionFor('forest-6')!, game = new Game({},m.seed,BOARD,7,m.id)
+  assert.equal(game.useItem('bomb',BOARD.idx(2,4)),true)
+  const saved = settledRecordOf(game), resumed = new Game({},m.seed,BOARD)
+  assert.equal(restoreRun(resumed,saved),true)
+  assert.equal(resumed.mission?.id,m.id)
+  assert.equal(resumed.rules,7)
+  assert.deepEqual(resumed.log,game.log)
+  settle(game)
+  assert.deepEqual(recordOf(game),saved)
 })

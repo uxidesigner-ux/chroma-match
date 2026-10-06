@@ -25,7 +25,7 @@ import { Haptics } from './haptics.ts'
 import { Game, movesForLevel } from './game/game.ts'
 import type { GameHooks } from './game/game.ts'
 import { randomSeed } from './game/rng.ts'
-import { hasRunActions, recordOf, restoreRun, missionOf } from './game/replay.ts'
+import { hasRunActions, recordOf, settledRecordOf, restoreRun, missionOf } from './game/replay.ts'
 import { bonusForLevel, stageGoal } from './game/variety.ts'
 import type { Upgrade } from './game/variety.ts'
 import { varietyCopy } from './ui/variety-copy.ts'
@@ -725,7 +725,7 @@ function runInProgress(): boolean {
  * other, which a snapshot of those fields would not stay for long.
  */
 function keepRun(): void {
-  suspendRun(recordOf(game), attemptId)
+  suspendRun(settledRecordOf(game), attemptId)
   goHome()
 }
 
@@ -761,7 +761,12 @@ async function continueRun(): Promise<boolean> {
   const digest = kept.attempt ? '' : [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(kept.record))))].map(b => b.toString(16).padStart(2, '0')).join('')
   attemptId = kept.attempt ?? `legacy-${digest}`
   lastSettlement = null; manualEnd = kept.outcome === 'quit'
-  try { await player.begin(attemptId, Boolean(kept.attempt), kept.attempt ? 0 : game.mission ? 0 : game.level - 1, Date.now(), [], `${game.rules}:${game.seed >>> 0}:${game.mission?.id ?? ''}`) }
+  // A completed legacy mission may already have received the one-time XP
+  // migration. Reopening that cached result is not a genuine new replay.
+  const legacyBaseline = game.mission
+    ? Number(game.status === 'levelComplete' && player.state.campaign.completed[game.mission.id] !== undefined)
+    : game.level - 1
+  try { await player.begin(attemptId, Boolean(kept.attempt), kept.attempt ? 0 : legacyBaseline, Date.now(), [], `${game.rules}:${game.seed >>> 0}:${game.mission?.id ?? ''}`) }
   catch { saveFailure(() => void continueRun()); return false }
   if (game.mission) { returnDestination = 'map'; world.select(game.mission.id) }
   else returnDestination = screens.active === 'home' ? 'home' : 'map'
@@ -1025,7 +1030,7 @@ window.addEventListener('pagehide', () => {
   commitRecord()
   // Phones evict backgrounded tabs without warning, and a run is the one thing
   // here that cannot be rebuilt from anything else. Keeping it costs a string.
-  if (runInProgress()) suspendRun(recordOf(game), attemptId)
+  if (runInProgress()) suspendRun(settledRecordOf(game), attemptId)
 })
 
 if (import.meta.env.DEV) {

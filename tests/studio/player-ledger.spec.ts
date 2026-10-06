@@ -7,8 +7,8 @@ import { BOARD } from '../../src/game/types.ts'
 import type { PlayerLedger } from '../../src/player/ledger.ts'
 import { readPlayer } from '../release/player-helper.ts'
 
-function cleared(id = 'forest-1'): RunRecord {
-  const m = missionFor(id)!, g = new Game({}, m.seed, BOARD, 7, id)
+function cleared(id = 'forest-1', rules: 6 | 7 = 7): RunRecord {
+  const m = missionFor(id)!, g = new Game({}, m.seed, BOARD, rules, id)
   for (let step = 0; step < 70 && g.status === 'playing'; step++) {
     if (g.feverCharge === 100) g.activateFever()
     if (step < 3) g.useItem('bomb', BOARD.idx(2, 4))
@@ -30,6 +30,29 @@ async function claim(page: Page, id: string, record: RunRecord) {
     return player.settle(id, record, 'cleared', true)
   }, {id,record,mission:missionOf(record)?.id ?? ''})
 }
+
+test('keeping during a real item cascade then replacing the run retains its accepted play statistics',async({page})=>{
+  await boot(page)
+  await page.locator('#map-freeplay').click();await page.locator('#loadout-start').click()
+  await expect(page.locator('#board')).toBeVisible()
+  const paused = await page.evaluate(()=>{
+    const g=window.chroma.game,used=g.useItem('bomb',26)
+    document.getElementById('pause')!.click()
+    return {used,phase:g.phaseKind,score:g.score}
+  })
+  expect(paused).toEqual({used:true,phase:'strike',score:90})
+  await page.locator('#paused-keep').click()
+  await expect(page.locator('#screen-map')).toBeVisible()
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('chroma-match:suspended')!).record.score)).toBe(750)
+  await page.locator('#map-freeplay').click();await page.locator('#overlay-action').click()
+  await page.locator('#loadout-start').click();await expect(page.locator('#board')).toBeVisible()
+  const state=await readPlayer(page)
+  expect(state.stats.totals.free.rounds).toBe(1)
+  expect(state.stats.totals.free.items.bomb).toBe(1)
+  expect(state.stats.recent[0]?.outcome).toBe('quit')
+  expect(state.growth.totalXp).toBe(0)
+  expect(state.stats.totals.adventure.rounds).toBe(0)
+})
 
 test('native transactions serialize tabs, deduplicate rewards and distinguish a genuine replay', async ({page, context}) => {
   await boot(page); const second = await context.newPage(); await boot(second)
@@ -81,6 +104,8 @@ test('earned cosmetics retain keyboard focus and apply to profile, hub and gamep
 })
 
 test('legacy campaign migration pays only proved clears once; old wallet changes cannot overwrite it', async ({page}) => {
+  const record=cleared('forest-1',6)
+  await page.addInitScript(record=>localStorage.setItem('chroma-match:suspended',JSON.stringify({record,level:record.level,score:record.score,at:Date.now()})),record)
   await page.addInitScript(() => {
     localStorage.setItem('chroma-match:coins','7')
     localStorage.setItem('chroma-match:campaign-v1',JSON.stringify({version:1,completed:{'forest-1':1150,'forest-2':1900,'unknown-99':10000}}))
@@ -91,6 +116,12 @@ test('legacy campaign migration pays only proved clears once; old wallet changes
   await page.reload(); await expect(page.locator('#splash')).toBeHidden()
   expect((await readPlayer(page)).coins).toBe(27)
   await expect(page.locator('#hub-level')).toHaveText('Lv.2')
+  await page.locator('#map-continue').click()
+  await expect(page.locator('#overlay-title')).toHaveText('미션 클리어!')
+  const reopened=await readPlayer(page)
+  expect(reopened.growth.totalXp).toBe(200)
+  expect(reopened.coins).toBe(27)
+  expect(reopened.stats.totals.adventure.rounds).toBe(0)
 })
 
 test('quota failure retains pending proof, does not claim a reward, and retry commits once', async ({page}) => {
