@@ -4,6 +4,9 @@ export default defineConfig({
   testDir: './tests/studio',
   outputDir: './test-results/studio',
   workers: 1,
+  // Shards distribute individual cases, not whole graphics-heavy files.
+  // Each runner remains serial; fixtures have no cross-test shared pages.
+  fullyParallel: true,
   timeout: 120000,
   expect: { timeout: 30000 },
   use: {

@@ -186,6 +186,7 @@ player.onChange(() => {
 world.refresh()
 let returnDestination: 'map' | 'home' = screens.active === 'home' ? 'home' : 'map'
 let shopDestination: 'map' | 'home' = returnDestination
+let shopTrigger = 'map-shop'
 
 /**
  * The local board is used immediately so the launch screen has something to
@@ -861,7 +862,10 @@ document.getElementById('map-profile')!.addEventListener('click', () => profile.
 document.getElementById('map-ranks')!.addEventListener('click', () => { ranksSheet.show(); void home.refresh() })
 document.getElementById('map-today')!.addEventListener('click', () => document.getElementById('today-row')!.click())
 for (const id of ['map-shop', 'map-wallet']) document.getElementById(id)!.addEventListener('click', () => {
-  shopDestination = 'map'; shop.reset(); screens.show('shop')
+  if (screens.active === 'shop') return
+  shopDestination = screens.active === 'home' ? 'home' : 'map'
+  shopTrigger = id
+  shop.reset(); screens.show('shop')
 })
 
 document.getElementById('open-ranks')?.addEventListener('click', () => {
@@ -873,11 +877,13 @@ document.getElementById('open-ranks')?.addEventListener('click', () => {
 
 document.getElementById('open-shop')?.addEventListener('click', () => {
   shopDestination = 'home'
+  shopTrigger = 'map-shop'
   shop.reset()
   screens.show('shop')
 })
 document.getElementById('shop-back')?.addEventListener('click', () => {
   screens.show(shopDestination)
+  document.getElementById(shopTrigger)?.focus({ preventScroll: true })
   shop.refresh()
   void home.refresh()
 })

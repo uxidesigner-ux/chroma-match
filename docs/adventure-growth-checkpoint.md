@@ -22,9 +22,13 @@ replay encoding remain immutable; new play uses the separate v7 `zt` header.
 - Personal metrics use accepted actions only; unknown averages show a dash. Counts are
   separated by mode, with bounded recent-20 samples. Stats reset keeps XP, wallet and avatar.
 
-## Verification in progress
+## Pre-release verification snapshot — 2026-10-06
 
 - Initial full unit suite: 261 passed. Targeted new XP/30-stage replay tests passed.
+- Final local unit rerun: 261/261 passed. Final camera/lobby/shop/cosmetic/ledger
+  browser group: 21/21 passed. Production board/map/storage/offline group: 9/9 passed.
+  Previous feedback/fusion cases passed before the narrow navigation fix. Interrupted
+  broader local runs are not treated as whole-suite passes.
 - Production build and type checking pass. Native multi-tab serialization, genuine replay,
   invalid proof rejection, quota retry and stats-only reset have passed targeted browser checks.
 - Runtime review found and fixed hidden shared HUD interception and duplicate-map framing.
@@ -42,12 +46,19 @@ replay encoding remain immutable; new play uses the separate v7 `zt` header.
 - Initial CI production job passed, as did the fourth studio shard. Second/third-shard
   findings identify the asynchronous-entry test race, old page-scroll expectation, hidden
   duplicate control sampling and lobby header clearance; fixes require a fresh full CI run.
+- Runtime regression also found a shared-shop return bug: opening from the character
+  returned to the map. Back now restores the actual origin, entry focus and map camera;
+  re-selecting the current shop tab cannot overwrite that origin. Browser shards distribute
+  individual independent tests while retaining one serial worker per runner.
 - New HUD/nav/play/progress text against the lightest opaque material stop measures
   7.14 / 6.42 / 4.97 / 7.79 / 5.98 contrast ratios, above the 4.5 body-text threshold.
 - Full regression is running in separate one-worker CI shards. A local three-worker
   graphics-heavy run was interrupted after loading timeouts; it is not counted as a pass.
 - Existing regression expectations are being updated for the intentionally changed shared HUD,
-  30 forest stages and authoritative IndexedDB wallet. Release is NOT yet verified or deployed.
+  30 forest stages and authoritative IndexedDB wallet. This snapshot precedes publication:
+  deployment is gated by ALL unit, production and studio cases, never by these local results alone.
+  The [main CI run and deployment](https://github.com/uxidesigner-ux/chroma-match/actions/workflows/ci.yml)
+  are the authoritative final release record; verify the resulting artifact against live asset hashes.
 - Real-device iOS browser chrome/hinge behavior and human difficulty/fatigue remain separate
   playtesting needs; deterministic solvability is not usability research.
 

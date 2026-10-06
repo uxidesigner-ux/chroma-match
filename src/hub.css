@@ -36,7 +36,8 @@ html.hub-open .home .lobby-nav, html.hub-open .home .lobby-play { width: calc(10
 html.hub-open .home .quick { grid-template-columns: repeat(2,minmax(0,1fr)); }
 html.hub-open .home .quick-btn { background: linear-gradient(#385d6d,#1c3b4d); color: #f6fbff; border: 2px solid #a0bdca; border-radius: 14px; box-shadow: inset 0 2px 0 #fff3,0 4px 0 #0b2334; }
 html.hub-open #start-game, html.hub-open #continue-run { background: linear-gradient(#8ee4a0,#42b16b); color: #113521; border: 2px solid #cbffd6; border-radius: 16px; box-shadow: inset 0 3px 0 #fff7,0 5px 0 #186b3e; }
-html.hub-open #continue-run:not([hidden]) ~ #start-game { background: linear-gradient(#385d6d,#1c3b4d); color: #f6fbff; border-color: #a0bdca; box-shadow: inset 0 2px 0 #fff3,0 4px 0 #0b2334; }
+html.hub-open #continue-run:not([hidden]) ~ #start-game,
+html.hub-open #continue-run:not([hidden]) ~ #start-game:hover { background: linear-gradient(#385d6d,#1c3b4d); color: #f6fbff; border-color: #a0bdca; box-shadow: inset 0 2px 0 #fff3,0 4px 0 #0b2334; }
 html.hub-open #lobby-edit { right: 12px; box-shadow: inset 0 2px 0 #fff8,0 4px 0 color-mix(in srgb,var(--text) 35%,var(--panel)); }
 html.hub-open #lobby-tools { left: 12px; }
 html.hub-open .shop { overflow: auto; overscroll-behavior: contain; padding: calc(max(12px, env(safe-area-inset-top)) + var(--hub-header-height, 104px) + 16px) max(16px, calc((100vw - 760px) / 2)) calc(max(12px, env(safe-area-inset-bottom)) + 100px); }

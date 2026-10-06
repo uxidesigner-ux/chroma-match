@@ -98,5 +98,7 @@ test('a diagonal touch rotates without scrolling or reload, matches right-arrow 
   await expect.poll(() => page.locator('#screen-shop').evaluate(node => node.scrollTop)).toBe(0)
   await page.locator('#shop-back').click()
   await expect(page.locator('html')).toHaveClass(/lobby-open/)
+  await expect(page.locator('#map-shop')).toBeFocused()
+  await expect(page.locator('#map-character')).toHaveAttribute('aria-current', 'page')
   expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(0)
 })

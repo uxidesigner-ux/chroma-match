@@ -31,6 +31,11 @@ test('camera keeps 52px stage targets, pans without selecting, keyboard reveals 
   const camera=await read()
   await page.locator('#map-shop').click()
   await expect(page.locator('.hub-header')).toBeVisible(); await expect(page.locator('#map-shop')).toHaveAttribute('aria-current','page')
+  await page.locator('#map-shop').click() // Re-selecting the tab must not replace its return destination.
+  await page.locator('#shop-back').click()
+  await expect(page.locator('#screen-map')).toBeVisible();await expect(page.locator('#map-shop')).toBeFocused()
+  expect(await read()).toBe(camera)
+  await page.locator('#map-shop').click()
   await page.locator('#world-list-label').click()
   await expect(page.locator('#screen-map')).toBeVisible(); expect(await read()).toBe(camera)
   await page.locator('#world-art').focus(); await page.keyboard.press('Escape')
