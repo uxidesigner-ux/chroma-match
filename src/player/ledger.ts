@@ -65,7 +65,7 @@ export class PlayerLedger {
     if (value === undefined) return structuredClone(this.seed)
     const s = value as PlayerState
     const whole = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0
-    const inventory = (v: PlayerState['stash']) => v && ['hammer', 'rocket', 'bomb'].every(k => whole(v[k as Item]))
+    const inventory = (v: PlayerState['stash']) => v && ['hammer', 'rocket', 'bomb'].every(k => whole(v[k as Item])) && ['bow','shuffle'].every(k => v[k as Item] === undefined || whole(v[k as Item]))
     const aggregate = (v: PlayerState['stats']['totals']['free']) => v && inventory(v.items)
       && ['rounds', 'chain', 'created', 'fusions', 'noItems'].every(k => whole(v[k as keyof typeof v])) && v.noItems <= v.rounds
     if (s?.version !== 1 || !whole(s.revision) || !whole(s.coins)
@@ -114,8 +114,8 @@ export class PlayerLedger {
         return
       }
       for (const item of boosters.slice(0, BOOSTER_LIMIT)) {
-        if (s.stash[item] <= 0) throw new Error('booster stock changed')
-        s.stash[item]--
+        if ((s.stash[item] ?? 0) <= 0) throw new Error('booster stock changed')
+        s.stash[item] = (s.stash[item] ?? 0) - 1
       }
       s.attempts[id] = { at, tracked, baseline, paidClears: 0, finished: false, xp: 0, identity }
     })
@@ -143,8 +143,8 @@ export class PlayerLedger {
       const ready = m ? unlocked(s.campaign, m) : true
       if (m && !ready) return no
       const result = settlePlayer(s, id, round, proof.progress, proof.need, m?.reward ?? 0, ready, terminal)
-      const item=m && proof.rules>=8 && result.first ? itemForLevel(m.step) : undefined
-      if(item)s.stash[item]++
+      const item=m && proof.rules>=8 && result.first ? itemForLevel(m.step, proof.rules) : undefined
+      if(item)s.stash[item] = (s.stash[item] ?? 0) + 1
       if (m && round.clears) s.campaign.completed[m.id] = Math.max(s.campaign.completed[m.id] ?? 0, proof.score)
       // Endless payout is part of the same terminal transaction, not a second wallet write.
       if (!m && terminal && round.actions > 0) {

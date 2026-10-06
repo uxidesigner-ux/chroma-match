@@ -61,6 +61,7 @@ export function attachInput(
     // Pointer focus must not reveal a clipped row: that moves the board under
     // the finger and invalidates the gesture's starting coordinates.
     if (activePointer !== null || !interactive()) return
+    if (renderer.aimItem === 'bow') renderer.aimCell = keyboardCell
     game.press(keyboardCell)
     revealCell()
     announce()
@@ -85,6 +86,7 @@ export function attachInput(
       let c=game.geom.colOf(keyboardCell)+dx,r=game.geom.rowOf(keyboardCell)+dy
       while(game.geom.inBounds(c,r)&&game.terrain.voidCells.has(game.geom.idx(c,r))){c+=dx;r+=dy}
       if(game.geom.inBounds(c,r))keyboardCell=game.geom.idx(c,r)
+      if (renderer.aimItem === 'bow') renderer.aimCell = keyboardCell
       game.press(keyboardCell)
       revealCell()
     }
@@ -123,7 +125,7 @@ export function attachInput(
     startX = x
     startY = y
     dragged = false
-    if (startCell !== null && onAim(startCell)) {
+    if (startCell !== null && renderer.aimItem !== 'bow' && onAim(startCell)) {
       // Fired on contact rather than on release: an item is aimed, not dragged,
       // and waiting for the release would make the most decisive action in the
       // game the slowest one.
@@ -132,6 +134,7 @@ export function attachInput(
       return
     }
     if (startCell !== null) {
+      if (renderer.aimItem === 'bow') renderer.aimCell = game.grid[startCell] ? startCell : null
       canvas.setPointerCapture(e.pointerId)
       // Light the gem up on contact rather than waiting for the release.
       game.press(startCell)
@@ -147,6 +150,14 @@ export function attachInput(
     }
     if (startCell === null || dragged) return
     const { x, y } = localPoint(e)
+    if (renderer.aimItem === 'bow') {
+      const cell = renderer.cellAtPoint(x, y)
+      renderer.aimCell = cell !== null && game.grid[cell] ? cell : null
+      game.cancelPress()
+      if (cell !== null) { keyboardCell = cell; game.press(cell) }
+      else game.cancelPress()
+      return
+    }
     const dx = x - startX
     const dy = y - startY
     const threshold = renderer.cellSize * 0.35
@@ -173,7 +184,7 @@ export function attachInput(
     if (startCell !== null && !dragged) {
       const { x, y } = localPoint(e)
       const cell = renderer.cellAtPoint(x, y)
-      if (cell !== null) { keyboardCell = cell; game.tap(cell) }
+      if (cell !== null) { keyboardCell = cell; if (!onAim(cell)) game.tap(cell) }
     }
     announce()
     startCell = null
@@ -185,6 +196,7 @@ export function attachInput(
 
   canvas.addEventListener('pointerup', end)
   const cancel = () => {
+    renderer.aimCell = null
     game.cancelPress()
     startCell = null
     dragged = false

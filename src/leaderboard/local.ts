@@ -1,3 +1,4 @@
+import { isCampaignRules } from '../game/rules.ts'
 import { verifyRun, rulesOf } from '../game/replay.ts'
 import type { RunRecord } from '../game/replay.ts'
 import { BOARD } from '../game/types.ts'
@@ -55,7 +56,7 @@ export class LocalLeaderboard implements Leaderboard {
   }
 
   async submit(run: RunRecord, name: string): Promise<SubmitResult> {
-    if (rulesOf(run) >= 6) return { accepted: false, reason: t('postRejected'), rank: null, score: 0 }
+    if (isCampaignRules(rulesOf(run))) return { accepted: false, reason: t('postRejected'), rank: null, score: 0 }
     const verdict = verifyRun(run, BOARD)
     if (!verdict.ok) {
       return { accepted: false, reason: t('replayFailed'), rank: null, score: 0 }

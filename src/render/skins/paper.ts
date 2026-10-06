@@ -99,11 +99,13 @@ export const PAPER: Skin = {
     ctx.fill()
     ctx.restore()
 
-    // The sheet itself. Flat, on purpose: a gradient here would undo the
-    // whole idea in one line. A prism is cut into wedges over the top of it by
+    // The upper face keeps the paper palette, with a rounded toy bevel over
+    // the original dark backing sheet. A prism is cut into wedges by
     // the interior pass, so it starts from the same flat fill.
     gemPath(ctx, style.shape, r)
-    ctx.fillStyle = style.base
+    const body = ctx.createLinearGradient(0, -r, 0, r)
+    body.addColorStop(0, style.light); body.addColorStop(.38, style.base); body.addColorStop(1, style.dark)
+    ctx.fillStyle = body
     ctx.fill()
   },
 
@@ -153,5 +155,9 @@ export const PAPER: Skin = {
     ctx.lineJoin = 'round'
     ctx.strokeStyle = INK
     ctx.stroke()
+    gemPath(ctx, style.shape, r * .84)
+    const lip = ctx.createLinearGradient(0, -r, 0, r)
+    lip.addColorStop(0, '#fff8e8'); lip.addColorStop(.45, style.light); lip.addColorStop(1, style.dark)
+    ctx.strokeStyle = lip; ctx.lineWidth = Math.max(1, r * .08); ctx.stroke()
   },
 }

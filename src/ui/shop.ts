@@ -1,4 +1,4 @@
-import { ITEMS } from '../game/items.ts'
+import { ALL_ITEMS as ITEMS } from '../game/items.ts'
 import type { Item } from '../game/items.ts'
 import { PRICES, STASH_LIMIT, buyStored, coins, stash } from '../meta.ts'
 import { growthCopy } from './growth-copy.ts'
@@ -43,7 +43,7 @@ export class Shop {
     button.disabled = true
     const result = await buyStored(item)
     this.setStatus(
-      result.ok ? `✓ ${t(item === 'hammer' ? 'itemHammer' : item === 'rocket' ? 'itemRocket' : 'itemBomb')}` : growthCopy().saveError,
+      result.ok ? `✓ ${t(item === 'hammer' ? 'itemHammer' : item === 'rocket' ? 'itemRocket' : item === 'bow' ? 'itemBow' : item === 'shuffle' ? 'itemShuffle' : 'itemBomb')}` : growthCopy().saveError,
       result.ok ? 'is-ok' : 'is-error',
     )
     this.refresh()
@@ -66,14 +66,14 @@ export class Shop {
     for (const item of ITEMS) {
       const owned = document.querySelector<HTMLElement>(`[data-owned="${item}"]`)
       if (owned) {
-        owned.textContent = `×${held[item]}`
-        owned.classList.toggle('is-none', held[item] === 0)
+        owned.textContent = `×${(held[item] ?? 0)}`
+        owned.classList.toggle('is-none', (held[item] ?? 0) === 0)
       }
       const button = document.querySelector<HTMLButtonElement>(`[data-buy="${item}"]`)
       if (!button) continue
       // Affordability is shown by disabling rather than by hiding the price:
       // the price is the thing a player is saving towards.
-      const full = held[item] >= STASH_LIMIT
+      const full = (held[item] ?? 0) >= STASH_LIMIT
       button.disabled = full || balance < PRICES[item]
       button.classList.toggle('is-full', full)
     }

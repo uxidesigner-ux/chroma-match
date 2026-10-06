@@ -93,6 +93,15 @@ of the player's task. The product has one anime character editor and one profile
   world/region camera moves one artwork/route scene while native 52px targets and
   HUD remain readable. Keyboard focus reveals offscreen stages without browser
   scrolling; minimum regional zoom prevents neighboring targets overlapping.
+- New v9 free runs (`zr`) and v10 campaigns (`zq`) supply three each of five
+  tools: hammer, horizontal rocket, bomb, vertical bow and one-tap shuffle.
+  Bow previews a column while held and fires on release; cancelling spends nothing.
+  Shuffle consumes stock but no move/score, preserves stationary crates/holes and
+  earned powers, and produces a match-free playable board. Legacy v1-v8 action
+  encoding and stock stay unchanged. Five dimensional controls retain 44px targets;
+  overflow scroll controls use a separate row, never cover the board. Toy bevels,
+  silhouette-specific saturated gems and stronger plate contrast preserve each
+  theme. See `docs/five-tools.md`; the 3D character remains frozen.
 - New v8 campaign runs (`zs`) progressively trim board terrain and introduce
   stationary two/three-hit metal blocks. Preserve v1–v7 replay rules, blank-cell
   masks, segmented gravity and block state through shuffles/cascade caps.

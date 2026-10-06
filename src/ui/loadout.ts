@@ -1,4 +1,4 @@
-import { ITEMS, START_HELD } from '../game/items.ts'
+import { ALL_ITEMS as ITEMS, START_HELD } from '../game/items.ts'
 import type { Item } from '../game/items.ts'
 import { BOOSTER_LIMIT, stash, totalStashed } from '../meta.ts'
 import { onLanguageChange, t } from '../i18n/index.ts'
@@ -47,7 +47,7 @@ export class Loadout {
   }
 
   private toggle(item: Item): void {
-    const held = stash()[item]
+    const held = stash()[item] ?? 0
     const already = this.picked.filter((p) => p === item).length
     if (already > 0) {
       // Tapping a picked item takes one back rather than clearing the lot: with
@@ -64,12 +64,12 @@ export class Loadout {
     for (const item of ITEMS) {
       const button = this.grid.querySelector<HTMLButtonElement>(`[data-load="${item}"]`)
       const have = this.grid.querySelector<HTMLElement>(`[data-have="${item}"]`)
-      if (have) have.textContent = String(held[item])
+      if (have) have.textContent = String(held[item] ?? 0)
       if (!button) continue
       const chosen = this.picked.includes(item)
       button.classList.toggle('is-picked', chosen)
       button.setAttribute('aria-pressed', String(chosen))
-      button.disabled = held[item] <= 0
+      button.disabled = (held[item] ?? 0) <= 0
     }
 
     const room = BOOSTER_LIMIT - this.picked.length

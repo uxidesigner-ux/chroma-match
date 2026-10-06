@@ -168,3 +168,5 @@ html.hub-open .shop-head .wallet-coins { display: none; }
   .world-footer { padding: 8px; }
   .world-footer #world-play { min-height: 44px; }
 }
+
+.stats-items { flex-wrap:wrap; gap:12px 18px; }

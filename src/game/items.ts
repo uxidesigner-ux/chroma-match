@@ -19,10 +19,14 @@
 
 import type { RulesVersion } from './rules.ts'
 
-export type Item = 'hammer' | 'rocket' | 'bomb'
+export type LegacyItem = 'hammer' | 'rocket' | 'bomb'
+export type Item = LegacyItem | 'bow' | 'shuffle'
 
 /** Order is the encoding: an item's index is written into the run record. */
-export const ITEMS: readonly Item[] = ['hammer', 'rocket', 'bomb']
+export const ITEMS: readonly LegacyItem[] = ['hammer', 'rocket', 'bomb']
+
+export const ALL_ITEMS: readonly Item[] = [...ITEMS, 'bow', 'shuffle']
+export const itemsForRules = (rules: RulesVersion): readonly Item[] => rules >= 9 ? ALL_ITEMS : ITEMS
 
 /** Legacy v1-v4 capacity per item. */
 export const MAX_HELD = 3
@@ -36,13 +40,14 @@ export const inventoryCap = (rules: RulesVersion): number => rules >= 5 ? SUPPLI
 /** The chain that pays out a bomb. Reachable, but not by accident. */
 export const CHAIN_REWARD_AT = 5
 
-export type Inventory = Record<Item, number>
+export type Inventory = Record<LegacyItem, number> & Partial<Record<'bow' | 'shuffle', number>>
 
 export function emptyInventory(): Inventory {
   return { hammer: 0, rocket: 0, bomb: 0 }
 }
 
 export function startingInventory(rules: RulesVersion): Inventory {
+  if (rules >= 9) return { hammer: START_HELD, rocket: START_HELD, bomb: START_HELD, bow: START_HELD, shuffle: START_HELD }
   return rules >= 5 ? { hammer: START_HELD, rocket: START_HELD, bomb: START_HELD } : emptyInventory()
 }
 
@@ -55,8 +60,9 @@ export function startingInventory(rules: RulesVersion): Inventory {
  * has to be deterministic for the replay to work — there is no RNG here to keep
  * in step.
  */
-export function itemForLevel(level: number): Item {
-  return ITEMS[(level - 1) % ITEMS.length] as Item
+export function itemForLevel(level: number, rules: RulesVersion = 5): Item {
+  const items = itemsForRules(rules)
+  return items[(level - 1) % items.length] as Item
 }
 
 /** What a gem is worth to each item, as a set of cells to clear. */
@@ -73,7 +79,9 @@ export function blastCells(
     cells.push(cell)
   } else if (item === 'rocket') {
     for (let c = 0; c < geom.cols; c++) cells.push(geom.idx(c, row))
-  } else {
+  } else if (item === 'bow') {
+    for (let r = 0; r < geom.rows; r++) cells.push(geom.idx(col, r))
+  } else if (item === 'bomb') {
     for (let r = row - 1; r <= row + 1; r++) {
       for (let c = col - 1; c <= col + 1; c++) {
         if (c < 0 || c >= geom.cols || r < 0 || r >= geom.rows) continue

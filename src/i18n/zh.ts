@@ -48,6 +48,8 @@ export const ZH: Strings = {
   shopNoCoins: '金币不足。',
   packAdded: '已增加{coins}金币。',
 
+  itemBow: "弓箭", itemShuffle: "重排",
+  itemBowHint: "选择要消除的竖列。不消耗步数。", itemShuffleHint: "点击重排宝石。固定障碍保留，不消耗步数。",
   itemHammer: '锤子',
   itemRocket: '火箭',
   itemBomb: '炸弹',

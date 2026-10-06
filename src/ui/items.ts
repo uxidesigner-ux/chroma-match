@@ -1,4 +1,4 @@
-import { ITEMS } from '../game/items.ts'
+import { ALL_ITEMS as ITEMS } from '../game/items.ts'
 import type { Inventory, Item } from '../game/items.ts'
 import { onLanguageChange, t } from '../i18n/index.ts'
 import type { StringKey } from '../i18n/index.ts'
@@ -6,13 +6,13 @@ import type { StringKey } from '../i18n/index.ts'
 const LABELS: Record<Item, StringKey> = {
   hammer: 'itemHammer',
   rocket: 'itemRocket',
-  bomb: 'itemBomb',
+  bomb: 'itemBomb', bow: 'itemBow', shuffle: 'itemShuffle',
 }
 
 const HINTS: Record<Item, StringKey> = {
   hammer: 'itemHammerHint',
   rocket: 'itemRocketHint',
-  bomb: 'itemBombHint',
+  bomb: 'itemBombHint', bow: 'itemBowHint', shuffle: 'itemShuffleHint',
 }
 
 /**
@@ -31,6 +31,7 @@ export class ItemTray {
   private armedItem: Item | null = null
   private listeners: Array<(item: Item | null) => void> = []
   private shown: Inventory | null = null
+  private blocked = false
 
   constructor() {
     const root = document.getElementById('items')
@@ -40,7 +41,7 @@ export class ItemTray {
     onLanguageChange(() => {
       const inventory = this.shown
       this.shown = null
-      if (inventory) this.update(inventory)
+      if (inventory) this.update(inventory, this.blocked)
       if (this.armedItem) this.hint.textContent = t(HINTS[this.armedItem])
     })
 
@@ -89,22 +90,24 @@ export class ItemTray {
   }
 
   /** Called every frame; only touches the document when a count moved. */
-  update(inventory: Inventory): void {
+  update(inventory: Inventory, blocked = false): void {
     if (
-      this.shown &&
+      this.shown && this.blocked === blocked &&
       ITEMS.every((item) => this.shown?.[item] === inventory[item])
     ) {
       return
     }
     this.shown = { ...inventory }
+    this.blocked = blocked
+    if (blocked) this.arm(null)
 
     for (const item of ITEMS) {
-      const held = inventory[item]
+      const held = inventory[item] ?? 0
       const button = this.buttons.get(item)
       const count = this.counts.get(item)
       if (!button || !count) continue
       count.textContent = String(held)
-      button.disabled = held <= 0
+      button.disabled = held <= 0 || blocked
       button.classList.toggle('is-empty', held <= 0)
       button.setAttribute('aria-label', `${t(LABELS[item])}: ${held}`)
       button.title = t(HINTS[item])
@@ -112,7 +115,7 @@ export class ItemTray {
 
     // Spending the last one has to drop the mode with it, or the next tap on
     // the board fires an item that is no longer there.
-    if (this.armedItem && inventory[this.armedItem] <= 0) this.arm(null)
+    if (this.armedItem && (inventory[this.armedItem] ?? 0) <= 0) this.arm(null)
   }
 
   /**

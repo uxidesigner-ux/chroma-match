@@ -30,6 +30,8 @@ const MIN_CELL = 6
 const IMPACT_TIME = 0.26
 
 export class Renderer {
+  aimItem: import('../game/items.ts').Item | null = null
+  aimCell: number | null = null
   private ctx: CanvasRenderingContext2D
   private layout: Layout = { x: 0, y: 0, cell: 1, w: 1, h: 1 }
   private width = 0
@@ -160,6 +162,16 @@ export class Renderer {
     if (game.selected !== null && game.selected !== game.held) {
       this.drawSelection(game.selected, time, false)
     }
+    if (this.aimItem === 'bow' && this.aimCell !== null) {
+      const target = this.aimCell!
+      const ctx = this.ctx, cell = this.layout.cell
+      ctx.save(); ctx.fillStyle = 'rgba(255,211,77,.23)'; ctx.strokeStyle = '#ffdc69'; ctx.lineWidth = 2
+      for (let r = 0; r < this.geom.rows; r++) {
+        const i = this.geom.idx(this.geom.colOf(target), r); if (game.terrain.voidCells.has(i)) continue
+        const p = this.centreOf(i); ctx.beginPath(); ctx.roundRect(p.x-cell*.46,p.y-cell*.46,cell*.92,cell*.92,cell*.18);ctx.fill();ctx.stroke()
+      }
+      ctx.restore()
+    }
     if (game.held !== null) this.drawSelection(game.held, time, true)
 
     // Dashed rings identify eligible partners without relying on colour.
@@ -261,18 +273,18 @@ export class Renderer {
   }
 
   private drawGems(game: Game, time: number): void {
-    const f = game.offsetFactor
+    const f = reducedMotion() ? 0 : game.offsetFactor
     const clearP = game.clearProgress
-    // A shuffle collapses every gem to nothing and blooms it back out.
+    // Shuffle follows stored origins with a small lift; reduced motion shows destinations.
     const shuffleScale =
-      game.phaseKind === 'shuffle' ? Math.abs(Math.cos(game.phaseProgress * Math.PI)) : 1
+      game.phaseKind === 'shuffle' && !reducedMotion() ? 1 - .18 * Math.sin(game.phaseProgress * Math.PI) : 1
 
     for (let i = 0; i < this.geom.cells; i++) {
       const gem = at(game.grid, i)
       if (!gem) continue
       const { x, y } = this.centreOf(i)
       const cx = x + gem.ox * f * this.layout.cell
-      const cy = y + gem.oy * f * this.layout.cell
+      const cy = y + gem.oy * f * this.layout.cell - (game.phaseKind === 'shuffle' && !reducedMotion() ? Math.sin(game.phaseProgress * Math.PI) * this.layout.cell * .25 : 0)
 
       let scale = shuffleScale
       let alpha = 1

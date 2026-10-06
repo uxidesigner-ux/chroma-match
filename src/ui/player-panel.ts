@@ -1,3 +1,4 @@
+import { ALL_ITEMS } from '../game/items.ts'
 import { player } from '../player/ledger.ts'
 import { COSMETICS, levelFor, statsFor, type PlayMode } from '../player/model.ts'
 import { growthCopy } from './growth-copy.ts'
@@ -34,7 +35,7 @@ export class PlayerPanel {
       title.id = `stats-${key}-label`; value.id = `stats-${key}`
       row.append(icon, title, value); this.el('stats-grid').append(row)
     }
-    for (const item of ['hammer', 'rocket', 'bomb']) {
+    for (const item of ALL_ITEMS) {
       const group = document.createElement('span'), icon = document.createElement('span'), value = document.createElement('span')
       icon.className = `item-art item-${item}`; icon.setAttribute('aria-hidden','true'); value.id = `stats-item-${item}`
       group.append(icon,value); this.el('stats-items').append(group)
@@ -104,14 +105,14 @@ export class PlayerPanel {
       const button = this.root.querySelector<HTMLButtonElement>(`[data-period="${period}"]`)!
       button.textContent = period === 'all' ? copy.lifetime : copy.recent; button.setAttribute('aria-pressed', String(this.recent === (period === 'recent')))
     }
-    const used = items.hammer + items.rocket + items.bomb
+    const used = ALL_ITEMS.reduce((sum, item) => sum + (items[item] ?? 0), 0)
     const values: Record<string,string> = { used: n(used), average: stats.rounds ? (used / stats.rounds).toLocaleString(undefined,{maximumFractionDigits:1,minimumFractionDigits:1}) : '—',
       chain: stats.rounds ? `×${n(stats.chain)}` : '—', created: n(stats.created), fusions: n(stats.fusions), noItems: n(stats.noItems) }
     for (const key of ['used', 'average', 'chain', 'created', 'fusions', 'noItems'] as const) {
       this.el(`stats-${key}-label`).textContent = copy[key]; this.el(`stats-${key}`).textContent = values[key]!
     }
-    for (const item of ['hammer','rocket','bomb'] as const) {
-      const node = this.el(`stats-item-${item}`); node.textContent = n(items[item]); node.parentElement!.setAttribute('aria-label', `${t(item === 'hammer' ? 'itemHammer' : item === 'rocket' ? 'itemRocket' : 'itemBomb')}: ${n(items[item])}`)
+    for (const item of ALL_ITEMS) {
+      const node = this.el(`stats-item-${item}`); node.textContent = n(items[item] ?? 0); node.parentElement!.setAttribute('aria-label', `${t(item === 'hammer' ? 'itemHammer' : item === 'rocket' ? 'itemRocket' : item === 'bow' ? 'itemBow' : item === 'shuffle' ? 'itemShuffle' : 'itemBomb')}: ${n(items[item] ?? 0)}`)
     }
     this.el('stats-reset').textContent = copy.reset; this.el('stats-confirm-text').textContent = copy.resetConfirm
     this.el('stats-confirm-yes').textContent = copy.reset; this.el('stats-confirm-no').textContent = copy.cancel

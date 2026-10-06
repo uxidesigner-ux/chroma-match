@@ -51,6 +51,8 @@ export const JA: Strings = {
   shopNoCoins: 'コインが足りません。',
   packAdded: 'コインを{coins}枚追加しました。',
 
+  itemBow: "弓", itemShuffle: "シャッフル",
+  itemBowHint: "消す縦列を選択。手数は使いません。", itemShuffleHint: "タップでジェムを混ぜる。固定ブロックは残り、手数は使いません。",
   itemHammer: 'ハンマー',
   itemRocket: 'ロケット',
   itemBomb: 'ボム',

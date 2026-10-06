@@ -34,7 +34,8 @@ import { hasRunActions, recordOf, settledRecordOf, restoreRun, missionOf } from 
 import { bonusForLevel, stageGoal } from './game/variety.ts'
 import type { Upgrade } from './game/variety.ts'
 import { varietyCopy } from './ui/variety-copy.ts'
-import { itemForLevel } from './game/items.ts'
+import { ALL_ITEMS, itemForLevel } from './game/items.ts'
+import { NEW_CAMPAIGN_RULES, NEW_FREE_RULES } from './game/rules.ts'
 import type { Item } from './game/items.ts'
 import { BOARD } from './game/types.ts'
 import { findMoves } from './game/board.ts'
@@ -81,8 +82,8 @@ import { gemName } from './i18n/gems.ts'
 import { SettingsSheet } from './ui/settings.ts'
 import { hapticsOn, setHapticsOn, setSoundOn, soundOn } from './settings.ts'
 
-function totalHeld(inventory: { hammer: number; rocket: number; bomb: number }): number {
-  return inventory.hammer + inventory.rocket + inventory.bomb
+function totalHeld(inventory: import('./game/items.ts').Inventory): number {
+  return ALL_ITEMS.reduce((sum, item) => sum + (inventory[item] ?? 0), 0)
 }
 
 /** What the next level wants, in one sentence for the level-complete card. */
@@ -104,7 +105,7 @@ function nextLevelAsk(level: number): string {
 const ITEM_LABELS: Record<Item, () => string> = {
   hammer: () => t('itemHammer'),
   rocket: () => t('itemRocket'),
-  bomb: () => t('itemBomb'),
+  bomb: () => t('itemBomb'), bow: () => t('itemBow'), shuffle: () => t('itemShuffle'),
 }
 
 const BEST_KEY = 'chroma-match:best'
@@ -386,7 +387,8 @@ const hooks: Partial<GameHooks> = {
   onItemUsed(item, cell) {
     hud.react('power')
     reportMission('item', 1)
-    sfx.power()
+    if (item === 'bow' || item === 'shuffle') combo.reportEvent(t(item === 'bow' ? 'itemBow' : 'itemShuffle'))
+    if (item !== 'shuffle') sfx.power()
     haptics.power()
     // The nudge has served its purpose the moment an item is spent.
     if (!itemUsed) {
@@ -395,7 +397,7 @@ const hooks: Partial<GameHooks> = {
       tray.nudge(false)
     }
     // A bomb is felt harder than a hammer, because it does more.
-    renderer.hit(item === 'bomb' ? 0.85 : item === 'rocket' ? 0.7 : 0.4)
+    renderer.hit(item === 'bomb' ? 0.85 : (item === 'rocket' || item === 'bow') ? 0.7 : 0.4)
     const { x, y } = renderer.centreOf(cell)
     effects.burst(x, y, '#FFFFFF', 14)
   },
@@ -578,6 +580,17 @@ async function finishRun(score: number): Promise<void> {
 
 const game = new Game(hooks, seedFromUrl() ?? randomSeed())
 
+document.getElementById('board')!.addEventListener('keydown', e => { if (e.key === 'Escape') tray.arm(null) })
+tray.onArm(item => {
+  renderer.aimItem = item
+  renderer.aimCell = null
+  if (item === 'bow') { game.selected = null; game.cancelPress() }
+  if (item === 'shuffle') {
+    if (!game.useItem('shuffle', 0)) sfx.reject()
+    tray.arm(null)
+  }
+})
+
 const resetInput = attachInput(
   canvas,
   game,
@@ -640,7 +653,7 @@ async function showLevelComplete(level: number): Promise<void> {
   overlay.show({
     kicker: t('cleared'), celebration: 'clear', title: t('levelComplete', { level }),
     growth: resultGrowth(earned),
-    hero: { value: n(game.score), caption: t('pointsBanked'), flair: t('itemEarned', { item: ITEM_LABELS[itemForLevel(level)]() }) },
+    hero: { value: n(game.score), caption: t('pointsBanked'), flair: t('itemEarned', { item: ITEM_LABELS[itemForLevel(level, game.rules)]() }) },
     body: growthResult(earned) + '\n' + nextLevelAsk(level + 1), action: choose ? copy.confirm : t('nextLevel'),
     onAction: advanceStage,
     ...(choose ? { choices: {
@@ -668,7 +681,7 @@ async function startRun(boosters: readonly Item[] = [], mission: Mission | null 
   try {
     const kept = suspendedRun()
     if (kept?.attempt) await player.settle(kept.attempt, kept.record, kept.outcome ?? 'quit', true)
-    await player.begin(id, true, 0, Date.now(), boosters, `${mission ? 8 : 5}:${seed >>> 0}:${mission?.id ?? ''}`)
+    await player.begin(id, true, 0, Date.now(), boosters, `${mission ? NEW_CAMPAIGN_RULES : NEW_FREE_RULES}:${seed >>> 0}:${mission?.id ?? ''}`)
   } catch {
     startingRun = false
     saveFailure(() => void startRun(boosters, mission))
@@ -685,7 +698,7 @@ async function startRun(boosters: readonly Item[] = [], mission: Mission | null 
   overlay.hide()
   if (screens.active === 'home' || screens.active === 'map') returnDestination = mission ? 'map' : screens.active
   if (mission) returnDestination = 'map'
-  game.restart(seed, mission ? 8 : 5, mission?.id)
+  game.restart(seed, mission ? NEW_CAMPAIGN_RULES : NEW_FREE_RULES, mission?.id)
   resetPlayView()
   // Play again stays on the same screen, so its screen-change hook won't run.
   if (screens.active === 'game') hud.reset()
@@ -1111,7 +1124,7 @@ function frame(now: number): void {
     const feverReady = game.rules >= 4 && game.feverCharge >= 100 && !game.busy
     if (game.feverCharge < 100 || game.rules < 4) feverReadyNotified = false
     if (feverReady && !feverReadyNotified) { combo.reportEvent(varietyCopy().charged); feverReadyNotified = true }
-    tray.update(game.items)
+    tray.update(game.items, game.busy || game.status !== 'playing')
     const fusionAvailable = game.fusionPartners.length > 0
     combo.fusionHint(!tray.armed && !game.busy && (fusionAvailable || !!game.bonusRound),
       fusionAvailable ? t('fusionHint') : game.bonusRound ? varietyCopy().bonusCue[game.bonusRound] : t('fusionHint'))

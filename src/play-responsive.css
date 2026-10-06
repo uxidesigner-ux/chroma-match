@@ -164,3 +164,19 @@ html.game-open, html.game-open body { overflow: hidden; overscroll-behavior: non
   .game .stage { padding-inline: 0; }
   .game .item, [data-play-short="true"] .game .item, .game .game-exit { width: 44px; height: 44px; }
 }
+
+/* Five tools keep stable, thumb-sized targets. Scroll controls use a second
+   row only when the board overflows; never cover the board. */
+.game .items { display:grid; grid-template-columns:repeat(5, minmax(44px, 1fr)) 44px; gap:6px; padding:0 2px; }
+.game .items > .item, .game .items > .game-exit { width:44px; height:44px; justify-self:center; }
+.game .items > .game-exit { grid-column:6; grid-row:1; margin:0; }
+.game .items > .board-scroll-hint { grid-column:1 / -1; grid-row:2; }
+.loadout-grid { grid-template-columns:repeat(auto-fit,minmax(88px,1fr)); }
+@media(min-width:600px) { .game .items { grid-template-columns:repeat(5,minmax(48px,1fr)) 48px; } .game .items > .item,.game .items > .game-exit {width:48px;height:48px;} }
+@media(prefers-reduced-motion:reduce) { .game .item, .game .item-art {animation:none !important;transition:none !important;} }
+
+@media(min-width:390px) {
+  [data-board-scroll="true"] .game .items { grid-template-columns:repeat(5,minmax(44px,1fr)) 92px 44px; gap:2px; }
+  [data-board-scroll="true"] .game .items > .board-scroll-hint { grid-column:6; grid-row:1; }
+  [data-board-scroll="true"] .game .items > .game-exit { grid-column:7; }
+}

@@ -1,4 +1,4 @@
-import { ITEMS } from './game/items.ts'
+import { ALL_ITEMS as ITEMS } from './game/items.ts'
 import type { Inventory, Item } from './game/items.ts'
 
 /**
@@ -28,13 +28,13 @@ let economy: EconomyPort | null = null
 export function bindEconomy(port: EconomyPort): void { economy = port }
 export function rewardClaimed(id: string): boolean { return Boolean(economy?.read().claims[id]) }
 export async function creditStored(amount: number, id?: string, item?: Item): Promise<boolean> {
-  if (!economy) { setCoins(coins() + amount); if (item) { const s = stash(); s[item] = Math.min(STASH_LIMIT, s[item] + 1); setStash(s) }; return true }
+  if (!economy) { setCoins(coins() + amount); if (item) { const s = stash(); s[item] = Math.min(STASH_LIMIT, (s[item] ?? 0) + 1); setStash(s) }; return true }
   let credited = false
   await economy.change(s => {
     if (id && s.claims[id]) return
     if (id) s.claims[id] = true
     s.coins += Math.max(0, Math.floor(amount))
-    if (item) s.stash[item] = Math.min(STASH_LIMIT, s.stash[item] + 1)
+    if (item) s.stash[item] = Math.min(STASH_LIMIT, (s.stash[item] ?? 0) + 1)
     credited = true
   })
   return credited
@@ -44,9 +44,9 @@ export async function buyStored(item: Item): Promise<PurchaseResult> {
   let result: PurchaseResult = { ok: false }
   try {
     await economy.change(s => {
-      if (s.stash[item] >= STASH_LIMIT) result = { ok: false, reason: 'full' }
+      if ((s.stash[item] ?? 0) >= STASH_LIMIT) result = { ok: false, reason: 'full' }
       else if (s.coins < PRICES[item]) result = { ok: false, reason: 'coins' }
-      else { s.coins -= PRICES[item]; s.stash[item]++; result = { ok: true } }
+      else { s.coins -= PRICES[item]; s.stash[item] = (s.stash[item] ?? 0) + 1; result = { ok: true } }
     })
   } catch { result = { ok: false, reason: 'storage' } }
   return result
@@ -58,7 +58,7 @@ export async function grantStoredStarterKit(): Promise<{ coins: number; items: r
     await economy.change(s => {
       if (s.starter) return
       s.starter = true; s.coins += STARTER_COINS
-      for (const item of STARTER_ITEMS) s.stash[item] = Math.min(STASH_LIMIT, s.stash[item] + 1)
+      for (const item of STARTER_ITEMS) s.stash[item] = Math.min(STASH_LIMIT, (s.stash[item] ?? 0) + 1)
       result = { coins: STARTER_COINS, items: STARTER_ITEMS }
     })
   } catch { /* No success is shown for a failed transaction. */ }
@@ -93,7 +93,7 @@ export const BOOSTER_LIMIT = 2
 export const PRICES: Record<Item, number> = {
   hammer: 130,
   rocket: 260,
-  bomb: 460,
+  bomb: 460, bow: 260, shuffle: 130,
 }
 
 /** How many of one item the shop will let you stockpile. */
@@ -159,7 +159,7 @@ export function stash(): Inventory {
 
 export function setStash(next: Inventory): void {
   const clean: Inventory = { hammer: 0, rocket: 0, bomb: 0 }
-  for (const item of ITEMS) clean[item] = Math.max(0, Math.min(STASH_LIMIT, Math.floor(next[item])))
+  for (const item of ITEMS) clean[item] = Math.max(0, Math.min(STASH_LIMIT, Math.floor(next[item] ?? 0)))
   write(STASH_KEY, JSON.stringify(clean))
 }
 
@@ -171,13 +171,13 @@ export interface PurchaseResult {
 /** Buys one, or says why not. The caller re-reads the balance either way. */
 export function buy(item: Item): PurchaseResult {
   const held = stash()
-  if (held[item] >= STASH_LIMIT) return { ok: false, reason: `You cannot hold more than ${STASH_LIMIT}.` }
+  if ((held[item] ?? 0) >= STASH_LIMIT) return { ok: false, reason: `You cannot hold more than ${STASH_LIMIT}.` }
   const price = PRICES[item]
   const balance = coins()
   if (balance < price) return { ok: false, reason: `${price - balance} more coins needed.` }
 
   setCoins(balance - price)
-  held[item] += 1
+  held[item] = (held[item] ?? 0) + 1
   setStash(held)
   return { ok: true }
 }
@@ -186,7 +186,7 @@ export function buy(item: Item): PurchaseResult {
 export function spendBoosters(chosen: readonly Item[]): void {
   const held = stash()
   for (const item of chosen.slice(0, BOOSTER_LIMIT)) {
-    if (held[item] > 0) held[item] -= 1
+    if ((held[item] ?? 0) > 0) held[item] = (held[item] ?? 0) - 1
   }
   setStash(held)
 }
@@ -210,7 +210,7 @@ export function grantStarterKit(): { coins: number; items: readonly Item[] } | n
   // of a storage failure nobody can do anything about anyway.
   setCoins(coins() + STARTER_COINS)
   const held = stash()
-  for (const item of STARTER_ITEMS) held[item] = Math.min(STASH_LIMIT, held[item] + 1)
+  for (const item of STARTER_ITEMS) held[item] = Math.min(STASH_LIMIT, (held[item] ?? 0) + 1)
   setStash(held)
   return { coins: STARTER_COINS, items: STARTER_ITEMS }
 }
@@ -225,5 +225,5 @@ export function markItemUsed(): void {
 }
 
 export function totalStashed(held: Inventory = stash()): number {
-  return ITEMS.reduce((sum, item) => sum + held[item], 0)
+  return ITEMS.reduce((sum, item) => sum + (held[item] ?? 0), 0)
 }

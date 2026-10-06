@@ -57,6 +57,8 @@ export const KO: Strings = {
   shopNoCoins: '코인이 부족해요.',
   packAdded: '코인 {coins}개가 들어왔어요.',
 
+  itemBow: "활", itemShuffle: "재배치",
+  itemBowHint: "없앨 세로줄을 선택하세요. 이동 횟수는 줄지 않아요.", itemShuffleHint: "누르면 보석을 섞어요. 고정 블록은 유지하고 이동 횟수는 줄지 않아요.",
   itemHammer: '망치',
   itemRocket: '로켓',
   itemBomb: '폭탄',

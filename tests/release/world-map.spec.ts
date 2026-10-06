@@ -153,7 +153,7 @@ test('production regional entry, spent-stock continue and cancelled replacement 
   await expect(page.locator('#screen-map')).toBeVisible()
   await expect(page.locator('#map-continue')).toContainText('프리즘해변')
   const kept = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:suspended')!).record)
-  expect(kept.moves.startsWith('zs0z')).toBe(true)
+  expect(kept.moves.startsWith('zq0z')).toBe(true)
   expect(verifyRun(kept, BOARD).claimMatches).toBe(true)
   await region(page,'volcano'); await page.locator('#world-play').click()
   await page.locator('#overlay-action').click(); await page.locator('#loadout-cancel').click()

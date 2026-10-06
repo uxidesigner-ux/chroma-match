@@ -16,10 +16,10 @@
 import { areNeighbours, isLegalSwap } from './board.ts'
 import { Game } from './game.ts'
 import type { Action } from './game.ts'
-import { ITEMS } from './items.ts'
+import { itemsForRules } from './items.ts'
 import type { Item } from './items.ts'
 import type { Geom } from './types.ts'
-import { FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER, SUPPLIES_HEADER, CAMPAIGN_HEADER, ADVENTURE_HEADER, TERRAIN_HEADER } from './rules.ts'
+import { FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER, SUPPLIES_HEADER, CAMPAIGN_HEADER, ADVENTURE_HEADER, TERRAIN_HEADER, TOOLS_HEADER, TOOLS_CAMPAIGN_HEADER, isCampaignRules } from './rules.ts'
 import { MISSIONS, WORLD_MISSIONS, type Mission } from './campaign.ts'
 import type { RulesVersion } from './rules.ts'
 import { UPGRADES } from './variety.ts'
@@ -31,7 +31,7 @@ const SETTLE_LIMIT = 4000
 export const MAX_MOVES = 4000
 /** Two base36 characters carry one action, so everything below has to fit. */
 const PACK_LIMIT = 36 * 36
-const FIRST_HEADER = Math.min(...[TERRAIN_HEADER, ADVENTURE_HEADER, CAMPAIGN_HEADER, SUPPLIES_HEADER, VARIETY_HEADER, SQUARE_HEADER, FUSION_HEADER].map(h => Number.parseInt(h, 36)))
+const FIRST_HEADER = Math.min(...[TOOLS_HEADER, TOOLS_CAMPAIGN_HEADER, TERRAIN_HEADER, ADVENTURE_HEADER, CAMPAIGN_HEADER, SUPPLIES_HEADER, VARIETY_HEADER, SQUARE_HEADER, FUSION_HEADER].map(h => Number.parseInt(h, 36)))
 
 /** Neighbour offsets, in the order their index is encoded. */
 const DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
@@ -59,28 +59,28 @@ export interface RunRecord {
 }
 
 export function hasRunActions(record: RunRecord): boolean {
-  if (rulesOf(record) >= 6) return record.moves.length > 4
-  return record.moves.length > ([FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER, SUPPLIES_HEADER].some(h => record.moves.startsWith(h)) ? 2 : 0)
+  if (isCampaignRules(rulesOf(record))) return record.moves.length > 4
+  return record.moves.length > ([TOOLS_HEADER, FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER, SUPPLIES_HEADER].some(h => record.moves.startsWith(h)) ? 2 : 0)
 }
 
 export function rulesOf(record: RunRecord): RulesVersion {
   // Ranking labels can be painted before asynchronous verification rejects a
   // malformed remote row. Detection must not take the entire list down.
   const moves = typeof record.moves === 'string' ? record.moves : ''
-  return moves.startsWith(TERRAIN_HEADER) ? 8 : moves.startsWith(ADVENTURE_HEADER) ? 7 : moves.startsWith(CAMPAIGN_HEADER) ? 6 : moves.startsWith(SUPPLIES_HEADER) ? 5 : moves.startsWith(VARIETY_HEADER) ? 4 : moves.startsWith(SQUARE_HEADER) ? 3
+  return moves.startsWith(TOOLS_CAMPAIGN_HEADER) ? 10 : moves.startsWith(TOOLS_HEADER) ? 9 : moves.startsWith(TERRAIN_HEADER) ? 8 : moves.startsWith(ADVENTURE_HEADER) ? 7 : moves.startsWith(CAMPAIGN_HEADER) ? 6 : moves.startsWith(SUPPLIES_HEADER) ? 5 : moves.startsWith(VARIETY_HEADER) ? 4 : moves.startsWith(SQUARE_HEADER) ? 3
     : moves.startsWith(FUSION_HEADER) ? 2 : 1
 }
 export function missionOf(record: RunRecord): Mission | null {
   const rules = rulesOf(record)
-  if (rules < 6 || !/^[0-9a-z]{2}$/.test(record.moves.slice(2, 4))) return null
+  if (!isCampaignRules(rules) || !/^[0-9a-z]{2}$/.test(record.moves.slice(2, 4))) return null
   return (rules === 6 ? MISSIONS : WORLD_MISSIONS)[Number.parseInt(record.moves.slice(2, 4), 36)] ?? null
 }
 function decodeRecord(geom: Geom, record: RunRecord): { rules: RulesVersion; actions: Action[]; mission: Mission | null } {
   const rules = rulesOf(record)
   const mission = missionOf(record)
-  if (rules >= 6 && !mission) throw new Error('campaign mission is missing or unknown')
+  if (isCampaignRules(rules) && !mission) throw new Error('campaign mission is missing or unknown')
   if (mission && record.seed !== mission.seed) throw new Error('seed does not match the authored mission')
-  const actions = decodeMoves(geom, rules >= 6 ? record.moves.slice(4) : rules > 1 ? record.moves.slice(2) : record.moves)
+  const actions = decodeMoves(geom, isCampaignRules(rules) ? record.moves.slice(4) : rules > 1 ? record.moves.slice(2) : record.moves, rules)
   if (rules < 4 && actions.some(a => a.kind === 'fever' || a.kind === 'upgrade' || a.kind === 'advance'))
     throw new Error('this rules version does not have variety actions')
   return { rules, actions, mission }
@@ -116,14 +116,14 @@ function itemBase(geom: Geom): number {
 }
 
 /** Booster codes sit immediately above the item codes, one per item. */
-function boosterBase(geom: Geom): number {
-  return itemBase(geom) + ITEMS.length * geom.cells
+function boosterBase(geom: Geom, rules: RulesVersion): number {
+  return itemBase(geom) + itemsForRules(rules).length * geom.cells
 }
 
-function packLimitFor(geom: Geom): number {
-  return varietyBase(geom) + 2 + UPGRADES.length
+function packLimitFor(geom: Geom, rules: RulesVersion): number {
+  return varietyBase(geom, rules) + 2 + UPGRADES.length
 }
-const varietyBase = (geom: Geom): number => boosterBase(geom) + ITEMS.length
+const varietyBase = (geom: Geom, rules: RulesVersion): number => boosterBase(geom, rules) + itemsForRules(rules).length
 
 /**
  * Packs the action list into a string.
@@ -133,27 +133,28 @@ const varietyBase = (geom: Geom): number => boosterBase(geom) + ITEMS.length
  * plus the direction of its partner; an item is its index and the cell it was
  * aimed at. Both fit in two base36 characters.
  */
-export function encodeMoves(geom: Geom, actions: readonly Action[]): string {
-  if (packLimitFor(geom) > Math.min(PACK_LIMIT, FIRST_HEADER)) {
+export function encodeMoves(geom: Geom, actions: readonly Action[], rules: RulesVersion = 5): string {
+  const headerLimit = rules >= 9 ? FIRST_HEADER : Number.parseInt(TERRAIN_HEADER, 36)
+  if (packLimitFor(geom, rules) > Math.min(PACK_LIMIT, headerLimit)) {
     throw new Error(`a ${geom.cols}x${geom.rows} board does not fit the two-character action encoding`)
   }
   let out = ''
   for (const action of actions) {
     let packed: number
     if (action.kind === 'advance') {
-      packed = varietyBase(geom) + 1 + UPGRADES.length
+      packed = varietyBase(geom, rules) + 1 + UPGRADES.length
     } else if (action.kind === 'fever') {
-      packed = varietyBase(geom)
+      packed = varietyBase(geom, rules)
     } else if (action.kind === 'upgrade') {
       const index = UPGRADES.indexOf(action.upgrade)
       if (index < 0) throw new Error('unknown upgrade')
-      packed = varietyBase(geom) + 1 + index
+      packed = varietyBase(geom, rules) + 1 + index
     } else if (action.kind === 'booster') {
-      const index = ITEMS.indexOf(action.item)
+      const index = itemsForRules(rules).indexOf(action.item)
       if (index < 0) throw new Error(`unknown item ${action.item}`)
-      packed = boosterBase(geom) + index
+      packed = boosterBase(geom, rules) + index
     } else if (action.kind === 'item') {
-      const index = ITEMS.indexOf(action.item)
+      const index = itemsForRules(rules).indexOf(action.item)
       if (index < 0) throw new Error(`unknown item ${action.item}`)
       if (action.cell < 0 || action.cell >= geom.cells) {
         throw new Error(`item aimed off the board at ${action.cell}`)
@@ -171,10 +172,10 @@ export function encodeMoves(geom: Geom, actions: readonly Action[]): string {
   return out
 }
 
-export function decodeMoves(geom: Geom, encoded: string): Action[] {
+export function decodeMoves(geom: Geom, encoded: string, rules: RulesVersion = 5): Action[] {
   if (encoded.length % 2 !== 0) throw new Error('move list is truncated')
   const base = itemBase(geom)
-  const boosters = boosterBase(geom)
+  const boosters = boosterBase(geom, rules)
   const actions: Action[] = []
   for (let i = 0; i < encoded.length; i += 2) {
     const chunk = encoded.slice(i, i + 2)
@@ -182,8 +183,8 @@ export function decodeMoves(geom: Geom, encoded: string): Action[] {
     if (!/^[0-9a-z]{2}$/.test(chunk)) throw new Error(`move ${n} is not valid base36`)
     const packed = Number.parseInt(chunk, 36)
 
-    if (packed >= varietyBase(geom)) {
-      const index = packed - varietyBase(geom)
+    if (packed >= varietyBase(geom, rules)) {
+      const index = packed - varietyBase(geom, rules)
       if (index === 0) actions.push({ kind: 'fever' })
       else if (index === 1 + UPGRADES.length) actions.push({ kind: 'advance' })
       else {
@@ -195,7 +196,7 @@ export function decodeMoves(geom: Geom, encoded: string): Action[] {
     }
     if (packed >= boosters) {
       const index = packed - boosters
-      const item = ITEMS[index]
+      const item = itemsForRules(rules)[index]
       if (!item) throw new Error(`move ${n} names an item this version does not have`)
       actions.push({ kind: 'booster', item: item as Item })
       continue
@@ -205,7 +206,7 @@ export function decodeMoves(geom: Geom, encoded: string): Action[] {
       const offset = packed - base
       const index = Math.floor(offset / geom.cells)
       const cell = offset % geom.cells
-      const item = ITEMS[index]
+      const item = itemsForRules(rules)[index]
       if (!item) throw new Error(`move ${n} names an item this version does not have`)
       actions.push({ kind: 'item', item: item as Item, cell })
       continue
@@ -375,7 +376,7 @@ export function restoreRun(game: Game, record: RunRecord): boolean {
 export function recordOf(game: Game): RunRecord {
   return {
     seed: game.seed,
-    moves: (game.rules >= 6 ? (game.rules === 8 ? TERRAIN_HEADER : game.rules === 6 ? CAMPAIGN_HEADER : ADVENTURE_HEADER) + (game.rules === 6 ? MISSIONS : WORLD_MISSIONS).findIndex(m => m.id === game.mission?.id).toString(36).padStart(2, '0') : game.rules === 5 ? SUPPLIES_HEADER : game.rules === 4 ? VARIETY_HEADER : game.rules === 3 ? SQUARE_HEADER : game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
+    moves: (isCampaignRules(game.rules) ? (game.rules === 10 ? TOOLS_CAMPAIGN_HEADER : game.rules === 8 ? TERRAIN_HEADER : game.rules === 6 ? CAMPAIGN_HEADER : ADVENTURE_HEADER) + (game.rules === 6 ? MISSIONS : WORLD_MISSIONS).findIndex(m => m.id === game.mission?.id).toString(36).padStart(2, '0') : game.rules === 9 ? TOOLS_HEADER : game.rules === 5 ? SUPPLIES_HEADER : game.rules === 4 ? VARIETY_HEADER : game.rules === 3 ? SQUARE_HEADER : game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log, game.rules),
     score: game.score,
     level: game.level,
     board: boardOf(game.geom),

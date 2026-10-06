@@ -128,7 +128,7 @@ export function claimDaily(at: Date = new Date()): DailyState | null {
   setCoins(coins() + state.reward.coins)
   if (state.reward.item) {
     const held = stash()
-    held[state.reward.item] = Math.min(STASH_LIMIT, held[state.reward.item] + 1)
+    held[state.reward.item] = Math.min(STASH_LIMIT, (held[state.reward.item] ?? 0) + 1)
     setStash(held)
   }
   return state

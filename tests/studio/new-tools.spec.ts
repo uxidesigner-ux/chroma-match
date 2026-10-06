@@ -1,0 +1,88 @@
+import { test, expect } from '@playwright/test'
+test.use({hasTouch:true})
+
+async function boot(page: import('@playwright/test').Page, skin='jewel') {
+  await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com|seed-san\.vrm/,r=>r.abort())
+  await page.addInitScript(skin=>{
+    localStorage.setItem('chroma-match:granted','1')
+    localStorage.setItem('chroma-match:lang','ko')
+    localStorage.setItem('chroma.skin',skin)
+  },skin)
+  await page.goto('/?seed=7')
+  await expect(page.locator('#splash')).toBeHidden()
+  await page.locator('#map-freeplay').click()
+  await page.locator('#loadout-start').click()
+  await expect(page.locator('#screen-game')).toBeVisible()
+  await expect.poll(()=>page.evaluate(()=>window.chroma.game.rules)).toBe(9)
+}
+for (const [width,height,skin] of [[320,568,'paper'],[390,690,'jewel'],[390,650,'jewel'],[720,720,'glass'],[844,390,'jewel']] as const) {
+  test(`five tools stay reachable ${width}x${height} ${skin}`,async({page},info)=>{
+    await page.setViewportSize({width,height}); await boot(page,skin)
+    expect(await page.evaluate(()=>window.chroma.game.rules)).toBe(9)
+    const buttons=page.locator('#items > button')
+    await expect(buttons).toHaveCount(6)
+    for(const button of await buttons.all()){
+      const r=await button.boundingBox();expect(r).not.toBeNull()
+      expect(r!.width).toBeGreaterThanOrEqual(44);expect(r!.height).toBeGreaterThanOrEqual(44)
+      expect(r!.x).toBeGreaterThanOrEqual(0);expect(r!.x+r!.width).toBeLessThanOrEqual(width)
+      expect(r!.y+r!.height).toBeLessThanOrEqual(height)
+    }
+    await page.screenshot({path:info.outputPath(`tools-${skin}-${width}.png`)})
+    const before=await page.evaluate(()=>({score:window.chroma.game.score,moves:window.chroma.game.moves}))
+    await page.locator('[data-item="shuffle"]').click()
+    await expect(page.locator('[data-count="shuffle"]')).toHaveText('2')
+    await expect.poll(()=>page.evaluate(()=>window.chroma.game.busy)).toBe(false)
+    expect(await page.evaluate(()=>({score:window.chroma.game.score,moves:window.chroma.game.moves}))).toEqual(before)
+    await page.locator('[data-item="bow"]').click()
+    await expect(page.locator('[data-item="bow"]')).toHaveAttribute('aria-pressed','true')
+    await page.locator('#board').focus()
+    await page.keyboard.press('ArrowRight')
+    await page.screenshot({path:info.outputPath(`bow-aim-${width}.png`)})
+    await page.keyboard.press('Enter')
+    await expect(page.locator('[data-count="bow"]')).toHaveText('2')
+    await expect.poll(()=>page.evaluate(()=>window.chroma.game.busy)).toBe(false)
+    expect(await page.evaluate(()=>window.chroma.game.moves)).toBe(before.moves)
+    await expect(page.locator('[data-item="bow"]')).toHaveAttribute('aria-pressed','false')
+  })
+}
+test('touch bow previews on hold, cancellation does not spend; reduced motion still shuffles',async({page})=>{
+  await page.setViewportSize({width:390,height:690});await page.emulateMedia({reducedMotion:'reduce'});await boot(page)
+  await page.locator('[data-item="bow"]').click()
+  const send=async(type:string)=>page.evaluate(type=>{
+    const p=window.chroma.renderer.centreOf(14),canvas=document.getElementById('board')!,r=canvas.getBoundingClientRect()
+    canvas.dispatchEvent(new PointerEvent(type,{pointerId:1,isPrimary:true,pointerType:'touch',clientX:r.left+p.x,clientY:r.top+p.y,bubbles:true}))
+  },type)
+  // Browser-generated mouse pointer supports capture; touch semantics are
+  // verified separately from physical iOS hardware, which is not claimed.
+  const p=await page.evaluate(()=>{const p=window.chroma.renderer.centreOf(14),r=document.getElementById('board')!.getBoundingClientRect();return {x:r.left+p.x,y:r.top+p.y}})
+  await page.mouse.move(p.x,p.y);await page.mouse.down()
+  await expect(page.locator('[data-count="bow"]')).toHaveText('3')
+  expect(await page.evaluate(()=>window.chroma.renderer.aimCell)).toBe(14)
+  await send('pointercancel');await page.mouse.up()
+  await expect(page.locator('[data-count="bow"]')).toHaveText('3')
+  await page.keyboard.press('Escape');await expect(page.locator('[data-item="bow"]')).toHaveAttribute('aria-pressed','false')
+  await page.locator('[data-item="shuffle"]').click()
+  await expect.poll(()=>page.evaluate(()=>window.chroma.game.busy)).toBe(false)
+  await expect(page.locator('[data-count="shuffle"]')).toHaveText('2')
+  expect(await page.evaluate(()=>window.chroma.game.score)).toBe(0)
+})
+
+test('real browser touch fires one bow, settles and persists both new statistics',async({page})=>{
+  await page.setViewportSize({width:390,height:690});await boot(page)
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
+  await page.locator('[data-item="bow"]').tap()
+  const p=await page.evaluate(()=>{const p=window.chroma.renderer.centreOf(14),r=document.getElementById('board')!.getBoundingClientRect();return {x:r.left+p.x,y:r.top+p.y}})
+  await page.touchscreen.tap(p.x,p.y)
+  await expect(page.locator('[data-count="bow"]')).toHaveText('2')
+  await expect.poll(()=>page.evaluate(()=>window.chroma.game.busy)).toBe(false)
+  await page.locator('[data-item="shuffle"]').tap()
+  await expect(page.locator('[data-count="shuffle"]')).toHaveText('2')
+  await expect.poll(()=>page.evaluate(()=>window.chroma.game.busy)).toBe(false)
+  await page.locator('#pause').tap();await page.locator('#paused-keep').click()
+  await page.locator('#map-freeplay').click();await page.locator('#overlay-action').click()
+  await expect(page.locator('#loadout')).toBeVisible()
+  await page.locator('#loadout-start').click(); await expect(page.locator('#screen-game')).toBeVisible()
+  const stats=await page.evaluate(()=>window.chroma.player.state.stats.totals.free.items)
+  expect(stats.bow).toBe(1);expect(stats.shuffle).toBe(1)
+  expect(errors).toEqual([])
+})

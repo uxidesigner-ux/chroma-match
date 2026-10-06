@@ -1,3 +1,4 @@
+import { isCampaignRules } from '../game/rules.ts'
 import { verifyRun, rulesOf } from '../game/replay.ts'
 import { BOARD } from '../game/types.ts'
 import type { EntryCheck, LeaderboardEntry } from './types.ts'
@@ -14,7 +15,7 @@ import type { EntryCheck, LeaderboardEntry } from './types.ts'
  */
 export function checkEntry(entry: LeaderboardEntry): EntryCheck {
   if (!entry.run) return 'unchecked'
-  if (rulesOf(entry.run) >= 6) return 'failed' // A valid mission is not an endless ranking.
+  if (isCampaignRules(rulesOf(entry.run))) return 'failed' // A valid mission is not an endless ranking.
   const verdict = verifyRun(entry.run, BOARD)
   if (!verdict.ok) return 'failed'
   return verdict.score === entry.score && verdict.level === entry.level ? 'ok' : 'failed'

@@ -256,6 +256,28 @@
               <span class="coin" aria-hidden="true"></span><span data-price="hammer">0</span>
             </button>
           </li>
+          <li class="shop-row" data-shop="shuffle">
+            <span class="item-art item-shuffle" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name" data-i18n="itemShuffle">Shuffle</strong>
+              <span class="shop-desc" data-i18n="itemShuffleHint">Smash any one gem.</span>
+            </span>
+            <span class="shop-owned" data-owned="shuffle">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="shuffle" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="shuffle">0</span>
+            </button>
+          </li>
+          <li class="shop-row" data-shop="bow">
+            <span class="item-art item-bow" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name" data-i18n="itemBow">Bow</strong>
+              <span class="shop-desc" data-i18n="itemBowHint">Smash any one gem.</span>
+            </span>
+            <span class="shop-owned" data-owned="bow">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="bow" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="bow">0</span>
+            </button>
+          </li>
           <li class="shop-row" data-shop="rocket">
             <span class="item-art item-rocket" aria-hidden="true"></span>
             <span class="shop-text">
@@ -405,6 +427,16 @@
             <span class="item-art item-bomb" aria-hidden="true"></span>
             <span class="item-name" data-i18n="itemBomb">Bomb</span>
             <span class="item-count" data-count="bomb">0</span>
+          </button>
+          <button class="item" data-item="bow" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-bow" aria-hidden="true"></span>
+            <span class="item-name" data-i18n="itemBow">Bow</span>
+            <span class="item-count" data-count="bow">0</span>
+          </button>
+          <button class="item" data-item="shuffle" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-shuffle" aria-hidden="true"></span>
+            <span class="item-name" data-i18n="itemShuffle">Shuffle</span>
+            <span class="item-count" data-count="shuffle">0</span>
           </button>
           <div class="board-scroll-hint" role="group" aria-labelledby="board-scroll-hint">
             <p class="sr-only" id="board-scroll-hint"></p>
@@ -694,6 +726,16 @@
             <span class="item-art item-hammer" aria-hidden="true"></span>
             <span class="loadout-name" data-i18n="itemHammer">Hammer</span>
             <span class="loadout-have" data-have="hammer">0</span>
+          </button>
+          <button class="loadout-pick" data-load="shuffle" type="button" aria-pressed="false">
+            <span class="item-art item-shuffle" aria-hidden="true"></span>
+            <span class="loadout-name" data-i18n="itemShuffle">Shuffle</span>
+            <span class="loadout-have" data-have="shuffle">0</span>
+          </button>
+          <button class="loadout-pick" data-load="bow" type="button" aria-pressed="false">
+            <span class="item-art item-bow" aria-hidden="true"></span>
+            <span class="loadout-name" data-i18n="itemBow">Bow</span>
+            <span class="loadout-have" data-have="bow">0</span>
           </button>
           <button class="loadout-pick" data-load="rocket" type="button" aria-pressed="false">
             <span class="item-art item-rocket" aria-hidden="true"></span>

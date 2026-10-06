@@ -65,6 +65,8 @@ export const EN = {
   packAdded: '{coins} coins added.',
 
   /* ---- items ---------------------------------------------------------- */
+  itemBow: "Bow", itemShuffle: "Shuffle",
+  itemBowHint: "Choose a column to clear. No moves spent.", itemShuffleHint: "Tap to shuffle gems. Fixed blocks stay. No moves spent.",
   itemHammer: 'Hammer',
   itemRocket: 'Rocket',
   itemBomb: 'Bomb',

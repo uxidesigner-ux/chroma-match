@@ -87,6 +87,17 @@ export function drawStrikes(
       if (travelled >= distance) flare(ctx, tx, ty, layout.cell * 0.34, board, tint)
     }
 
+    if (blast.kind === 'col' && furthest > 0) {
+      const reach = Math.min(front, furthest), size = layout.cell * .16
+      ctx.save(); ctx.fillStyle = '#ffe477'; ctx.strokeStyle = '#7d4c0e'; ctx.lineWidth = 1.5
+      for (const sign of [-1, 1]) {
+        const yy = cy + sign * reach
+        const row = Math.floor((yy-layout.y)/layout.cell)
+        if (row < 0 || row >= geom.rows) continue
+        ctx.beginPath();ctx.moveTo(cx,yy+sign*size);ctx.lineTo(cx-size,yy-sign*size);ctx.lineTo(cx+size,yy-sign*size);ctx.closePath();ctx.fill();ctx.stroke()
+      }
+      ctx.restore()
+    }
     // The muzzle, which is also the whole of a hammer's effect — it has no
     // reach, and anything that flew would be claiming one it does not have.
     flare(ctx, cx, cy, layout.cell * (blast.kind === 'point' ? 0.42 : 0.3), board, tint)

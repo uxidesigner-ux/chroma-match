@@ -28,7 +28,7 @@ const PALETTE: readonly GemStyle[] = [
   { name: 'Solar', shape: 'triangle', base: '#FFC24D', light: '#FFE3A8', dark: '#C27A00' },
   { name: 'Jade', shape: 'square', base: '#4BE0AF', light: '#B4FFE2', dark: '#12916A' },
   { name: 'Lagoon', shape: 'diamond', base: '#57CDFF', light: '#C3ECFF', dark: '#0F7FB8' },
-  { name: 'Bloom', shape: 'flower', base: '#F08CFF', light: '#FBD2FF', dark: '#A62BB8' },
+  { name: 'Bloom', shape: 'rosette', base: '#F08CFF', light: '#FBD2FF', dark: '#A62BB8' },
   // Sits out at five colours, for the same reason as in the jewel palette.
   { name: 'Iris', shape: 'hexagon', base: '#93A1FF', light: '#D2D8FF', dark: '#4A46CE' },
 ]
@@ -111,7 +111,7 @@ export const GLASS: Skin = {
 
     // The environment: one broad band across the top-left corner.
     const sheen = ctx.createLinearGradient(-r, -r, r * 0.35, r * 0.5)
-    sheen.addColorStop(0, rgba('#FFFFFF', alpha * 0.5))
+    sheen.addColorStop(0, rgba('#FFFFFF', alpha * 0.32))
     sheen.addColorStop(0.42, rgba('#FFFFFF', alpha * 0.12))
     sheen.addColorStop(0.75, 'rgba(255, 255, 255, 0)')
     ctx.fillStyle = sheen
@@ -126,7 +126,7 @@ export const GLASS: Skin = {
       r * 0.36,
       r * 0.95,
     )
-    caustic.addColorStop(0, rgba(style.light, alpha * 0.66))
+    caustic.addColorStop(0, rgba(style.base, alpha * 0.4))
     caustic.addColorStop(0.45, rgba(style.base, alpha * 0.26))
     caustic.addColorStop(1, 'rgba(255, 255, 255, 0)')
     ctx.fillStyle = caustic
@@ -143,7 +143,7 @@ export const GLASS: Skin = {
     lip.addColorStop(0.62, rgba(style.light, alpha * 0.35))
     lip.addColorStop(1, rgba('#FFFFFF', alpha * 0.08))
     gemPath(ctx, style.shape, r)
-    ctx.lineWidth = Math.max(1, r * 0.075)
+    ctx.lineWidth = Math.max(2, r * 0.11)
     ctx.strokeStyle = lip
     ctx.stroke()
   },
@@ -153,10 +153,10 @@ export const GLASS: Skin = {
 function body(ctx: CanvasRenderingContext2D, p: GemPaint): CanvasGradient {
   const { r, style, alpha } = p
   const g = ctx.createLinearGradient(-r * 0.6, -r, r * 0.5, r)
-  g.addColorStop(0, rgba(style.light, alpha * 0.72))
-  g.addColorStop(0.38, rgba(style.base, alpha * 0.5))
-  g.addColorStop(0.72, rgba(style.base, alpha * 0.62))
-  g.addColorStop(1, rgba(style.dark, alpha * 0.82))
+  g.addColorStop(0, rgba(style.light, alpha * 0.95))
+  g.addColorStop(0.38, rgba(style.base, alpha * 0.88))
+  g.addColorStop(0.72, rgba(style.base, alpha * 0.92))
+  g.addColorStop(1, rgba(style.dark, alpha * 0.98))
   return g
 }
 

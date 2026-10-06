@@ -13,13 +13,13 @@ import {
 import type { Blast, Move } from './board.ts'
 import { goalForLevel, scoreTargetForLevel } from './goals.ts'
 import type { Goal } from './goals.ts'
-import { CHAIN_REWARD_AT, blastCells, inventoryCap, startingInventory, itemForLevel } from './items.ts'
+import { CHAIN_REWARD_AT, blastCells, inventoryCap, startingInventory, itemForLevel, itemsForRules } from './items.ts'
 import type { Inventory, Item } from './items.ts'
 import { makeRng, randomSeed, type Rng } from './rng.ts'
 import { at, BOARD } from './types.ts'
 import type { Geom, Grid, Kind, Power } from './types.ts'
 import { terrainFor } from './terrain.ts'
-import { CURRENT_RULES, canFuse } from './rules.ts'
+import { isCampaignRules, CURRENT_RULES, canFuse } from './rules.ts'
 import type { RulesVersion } from './rules.ts'
 import { fusionClear } from './fusion.ts'
 import type { Fusion } from './fusion.ts'
@@ -270,7 +270,7 @@ export class Game {
     this.rules = rules
     this.mission = missionFor(missionId)
     if (rules === 6 && this.mission && !MISSIONS.includes(this.mission)) throw new Error('unknown v6 mission')
-    if ((rules >= 6) !== Boolean(this.mission)) throw new Error('campaign rules require a valid mission')
+    if ((isCampaignRules(rules)) !== Boolean(this.mission)) throw new Error('campaign rules require a valid mission')
     this.items = startingInventory(rules)
     this.rng = makeRng(seed)
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
@@ -458,11 +458,11 @@ export class Game {
    */
   useItem(item: Item, cell: number): boolean {
     if (this.status !== 'playing' || this.busy) return false
-    if ((this.items[item] ?? 0) <= 0) return false
-    if (cell < 0 || cell >= this.geom.cells) return false
-    if (!at(this.grid, cell)) return false
+    if (!itemsForRules(this.rules).includes(item) || (this.items[item] ?? 0) <= 0) return false
+    if (!Number.isInteger(cell) || cell < 0 || cell >= this.geom.cells) return false
+    if (item !== 'shuffle' && !at(this.grid, cell)) return false
 
-    this.items[item] -= 1
+    this.items[item] = (this.items[item] ?? 0) - 1
     this.beginAction(cell, false)
     this.log.push({ kind: 'item', item, cell })
     this.selected = null
@@ -471,6 +471,17 @@ export class Game {
     this.idleTime = 0
     this.hooks.onItemUsed?.(item, cell)
 
+    if (item === 'shuffle') {
+      const origins = new Map(this.grid.flatMap((gem, i) => gem && !gem.durability ? [[gem, i] as const] : []))
+      shuffleBoard(this.refillGeom, this.grid, this.rng, this.rules)
+      for (let i = 0; i < this.grid.length; i++) {
+        const gem = this.grid[i], from = gem ? origins.get(gem) : undefined
+        if (gem && from !== undefined) { gem.ox = this.geom.colOf(from) - this.geom.colOf(i); gem.oy = this.geom.rowOf(from) - this.geom.rowOf(i) }
+      }
+      this.hooks.onShuffle?.()
+      this.startPhase('shuffle', SHUFFLE_TIME)
+      return true
+    }
     // The blast is the first link of a chain, not a free-standing event: the
     // cascade it sets off multiplies from here exactly as a match would.
     this.combo = 1
@@ -482,7 +493,7 @@ export class Game {
     const { cleared, blasts } = expandClears(this.geom, this.grid, seeds, new Set(), this.boosts)
     // An item is aimed by hand, so it is the most deliberate thing a player
     // does on this board and the one that most deserves to be seen leaving.
-    const shape = item === 'rocket' ? 'row' : item === 'bomb' ? 'square' : 'point'
+    const shape = item === 'bow' ? 'col' : item === 'rocket' ? 'row' : item === 'bomb' ? 'square' : 'point'
     const aimed = seeds.filter((target) => target !== cell)
     this.commitClear(cleared, [], cell, [{ cell, kind: shape, targets: aimed }, ...blasts])
     return true
@@ -497,9 +508,9 @@ export class Game {
     // has started, and a booster arriving mid-run is a forged record.
     if (this.log.some((action) => action.kind !== 'booster')) return false
     if (this.boosters.length >= limit) return false
-    if (this.items[item] >= inventoryCap(this.rules)) return false
+    if (!itemsForRules(this.rules).includes(item) || (this.items[item] ?? 0) >= inventoryCap(this.rules)) return false
     this.log.push({ kind: 'booster', item })
-    this.items[item] += 1
+    this.items[item] = (this.items[item] ?? 0) + 1
     return true
   }
 
@@ -524,7 +535,7 @@ export class Game {
   /** Adds to the inventory, capped. A payout over the cap is simply lost. */
   private earn(item: Item, reason: 'level' | 'chain'): void {
     if ((this.items[item] ?? 0) >= inventoryCap(this.rules)) return
-    this.items[item] += 1
+    this.items[item] = (this.items[item] ?? 0) + 1
     this.hooks.onItemEarned?.(item, reason)
   }
 
@@ -907,7 +918,7 @@ export class Game {
       this.status = 'levelComplete'
       // Earned here rather than in nextLevel(), so the payout is part of
       // finishing the level and lands before the card that announces it.
-      this.earn(itemForLevel(this.level), 'level')
+      this.earn(itemForLevel(this.level, this.rules), 'level')
       this.hooks.onLevelComplete?.(this.level)
       return
     }
@@ -992,7 +1003,7 @@ export class Game {
   restart(seed: number = randomSeed(), rules: RulesVersion = CURRENT_RULES, missionId: string | null = null): void {
     const mission = missionFor(missionId)
     if (rules === 6 && mission && !MISSIONS.includes(mission)) throw new Error('unknown v6 mission')
-    if ((rules >= 6) !== Boolean(mission)) throw new Error('campaign rules require a valid mission')
+    if ((isCampaignRules(rules)) !== Boolean(mission)) throw new Error('campaign rules require a valid mission')
     this.mission = mission
     this.rules = rules
     this.seed = seed

@@ -405,7 +405,10 @@ export function shuffleBoard(geom: Geom, grid: Grid, rng: Rng, rules = CURRENT_R
     }
     if (findMatches(geom, grid, rules).length === 0 && findMoves(geom, grid, rules).length > 0) return
   }
+  // New tools must not eat earned power gems even on the bounded fallback.
+  const powers = rules >= 9 ? slots.map(i => grid[i]!.power).filter(p => p !== 'none') : []
   fillFresh(geom, grid, rng, rules)
+  for (let i = 0; i < powers.length; i++) grid[slots[i]!]!.power = powers[i]!
 }
 
 /**

@@ -13,7 +13,7 @@ const PALETTE: readonly GemStyle[] = [
   { name: 'Amber', shape: 'triangle', base: '#FFB020', light: '#FFD782', dark: '#B06800' },
   { name: 'Mint', shape: 'square', base: '#34D399', light: '#8DF3C8', dark: '#0B7D57' },
   { name: 'Azure', shape: 'diamond', base: '#38BDF8', light: '#9BDFFF', dark: '#0B6E9E' },
-  { name: 'Orchid', shape: 'flower', base: '#E879F9', light: '#F7BEFF', dark: '#96189F' },
+  { name: 'Orchid', shape: 'rosette', base: '#E879F9', light: '#F7BEFF', dark: '#96189F' },
   // Sixth and last: with five colours in play this one sits out, because a
   // second blue next to Azure is the hardest pair to tell apart at a glance.
   { name: 'Indigo', shape: 'hexagon', base: '#818CF8', light: '#C2C8FF', dark: '#3B34B8' },
@@ -25,10 +25,10 @@ export const JEWEL: Skin = {
   palette: PALETTE,
 
   board: {
-    boardFill: 'rgba(255, 255, 255, 0.035)',
-    boardStroke: 'rgba(255, 255, 255, 0.08)',
-    cellFill: 'rgba(255, 255, 255, 0.028)',
-    cellStroke: null,
+    boardFill: '#172844',
+    boardStroke: '#526d99',
+    cellFill: '#102039',
+    cellStroke: '#253d5c',
     lineWidth: 1,
     selectRing: 'rgba(255, 255, 255, 0.92)',
     hintRing: 'rgba(255, 255, 255, 0.42)',
@@ -64,8 +64,12 @@ export const JEWEL: Skin = {
     ctx.save()
     // Lifted off the board with a soft shadow.
     ctx.shadowColor = 'rgba(0, 0, 0, 0.45)'
-    ctx.shadowBlur = r * 0.5
-    ctx.shadowOffsetY = r * 0.18
+    ctx.shadowBlur = r * 0.16
+    ctx.shadowOffsetY = r * 0.2
+    ctx.translate(0, r * .14)
+    gemPath(ctx, style.shape, r)
+    ctx.fillStyle = style.dark; ctx.fill()
+    ctx.translate(0, -r * .14)
     gemPath(ctx, style.shape, r)
     ctx.fillStyle = p.rainbow ? prism(ctx, p) : body(ctx, p)
     ctx.fill()
@@ -74,7 +78,7 @@ export const JEWEL: Skin = {
 
   paintInterior(ctx, p) {
     const { r, alpha } = p
-    ctx.globalAlpha = alpha * 0.32
+    ctx.globalAlpha = alpha * 0.52
     ctx.fillStyle = '#FFFFFF'
     ctx.beginPath()
     ctx.ellipse(-r * 0.3, -r * 0.42, r * 0.42, r * 0.24, -0.5, 0, Math.PI * 2)
@@ -83,10 +87,13 @@ export const JEWEL: Skin = {
   },
 
   paintEdge(ctx, p) {
-    gemPath(ctx, p.style.shape, p.r)
-    ctx.lineWidth = Math.max(1, p.r * 0.08)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)'
-    ctx.stroke()
+    const { r, style } = p
+    gemPath(ctx, style.shape, r)
+    ctx.lineWidth = Math.max(2, r * .12); ctx.strokeStyle = style.dark; ctx.stroke()
+    gemPath(ctx, style.shape, r * .85)
+    const lip = ctx.createLinearGradient(0, -r, 0, r)
+    lip.addColorStop(0, '#ffffffcc'); lip.addColorStop(.4, style.light); lip.addColorStop(1, style.dark)
+    ctx.lineWidth = Math.max(1.5, r * .1); ctx.strokeStyle = lip; ctx.stroke()
   },
 }
 

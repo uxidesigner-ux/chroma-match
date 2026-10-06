@@ -1,7 +1,7 @@
 /** One tangible, original prop family. Character/editor controls are frozen. */
-export type GameIcon = 'shop'|'map'|'character'|'gear'|'help'|'missions'|'ranks'|'infinity'|'play'|'hammer'|'rocket'|'bomb'|'compass'|'focus'|'plus'|'minus'|'arrow'|'exit'|'coin'|'star'|'check'|'lock'|'close'|'sound'|'pause'|'shuffle'|'edit'|'sun'
+export type GameIcon = 'shop'|'map'|'character'|'gear'|'help'|'missions'|'ranks'|'infinity'|'play'|'hammer'|'rocket'|'bomb'|'bow'|'compass'|'focus'|'plus'|'minus'|'arrow'|'exit'|'coin'|'star'|'check'|'lock'|'close'|'sound'|'pause'|'shuffle'|'edit'|'sun'
 const available=new Map<GameIcon,Promise<boolean>>()
-const fallback:Record<GameIcon,string>={shop:'🎁',map:'🗺',character:'👤',gear:'⚙',help:'?',missions:'✓',ranks:'🏆',infinity:'∞',play:'▶',hammer:'🔨',rocket:'🚀',bomb:'💣',compass:'🧭',focus:'◎',plus:'+',minus:'−',arrow:'←',exit:'↗',coin:'●',star:'★',check:'✓',lock:'🔒',close:'×',sound:'♪',pause:'Ⅱ',shuffle:'⇄',edit:'✎',sun:'☀'}
+const fallback:Record<GameIcon,string>={shop:'🎁',map:'🗺',character:'👤',gear:'⚙',help:'?',missions:'✓',ranks:'🏆',infinity:'∞',play:'▶',bow:'🏹',hammer:'🔨',rocket:'🚀',bomb:'💣',compass:'🧭',focus:'◎',plus:'+',minus:'−',arrow:'←',exit:'↗',coin:'●',star:'★',check:'✓',lock:'🔒',close:'×',sound:'♪',pause:'Ⅱ',shuffle:'⇄',edit:'✎',sun:'☀'}
 export function icon(name: GameIcon): HTMLSpanElement {
   const node=document.createElement('span')
   node.className='game-icon'; node.setAttribute('aria-hidden','true'); decorate(node,name)
@@ -35,7 +35,7 @@ export function installGameIcons(): void {
         continue
       }
       const glyph=[...node.classList].find(c=>c.startsWith('hud-ico-'))?.slice(8)
-      const item=[...node.classList].find(c=>/^item-(hammer|rocket|bomb)$/.test(c))?.slice(5) as GameIcon|undefined
+      const item=[...node.classList].find(c=>/^item-(hammer|rocket|bomb|bow|shuffle)$/.test(c))?.slice(5) as GameIcon|undefined
       const name=item||(glyph&&glyphs[glyph])||ids[node.id]||(node.matches('.coin')?'coin':node.matches('.daily-gift')?'shop':node.matches('.victory-star,.world-completion-mark')?'star':node.matches('.rotate-icon')?'shuffle':node.matches('.world-infinity')?'infinity':node.matches('.world-play-mark')?'play':node.matches('.world-wallet-add')?'plus':node.matches('.world-nav-mark')?'map':undefined)
       if(name)decorate(node,name)
     }

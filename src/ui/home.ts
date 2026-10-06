@@ -128,7 +128,7 @@ export class HomeScreen {
     this.list.setAttribute('aria-busy','false')
 
     this.renderList(entries)
-    if (entries.some(entry => entry.run && rulesOf(entry.run) >= 4)) this.note.textContent += ` · ${entries.some(entry => entry.run && rulesOf(entry.run) === 5) ? experienceCopy().suppliedRanking : varietyCopy().ranking}`
+    if (entries.some(entry => entry.run && rulesOf(entry.run) >= 4)) this.note.textContent += ` · ${entries.some(entry => entry.run && (rulesOf(entry.run) === 5 || rulesOf(entry.run) === 9)) ? experienceCopy().suppliedRanking : varietyCopy().ranking}`
     this.best.textContent = Math.max(mine?.score ?? 0, this.personalBest()).toLocaleString()
     const position = mine ? entries.findIndex((e) => e.id === mine.id) + 1 : 0
     this.rank.textContent = position > 0 ? `#${position}` : '—'
@@ -217,7 +217,7 @@ export class HomeScreen {
       name.textContent = entry.name
       if (entry.run && rulesOf(entry.run) >= 4) {
         const rules = document.createElement('span')
-        const supplied = rulesOf(entry.run) === 5
+        const supplied = rulesOf(entry.run) === 5 || rulesOf(entry.run) === 9
         rules.className = 'rank-rules'; rules.textContent = supplied ? experienceCopy().suppliedRules : varietyCopy().rules
         rules.title = supplied ? experienceCopy().suppliedRanking : varietyCopy().ranking; name.append(rules)
       }

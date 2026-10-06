@@ -1,4 +1,5 @@
-import type { Inventory, Item } from '../game/items.ts'
+import { ALL_ITEMS } from '../game/items.ts'
+import type { Inventory } from '../game/items.ts'
 import type { Game } from '../game/game.ts'
 import { emptyCampaign, type CampaignState } from '../campaign-progress.ts'
 
@@ -47,16 +48,16 @@ export function addXp(state: PlayerState, amount: number): number {
 }
 export function metricsOf(game: Game): Metrics {
   const items = emptyInventory()
-  for (const action of game.log) if (action.kind === 'item') items[action.item]++
+  for (const action of game.log) if (action.kind === 'item') items[action.item] = (items[action.item] ?? 0) + 1
   const actions = game.log.filter(a => a.kind === 'swap' || a.kind === 'item').length
   const clears = game.mission ? Number(game.status === 'levelComplete')
     : Math.max(0, game.level - 1) + Number(game.status === 'levelComplete')
   return { items, actions, chain: game.bestCombo, created: game.matchedPowers, fusions: game.fusions, clears }
 }
-export const itemTotal = (metrics: Pick<Metrics, 'items'>): number => metrics.items.hammer + metrics.items.rocket + metrics.items.bomb
+export const itemTotal = (metrics: Pick<Metrics, 'items'>): number => ALL_ITEMS.reduce((sum, item) => sum + (metrics.items[item] ?? 0), 0)
 export function accumulate(total: Aggregate, round: Round): void {
   total.rounds++
-  for (const item of ['hammer', 'rocket', 'bomb'] as Item[]) total.items[item] += round.items[item]
+  for (const item of ALL_ITEMS) total.items[item] = (total.items[item] ?? 0) + (round.items[item] ?? 0)
   total.chain = Math.max(total.chain, round.chain)
   total.created += round.created; total.fusions += round.fusions
   if (round.clears > 0 && itemTotal(round) === 0) total.noItems++
