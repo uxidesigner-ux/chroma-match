@@ -83,7 +83,9 @@ test('a short phone leaves two landmark rows clear even with a storage-error foo
   await page.addInitScript(()=>Object.defineProperty(window,'indexedDB',{get:()=>{throw new DOMException('Blocked','SecurityError')}}))
   await boot(page)
   await expect(page.locator('#world-note')).toBeVisible()
-  expect(await page.locator('.world-pin').evaluateAll(pins=>{
+  // The asynchronous storage error enlarges the footer; its ResizeObserver
+  // repositions landmarks on the next layout frame. Assert settled geometry.
+  await expect.poll(()=>page.locator('.world-pin').evaluateAll(pins=>{
     const rects=pins.map(p=>p.getBoundingClientRect())
     return rects.every((a,i)=>rects.every((b,j)=>i===j||a.right<=b.left||b.right<=a.left||a.bottom<=b.top||b.bottom<=a.top))
   })).toBe(true)
