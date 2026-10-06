@@ -23,6 +23,7 @@ export interface OverlayContent {
     onConfirm: (value: string) => void
   }
   celebration?: 'clear' | 'record'
+  growth?: { level: number; xp: number; need: number; gained: number; before: number } | undefined
   /** An optional second way out, e.g. back to the launch screen. */
   secondary?: { label: string; onAction: () => void }
   /** Shows the "post this run" form when a finished run can be submitted. */
@@ -59,6 +60,7 @@ export class Overlay {
   private choices = el<HTMLFieldSetElement>('upgrade-choices')
   private options = el('upgrade-options')
   private selectedChoice: string | null = null
+  private growth = document.createElement('div')
   private modal = new ModalLayer(this.root, this.root.querySelector<HTMLElement>('.card')!)
 
   private onAction: (() => void) | null = null
@@ -66,6 +68,9 @@ export class Overlay {
   private onSubmit: ((name: string) => Promise<{ ok: boolean; message: string }>) | null = null
 
   constructor() {
+    this.growth.className = 'result-growth'; this.growth.hidden = true
+    this.growth.innerHTML = '<div><strong></strong><span></span></div><progress></progress><small></small>'
+    this.heroBox.after(this.growth)
     const confetti = el('victory-confetti')
     for (let i = 0; i < 24; i++) {
       const chip = document.createElement('i')
@@ -130,6 +135,16 @@ export class Overlay {
   }
 
   show(content: OverlayContent): void {
+    this.growth.hidden = !content.growth
+    if (content.growth) {
+      const g = content.growth
+      this.growth.dataset.levelUp = String(g.level > g.before)
+      this.growth.querySelector('strong')!.textContent = g.level > g.before ? `Lv.${g.before} → Lv.${g.level}` : `Lv.${g.level}`
+      this.growth.querySelector('span')!.textContent = `+${g.gained} XP`
+      const bar = this.growth.querySelector('progress')!; bar.max = g.need; bar.value = g.xp
+      bar.setAttribute('aria-label', `Lv.${g.level}, ${g.xp}/${g.need} XP`)
+      this.growth.querySelector('small')!.textContent = `${g.xp} / ${g.need} XP`
+    }
     // Opt in only for actual accomplishments, not daily gifts or errors.
     this.root.dataset.celebration = content.celebration ?? ''
     this.victory.hidden = !content.celebration

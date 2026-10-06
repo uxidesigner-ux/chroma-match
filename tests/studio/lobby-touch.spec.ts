@@ -12,19 +12,19 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('phone profile owns the top row and destinations stay below the unobstructed character', async ({ page }) => {
-  await page.locator('#profile-name').evaluate(node => { node.textContent = '캐릭터를 꾸미는 아주 긴 플레이어 이름' })
+  await page.locator('#map-name').evaluate(node => { node.textContent = '캐릭터를 꾸미는 아주 긴 플레이어 이름' })
   for (const [width, height] of [[320, 568], [390, 844], [430, 852], [720, 720], [844, 390], [1280, 800]]) {
     await page.setViewportSize({ width: width!, height: height! })
     await expect(page.locator('#start-game')).toBeInViewport()
     const boxes = await page.evaluate(() => {
       const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect().toJSON()
-      return { profile: rect('.lobby-head .profile'), utilities: rect('.lobby-utilities'), stage: rect('.lobby-stage'), nav: rect('.lobby-nav'), play: rect('.lobby-play'), overflow: document.documentElement.scrollWidth > innerWidth }
+      return { profile: rect('.hub-header .world-identity'), utilities: rect('.world-utilities'), stage: rect('.lobby-stage'), nav: rect('.lobby-nav'), play: rect('.lobby-play'), overflow: document.documentElement.scrollWidth > innerWidth }
     })
     expect(boxes.profile.right).toBeLessThanOrEqual(boxes.utilities.left)
     expect(boxes.stage.bottom).toBeLessThanOrEqual(boxes.nav.top)
     expect(boxes.nav.bottom).toBeLessThanOrEqual(boxes.play.top)
     expect(boxes.overflow).toBe(false)
-    for (const button of await page.locator('.lobby-nav button, .lobby-utilities button').all()) {
+    for (const button of await page.locator('.lobby-nav button, .world-utilities button').filter({visible:true}).all()) {
       const box = (await button.boundingBox())!
       expect(box.width).toBeGreaterThanOrEqual(44)
       expect(box.height).toBeGreaterThanOrEqual(44)
@@ -79,12 +79,12 @@ test('a diagonal touch rotates without scrolling or reload, matches right-arrow 
   expect(await page.evaluate(() => ({ time: performance.timeOrigin, scroll: document.querySelector('.home')!.scrollTop, avatar: localStorage.getItem('chroma-match:avatar') }))).toEqual(initial)
   await session.detach()
   // Only the model consumes touch panning; other screens keep their scroll owners.
-  await page.locator('#open-settings').click()
+  await page.locator('#map-settings').click()
   await expect(page.locator('#sheet-settings')).toBeVisible()
   await page.keyboard.press('Escape')
-  await expect(page.locator('#open-settings')).toBeFocused()
+  await expect(page.locator('#map-settings')).toBeFocused()
   await page.setViewportSize({ width: 844, height: 390 })
-  await page.locator('#open-shop').click()
+  await page.locator('#map-shop').click()
   await expect(page.locator('html')).not.toHaveClass(/lobby-open/)
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY)).not.toBe('hidden')
   await page.keyboard.press('End')

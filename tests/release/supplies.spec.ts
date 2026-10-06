@@ -8,6 +8,7 @@ test.beforeEach(async ({ page }) => {
 import { Game } from '../../src/game/game.ts'
 import { BOOSTER_LIMIT, recordOf, verifyRun } from '../../src/game/replay.ts'
 import { BOARD } from '../../src/game/types.ts'
+import { readPlayer } from './player-helper.ts'
 
 async function prepare(page: Page, stash = { hammer: 0, rocket: 0, bomb: 0 }) {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com|seed-san\.vrm/, route => route.abort())
@@ -65,11 +66,11 @@ test('production optional extras add to supplies; cancellation and an unselected
   await page.locator('#start-game').click(); await page.locator('[data-load="hammer"]').click()
   await expect(page.locator('#loadout-supply')).toBeVisible()
   await page.locator('#loadout-cancel').click()
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:stash')!))).toEqual({ hammer: 2, rocket: 2, bomb: 2 })
+  expect((await readPlayer(page)).stash).toEqual({ hammer: 2, rocket: 2, bomb: 2 })
   await page.locator('#start-game').click()
   await page.locator('[data-load="hammer"]').click(); await page.locator('[data-load="bomb"]').click()
   await page.locator('#loadout-start').click(); await checkStock(page, [4, 3, 4])
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:stash')!))).toEqual({ hammer: 1, rocket: 2, bomb: 1 })
+  expect((await readPlayer(page)).stash).toEqual({ hammer: 1, rocket: 2, bomb: 1 })
 })
 
 test('production v4 continue retains its original inventory before a genuinely new supplied game', async ({ page }) => {
@@ -94,7 +95,7 @@ test('production supplied-item guidance reflows on short phones and folds in all
     await page.setViewportSize({ width: width!, height: height! })
     for (const skin of ['paper', 'jewel', 'glass']) for (const lang of ['ko', 'en', 'ja', 'zh-Hans']) {
       // Existing native locale controls, not a development API.
-      await page.locator('#loadout-cancel').click(); await page.locator('#open-settings').click()
+      await page.locator('#loadout-cancel').click(); await page.locator('#map-settings').click()
       await page.locator(`button[data-lang="${lang}"]`).click()
       await page.locator(`button[data-skin-id="${skin}"]`).click()
       await page.keyboard.press('Escape'); await page.locator('#start-game').click()

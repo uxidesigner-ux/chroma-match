@@ -24,7 +24,7 @@ import { fusionClear } from './fusion.ts'
 import type { Fusion } from './fusion.ts'
 import { areaCells, bonusForLevel, emptyUpgrades, FEVER_CHARGE, FEVER_TURNS, stageGoal, UPGRADE_CAP, UPGRADES } from './variety.ts'
 import type { Upgrade, Upgrades } from './variety.ts'
-import { missionFor, missionGoal, missionMode, type Mission } from './campaign.ts'
+import { MISSIONS, missionFor, missionGoal, missionMode, type Mission } from './campaign.ts'
 
 export const MOVES_PER_LEVEL = 25
 /**
@@ -208,6 +208,9 @@ export class Game {
   moves = movesForLevel(1)
   combo = 0
   bestCombo = 0
+  /** Deterministic counters: reconstructed by replay, never by animation hooks. */
+  matchedPowers = 0
+  fusions = 0
   status: Status = 'playing'
   feverCharge = 0
   feverTurns = 0
@@ -265,7 +268,8 @@ export class Game {
     this.geom = geom
     this.rules = rules
     this.mission = missionFor(missionId)
-    if ((rules === 6) !== Boolean(this.mission)) throw new Error('campaign rules require a valid mission')
+    if (rules === 6 && this.mission && !MISSIONS.includes(this.mission)) throw new Error('unknown v6 mission')
+    if ((rules >= 6) !== Boolean(this.mission)) throw new Error('campaign rules require a valid mission')
     this.items = startingInventory(rules)
     this.rng = makeRng(seed)
     this.hintRng = makeRng((seed ^ 0x9e3779b9) >>> 0)
@@ -653,6 +657,7 @@ export class Game {
         this.pendingFusion = result
         this.relayFusion = this.bonusRound === 'relay'
         this.fusion = { kind: result.kind, a, b }
+        this.fusions++
         this.startPhase('fusion', 0.3)
         this.hooks.onFusion?.(this.fusion)
         return
@@ -824,6 +829,7 @@ export class Game {
       gem.power = power
       gem.flash = 0.45
       if (this.goal.kind === 'power') this.goalDone += 1
+      this.matchedPowers++
       this.hooks.onPowerCreated?.(cell, power)
     }
     this.pendingPowers = []
@@ -956,7 +962,8 @@ export class Game {
 
   restart(seed: number = randomSeed(), rules: RulesVersion = CURRENT_RULES, missionId: string | null = null): void {
     const mission = missionFor(missionId)
-    if ((rules === 6) !== Boolean(mission)) throw new Error('campaign rules require a valid mission')
+    if (rules === 6 && mission && !MISSIONS.includes(mission)) throw new Error('unknown v6 mission')
+    if ((rules >= 6) !== Boolean(mission)) throw new Error('campaign rules require a valid mission')
     this.mission = mission
     this.rules = rules
     this.seed = seed
@@ -977,6 +984,8 @@ export class Game {
     this.moves = mission?.moves ?? movesForLevel(1)
     this.combo = 0
     this.bestCombo = 0
+    this.matchedPowers = 0
+    this.fusions = 0
     this.status = 'playing'
     this.selected = null
     this.held = null

@@ -28,10 +28,18 @@ test.beforeEach(async ({ page }) => {
 test('legacy legal moves reach a six-chain and clear; score/CTA are immediately available', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
+  // Restore the canonical legacy seed through the public Continue flow. Changing
+  // an active v5 engine into v1 would correctly invalidate its bound reward proof.
+  await page.evaluate(() => localStorage.setItem('chroma-match:suspended', JSON.stringify({
+    record: { seed: 18, moves: '', score: 0, level: 1, board: { cols: 6, rows: 9, kinds: 5 } },
+    score: 0, level: 1, at: Date.now(),
+  })))
+  await page.reload(); await enterLobby(page)
+  await page.locator('#continue-run').click()
+  await expect(page.locator('#board')).toBeVisible()
   const max = await page.evaluate(() => {
     const { game, best, effects } = window.chroma
     // Pin the original animation regression; current-rule fusions have their own suite.
-    game.restart(18, 1)
     let heat = 0
     for (let move = 0; move < 20 && game.status === 'playing'; move++) {
       const next = best()!

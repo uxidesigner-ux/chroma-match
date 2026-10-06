@@ -3,18 +3,24 @@ import { Game } from '../../src/game/game.ts'
 import { MISSIONS, missionFor } from '../../src/game/campaign.ts'
 import { recordOf, verifyRun } from '../../src/game/replay.ts'
 import { bestMove } from '../../src/game/autoplay.ts'
+import { readPlayer } from './player-helper.ts'
 import { BOARD } from '../../src/game/types.ts'
 
-async function boot(page: Page) {
+async function boot(page: Page, completed: Record<string,number> = {}) {
   await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com|seed-san\.vrm/, route => route.abort())
   await page.addInitScript(() => {
     localStorage.setItem('chroma-match:lang', 'ko')
     localStorage.setItem('chroma.skin', 'paper')
     localStorage.setItem('chroma-match:granted', '1')
   })
+  if (Object.keys(completed).length) await page.addInitScript(completed => localStorage.setItem('chroma-match:campaign-v1', JSON.stringify({version:1,completed})),completed)
   await page.goto('./')
   await expect(page.locator('#splash')).toBeHidden()
   await expect(page.locator('#screen-map')).toBeVisible()
+}
+async function region(page: Page, name: string) {
+  if (await page.locator('[data-camera="world"]').isVisible()) await page.locator('[data-camera="world"]').click()
+  await page.locator(`[data-region="${name}"]`).click()
 }
 function completedRecord(id: string) {
   const m = missionFor(id)!, g = new Game({}, m.seed, BOARD, 6, m.id)
@@ -41,7 +47,7 @@ async function aim(page: Page, cell: number) {
 
 async function assertMapGeometry(page: Page) {
   const geometry = await page.evaluate(() => {
-    const nodes = [...document.querySelectorAll<HTMLElement>('.world-pin, .world-mission, .world-quick, #world-play, #map-wallet, #map-profile, .world-utilities > button, .world-nav > button, .world-list > summary')]
+    const nodes = [...document.querySelectorAll<HTMLElement>('.world-pin, .world-mission[aria-pressed="true"], .map-camera-controls button, .world-quick, #world-play, #map-wallet, #map-profile, .world-utilities > button, .world-nav > button, .world-list > summary')].filter(e => e.getClientRects().length)
     const rects = nodes.map(e => ({ id: e.id || e.dataset.region || `mission-${e.dataset.missionStep}`, r: e.getBoundingClientRect(), e }))
     const failures: string[] = []
     for (const { id, r, e } of rects) {
@@ -68,17 +74,17 @@ test('production map opens without 3D, previews locks and clears a real mission 
   expect(await page.evaluate(() => 'chroma' in window)).toBe(false)
   await expect(page.locator('#world-image')).toBeVisible()
   expect(await page.locator('#world-image').evaluate(e => (e as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
-  await page.locator('[data-region="volcano"]').click()
+  await region(page,'volcano')
   await expect(page.locator('#world-play')).toBeDisabled()
   await expect(page.locator('#world-note')).toContainText('보석숲 1')
-  await page.locator('[data-region="forest"]').click()
+  await region(page,'forest')
   await page.locator('[data-mission-step="2"]').click()
   await expect(page.locator('#world-play')).toBeDisabled()
   await expect(page.locator('#world-note')).toContainText('미션 1')
   await page.locator('[data-mission-step="1"]').click()
   await page.locator('#world-play').focus(); await page.keyboard.press('Enter')
   await page.locator('#loadout-start').click()
-  await expect(page.locator('#level')).toHaveText('보석숲 · 1/5')
+  await expect(page.locator('#level')).toHaveText('보석숲 · 1/30')
   await expect(page.locator('#moves')).toHaveText('20')
   await expect(page.locator('#board')).toHaveAttribute('aria-busy', 'false')
   for (let i = 0; i < 3; i++) {
@@ -87,19 +93,22 @@ test('production map opens without 3D, previews locks and clears a real mission 
     await expect(page.locator('#board')).toHaveAttribute('aria-busy', 'false')
   }
   await expect(page.locator('#overlay-title')).toHaveText('미션 클리어!')
-  await expect(page.locator('#overlay-flair')).toContainText('+40')
-  const progress = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:campaign-v1')!))
+  await expect(page.locator('.result-growth')).toContainText('Lv.1 → Lv.2')
+  await page.screenshot({path:info.outputPath('first-clear-growth.png')})
+  await expect(page.locator('#overlay-flair')).toContainText('+60')
+  const progress = (await readPlayer(page)).campaign
   expect(progress.completed['forest-1']).toBe(1150)
-  expect(await page.evaluate(() => Number(localStorage.getItem('chroma-match:coins')))).toBe(40)
+  expect((await readPlayer(page)).coins).toBe(60)
   await page.locator('#overlay-home').click()
-  await expect(page.locator('#world-progress')).toHaveText('1/20')
+  await expect(page.locator('#world-progress')).toHaveText('1/45')
   await expect(page.locator('[data-mission-step="2"]')).toHaveAttribute('aria-pressed', 'true')
-  expect(await page.locator('#world-track-earned path').evaluateAll(paths => paths.map(p => (p as SVGPathElement).style.opacity))).toEqual(['1', '0', '0', '0'])
+  expect(await page.locator('#world-track-earned path').evaluateAll(paths => paths.map(p => (p as SVGPathElement).style.opacity))).toEqual(['1', ...Array(28).fill('0')])
   await expect(page.locator('#world-note')).toBeHidden()
   for (const r of ['volcano', 'prism', 'relay']) await expect(page.locator(`[data-region="${r}"]`)).toHaveAttribute('data-state', 'available')
   await page.screenshot({ path: info.outputPath('first-clear-map.png') })
   await page.reload(); await expect(page.locator('#splash')).toBeHidden()
-  await expect(page.locator('#world-progress')).toHaveText('1/20')
+  await expect(page.locator('#world-progress')).toHaveText('1/45')
+  await region(page,'forest')
   await page.locator('[data-mission-step="1"]').click()
   await expect(page.locator('#world-play')).toHaveAccessibleName(/재도전/)
   await page.locator('#map-settings').click(); await page.keyboard.press('Escape')
@@ -110,13 +119,11 @@ test('production map opens without 3D, previews locks and clears a real mission 
 
 test('production regional entry, spent-stock continue and cancelled replacement preserve exact mission context', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message))
-  await boot(page)
-  await page.evaluate(() => localStorage.setItem('chroma-match:campaign-v1', JSON.stringify({ version: 1, completed: { 'forest-1': 1150 } })))
-  await page.reload(); await expect(page.locator('#splash')).toBeHidden()
-  await page.locator('[data-region="prism"]').click()
+  await boot(page, {'forest-1':1150})
+  await region(page,'prism')
   await expect(page.locator('#world-context')).toContainText('3색')
   await page.locator('#world-play').click(); await page.locator('#loadout-start').click()
-  await expect(page.locator('#level')).toHaveText('프리즘해변 · 1/5')
+  await expect(page.locator('#level')).toHaveText('프리즘해변 · 1/5 · 3색 축제')
   await expect(page.locator('#board')).toHaveAttribute('aria-busy', 'false')
   await page.locator('[data-item="hammer"]').click(); await aim(page, 0)
   await expect(page.locator('[data-count="hammer"]')).toHaveText('2')
@@ -125,14 +132,14 @@ test('production regional entry, spent-stock continue and cancelled replacement 
   await expect(page.locator('#screen-map')).toBeVisible()
   await expect(page.locator('#map-continue')).toContainText('프리즘해변')
   const kept = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:suspended')!).record)
-  expect(kept.moves.startsWith('zu0a')).toBe(true)
+  expect(kept.moves.startsWith('zt0z')).toBe(true)
   expect(verifyRun(kept, BOARD).claimMatches).toBe(true)
-  await page.locator('[data-region="volcano"]').click(); await page.locator('#world-play').click()
+  await region(page,'volcano'); await page.locator('#world-play').click()
   await page.locator('#overlay-action').click(); await page.locator('#loadout-cancel').click()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:suspended')!).record)).toEqual(kept)
   await page.reload(); await expect(page.locator('#splash')).toBeHidden()
   await page.locator('#map-continue').click()
-  await expect(page.locator('#level')).toHaveText('프리즘해변 · 1/5')
+  await expect(page.locator('#level')).toHaveText('프리즘해변 · 1/5 · 3색 축제')
   await expect(page.locator('[data-count="hammer"]')).toHaveText('2')
   await page.locator('#pause').click(); await page.locator('#paused-keep').click()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:suspended')!).record)).toEqual(kept)
@@ -148,13 +155,13 @@ test('production verified result reload never duplicates reward; mission scores 
   await page.locator('#map-continue').click()
   await expect(page.locator('#overlay-title')).toHaveText('미션 클리어!')
   await expect(page.locator('#post-run')).toBeHidden()
-  expect(await page.evaluate(() => Number(localStorage.getItem('chroma-match:coins')))).toBe(40)
+  expect((await readPlayer(page)).coins).toBe(60)
   await page.locator('#overlay-home').click()
   await page.evaluate(record => localStorage.setItem('chroma-match:suspended', JSON.stringify({ record, level: record.level, score: record.score, at: Date.now() })), record)
   await page.reload(); await expect(page.locator('#splash')).toBeHidden()
   await page.locator('#map-continue').click()
-  await expect(page.locator('#overlay-body')).toContainText('한 번만')
-  expect(await page.evaluate(() => Number(localStorage.getItem('chroma-match:coins')))).toBe(40)
+  await expect(page.locator('.result-growth')).toContainText('+0 XP')
+  expect((await readPlayer(page)).coins).toBe(60)
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:best'))).toBeNull()
   expect(errors).toEqual([])
 })
@@ -189,7 +196,7 @@ test('production fullscreen map controls and native list reflow across locales/t
   await page.keyboard.press('Escape')
   await expect(page.locator('.world-list')).not.toHaveAttribute('open', '')
   await expect(page.locator('#world-list-label')).toBeFocused()
-  await page.locator('[data-region="forest"]').click()
+  await region(page,'forest')
   await page.addStyleTag({ content: ':root { --text-xs:24px; --text-sm:28px; --text-lg:30px; --text-xl:36px; --text-2xl:44px; }' })
   await page.locator('#world-play').focus()
   await expect(page.locator('#world-play')).toBeInViewport()
@@ -225,6 +232,7 @@ for (const reducedMotion of ['reduce', 'no-preference'] as const) {
   test(`production map earned feedback originates from the cleared node and respects ${reducedMotion}`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion })
     await page.setViewportSize({ width: 390, height: 690 }); await boot(page)
+    await region(page,'forest')
     const beacon = () => page.locator('[data-mission-step="1"]').evaluate(e => getComputedStyle(e, '::before').animationName)
     expect(await beacon()).toBe(reducedMotion === 'reduce' ? 'none' : 'world-ready')
     const record = completedRecord('forest-1')
@@ -245,7 +253,8 @@ for (const reducedMotion of ['reduce', 'no-preference'] as const) {
     await page.locator('#overlay-home').click()
     await expect(page.locator('[data-mission-step="2"]')).toHaveAttribute('aria-pressed', 'true')
     const feedback = await page.evaluate(() => {
-      const node = document.querySelector('[data-mission-step="1"]')!.getBoundingClientRect()
+      const selectedRegion = document.getElementById('screen-map')!.dataset.mapView === 'region'
+      const node = document.querySelector(selectedRegion ? '[data-mission-step="1"]' : '[data-region="forest"]')!.getBoundingClientRect()
       const root = document.getElementById('screen-map')!.getBoundingClientRect()
       return { flights: (window as unknown as { mapFlights: Array<{ x: number; y: number }> }).mapFlights, origin: { x: node.x + node.width / 2 - root.x, y: node.y + node.height / 2 - root.y } }
     })
@@ -261,25 +270,21 @@ for (const reducedMotion of ['reduce', 'no-preference'] as const) {
     await expect(page.locator('#sheet-settings')).toBeHidden()
     await expect(page.locator('[data-mission-step="1"]')).toHaveAttribute('aria-pressed', 'true')
     expect(await page.evaluate(() => (window as unknown as { mapFlights: unknown[] }).mapFlights.length)).toBe(reducedMotion === 'reduce' ? 0 : 5)
-    expect(await page.evaluate(() => Number(localStorage.getItem('chroma-match:coins')))).toBe(40)
+    expect((await readPlayer(page)).coins).toBe(60)
   })
 }
 
 test('production map keeps controls usable when art or campaign storage is unavailable', async ({ page }, info) => {
   await page.route('**/chroma-world-v1.jpg', route => route.abort())
   await page.addInitScript(() => {
-    const read = Storage.prototype.getItem
-    Storage.prototype.getItem = function(key: string) {
-      if (key === 'chroma-match:campaign-v1') throw new DOMException('Blocked', 'SecurityError')
-      return read.call(this, key)
-    }
+    Object.defineProperty(window,'indexedDB',{get:()=>{throw new DOMException('Blocked','SecurityError')}})
   })
   await page.setViewportSize({ width: 320, height: 568 }); await boot(page)
   await expect(page.locator('#world-art')).toHaveClass(/art-unavailable/)
   await expect(page.locator('#world-note')).toContainText('저장 공간')
   await expect(page.locator('#world-play')).toBeEnabled()
-  await assertMapGeometry(page)
   await page.screenshot({ path: info.outputPath('map-art-storage-fallback.png') })
+  await assertMapGeometry(page)
   await page.locator('#world-list-label').focus(); await page.keyboard.press('Enter')
   await expect(page.locator('[data-list-region="forest"]')).toBeVisible()
   await page.locator('#map-settings').click()

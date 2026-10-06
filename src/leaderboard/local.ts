@@ -55,7 +55,7 @@ export class LocalLeaderboard implements Leaderboard {
   }
 
   async submit(run: RunRecord, name: string): Promise<SubmitResult> {
-    if (rulesOf(run) === 6) return { accepted: false, reason: t('postRejected'), rank: null, score: 0 }
+    if (rulesOf(run) >= 6) return { accepted: false, reason: t('postRejected'), rank: null, score: 0 }
     const verdict = verifyRun(run, BOARD)
     if (!verdict.ok) {
       return { accepted: false, reason: t('replayFailed'), rank: null, score: 0 }

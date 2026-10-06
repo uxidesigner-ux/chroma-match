@@ -23,6 +23,8 @@ export interface Suspended {
   level: number
   score: number
   at: number
+  attempt?: string
+  outcome?: 'failed' | 'quit'
 }
 
 function read(): string {
@@ -58,20 +60,22 @@ export function suspendedRun(): Suspended | null {
       level: Number(value.level) || 1,
       score: Number(value.score) || 0,
       at: Number(value.at) || 0,
+      ...(typeof value.attempt === 'string' && /^[a-z0-9-]{1,80}$/i.test(value.attempt) ? { attempt: value.attempt } : {}),
+      ...(value.outcome === 'failed' || value.outcome === 'quit' ? { outcome: value.outcome } : {}),
     }
   } catch {
     return null
   }
 }
 
-export function suspendRun(record: RunRecord): void {
+export function suspendRun(record: RunRecord, attempt?: string, outcome?: 'failed' | 'quit'): void {
   // A run with no accepted actions is a board nobody has touched. Saving it
   // would put a Continue button on the launch screen that resumes nothing.
   if (!hasRunActions(record)) {
     clearSuspended()
     return
   }
-  const payload: Suspended = { record, level: record.level, score: record.score, at: Date.now() }
+  const payload: Suspended = { record, level: record.level, score: record.score, at: Date.now(), ...(attempt ? { attempt } : {}), ...(outcome ? { outcome } : {}) }
   try {
     localStorage.setItem(KEY, JSON.stringify(payload))
   } catch {

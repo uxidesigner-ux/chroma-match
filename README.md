@@ -28,8 +28,9 @@ Gems that fall into a new match keep the chain going, and each step of a cascade
 multiplies the score, up to ×8. Power gems caught in someone else's blast go off
 too, so a well-placed bomb can unzip half the board.
 
-The default lobby is Chroma Isles: four original-art regions with five missions
-each. Forest 1 opens every region; each region then progresses in order. Preview
+The default lobby is Chroma Isles: four original-art regions, with 30 authored
+forest stages and five stages in each other region. Forest 1 opens every region;
+each region then progresses in order. Preview
 the rule, goal, moves and first-clear reward before entry. Volcano supplies bombs,
 Prism Coast uses three colours, and Relay City supplies fusion pairs. Saved missions
 restore their exact state, and first-clear rewards pay once. Progress is device-local,
@@ -40,8 +41,23 @@ Adjacent power gems fuse even without matching colours. New endless runs use rul
 Saved v1-v4 runs keep their original rules and inventory. The game HUD
 shows the goal, an event-reactive profile and remaining moves. Home is a rotatable
 full-body Character lobby with breathing, blinking, wave, cheer and pose gestures.
-Campaign uses separately versioned v6 rules (`zu`); it does not affect endless rankings.
+New campaign play uses v7 rules (`zt`); existing v6 records (`zu`) keep their immutable
+20-mission table and still resume exactly. Campaign does not affect endless rankings.
 See [the implementation checkpoint](docs/expressive-lobby.md).
+
+The shared dimensional HUD and Map / Character / Shop dock stay mounted across hub
+screens and disappear completely during gameplay/editing. World overview and regional
+zoom use one bounded camera scene with pan, pinch, wheel and keyboard controls; native
+stage targets stay 52px regardless of zoom. Optional 3D never blocks map entry.
+
+Player level is separate from puzzle score and stage. First clears give 100 XP,
+genuine replays 40, and natural failures 0–15; quitting gives no partial XP. Endless
+clears checkpoint XP without fabricating additional whole-game statistics. Level-up
+requirements cap at 200 XP, overflow carries, and rewards are coins and cosmetics,
+not permanent board advantages or feature locks. My Profile shows device-local
+growth and six concise play metrics by mode and lifetime/recent-20 samples. Resetting
+statistics preserves growth, wallet, map and character.
+[Design and verification checkpoint](docs/adventure-growth-checkpoint.md).
 
 ## A few decisions worth explaining
 
@@ -254,9 +270,11 @@ is drawn explicitly:
   legitimately, and nothing beyond it. Everything after those first two codes
   is proved by replay as before.
 
-The coin balance and the stash live in `localStorage` and are not defended:
-editing your own balance only cheats a shop you own. The thing worth defending
-is the leaderboard, and that is defended by the replay.
+The device-local wallet, stash, XP, unlocks and statistics now commit together in
+an IndexedDB transaction. Stable attempt IDs, replay proof and serialized cross-tab
+writes prevent accidental double rewards. Legacy localStorage remains intact and is
+imported only when the ledger is first created. This is durability, not an anti-cheat
+server: editing your own device data still only cheats your own shop/growth.
 
 ### Items
 

@@ -1,4 +1,4 @@
-import { coins, setCoins } from './meta.ts'
+import { coins, setCoins, creditStored } from './meta.ts'
 
 /**
  * Coin packs — the shop's other side, and the only thing here that is not real.
@@ -38,5 +38,12 @@ export function grantPack(id: string): number {
   const pack = PACKS.find((entry) => entry.id === id)
   if (!pack) return 0
   setCoins(coins() + pack.coins)
+  return pack.coins
+}
+
+export async function grantPackStored(id: string): Promise<number> {
+  const pack = PACKS.find(p => p.id === id)
+  if (!pack) return 0
+  await creditStored(pack.coins)
   return pack.coins
 }

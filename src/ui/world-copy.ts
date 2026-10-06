@@ -1,5 +1,6 @@
 import { language } from '../i18n/index.ts'
-import type { Region, Mission } from '../game/campaign.ts'
+import { WORLD_MISSIONS, missionMode, type Region, type Mission } from '../game/campaign.ts'
+import { varietyCopy } from './variety-copy.ts'
 
 type Copy = {
   world: string; map: string; character: string; explore: string; missions: string;
@@ -100,5 +101,10 @@ const zh: Copy = {
 export function worldCopy(): Copy {
   return ({ en, ko, ja, 'zh-Hans': zh })[language()] ?? en
 }
-export function missionTitle(m: Mission): string { return worldCopy().titles[m.region][m.step - 1]! }
-export function missionCaption(m: Mission): string { return `${worldCopy().regions[m.region]} · ${m.step}/5 · ${missionTitle(m)}` }
+export function missionTitle(m: Mission): string {
+  const named = worldCopy().titles[m.region][m.step - 1]
+  if (named) return named
+  const mode = missionMode(m)
+  return mode ? varietyCopy().bonus[mode] : worldCopy().regions[m.region]
+}
+export function missionCaption(m: Mission): string { return `${worldCopy().regions[m.region]} · ${m.step}/${WORLD_MISSIONS.filter(a => a.region === m.region).length} · ${missionTitle(m)}` }

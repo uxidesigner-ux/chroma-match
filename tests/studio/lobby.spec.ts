@@ -106,26 +106,26 @@ test('lobby separates profile and footer destinations, with play actions in one 
   await expect(page.locator('#splash')).toBeHidden()
   await expect(page.locator('#splash-title')).toHaveText('Chroma Match')
   await expect(page.locator('#screen-home h1')).toHaveCount(0)
-  await expect(page.locator('.lobby-head .quick')).toHaveCount(0)
+  await expect(page.locator('.hub-header .quick')).toHaveCount(0)
   await expect(page.locator('.home > .lobby-nav')).toHaveCount(1)
   const nav = await page.locator('.home .quick-btn').evaluateAll(nodes =>
-    nodes.map(node => {
+    nodes.filter(node => node.getClientRects().length).map(node => {
       const box = node.getBoundingClientRect()
       return { width: box.width, height: box.height, top: box.top }
     }),
   )
-  expect(nav).toHaveLength(3)
+  expect(nav).toHaveLength(2) // Shop is now the persistent bottom destination.
   expect(Math.max(...nav.map(b => b.width)) - Math.min(...nav.map(b => b.width))).toBeLessThan(1)
   expect(Math.max(...nav.map(b => b.height)) - Math.min(...nav.map(b => b.height))).toBeLessThan(1)
-  const head = (await page.locator('.lobby-head').boundingBox())!
+  const head = (await page.locator('.hub-header').boundingBox())!
   const stage = (await page.locator('#lobby-stage').boundingBox())!
   const navBox = (await page.locator('.home .quick').boundingBox())!
   const play = (await page.locator('.lobby-play').boundingBox())!
   expect(stage.y).toBeGreaterThanOrEqual(head.y + head.height)
   expect(navBox.y).toBeGreaterThanOrEqual(stage.y + stage.height)
   expect(play.y).toBeGreaterThanOrEqual(navBox.y + navBox.height)
-  const name = (await page.locator('#profile-name').boundingBox())!
-  const coins = (await page.locator('.profile-wallet').boundingBox())!
+  const name = (await page.locator('#map-name').boundingBox())!
+  const coins = (await page.locator('.hub-header .world-wallet').boundingBox())!
   expect(coins.y).toBeGreaterThan(name.y)
   const edit = (await page.locator('#lobby-edit').boundingBox())!
   const tools = (await page.locator('#lobby-tools').boundingBox())!
@@ -191,7 +191,7 @@ staticTest('lobby and studio chrome hold a 44px target on narrow phones, and the
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
       .toBe(true)
-    const chrome = page.locator('.lobby-nav .quick-btn, .lobby-head .circle-button, #lobby-edit, #lobby-tools button')
+    const chrome = page.locator('.lobby-nav .quick-btn, .hub-header .circle-button, #lobby-edit, #lobby-tools button')
     for (const box of await chrome.evaluateAll(nodes => nodes.map(node => {
       const { width, height } = node.getBoundingClientRect()
       return { width, height }

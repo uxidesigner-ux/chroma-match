@@ -1,4 +1,4 @@
-import { coins, setCoins } from './meta.ts'
+import { coins, setCoins, creditStored, rewardClaimed } from './meta.ts'
 import { dayOf } from './daily.ts'
 
 /**
@@ -166,7 +166,7 @@ export function todayMissions(at: Date = new Date()): MissionState[] {
       ...mission,
       progress: Math.min(progress, mission.need),
       done: progress >= mission.need,
-      claimed: state.claimed.includes(mission.id),
+      claimed: state.claimed.includes(mission.id) || rewardClaimed(`daily-mission:${state.day}:${mission.id}`),
     }
   })
 }
@@ -198,6 +198,14 @@ export function claimMission(id: string, at: Date = new Date()): number {
   write(state)
   setCoins(coins() + mission.reward)
   return mission.reward
+}
+
+export async function claimMissionStored(id: string, at: Date = new Date()): Promise<number> {
+  const state = today(at), mission = todayMissions(at).find(m => m.id === id)
+  if (!mission || !mission.done || mission.claimed) return 0
+  const credited = await creditStored(mission.reward, `daily-mission:${state.day}:${id}`)
+  state.claimed.push(id); write(state)
+  return credited ? mission.reward : 0
 }
 
 /** How many rewards are sitting there waiting. Drives the badge on the home screen. */

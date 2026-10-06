@@ -4,10 +4,15 @@ import './play-lobby.css'
 import './play-responsive.css'
 import './variety.css'
 import './world-map.css'
+import './hub.css'
+import { player, type Settlement } from './player/ledger.ts'
+import { Hub } from './ui/hub.ts'
+import { growthCopy } from './ui/growth-copy.ts'
+import { COSMETICS, levelFor } from './player/model.ts'
 import { WorldMap } from './ui/world-map.ts'
 import { worldCopy, missionCaption } from './ui/world-copy.ts'
 import { CampaignProgress, unlocked } from './campaign-progress.ts'
-import { MISSIONS, type Mission } from './game/campaign.ts'
+import { WORLD_MISSIONS, type Mission } from './game/campaign.ts'
 import { attachPlayLayout } from './ui/play-layout.ts'
 import { Lobby } from './ui/lobby.ts'
 import { Splash } from './ui/splash.ts'
@@ -40,13 +45,10 @@ import { initSkin } from './render/skins/index.ts'
 import { contrastingShade, styleFor } from './render/theme.ts'
 import {
   BOOSTER_LIMIT,
-  coins,
-  grantStarterKit,
+  grantStoredStarterKit,
   hasUsedItem,
   markItemUsed,
   payoutFor,
-  setCoins,
-  spendBoosters,
 } from './meta.ts'
 import { clearSuspended, suspendRun, suspendedRun } from './suspend.ts'
 import { ComboMeter } from './ui/combo.ts'
@@ -109,6 +111,7 @@ const NAME_KEY = 'chroma-match:name'
 // visible flash of the default one.
 initSkin()
 attachPlayLayout()
+await player.open()
 
 const canvasNode = document.getElementById('board')
 if (!(canvasNode instanceof HTMLCanvasElement)) throw new Error('Missing #board canvas')
@@ -141,6 +144,12 @@ const pause = new PauseSheet()
 // A quit may arrive during an already accepted action. Finish that action
 // before banking its score, or the recorded move and payout cannot replay.
 let endingRun = false
+let manualEnd = false
+let attemptId = ''
+let startingRun = false
+let lastSettlement: Settlement | null = null
+let lastSettlementCursor = ''
+let settlementTask: Promise<Settlement> | null = null
 const screens = new Screens()
 const splash = new Splash(() => welcomeHome())
 const lobby = new Lobby({
@@ -167,6 +176,14 @@ try { campaignStorage = localStorage } catch { /* unavailable storage remains a 
 const campaign = new CampaignProgress(campaignStorage)
 const world = new WorldMap(campaign, mission => requestNewRun(mission),
   () => readStored(NAME_KEY) || account()?.name || '')
+campaign.state = player.state.campaign
+campaign.persistent = player.persistent
+const hub = new Hub(screens, world, profile, shop)
+player.onChange(() => {
+  campaign.state = player.state.campaign; campaign.persistent = player.persistent
+  shop.refresh(); world.refresh(); profile.refresh(); hub.refresh()
+})
+world.refresh()
 let returnDestination: 'map' | 'home' = screens.active === 'home' ? 'home' : 'map'
 let shopDestination: 'map' | 'home' = returnDestination
 
@@ -436,6 +453,42 @@ const hooks: Partial<GameHooks> = {
     showLevelComplete(level)
   },
   onGameOver(score) {
+    void finishRun(score)
+  },
+}
+
+async function settleCurrent(outcome: 'cleared' | 'failed' | 'quit', terminal: boolean, payout = 0): Promise<Settlement> {
+  if (settlementTask) return settlementTask
+  const record = recordOf(game), id = attemptId
+  suspendRun(record, id, outcome === 'cleared' ? undefined : outcome)
+  settlementTask = player.settle(id, record, outcome, terminal, payout)
+  try {
+    const result = await settlementTask
+    if (!result.ok) throw new Error('unverified result')
+    if (record.moves !== lastSettlementCursor || !lastSettlement) { lastSettlement = result; lastSettlementCursor = record.moves }
+    if (terminal && result.persistent) clearSuspended()
+    return lastSettlement ?? result
+  } finally { settlementTask = null }
+}
+function growthResult(result: Settlement): string {
+  if (!result.persistent) return growthCopy().saveError
+  const rewards = COSMETICS.filter(c => c.level > result.before && c.level <= result.after).map(c => growthCopy().names[c.id])
+  return rewards.length ? '✦ ' + rewards.join(' · ') : ''
+}
+function resultGrowth(result: Settlement): OverlayContent['growth'] {
+  if (!result.persistent) return undefined
+  return { ...levelFor(player.state.growth.totalXp), gained: result.xp, before: result.before }
+}
+function saveFailure(retry: () => void): void {
+  const copy = growthCopy()
+  overlay.show({ kicker: copy.saving, title: copy.saveError, body: '', action: copy.retry, onAction: retry,
+    secondary: { label: t('backToHome'), onAction: goHome } })
+}
+async function finishRun(score: number): Promise<void> {
+  const outcome = manualEnd ? 'quit' : 'failed'
+  let settlement: Settlement
+  try { settlement = await settleCurrent(outcome, true, game.mission ? 0 : payoutFor(score, game.level)) }
+  catch { saveFailure(() => void finishRun(score)); return }
     endingRun = false
     reportMission('score', score)
     reportMission('level', game.level)
@@ -443,10 +496,10 @@ const hooks: Partial<GameHooks> = {
     haptics.gameOver()
     tray.arm(null)
     // The run is over, so there is nothing left to come back to.
-    clearSuspended()
     if (game.mission) {
       const m = game.mission, copy = worldCopy()
-      overlay.show({ kicker: missionCaption(m), title: copy.failed, body: copy.retryNote,
+      overlay.show({ kicker: missionCaption(m), title: copy.failed, body: growthResult(settlement),
+        growth: resultGrowth(settlement),
         hero: { value: n(game.progress), caption: `${n(game.need)}` },
         action: copy.retry, onAction: () => startRun([], m),
         secondary: { label: copy.back, onAction: goHome },
@@ -460,11 +513,11 @@ const hooks: Partial<GameHooks> = {
     // Paid on the way out rather than as the run goes, so a player cannot bank
     // a level's coins and then abandon the run to keep them.
     const payout = payoutFor(score, game.level)
-    setCoins(coins() + payout)
     shop.refresh()
     today.refresh()
 
     const content: OverlayContent = {
+      growth: resultGrowth(settlement),
       kicker: t('outOfMoves'),
       ...(isRecord ? { celebration: 'record' as const } : {}),
       title: t('runOver'),
@@ -473,9 +526,9 @@ const hooks: Partial<GameHooks> = {
         caption: t('pointsAndLevel', { level: game.level }),
         ...(isRecord ? { flair: t('newPersonalBest') } : {}),
       },
-      body: isRecord
+      body: growthResult(settlement) + '\n' + (isRecord
         ? t('coinsGained', { coins: payout })
-        : t('coinsGainedBest', { coins: payout, best: n(previous) }),
+        : t('coinsGainedBest', { coins: payout, best: n(previous) })),
       action: t('playAgain'),
       onAction: () => startRun(),
       secondary: { label: t('backToHome'), onAction: () => goHome() },
@@ -514,7 +567,6 @@ const hooks: Partial<GameHooks> = {
     }
 
     overlay.show(content)
-  },
 }
 
 const game = new Game(hooks, seedFromUrl() ?? randomSeed())
@@ -553,17 +605,19 @@ function advanceStage(): void {
   if (game.bonusRound) combo.reportEvent(varietyCopy().bonus[game.bonusRound])
 }
 
-function showLevelComplete(level: number): void {
+async function showLevelComplete(level: number): Promise<void> {
+  let earned: Settlement
+  try { earned = await settleCurrent('cleared', Boolean(game.mission)) }
+  catch { saveFailure(() => void showLevelComplete(level)); return }
   if (game.mission) {
-    const m = game.mission, copy = worldCopy(), claim = campaign.claim(recordOf(game))
-    if (claim.ok) clearSuspended()
-    world.select(m.id)
-    const next = MISSIONS.find(a => a.region === m.region && a.step === m.step + 1 && unlocked(campaign.state, a))
+    const m = game.mission, copy = worldCopy(), claim = earned
+    const next = WORLD_MISSIONS.find(a => a.region === m.region && a.step === m.step + 1 && unlocked(campaign.state, a))
     overlay.show({
       kicker: missionCaption(m), title: copy.cleared, celebration: 'clear',
+      growth: resultGrowth(earned),
       hero: { value: n(game.score), caption: t('pointsBanked'),
         flair: claim.reward ? `${copy.first} · +${claim.reward} ${t('starterCoins')}` : copy.complete },
-      body: !claim.ok ? copy.invalid : !claim.persistent ? copy.storage : claim.first ? copy.saved : copy.replayNote,
+      body: growthResult(earned),
       action: next && claim.ok ? copy.next : copy.back,
       onAction: next && claim.ok ? () => { world.select(next.id); startRun([], next) } : goHome,
       ...(next && claim.ok ? { secondary: { label: copy.back, onAction: goHome } } : {}),
@@ -574,8 +628,9 @@ function showLevelComplete(level: number): void {
   const choose = game.upgradeDue
   overlay.show({
     kicker: t('cleared'), celebration: 'clear', title: t('levelComplete', { level }),
+    growth: resultGrowth(earned),
     hero: { value: n(game.score), caption: t('pointsBanked'), flair: t('itemEarned', { item: ITEM_LABELS[itemForLevel(level)]() }) },
-    body: nextLevelAsk(level + 1), action: choose ? copy.confirm : t('nextLevel'),
+    body: growthResult(earned) + '\n' + nextLevelAsk(level + 1), action: choose ? copy.confirm : t('nextLevel'),
     onAction: advanceStage,
     ...(choose ? { choices: {
       legend: copy.choose,
@@ -594,7 +649,22 @@ document.getElementById('hud-character')!.addEventListener('click', () => {
   if (game.activateFever()) { tray.arm(null); hud.update(game) }
 })
 
-function startRun(boosters: readonly Item[] = [], mission: Mission | null = null): void {
+async function startRun(boosters: readonly Item[] = [], mission: Mission | null = null): Promise<void> {
+  if (startingRun) return
+  startingRun = true
+  const id = crypto.randomUUID()
+  const seed = mission?.seed ?? seedFromUrl() ?? randomSeed()
+  try {
+    const kept = suspendedRun()
+    if (kept?.attempt) await player.settle(kept.attempt, kept.record, kept.outcome ?? 'quit', true)
+    await player.begin(id, true, 0, Date.now(), boosters, `${mission ? 7 : 5}:${seed >>> 0}:${mission?.id ?? ''}`)
+  } catch {
+    startingRun = false
+    saveFailure(() => void startRun(boosters, mission))
+    return
+  }
+  startingRun = false
+  attemptId = id; manualEnd = false; lastSettlement = null; lastSettlementCursor = ''
   endingRun = false
   clearSuspended()
   effects.clear()
@@ -604,7 +674,7 @@ function startRun(boosters: readonly Item[] = [], mission: Mission | null = null
   overlay.hide()
   if (screens.active === 'home' || screens.active === 'map') returnDestination = mission ? 'map' : screens.active
   if (mission) returnDestination = 'map'
-  game.restart(mission?.seed ?? seedFromUrl() ?? randomSeed(), mission ? 6 : 5, mission?.id)
+  game.restart(seed, mission ? 7 : 5, mission?.id)
   resetPlayView()
   // Play again stays on the same screen, so its screen-change hook won't run.
   if (screens.active === 'game') hud.reset()
@@ -613,13 +683,13 @@ function startRun(boosters: readonly Item[] = [], mission: Mission | null = null
   // accepts a booster at its head — and taken out of the stash here, so a run
   // that is abandoned still costs what it carried.
   const carried: Item[] = []
-  for (const item of boosters.slice(0, BOOSTER_LIMIT)) {
+  for (const item of (player.persistent ? boosters : []).slice(0, BOOSTER_LIMIT)) {
     if (game.addBooster(item, BOOSTER_LIMIT)) carried.push(item)
   }
-  spendBoosters(carried)
   shop.refresh()
 
   screens.show('game')
+  if (game.bonusRound) combo.reportEvent(varietyCopy().bonus[game.bonusRound])
   hud.invalidate()
   renderer.resize()
 }
@@ -653,7 +723,7 @@ function runInProgress(): boolean {
  * other, which a snapshot of those fields would not stay for long.
  */
 function keepRun(): void {
-  suspendRun(recordOf(game))
+  suspendRun(recordOf(game), attemptId)
   goHome()
 }
 
@@ -662,7 +732,7 @@ function keepRun(): void {
  * replay — an older version of the rules, or an edited one — in which case the
  * player is told rather than dropped onto a board that is not theirs.
  */
-function continueRun(): boolean {
+async function continueRun(): Promise<boolean> {
   const kept = suspendedRun()
   if (!kept) return false
 
@@ -684,13 +754,21 @@ function continueRun(): boolean {
     return false
   }
 
-  clearSuspended()
+  // Old saves have no UUID. A stable digest prevents reopening the same legacy result
+  // from becoming a new rewarded attempt; genuinely new runs still get fresh UUIDs.
+  const digest = kept.attempt ? '' : [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(kept.record))))].map(b => b.toString(16).padStart(2, '0')).join('')
+  attemptId = kept.attempt ?? `legacy-${digest}`
+  lastSettlement = null; manualEnd = kept.outcome === 'quit'
+  try { await player.begin(attemptId, Boolean(kept.attempt), kept.attempt ? 0 : game.mission ? 0 : game.level - 1, Date.now(), [], `${game.rules}:${game.seed >>> 0}:${game.mission?.id ?? ''}`) }
+  catch { saveFailure(() => void continueRun()); return false }
   if (game.mission) { returnDestination = 'map'; world.select(game.mission.id) }
   else returnDestination = screens.active === 'home' ? 'home' : 'map'
   resetPlayView()
   screens.show('game')
   renderer.resize()
   if (game.status === 'levelComplete') showLevelComplete(game.level)
+  else if (kept.outcome === 'quit') game.endRun()
+  else if (game.status === 'gameOver') void finishRun(game.score)
   return true
 }
 
@@ -734,8 +812,8 @@ for (const id of ['continue-run', 'map-continue']) document.getElementById(id)?.
   button.setAttribute('aria-busy', 'true')
   label.textContent = t('restoring')
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      try { continueRun() }
+    requestAnimationFrame(async () => {
+      try { await continueRun() }
       finally {
         // Refresh can update the saved mission while restoring. Keep these
         // labelled nodes mounted rather than replacing the button's subtree.
@@ -815,7 +893,7 @@ document.getElementById('pause')?.addEventListener('click', () => {
     keep: () => keepRun(),
     // Ending banks the score and pays the run out, which is what leaving used
     // to skip: a level-24 run abandoned from the old footer earned nothing.
-    end: () => { endingRun = true },
+    end: () => { manualEnd = true; endingRun = true },
   })
 })
 
@@ -939,7 +1017,7 @@ window.addEventListener('pagehide', () => {
   commitRecord()
   // Phones evict backgrounded tabs without warning, and a run is the one thing
   // here that cannot be rebuilt from anything else. Keeping it costs a string.
-  if (runInProgress()) suspendRun(recordOf(game))
+  if (runInProgress()) suspendRun(recordOf(game), attemptId)
 })
 
 if (import.meta.env.DEV) {
@@ -962,6 +1040,9 @@ if (import.meta.env.DEV) {
       overlay,
       sfx,
       screens,
+      player,
+      world,
+      hub,
       home,
       get leaderboard() {
         return leaderboard
@@ -973,9 +1054,12 @@ if (import.meta.env.DEV) {
 // Offline play is a bonus, so a registration that is refused (private mode,
 // an insecure origin, a browser without service workers) must stay silent.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
+  const registerOffline = () => {
     void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {})
-  })
+  }
+  // Player storage opens asynchronously; load may already have fired.
+  if (document.readyState === 'complete') registerOffline()
+  else window.addEventListener('load', registerOffline, { once: true })
 }
 
 let previous = performance.now()
@@ -1047,7 +1131,7 @@ today.onDailyClaimed((state) => {
  * the card says where it came from — an inventory that fills itself silently is
  * a bug as far as the player can tell.
  */
-const granted = grantStarterKit()
+const granted = await grantStoredStarterKit().catch(() => null)
 shop.refresh()
 today.refresh()
 paintContinue()
@@ -1074,6 +1158,7 @@ function welcomeHome(): void {
   })
 }
 document.documentElement.classList.toggle('map-open', screens.active === 'map')
+hub.refresh()
 if (screens.active === 'home') lobby.show()
 else { splash.setProgress(100); void splash.finish(true) }
 requestAnimationFrame(frame)

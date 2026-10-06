@@ -1,4 +1,5 @@
-import { PACKS, grantPack } from '../packs.ts'
+import { PACKS, grantPackStored } from '../packs.ts'
+import { growthCopy } from './growth-copy.ts'
 import { n, t } from '../i18n/index.ts'
 
 function el<T extends HTMLElement>(id: string): T {
@@ -56,10 +57,13 @@ export class PackShelf {
       button.type = 'button'
       button.className = 'btn btn-primary pack-buy'
       button.textContent = pack.price
-      button.addEventListener('click', () => {
-        const added = grantPack(pack.id)
-        if (added === 0) return
-        for (const listener of this.listeners) listener(added)
+      button.addEventListener('click', async () => {
+        button.disabled = true
+        try {
+          const added = await grantPackStored(pack.id)
+          if (added) for (const listener of this.listeners) listener(added)
+        } catch { note.textContent = growthCopy().saveError }
+        finally { button.disabled = false }
       })
 
       if (pack.best) {

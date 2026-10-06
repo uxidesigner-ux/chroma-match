@@ -116,9 +116,9 @@ export class Hud {
     el('bar').style.transition = newStage ? 'none' : ''
     el('moves').textContent = String(game.moves)
     el('moves').closest('.stat')!.classList.toggle('urgent', game.moves <= 5)
-    el('level').textContent = game.mission ? `${worldCopy().regions[game.mission.region]} · ${game.mission.step}/5`
+    el('level').textContent = game.mission ? missionCaption(game.mission).split(' · ').slice(0,2).join(' · ') + (game.rules >= 7 && game.bonusRound ? ` · ${variety.bonus[game.bonusRound]}` : '')
       : `${t('levelN', { level: game.level })}${game.bonusRound ? ` · ${variety.bonus[game.bonusRound]}` : ''}`
-    el('level').title = game.mission ? worldCopy().rules[game.mission.region] : game.bonusRound ? `${variety.bonusPreview}. ${variety.bonusDetail[game.bonusRound]}` : ''
+    el('level').title = game.bonusRound ? `${variety.bonusPreview}. ${variety.bonusDetail[game.bonusRound]}` : game.mission ? worldCopy().rules[game.mission.region] : ''
     el('goal-text').textContent = what
     const unit = game.goal.kind === 'score' ? copy.points : game.goal.kind === 'power' ? copy.powers : copy.gems
     el('goal-unit').textContent = unit

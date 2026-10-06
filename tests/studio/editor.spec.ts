@@ -8,7 +8,7 @@ import { portraitFrame } from '../../src/avatar/portrait-frame.ts'
 const staticTest = test.extend({ reducedMotion: 'reduce' as const })
 
 async function openCreator(page: Page) {
-  await page.locator('#profile-face').click()
+  await page.locator('#map-profile').click()
   await page.locator('#profile-edit').click()
 }
 
@@ -94,7 +94,7 @@ staticTest('a saved draft reaches the profile and 3D lobby and survives reload',
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:anime-portrait-v1'))).toBe(cachedPortrait)
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
   await expect(page.locator('#lobby-stage')).toHaveAttribute('data-state', 'ready')
-  await page.locator('#profile-face').click()
+  await page.locator('#map-profile').click()
   await expectFaceCrop(page, '#profile-preview')
   await page.locator('#profile-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
@@ -315,5 +315,5 @@ test('starter portrait remains available without WebGL or storage writes', async
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'error')
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   await page.locator('#creator-back').click()
-  await expect(page.locator('#profile-avatar')).toBeVisible()
+  await expect(page.locator('#map-avatar')).toBeVisible()
 })

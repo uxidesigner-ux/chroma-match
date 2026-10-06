@@ -86,6 +86,23 @@ of the player's task. The product has one anime character editor and one profile
   wallet once, with static feedback for reduced motion. No timers, paid unlocks,
   boss phases or cloud-progress claim. See `docs/world-map.md` for rules and
   `docs/fullscreen-map.md` for the current lobby; original proposal is preserved.
+- The expanded campaign is v7 (`zt`): 30 authored forest stages with breathers and
+  alternating collect/create/factory/festival/relay goals; preserve the immutable
+  original v6 table for old saves. The shared dimensional HUD and dock persist in
+  Map, Character and Shop, but are truly hidden in games and editing. A bounded
+  world/region camera moves one artwork/route scene while native 52px targets and
+  HUD remain readable. Keyboard focus reveals offscreen stages without browser
+  scrolling; minimum regional zoom prevents neighboring targets overlapping.
+- Player growth is device-local, separate from score and puzzle stage. First clears
+  give 100 XP, genuine replays 40, natural failures 0–15, quits zero partial XP.
+  Requirements plateau at 200; overflow carries; rewards are 20 coins per level and
+  cosmetics, not stronger boards or locked existing features. Atomic IndexedDB
+  settlement proves the replay and commits wallet/XP/unlocks/statistics together.
+  Preserve legacy data, pending results on write failure and basic session play
+  when storage is unavailable. My Play presents icon/title/number groups, mode
+  and recent-20 filters, real sample sizes and a statistics-only reset. Do not
+  fabricate historic metrics or promise account/cloud persistence. See
+  `docs/adventure-growth-checkpoint.md` and the growth/statistics design plans.
 - Library, undo and file restore edit a draft; only explicit Apply changes the profile.
 
 ## Current scope decision

@@ -6,6 +6,7 @@ import { publishProfile } from '../social/players.ts'
 import { myAvatar, paintAvatar } from '../avatar/store.ts'
 import { Sheet } from './sheet.ts'
 import { onLanguageChange, t } from '../i18n/index.ts'
+import { PlayerPanel } from './player-panel.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -43,6 +44,7 @@ export class ProfileCard {
 
   private listeners: Array<() => void> = []
   private busy = false
+  private growth = new PlayerPanel()
 
   constructor(
     private storedName: () => string,
@@ -92,6 +94,7 @@ export class ProfileCard {
 
   /** Repaints the face this sheet shows, after the creator changed it. */
   refresh(): void {
+    this.growth.refresh()
     paintAvatar(this.preview, myAvatar(), PREVIEW_SIZE, { round: true })
     this.paintCard()
   }

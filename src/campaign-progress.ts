@@ -1,4 +1,4 @@
-import { MISSIONS, missionFor, type Mission } from './game/campaign.ts'
+import { WORLD_MISSIONS, missionFor, type Mission } from './game/campaign.ts'
 import { Game } from './game/game.ts'
 import { missionOf, restoreRun, verifyRun, type RunRecord } from './game/replay.ts'
 import { BOARD } from './game/types.ts'
@@ -16,7 +16,7 @@ export function parseCampaign(raw: string): CampaignState {
   try {
     const parsed = JSON.parse(raw)
     if (parsed?.version !== 1 || !parsed.completed || typeof parsed.completed !== 'object') return state
-    for (const m of MISSIONS) {
+    for (const m of WORLD_MISSIONS) {
       const score = parsed.completed[m.id]
       if (Number.isInteger(score) && score >= 0 && score <= 10000000 && unlocked(state, m)) state.completed[m.id] = score
     }

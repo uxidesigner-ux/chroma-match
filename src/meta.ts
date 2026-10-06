@@ -21,6 +21,50 @@ const STASH_KEY = 'chroma-match:stash'
 const GRANTED_KEY = 'chroma-match:granted'
 const USED_ITEM_KEY = 'chroma-match:used-item'
 
+/** The production wallet is transaction-backed; legacy functions remain for old saves/tests. */
+export interface EconomyState { coins: number; stash: Inventory; starter: boolean; claims: Record<string, true> }
+interface EconomyPort { read: () => EconomyState; change: (operation: (state: EconomyState) => void) => Promise<void> }
+let economy: EconomyPort | null = null
+export function bindEconomy(port: EconomyPort): void { economy = port }
+export function rewardClaimed(id: string): boolean { return Boolean(economy?.read().claims[id]) }
+export async function creditStored(amount: number, id?: string, item?: Item): Promise<boolean> {
+  if (!economy) { setCoins(coins() + amount); if (item) { const s = stash(); s[item] = Math.min(STASH_LIMIT, s[item] + 1); setStash(s) }; return true }
+  let credited = false
+  await economy.change(s => {
+    if (id && s.claims[id]) return
+    if (id) s.claims[id] = true
+    s.coins += Math.max(0, Math.floor(amount))
+    if (item) s.stash[item] = Math.min(STASH_LIMIT, s.stash[item] + 1)
+    credited = true
+  })
+  return credited
+}
+export async function buyStored(item: Item): Promise<PurchaseResult> {
+  if (!economy) return buy(item)
+  let result: PurchaseResult = { ok: false }
+  try {
+    await economy.change(s => {
+      if (s.stash[item] >= STASH_LIMIT) result = { ok: false, reason: 'full' }
+      else if (s.coins < PRICES[item]) result = { ok: false, reason: 'coins' }
+      else { s.coins -= PRICES[item]; s.stash[item]++; result = { ok: true } }
+    })
+  } catch { result = { ok: false, reason: 'storage' } }
+  return result
+}
+export async function grantStoredStarterKit(): Promise<{ coins: number; items: readonly Item[] } | null> {
+  if (!economy) return grantStarterKit()
+  let result: { coins: number; items: readonly Item[] } | null = null
+  try {
+    await economy.change(s => {
+      if (s.starter) return
+      s.starter = true; s.coins += STARTER_COINS
+      for (const item of STARTER_ITEMS) s.stash[item] = Math.min(STASH_LIMIT, s.stash[item] + 1)
+      result = { coins: STARTER_COINS, items: STARTER_ITEMS }
+    })
+  } catch { /* No success is shown for a failed transaction. */ }
+  return result
+}
+
 /**
  * What a first-time player is handed.
  *
@@ -72,6 +116,7 @@ function write(key: string, value: string): void {
 }
 
 export function coins(): number {
+  if (economy) return economy.read().coins
   const n = Number(read(COINS_KEY))
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
 }
@@ -93,6 +138,7 @@ export function payoutFor(score: number, level: number): number {
 }
 
 export function stash(): Inventory {
+  if (economy) return { ...economy.read().stash }
   const raw = read(STASH_KEY)
   const out: Inventory = { hammer: 0, rocket: 0, bomb: 0 }
   if (!raw) return out

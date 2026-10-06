@@ -158,7 +158,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
   const lobby = await page.evaluate(() => {
     const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect()
     return {
-      profileClear: rect('.profile').right <= rect('.lobby-utilities').left,
+      profileClear: rect('.hub-header .world-identity').right <= rect('.world-utilities').left,
       navClear: rect('.lobby-stage').bottom <= rect('.lobby-nav').top,
       root: getComputedStyle(document.documentElement).overscrollBehaviorY,
       touch: getComputedStyle(document.getElementById('lobby-canvas')!).touchAction,
@@ -167,7 +167,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
   expect(lobby).toEqual({ profileClear: true, navClear: true, root: 'none', touch: 'none' })
   await page.screenshot({ path: testInfo.outputPath('release-lobby.png') })
   await page.setViewportSize({ width: 1280, height: 800 })
-  await page.locator('#profile-face').click()
+  await page.locator('#map-profile').click()
   await page.locator('#profile-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
   await expect(page.getByRole('button', { name: 'Full body', exact: true })).toHaveAttribute(
@@ -195,7 +195,7 @@ test('production guest editor saves, reloads and reopens offline without touchin
   await expect(page.locator('#splash')).toBeHidden({ timeout: 60000 })
   await expect(page.locator('#profile-avatar')).toHaveAttribute('data-avatar-state', 'ready')
   expect(await page.evaluate(() => localStorage.getItem('chroma-match:avatar'))).toBe(saved)
-  await page.locator('#profile-face').click()
+  await page.locator('#map-profile').click()
   await page.locator('#profile-edit').click()
   await expect(page.locator('#anime-studio')).toHaveAttribute('data-state', 'ready')
   expect(errors).toEqual([])
@@ -227,8 +227,8 @@ test('production Paper lobby has no drag frame, preserves keyboard focus and sep
   await page.mouse.up()
   expect(await canvas.evaluate(node => getComputedStyle(node).outlineStyle)).toBe('none')
   expect(await read()).not.toBe(before)
-  expect(await page.locator('.home .profile').evaluate(node => getComputedStyle(node).overflow)).toBe('visible')
-  expect(await page.locator('.lobby-utilities button').first().evaluate(node => getComputedStyle(node).boxShadow)).toBe('none')
+  expect(await page.locator('.hub-header .world-identity').evaluate(node => getComputedStyle(node).overflow)).toBe('visible')
+  expect(await page.locator('.world-utilities button').first().evaluate(node => getComputedStyle(node).boxShadow)).not.toBe('none')
   await page.screenshot({ path: testInfo.outputPath('release-paper-after-drag.png') })
   await page.keyboard.press('Home')
   expect(await canvas.evaluate(node => getComputedStyle(node).outlineStyle)).toBe('solid')

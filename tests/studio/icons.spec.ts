@@ -95,7 +95,7 @@ test('buttons centre the icons they hold', async ({ page }) => {
   // above the middle of a 44px circle.
   const round = [
     ...(await offsets('.lobby-nav .quick-btn')),
-    ...(await offsets('.lobby-head .circle-button')),
+    ...(await offsets('.hub-header .circle-button')),
     ...(await offsets('#lobby-edit, #lobby-tools button')),
   ]
   expect(round.length).toBeGreaterThanOrEqual(8)

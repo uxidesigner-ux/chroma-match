@@ -18,10 +18,15 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('chroma-match:lang', 'en'))
   await page.goto('/?seed=3')
   await enterLobby(page)
-  await page.locator('#start-game').click()
-  await page.locator('#loadout-start').click()
-  // Preserve the released v2 seeded fixture. New v3 squares have their own suite.
-  await page.evaluate(() => window.chroma.game.restart(3, 2))
+  // Preserve v2 via canonical legacy resume rather than changing the identity
+  // of a live v5 attempt. New square rules have their own suite.
+  await page.evaluate(() => localStorage.setItem('chroma-match:suspended', JSON.stringify({
+    record: { seed: 3, moves: 'zy', score: 0, level: 1, board: { cols: 6, rows: 9, kinds: 5 } },
+    score: 0, level: 1, at: Date.now(),
+  })))
+  await page.reload(); await enterLobby(page)
+  await page.locator('#continue-run').click()
+  await expect(page.locator('#board')).toBeVisible()
 })
 
 test('earned prism + bomb: pointer selection previews without layout shift, fires once and verifies', async ({ page }) => {

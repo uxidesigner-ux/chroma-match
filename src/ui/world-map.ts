@@ -1,4 +1,4 @@
-import { MISSIONS, REGIONS, missionFor, type Region, type Mission } from '../game/campaign.ts'
+import { WORLD_MISSIONS, REGIONS, missionFor, missionMode, type Region, type Mission } from '../game/campaign.ts'
 import { CampaignProgress, unlocked } from '../campaign-progress.ts'
 import { myAvatar, paintAvatar } from '../avatar/store.ts'
 import { coins } from '../meta.ts'
@@ -7,10 +7,22 @@ import { gemName } from '../i18n/gems.ts'
 import { missionOf } from '../game/replay.ts'
 import { suspendedRun } from '../suspend.ts'
 import { missionTitle, worldCopy, missionCaption } from './world-copy.ts'
+import { MapCamera, type MapPoint } from './map-camera.ts'
+import { varietyCopy } from './variety-copy.ts'
 
 const el = (id: string) => document.getElementById(id)!
 const mark: Record<Region, string> = { forest: '◆', volcano: '✹', prism: '✦', relay: '⚙' }
 const positions = [[10, 118 / 220 * 100], [29, 20], [50, 145 / 220 * 100], [71, 42 / 220 * 100], [90, 114 / 220 * 100]] as const
+const forestPath: readonly (readonly [number,number])[] = [[.58,.82],[.56,.785],[.53,.752],[.49,.72],[.455,.686],
+  [.442,.65],[.465,.62],[.51,.597],[.56,.58],[.61,.56],[.646,.53],[.65,.50],[.62,.469],[.567,.447],[.51,.430],
+  [.455,.423],[.398,.415],[.353,.393],[.349,.365],[.377,.343],[.422,.326],[.478,.309],[.533,.293],[.562,.271],
+  [.605,.252],[.654,.236],[.653,.211],[.616,.188],[.588,.166],[.589,.126]]
+const landmark: Record<Region, MapPoint> = { forest: {x:.28,y:.24}, volcano: {x:.75,y:.25}, prism: {x:.24,y:.60}, relay: {x:.74,y:.60} }
+export function pointFor(mission: Mission): MapPoint {
+  if (mission.region === 'forest') { const [x,y] = forestPath[mission.step-1]!; return {x,y} }
+  const origin = landmark[mission.region], [x,y] = positions[mission.step-1]!
+  return { x: origin.x + (x/100-.5)*.29, y: origin.y + (y/100-.5)*.18 }
+}
 
 /** Presentation only: the authored v6 missions, stock, saves and claims do not change. */
 export class WorldMap {
@@ -22,15 +34,18 @@ export class WorldMap {
   private pendingCoins = 0
   private rewardSource: Mission | undefined
   private regionList = document.querySelector<HTMLDetailsElement>('.world-list')!
+  private camera: MapCamera
 
   constructor(readonly progress: CampaignProgress, private play: (m: Mission) => void,
     private playerName: () => string) {
     this.knownClears = new Set(Object.keys(progress.state.completed))
-    const first = MISSIONS.find(m => unlocked(progress.state, m) && progress.state.completed[m.id] === undefined)
+    const first = WORLD_MISSIONS.find(m => unlocked(progress.state, m) && progress.state.completed[m.id] === undefined)
     if (first) this.selected = first.id
+    try { const stored = localStorage.getItem('chroma-match:map-stage'); if (missionFor(stored)) this.selected = stored! } catch { /* session selection */ }
     for (const r of REGIONS) {
       const button = document.createElement('button')
       button.type = 'button'; button.className = `world-pin world-pin-${r}`; button.dataset.region = r
+      button.style.left = `${landmark[r].x*100}%`; button.style.top = `${landmark[r].y*100}%`
       button.addEventListener('click', () => this.selectRegion(r))
       this.pins.append(button)
       const row = document.createElement('button')
@@ -40,14 +55,13 @@ export class WorldMap {
       })
       el('world-region-list').append(row)
     }
-    for (let step = 1; step <= 5; step++) {
-      const button = document.createElement('button')
-      const [x, y] = positions[step - 1]!
-      button.type = 'button'; button.className = 'world-mission'; button.dataset.missionStep = String(step)
-      button.style.setProperty('--node-x', `${x}%`); button.style.setProperty('--node-y', `${y}%`)
-      button.addEventListener('click', () => this.select(`${this.mission.region}-${step}`))
-      this.missionButtons.append(button)
-    }
+    const art = el('world-art'), plane = document.createElement('div')
+    art.removeAttribute('aria-hidden'); plane.className = 'world-plane'
+    plane.append(el('world-image'), this.pins, document.querySelector('.world-journey')!)
+    art.append(plane)
+    this.camera = new MapCamera(art, plane, () => this.overview())
+    art.addEventListener('mapfocus', () => { this.camera.focus(pointFor(this.mission), this.camera.mode === 'world'); this.refresh() })
+    art.addEventListener('mapresize', () => this.refresh())
     el('world-play').addEventListener('click', () => {
       if (unlocked(progress.state, this.mission)) this.play(this.mission)
     })
@@ -69,31 +83,27 @@ export class WorldMap {
       }
     })
     onLanguageChange(() => this.refresh())
-    window.addEventListener('storage', event => {
-      if (event.key === 'chroma-match:campaign-v1') {
-        const fresh = new CampaignProgress(this.safeStorage())
-        progress.state = fresh.state; progress.persistent = fresh.persistent
-        this.refresh()
-      }
-    })
     this.refresh()
   }
-  private safeStorage(): Storage | null { try { return localStorage } catch { return null } }
   get mission(): Mission { return missionFor(this.selected)! }
+  overview(): void { this.camera.overview(); this.refresh() }
   select(id: string): void {
     if (!missionFor(id)) return
     const changed = this.selected !== id
+    const regionChanged = this.mission.region !== missionFor(id)!.region
     this.selected = id
+    try { localStorage.setItem('chroma-match:map-stage', id) } catch { /* session selection */ }
+    this.camera.focus(pointFor(this.mission), regionChanged || this.camera.mode === 'world')
     this.refresh()
     if (changed && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       this.missionButtons.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.animate(
-        [{ transform: 'translate(-50%, -50%) scale(.92)' }, { transform: 'translate(-50%, -50%) scale(1)' }],
+        [{ opacity: .7 }, { opacity: 1 }],
         { duration: 220, easing: 'cubic-bezier(.2,.8,.2,1)' },
       )
     }
   }
   private selectRegion(region: Region): void {
-    const missions = MISSIONS.filter(m => m.region === region)
+    const missions = WORLD_MISSIONS.filter(m => m.region === region)
     this.select((missions.find(m => unlocked(this.progress.state, m) && this.progress.state.completed[m.id] === undefined) ?? missions[0]!).id)
   }
 
@@ -113,48 +123,84 @@ export class WorldMap {
     }
     this.displayedCoins = balance
     const m = this.mission, count = Object.keys(state.completed).length
+    const missions = WORLD_MISSIONS.filter(a => a.region === m.region)
+    const image = el('world-image') as HTMLImageElement
+    const src = `${import.meta.env.BASE_URL}${this.camera.mode === 'region' && m.region === 'forest' ? 'chroma-forest-v1.jpg' : this.camera.mode === 'world' && this.camera.wide ? 'chroma-world-wide-v1.jpg' : 'chroma-world-v1.jpg'}`
+    if (image.getAttribute('src') !== src) image.src = src
+    if (this.missionButtons.childElementCount !== missions.length) {
+      this.missionButtons.replaceChildren()
+      for (const mission of missions) {
+        const button = document.createElement('button')
+        button.type = 'button'; button.className = 'world-mission'; button.dataset.missionStep = String(mission.step)
+        button.addEventListener('click', () => this.select(`${this.mission.region}-${button.dataset.missionStep}`))
+        button.addEventListener('focus', () => {
+          const r = button.getBoundingClientRect()
+          if (button.matches(':focus-visible') || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) {
+            // Move immediately before the browser tries to scroll a hidden-overflow camera.
+            this.camera.focus(pointFor(missionFor(`${this.mission.region}-${button.dataset.missionStep}`)!), false, false)
+          }
+        })
+        this.missionButtons.append(button)
+      }
+    }
+    const svg = document.querySelector<SVGSVGElement>('.world-track')!
+    svg.setAttribute('viewBox','0 0 1024 1536')
+    const points = missions.map(pointFor)
+    const segments = points.slice(1).map((p,i) => `M${points[i]!.x*1024} ${points[i]!.y*1536} L${p.x*1024} ${p.y*1536}`)
+    document.querySelector<SVGPathElement>('.world-track-base')!.setAttribute('d',segments.join(' '))
+    const earned = el('world-track-earned')
+    if (earned.childElementCount !== segments.length) {
+      earned.replaceChildren(...segments.map(() => document.createElementNS('http://www.w3.org/2000/svg','path')))
+    }
+    earned.querySelectorAll('path').forEach((p,i) => p.setAttribute('d',segments[i]!))
     el('screen-map').dataset.activeRegion = m.region
     el('world-heading').textContent = copy.world
-    el('world-progress').textContent = `${count}/20`
-    el('world-progress').setAttribute('aria-label', `${count}/20 ${copy.missions} ${copy.complete}`)
+    el('world-progress').textContent = `${count}/${WORLD_MISSIONS.length}`
+    el('world-progress').setAttribute('aria-label', `${count}/${WORLD_MISSIONS.length} ${copy.missions} ${copy.complete}`)
     el('map-coins').textContent = n(balance)
     el('map-name').textContent = this.playerName() || t('defaultName')
     paintAvatar(el('map-avatar') as HTMLCanvasElement, myAvatar(), 56, { round: true })
-    el('map-profile').setAttribute('aria-label', t('profileAria'))
+    if (!el('map-profile').querySelector('#hub-level')) el('map-profile').setAttribute('aria-label', t('profileAria'))
     el('map-wallet').setAttribute('aria-label', `${t('quickShop')}, ${n(balance)}`)
     el('map-settings').setAttribute('aria-label', t('settings')); el('map-settings').title = t('settings')
     this.pins.setAttribute('aria-label', copy.list)
     el('world-list-label').setAttribute('aria-label', `${copy.map}, ${copy.list}`)
     el('world-list-label').title = copy.list
     for (const r of REGIONS) {
-      const regionMissions = MISSIONS.filter(a => a.region === r)
+      const regionMissions = WORLD_MISSIONS.filter(a => a.region === r)
       const done = regionMissions.filter(a => state.completed[a.id] !== undefined).length
       const open = unlocked(state, regionMissions[0]!)
-      const status = done === 5 ? copy.complete : open ? copy.available : copy.locked
+      const status = done === regionMissions.length ? copy.complete : open ? copy.available : copy.locked
       const button = this.pins.querySelector<HTMLButtonElement>(`[data-region="${r}"]`)!
+      const original = { x: landmark[r].x, y: this.camera.wide && this.camera.mode === 'world' ? r === 'forest' || r === 'volcano' ? .26 : .56 : landmark[r].y }
+      const position = this.camera.mode === 'world' ? this.camera.worldPosition(original, REGIONS.indexOf(r)) : original
+      button.style.left = `${position.x*100}%`
+      button.style.top = `${position.y*100}%`
       button.setAttribute('aria-pressed', String(r === m.region))
-      button.dataset.state = open ? done === 5 ? 'complete' : 'available' : 'locked'
-      const label = `${copy.regions[r]} · ${done}/5 · ${status}${open ? '' : `. ${copy.unlock}`}`
+      button.dataset.state = open ? done === regionMissions.length ? 'complete' : 'available' : 'locked'
+      const label = `${copy.regions[r]} · ${done}/${regionMissions.length} · ${status}${open ? '' : `. ${copy.unlock}`}`
       button.setAttribute('aria-label', label); button.title = label
       const badge = document.createElement('span'); badge.className = 'world-pin-badge'
       badge.setAttribute('aria-hidden', 'true'); badge.textContent = mark[r]
       const seal = document.createElement('span'); seal.className = 'world-pin-seal'
-      seal.textContent = open ? done === 5 ? '✓' : `${done}/5` : ''
+      seal.textContent = open ? done === regionMissions.length ? '✓' : `${done}/${regionMissions.length}` : ''
       if (!open) seal.classList.add('world-lock')
       badge.append(seal)
       const title = document.createElement('strong'); title.textContent = copy.regions[r]
       button.replaceChildren(badge, title)
       const row = el('world-region-list').querySelector<HTMLButtonElement>(`[data-list-region="${r}"]`)!
-      row.textContent = `${mark[r]} ${copy.regions[r]} · ${done}/5 · ${status}`
+      row.textContent = `${mark[r]} ${copy.regions[r]} · ${done}/${regionMissions.length} · ${status}`
       row.setAttribute('aria-pressed', String(r === m.region))
     }
     el('world-region').textContent = copy.regions[m.region]
     el('world-region-mark').textContent = mark[m.region]
-    el('world-stage-number').textContent = `${m.step}/5`
+    el('world-stage-number').textContent = `${m.step}/${missions.length}`
     this.missionButtons.setAttribute('aria-label', `${copy.regions[m.region]} ${copy.missions}`)
     let completed = 0
     for (const button of this.missionButtons.querySelectorAll<HTMLButtonElement>('button')) {
       const next = missionFor(`${m.region}-${button.dataset.missionStep}`)!
+      const point = pointFor(next)
+      button.style.setProperty('--node-x',`${point.x*100}%`); button.style.setProperty('--node-y',`${point.y*100}%`)
       const done = state.completed[next.id] !== undefined, ready = unlocked(state, next)
       if (done) completed++
       const status = done ? copy.complete : ready ? copy.available : copy.locked
@@ -166,6 +212,12 @@ export class WorldMap {
       button.dataset.state = done ? 'complete' : ready ? 'available' : 'locked'
       button.setAttribute('aria-pressed', String(next.id === m.id))
       button.setAttribute('aria-label', `${next.step}. ${missionTitle(next)} · ${status}`)
+      button.dataset.rule = missionMode(next) ?? 'standard'
+      const mode = missionMode(next)
+      if (mode) {
+        const rule = document.createElement('span'); rule.className = 'world-node-rule'; rule.setAttribute('aria-hidden','true')
+        rule.textContent = mode === 'factory' ? '✹' : mode === 'festival' ? '✦' : '⇄'; button.append(rule)
+      }
     }
     // Reveal complete node-to-node segments; transformed SVG dash lengths can
     // extend past the next node, falsely implying progress on another mission.
@@ -176,7 +228,8 @@ export class WorldMap {
     const caption = goal.kind === 'score' ? t('askScore', { level: m.step, need: n(goal.need), moves: m.moves })
       : goal.kind === 'power' ? t('askPower', { level: m.step, need: goal.need, moves: m.moves })
       : t('askGems', { level: m.step, need: goal.need, moves: m.moves, colour: gemName(goal.colour) })
-    el('world-context').textContent = `${missionCaption(m)}. ${copy.rules[m.region]} ${caption} ${copy.supplies}`
+    const mode = missionMode(m)
+    el('world-context').textContent = `${missionCaption(m)}. ${mode ? varietyCopy().bonusDetail[mode] : copy.rules[m.region]} ${caption} ${copy.supplies}`
     const ready = unlocked(state, m), done = state.completed[m.id] !== undefined
     el('world-reward').textContent = done ? '✓' : `+${n(m.reward)}`
     el('world-loot').setAttribute('aria-label', done ? copy.complete : `${copy.reward} ${n(m.reward)}`)
@@ -211,10 +264,11 @@ export class WorldMap {
   private animateCoins(): void {
     if (document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return
     // Coins leave the cleared node, never the next mission's unearned reward.
-    const source = this.rewardSource?.region === this.mission.region
+    const source = this.camera.mode === 'region' && this.rewardSource?.region === this.mission.region
       ? this.missionButtons.querySelector(`[data-mission-step="${this.rewardSource.step}"]`)
       : this.pins.querySelector(`[data-region="${this.rewardSource?.region}"]`)
-    const root = el('screen-map'), origin = (source ?? el('map-wallet')).getBoundingClientRect()
+    const visible = source?.getClientRects().length ? source : this.pins.querySelector(`[data-region="${this.rewardSource?.region}"]`)
+    const root = el('screen-map'), origin = (visible ?? el('map-wallet')).getBoundingClientRect()
     const destination = el('map-wallet').getBoundingClientRect(), bounds = root.getBoundingClientRect()
     for (let i = 0; i < 5; i++) {
       const coin = document.createElement('span'); coin.className = 'coin world-reward-particle'; coin.setAttribute('aria-hidden', 'true')

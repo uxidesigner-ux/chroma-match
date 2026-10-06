@@ -1,4 +1,4 @@
-import { STASH_LIMIT, coins, setCoins, setStash, stash } from './meta.ts'
+import { STASH_LIMIT, coins, setCoins, setStash, stash, creditStored, rewardClaimed } from './meta.ts'
 import type { Item } from './game/items.ts'
 
 /**
@@ -99,7 +99,7 @@ export function dailyState(at: Date = new Date()): DailyState {
   const held = Math.max(0, Math.floor(Number(read(STREAK_KEY))) || 0)
 
   const gap = last ? daysBetween(last, today) : Number.NaN
-  const claimedToday = gap === 0
+  const claimedToday = gap === 0 || rewardClaimed(`daily:${today}`)
   const continues = gap === 1
 
   const streak = claimedToday ? held : continues ? held + 1 : 1
@@ -132,4 +132,12 @@ export function claimDaily(at: Date = new Date()): DailyState | null {
     setStash(held)
   }
   return state
+}
+
+export async function claimDailyStored(at: Date = new Date()): Promise<DailyState | null> {
+  const state = dailyState(at)
+  if (!state.available) return null
+  const credited = await creditStored(state.reward.coins, `daily:${dayOf(at)}`, state.reward.item)
+  write(DAY_KEY, dayOf(at)); write(STREAK_KEY, String(state.streak))
+  return credited ? state : null
 }

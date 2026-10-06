@@ -1,6 +1,7 @@
-import { DAILY_REWARDS, claimDaily, dailyState } from '../daily.ts'
+import { DAILY_REWARDS, claimDailyStored, dailyState } from '../daily.ts'
 import type { DailyState } from '../daily.ts'
-import { claimMission, todayMissions } from '../missions.ts'
+import { claimMissionStored, todayMissions } from '../missions.ts'
+import { growthCopy } from './growth-copy.ts'
 import type { MissionKind, MissionState } from '../missions.ts'
 import { Sheet } from './sheet.ts'
 import { n, t } from '../i18n/index.ts'
@@ -52,12 +53,15 @@ export class TodayPanel {
 
   constructor() {
     this.row.addEventListener('click', () => this.sheet.show())
-    this.daily.addEventListener('click', () => {
-      const claimed = claimDaily()
-      this.refresh()
-      if (!claimed) return
-      for (const listener of this.listeners) listener()
-      this.announce?.(claimed)
+    this.daily.addEventListener('click', async () => {
+      this.daily.disabled = true
+      try {
+        const claimed = await claimDailyStored()
+        this.refresh()
+        if (!claimed) return
+        for (const listener of this.listeners) listener()
+        this.announce?.(claimed)
+      } catch { this.dailySub.textContent = growthCopy().saveError; this.daily.disabled = false }
     })
   }
 
@@ -150,10 +154,13 @@ export class TodayPanel {
         button.textContent = `+${mission.reward}`
         button.disabled = true
       }
-      button.addEventListener('click', () => {
-        if (claimMission(mission.id) === 0) return
-        this.refresh()
-        for (const listener of this.listeners) listener()
+      button.addEventListener('click', async () => {
+        button.disabled = true
+        try {
+          if (await claimMissionStored(mission.id) === 0) return
+          this.refresh()
+          for (const listener of this.listeners) listener()
+        } catch { button.disabled = false; count.textContent = growthCopy().saveError }
       })
 
       row.append(text, button)

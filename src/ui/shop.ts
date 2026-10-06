@@ -1,6 +1,8 @@
 import { ITEMS } from '../game/items.ts'
 import type { Item } from '../game/items.ts'
-import { PRICES, STASH_LIMIT, buy, coins, stash } from '../meta.ts'
+import { PRICES, STASH_LIMIT, buyStored, coins, stash } from '../meta.ts'
+import { growthCopy } from './growth-copy.ts'
+import { t } from '../i18n/index.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -27,7 +29,7 @@ export class Shop {
       const price = document.querySelector<HTMLElement>(`[data-price="${item}"]`)
       if (price) price.textContent = String(PRICES[item])
       const button = document.querySelector<HTMLButtonElement>(`[data-buy="${item}"]`)
-      button?.addEventListener('click', () => this.purchase(item))
+      button?.addEventListener('click', () => void this.purchase(item))
     }
   }
 
@@ -36,10 +38,12 @@ export class Shop {
     this.listeners.push(listener)
   }
 
-  private purchase(item: Item): void {
-    const result = buy(item)
+  private async purchase(item: Item): Promise<void> {
+    const button = document.querySelector<HTMLButtonElement>(`[data-buy="${item}"]`)!
+    button.disabled = true
+    const result = await buyStored(item)
     this.setStatus(
-      result.ok ? `${item[0]?.toUpperCase()}${item.slice(1)} bought.` : (result.reason ?? ''),
+      result.ok ? `✓ ${t(item === 'hammer' ? 'itemHammer' : item === 'rocket' ? 'itemRocket' : 'itemBomb')}` : growthCopy().saveError,
       result.ok ? 'is-ok' : 'is-error',
     )
     this.refresh()

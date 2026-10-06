@@ -59,18 +59,18 @@ test('portrait decoration is unclipped, customization is labeled, gestures group
       await page.goto(`/?seed=3&skin=${skin}`)
       await enterLobby(page)
     }
-    await page.locator('#profile-name').evaluate(node => { node.textContent = '캐릭터를 꾸미는 아주 긴 플레이어 이름' })
-    await page.locator('#profile-face').focus()
+    await page.locator('#map-name').evaluate(node => { node.textContent = '캐릭터를 꾸미는 아주 긴 플레이어 이름' })
+    await page.locator('#map-profile').focus()
     for (const [width, height] of [[320, 568], [430, 852], [844, 390], [1280, 800]]) {
       await page.setViewportSize({ width: width!, height: height! })
       const fit = await page.evaluate(() => {
         const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect().toJSON()
-        const profile = document.querySelector('.home .profile')!
-        const face = document.querySelector('#profile-face')!
+        const profile = document.querySelector('.hub-header .world-identity')!
+        const face = document.querySelector('#map-profile')!
         const style = getComputedStyle(face)
         return {
-          profile: rect('.home .profile'), face: rect('#profile-face'), pen: rect('.profile-pen'),
-          home: rect('.home'), utilities: rect('.lobby-utilities'), tools: rect('#lobby-tools'), edit: rect('#lobby-edit'),
+          profile: rect('.hub-header .world-identity'), face: rect('#map-profile'), pen: rect('.level-badge'),
+          home: {left:0,top:0,bottom:innerHeight}, utilities: rect('.world-utilities'), tools: rect('#lobby-tools'), edit: rect('#lobby-edit'),
           overflow: getComputedStyle(profile).overflow, focus: parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset),
           horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
         }
@@ -83,7 +83,7 @@ test('portrait decoration is unclipped, customization is labeled, gestures group
       expect(fit.tools.right + 8).toBeLessThanOrEqual(fit.edit.left)
       expect(fit.horizontalOverflow).toBe(false)
       await expect(page.locator('#start-game')).toBeInViewport()
-      for (const button of await page.locator('#lobby-edit, #lobby-tools button, .lobby-utilities button').all()) {
+      for (const button of await page.locator('#lobby-edit, #lobby-tools button, .world-utilities button').all()) {
         const box = (await button.boundingBox())!
         expect(box.width).toBeGreaterThanOrEqual(44)
         expect(box.height).toBeGreaterThanOrEqual(44)
@@ -93,15 +93,15 @@ test('portrait decoration is unclipped, customization is labeled, gestures group
     const hierarchy = await page.evaluate(() => {
       const style = (selector: string) => getComputedStyle(document.querySelector(selector)!)
       return {
-        utilityShadow: style('.lobby-utilities button').boxShadow,
-        utilityBorder: style('.lobby-utilities button').borderTopColor,
+        utilityShadow: style('.world-utilities button').boxShadow,
+        utilityBorder: style('.world-utilities button').borderTopColor,
         gestureShadow: style('.lobby-gesture').boxShadow,
         gestureBorder: style('.lobby-gesture').borderTopWidth,
         editBorder: style('#lobby-edit').borderTopWidth,
       }
     })
-    expect(hierarchy.utilityShadow).toBe('none')
-    expect(hierarchy.utilityBorder).toBe('rgba(0, 0, 0, 0)')
+    expect(hierarchy.utilityShadow).not.toBe('none')
+    expect(hierarchy.utilityBorder).not.toBe('rgba(0, 0, 0, 0)')
     expect(hierarchy.gestureShadow).toBe('none')
     expect(hierarchy.gestureBorder).toBe('0px')
     expect(parseFloat(hierarchy.editBorder)).toBeGreaterThanOrEqual(1)
