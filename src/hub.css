@@ -71,7 +71,7 @@ html.hub-open .shop-head .wallet-coins { display: none; }
 .stats-reset { min-height: 44px; border: 0; background: none; color: var(--muted); text-decoration: underline; font: inherit; font-size: .875rem; cursor: pointer; }
 .stats-confirm { padding: 12px; background: var(--panel-strong); border-radius: 12px; }
 .stats-confirm .btn { min-height: 44px; margin: 8px 8px 0 0; }
-#sheet-profile .sheet-panel { max-height: min(90dvh, 920px); overflow: auto; overscroll-behavior: contain; }
+#sheet-profile .sheet-panel { max-height: min(90dvh, 920px); padding-top: 0; overflow: auto; overscroll-behavior: contain; }
 .profile-sheet-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; margin: 0 -20px 12px; padding: 8px 20px; background: var(--bg); border-bottom: 1px solid var(--line); }
 .profile-sheet-head .sheet-title { flex: 1; margin: 0; text-align: left; }
 #profile-preview[data-frame='leaf'] { outline: 4px solid #5aaf83; }
