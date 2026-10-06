@@ -95,10 +95,31 @@ test('production map opens without 3D, previews locks and clears a real mission 
   await expect(page.locator('#overlay-title')).toHaveText('미션 클리어!')
   await expect(page.locator('.result-growth')).toContainText('Lv.1 → Lv.2')
   await page.screenshot({path:info.outputPath('first-clear-growth.png')})
-  await expect(page.locator('#overlay-flair')).toContainText('+60')
+  await expect(page.locator('.result-rewards')).toContainText('+60')
+  await expect(page.locator('.result-rewards [data-game-icon="hammer"]')).toBeVisible()
+  expect((await readPlayer(page)).stash.hammer).toBe(1)
   const progress = (await readPlayer(page)).campaign
   expect(progress.completed['forest-1']).toBe(1150)
   expect((await readPlayer(page)).coins).toBe(60)
+  await page.emulateMedia({reducedMotion:'no-preference'})
+  await expect(page.locator('.result-fireworks')).toBeVisible()
+  await expect(page.locator('.result-fireworks i')).toHaveCount(36)
+  await page.emulateMedia({reducedMotion:'reduce'})
+  await expect(page.locator('.result-fireworks')).toBeHidden()
+  for(const size of [{width:320,height:568},{width:390,height:690},{width:844,height:390}]){
+    await page.setViewportSize(size)
+    await page.locator('#overlay-action').scrollIntoViewIfNeeded()
+    expect(await page.locator('#overlay-action').evaluate(el=>{
+      const r=el.getBoundingClientRect();return r.width>=44&&r.height>=44&&el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))
+    })).toBe(true)
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+    if(size.width>=600){
+      expect(await page.locator('#overlay-title').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})).toBe(true)
+      expect(await page.locator('.result-rewards').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})).toBe(true)
+    }
+    await page.screenshot({path:info.outputPath(`victory-${size.width}x${size.height}.png`)})
+  }
+  await page.setViewportSize({width:390,height:844})
   await page.locator('#overlay-home').click()
   await expect(page.locator('#world-progress')).toHaveText('1/120')
   await expect(page.locator('[data-mission-step="2"]')).toHaveAttribute('aria-pressed', 'true')
@@ -132,7 +153,7 @@ test('production regional entry, spent-stock continue and cancelled replacement 
   await expect(page.locator('#screen-map')).toBeVisible()
   await expect(page.locator('#map-continue')).toContainText('프리즘해변')
   const kept = await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-match:suspended')!).record)
-  expect(kept.moves.startsWith('zt0z')).toBe(true)
+  expect(kept.moves.startsWith('zs0z')).toBe(true)
   expect(verifyRun(kept, BOARD).claimMatches).toBe(true)
   await region(page,'volcano'); await page.locator('#world-play').click()
   await page.locator('#overlay-action').click(); await page.locator('#loadout-cancel').click()

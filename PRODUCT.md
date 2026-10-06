@@ -93,6 +93,11 @@ of the player's task. The product has one anime character editor and one profile
   world/region camera moves one artwork/route scene while native 52px targets and
   HUD remain readable. Keyboard focus reveals offscreen stages without browser
   scrolling; minimum regional zoom prevents neighboring targets overlapping.
+- New v8 campaign runs (`zs`) progressively trim board terrain and introduce
+  stationary two/three-hit metal blocks. Preserve v1–v7 replay rules, blank-cell
+  masks, segmented gravity and block state through shuffles/cascade caps.
+  Verified first clears pay one stash item atomically; victory uses finite
+  fireworks and actual score/coin/XP/item icon groups. See `docs/shaped-stages.md`.
 - Current visual direction explicitly favors colorful, tangible casual-game props
   over restrained application glyphs. Original transparent 3D-style raster icons
   share gold bevels, readable silhouettes and dimensional shading. Navigation is

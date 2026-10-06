@@ -18,6 +18,7 @@ import type { Inventory, Item } from './items.ts'
 import { makeRng, randomSeed, type Rng } from './rng.ts'
 import { at, BOARD } from './types.ts'
 import type { Geom, Grid, Kind, Power } from './types.ts'
+import { terrainFor } from './terrain.ts'
 import { CURRENT_RULES, canFuse } from './rules.ts'
 import type { RulesVersion } from './rules.ts'
 import { fusionClear } from './fusion.ts'
@@ -277,6 +278,7 @@ export class Game {
     this.level = this.mission?.step ?? 1
     this.moves = this.mission?.moves ?? movesForLevel(1)
     this.grid = createBoard(this.refillGeom, this.rng, rules)
+    this.seedTerrain()
     this.withHooksMuted(() => this.seedMissionPowers())
   }
 
@@ -317,7 +319,19 @@ export class Game {
   }
   private get boosts(): Upgrades | undefined { return this.rules >= 4 ? this.upgrades : undefined }
   private get refillGeom(): Geom {
-    return this.bonusRound === 'festival' ? { ...this.geom, kinds: 3 } : this.geom
+    const geom=this.bonusRound === 'festival' ? { ...this.geom, kinds: 3 } : this.geom
+    return this.rules>=8 ? {...geom,voidCells:this.terrain.voidCells} : geom
+  }
+  private terrainCache: {key:string; value:ReturnType<typeof terrainFor>} | null=null
+  get terrain() {
+    const key=`${this.rules}:${this.mission?.id??''}`
+    if(this.terrainCache?.key!==key)this.terrainCache={key,value:terrainFor(this.geom,this.mission,this.rules)}
+    return this.terrainCache.value
+  }
+  private seedTerrain(): void {
+    if(this.rules<8)return
+    for(const cell of this.terrain.crates){const gem=at(this.grid,cell);if(gem){gem.kind=-1;gem.power='none';gem.durability=this.terrain.durability}}
+    if(findMoves(this.geom,this.grid,this.rules).length===0)shuffleBoard(this.refillGeom,this.grid,this.rng,this.rules)
   }
   activateFever(): boolean {
     if (this.rules < 4 || this.busy || this.feverTurns > 0 || this.feverCharge < FEVER_CHARGE) return false
@@ -384,7 +398,7 @@ export class Game {
    */
   press(cell: number): void {
     if (this.busy) return
-    if (!at(this.grid, cell)) return
+    if (!at(this.grid, cell) || at(this.grid,cell)?.durability) return
     this.held = cell
     this.idleTime = 0
     this.hint = null
@@ -401,7 +415,7 @@ export class Game {
     this.idleTime = 0
     this.hint = null
     const gem = at(this.grid, cell)
-    if (!gem) return
+    if (!gem || gem.durability) return
 
     if (this.selected === null) {
       this.selected = cell
@@ -515,6 +529,7 @@ export class Game {
   }
 
   private attemptSwap(a: number, b: number): void {
+    if(!at(this.grid,a)||!at(this.grid,b)||at(this.grid,a)?.durability||at(this.grid,b)?.durability)return
     const legal = isLegalSwap(this.geom, this.grid, a, b, this.rules)
     this.swapCells(a, b)
     this.startPhase('swap', SWAP_TIME, { a, b, doomed: !legal })
@@ -763,6 +778,19 @@ export class Game {
         blasts = [...blasts, { cell: originCell, kind: 'colour', targets: extra, colour }, ...echo.blasts]
       }
     }
+    if(this.rules>=8){
+      // One damage per resolved wave, regardless of overlapping blasts.
+      const hits=new Set<number>(cleared)
+      for(const cell of cleared)for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const c=this.geom.colOf(cell)+dc!,r=this.geom.rowOf(cell)+dr!
+        if(this.geom.inBounds(c,r))hits.add(this.geom.idx(c,r))
+      }
+      for(const cell of hits){const gem=at(this.grid,cell);if(!gem?.durability)continue
+        gem.durability--;gem.flash=.45
+        if(gem.durability>0)cleared.delete(cell)
+        else {delete gem.durability;cleared.add(cell)}
+      }
+    }
     if (cleared.size === 0) {
       this.settle()
       return
@@ -847,7 +875,8 @@ export class Game {
       const deal = createBoard(this.refillGeom, this.rng, this.rules)
       for (let cell = 0; cell < this.geom.cells; cell++) {
         const previous = at(this.grid, cell), next = at(deal, cell)
-        if (previous && next) next.power = previous.power
+        if(previous?.durability)deal[cell]=previous
+        else if (previous && next) next.power = previous.power
       }
       this.grid = deal
       this.hooks.onCascadeCapped?.()
@@ -906,7 +935,7 @@ export class Game {
     for (let offset = 0; offset < this.geom.cells; offset++) {
       const cell = (this.actionCell + offset) % this.geom.cells
       const gem = at(this.grid, cell)
-      if (!gem || gem.power !== 'none') continue
+      if (!gem || gem.durability || gem.power !== 'none') continue
       gem.power = power; gem.flash = .45
       if (this.goal.kind === 'power') this.goalDone += 1
       this.hooks.onPowerCreated?.(cell, power)
@@ -975,6 +1004,7 @@ export class Game {
     this.lastUpgradeLevel = 0; this.actionCharge = 0; this.echoUsed = false; this.actionCell = 0
     this.feverSwap = false; this.acceptedSwap = false; this.relayFusion = false
     this.grid = createBoard(this.refillGeom, this.rng, rules)
+    this.seedTerrain()
     this.score = 0
     this.level = mission?.step ?? 1
     this.levelStartScore = 0

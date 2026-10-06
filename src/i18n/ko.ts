@@ -85,6 +85,8 @@ export const KO: Strings = {
   fusionRules: '합체 규칙',
   boardKeys: '방향키로 이동하고 Enter 또는 Space로 선택하거나 교환하세요. Escape는 선택 취소, Tab은 보드 밖으로 이동합니다.',
   boardCell: '{row}행 {col}열: {gem}, {power}.',
+  boardCrate: '단단한 블록, 내구도 {hits}. 이웃 보석을 맞추거나 아이템으로 깨뜨리세요.',
+  boardVoid: '게임판 바깥 빈 공간.',
   boardSelected: '선택됨. 교환할 이웃 보석을 고르세요.',
   boardNormal: '일반 보석', boardRow: '가로 줄무늬', boardColumn: '세로 줄무늬', boardBomb: '폭탄', boardPrism: '프리즘',
   legacyRules: '기존 규칙 · 이어하는 게임',

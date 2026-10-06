@@ -1,8 +1,10 @@
 import { t } from '../i18n/index.ts'
 import { myAvatar, paintAvatar } from '../avatar/store.ts'
 import { ModalLayer } from './modal.ts'
+import { icon, type GameIcon } from './game-icons.ts'
 
 export interface OverlayContent {
+  rewards?: readonly {icon: GameIcon; label: string; value: string}[]
   kicker: string
   title: string
   /**
@@ -61,6 +63,8 @@ export class Overlay {
   private options = el('upgrade-options')
   private selectedChoice: string | null = null
   private growth = document.createElement('div')
+  private rewards = document.createElement('dl')
+  private fireworks = document.createElement('div')
   private modal = new ModalLayer(this.root, this.root.querySelector<HTMLElement>('.card')!)
 
   private onAction: (() => void) | null = null
@@ -68,6 +72,16 @@ export class Overlay {
   private onSubmit: ((name: string) => Promise<{ ok: boolean; message: string }>) | null = null
 
   constructor() {
+    this.rewards.className='result-rewards';this.rewards.hidden=true
+    this.heroBox.after(this.rewards)
+    this.fireworks.className='result-fireworks';this.fireworks.setAttribute('aria-hidden','true')
+    this.fireworks.hidden=true
+    for(let burst=0;burst<3;burst++){
+      const group=document.createElement('span');group.style.setProperty('--burst',String(burst))
+      for(let n=0;n<12;n++){const spark=document.createElement('i');spark.style.setProperty('--angle',`${n*30}deg`);group.append(spark)}
+      this.fireworks.append(group)
+    }
+    this.root.prepend(this.fireworks)
     this.growth.className = 'result-growth'; this.growth.hidden = true
     this.growth.innerHTML = '<div><strong></strong><span></span></div><progress></progress><small></small>'
     this.heroBox.after(this.growth)
@@ -135,6 +149,13 @@ export class Overlay {
   }
 
   show(content: OverlayContent): void {
+    this.rewards.replaceChildren();this.rewards.hidden=!content.rewards?.length
+    for(const reward of content.rewards??[]){
+      const group=document.createElement('div'),term=document.createElement('dt'),value=document.createElement('dd')
+      term.append(icon(reward.icon),document.createTextNode(reward.label));value.textContent=reward.value
+      group.append(term,value);this.rewards.append(group)
+    }
+    this.fireworks.hidden=content.celebration!=='clear'
     this.growth.hidden = !content.growth
     if (content.growth) {
       const g = content.growth
@@ -204,6 +225,7 @@ export class Overlay {
   }
 
   hide(): void {
+    this.fireworks.hidden=true
     this.root.hidden = true
     this.modal.close()
     this.victory.hidden = true

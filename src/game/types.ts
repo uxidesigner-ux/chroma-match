@@ -8,6 +8,7 @@
  * own board instead of breaking every time the shipping one is retuned.
  */
 export interface Geom {
+  readonly voidCells?: ReadonlySet<number>
   readonly cols: number
   readonly rows: number
   readonly cells: number
@@ -70,6 +71,8 @@ export type Kind = number
 export type Power = 'none' | 'rowClear' | 'colClear' | 'bomb' | 'rainbow'
 
 export interface Gem {
+  /** Stationary layered crate; negative kind is never a matching colour. */
+  durability?: number
   /** Stable identity, so the renderer can follow a gem as it falls. */
   readonly id: number
   kind: Kind

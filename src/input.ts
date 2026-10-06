@@ -47,7 +47,9 @@ export function attachInput(
   }
   const announce = () => {
     const gem = game.grid[keyboardCell]
-    if (!status || !gem) return
+    if (!status) return
+    if(!gem){status.textContent=t('boardVoid');return}
+    if(gem.durability){status.textContent=t('boardCrate',{hits:gem.durability});return}
     status.textContent = t('boardCell', {
       row: game.geom.rowOf(keyboardCell) + 1,
       col: game.geom.colOf(keyboardCell) + 1,
@@ -80,9 +82,9 @@ export function attachInput(
       if (!onAim(keyboardCell)) game.tap(keyboardCell)
     } else {
       const [dx, dy] = step[event.key]!
-      const c = Math.max(0, Math.min(game.geom.cols - 1, game.geom.colOf(keyboardCell) + dx))
-      const r = Math.max(0, Math.min(game.geom.rows - 1, game.geom.rowOf(keyboardCell) + dy))
-      keyboardCell = game.geom.idx(c, r)
+      let c=game.geom.colOf(keyboardCell)+dx,r=game.geom.rowOf(keyboardCell)+dy
+      while(game.geom.inBounds(c,r)&&game.terrain.voidCells.has(game.geom.idx(c,r))){c+=dx;r+=dy}
+      if(game.geom.inBounds(c,r))keyboardCell=game.geom.idx(c,r)
       game.press(keyboardCell)
       revealCell()
     }

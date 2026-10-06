@@ -79,6 +79,8 @@ export const JA: Strings = {
   fusionRules: '合体ルール',
   boardKeys: '矢印キーで移動、EnterかSpaceで選択または交換。Escapeで選択解除。Tabで盤面から移動します。',
   boardCell: '{row}行{col}列：{gem}、{power}。',
+  boardCrate: '頑丈なブロック、残り{hits}回。隣のジェムを揃えるかアイテムで壊せます。',
+  boardVoid: 'ボードの外です。',
   boardSelected: '選択済み。交換する隣のジェムを選んでください。',
   boardNormal: '通常ジェム', boardRow: '横の縞', boardColumn: '縦の縞', boardBomb: 'ボム', boardPrism: 'プリズム',
   legacyRules: '従来ルール・続きから',

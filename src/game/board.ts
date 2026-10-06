@@ -48,7 +48,7 @@ function collectRuns(geom: Geom, grid: Grid): Run[] {
       for (let a = 1; a <= length; a++) {
         const prev = at(grid, cellAt(a - 1, b))
         const curr = a < length ? at(grid, cellAt(a, b)) : null
-        const same = prev !== null && curr !== null && prev.kind === curr.kind
+        const same = prev !== null && curr !== null && prev.kind >= 0 && prev.kind === curr.kind
         if (same) continue
         if (a - start >= 3) {
           const cells: number[] = []
@@ -75,7 +75,7 @@ export function findMatches(geom: Geom, grid: Grid, rules: RulesVersion = CURREN
     for (let r = 0; r < geom.rows - 1; r++) for (let c = 0; c < geom.cols - 1; c++) {
       const cells = [geom.idx(c, r), geom.idx(c + 1, r), geom.idx(c, r + 1), geom.idx(c + 1, r + 1)]
       const gem = at(grid, cells[0]!)
-      if (gem && cells.every(i => at(grid, i)?.kind === gem.kind))
+      if (gem && gem.kind >= 0 && cells.every(i => at(grid, i)?.kind === gem.kind))
         runs.push({ cells, horizontal: false, square: true })
     }
   }
@@ -284,6 +284,26 @@ export interface FallResult {
  * gems, recording how far each one travelled so the renderer can animate it.
  */
 export function applyGravity(geom: Geom, grid: Grid, rng: Rng): FallResult {
+  if (geom.voidCells?.size || grid.some(g=>g?.durability)) {
+    let maxDrop=0
+    for(const g of grid)if(g){g.ox=0;g.oy=0}
+    for(let c=0;c<geom.cols;c++){
+      let bottom=geom.rows-1
+      while(bottom>=0){
+        const blocked=(r:number)=>geom.voidCells?.has(geom.idx(c,r)) || Boolean(at(grid,geom.idx(c,r))?.durability)
+        if(blocked(bottom)){bottom--;continue}
+        let top=bottom
+        while(top>0&&!blocked(top-1))top--
+        let write=bottom
+        for(let r=bottom;r>=top;r--){const g=at(grid,geom.idx(c,r));if(!g)continue
+          grid[geom.idx(c,r)]=null;grid[geom.idx(c,write)]=g;g.oy=r-write;maxDrop=Math.max(maxDrop,write-r);write--}
+        const drop=write-top+1
+        for(let r=write;r>=top;r--){const g=makeGem(rng.int(geom.kinds));g.oy=-drop;grid[geom.idx(c,r)]=g}
+        maxDrop=Math.max(maxDrop,drop);bottom=top-1
+      }
+    }
+    return {maxDrop}
+  }
   for (const gem of grid) {
     if (gem) {
       gem.ox = 0
@@ -324,7 +344,7 @@ export function applyGravity(geom: Geom, grid: Grid, rng: Rng): FallResult {
 function swapMakesMatch(geom: Geom, grid: Grid, a: number, b: number, rules: RulesVersion): boolean {
   const ga = at(grid, a)
   const gb = at(grid, b)
-  if (!ga || !gb) return false
+  if (!ga || !gb || ga.durability || gb.durability) return false
   if (canFuse(ga.power, gb.power, rules)) return true
   if (ga.power === 'rainbow' || gb.power === 'rainbow') return true
   grid[a] = gb
@@ -375,9 +395,10 @@ export function findMoves(geom: Geom, grid: Grid, rules = CURRENT_RULES): Move[]
  * attempts and rebuilds the board from scratch instead of spinning.
  */
 export function shuffleBoard(geom: Geom, grid: Grid, rng: Rng, rules = CURRENT_RULES): void {
+  const slots=grid.flatMap((g,i)=>g && !g.durability && !geom.voidCells?.has(i)?[i]:[])
   for (let attempt = 0; attempt < 200; attempt++) {
-    for (let i = grid.length - 1; i > 0; i--) {
-      const j = rng.int(i + 1)
+    for (let n = slots.length - 1; n > 0; n--) {
+      const i=slots[n]!,j=slots[rng.int(n+1)]!
       const a = grid[i] ?? null
       grid[i] = grid[j] ?? null
       grid[j] = a
@@ -398,6 +419,9 @@ export function fillFresh(geom: Geom, grid: Grid, rng: Rng, rules: RulesVersion 
   for (let attempt = 0; attempt < 100; attempt++) {
     for (let r = 0; r < geom.rows; r++) {
       for (let c = 0; c < geom.cols; c++) {
+        const cell=geom.idx(c,r)
+        if(geom.voidCells?.has(cell)){grid[cell]=null;continue}
+        if(at(grid,cell)?.durability)continue
         const left = c >= 2 ? at(grid, geom.idx(c - 1, r)) : null
         const left2 = c >= 2 ? at(grid, geom.idx(c - 2, r)) : null
         const up = r >= 2 ? at(grid, geom.idx(c, r - 1)) : null

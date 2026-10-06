@@ -126,11 +126,11 @@ export class Renderer {
     ctx.clearRect(0, 0, this.width, this.height)
     if (this.layout.cell < MIN_CELL) return
 
-    this.drawBoardPlate()
-    this.drawWells()
+    this.drawBoardPlate(game)
+    this.drawWells(game)
 
     ctx.save()
-    this.boardClip()
+    this.boardClip(game)
     ctx.clip()
     if (game.hint) this.drawHint(game.hint.a, game.hint.b, time)
     this.drawGems(game, time)
@@ -193,19 +193,29 @@ export class Renderer {
       width: Math.max(0, right - left) * sx, height: Math.max(0, bottom - top) * sy }
   }
 
-  private boardClip(): void {
+  private boardClip(game: Game): void {
     const { x, y, w, h } = this.layout
     this.ctx.beginPath()
-    this.ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 20)
+    if(game.terrain.voidCells.size){
+      for(let i=0;i<this.geom.cells;i++)if(!game.terrain.voidCells.has(i)){
+        const p=this.centreOf(i),s=this.layout.cell
+        this.ctx.rect(p.x-s/2,p.y-s/2,s,s)
+      }
+    }else this.ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 20)
   }
 
-  private drawBoardPlate(): void {
+  private drawBoardPlate(game: Game): void {
     const ctx = this.ctx
     const { x, y, w, h } = this.layout
     ctx.save()
     ctx.beginPath()
     // Keep the whole stroke inside the backing canvas, including Paper's ink.
-    ctx.roundRect(x - BOARD_PAD + 1.5, y - BOARD_PAD + 1.5, w + BOARD_PAD * 2 - 3, h + BOARD_PAD * 2 - 3, 26)
+    if(game.terrain.voidCells.size){
+      for(let i=0;i<this.geom.cells;i++)if(!game.terrain.voidCells.has(i)){
+        const p=this.centreOf(i),s=this.layout.cell
+        ctx.roundRect(p.x-s/2-2,p.y-s/2-2,s+4,s+4,9)
+      }
+    }else ctx.roundRect(x - BOARD_PAD + 1.5, y - BOARD_PAD + 1.5, w + BOARD_PAD * 2 - 3, h + BOARD_PAD * 2 - 3, 26)
     const board = activeSkin().board
     ctx.fillStyle = board.boardFill
     ctx.fill()
@@ -221,7 +231,7 @@ export class Renderer {
     ctx.restore()
   }
 
-  private drawWells(): void {
+  private drawWells(game: Game): void {
     const ctx = this.ctx
     const { x, y, cell } = this.layout
     const inset = cell * 0.08
@@ -234,6 +244,7 @@ export class Renderer {
     }
     for (let r = 0; r < this.geom.rows; r++) {
       for (let c = 0; c < this.geom.cols; c++) {
+        if(game.terrain.voidCells.has(this.geom.idx(c,r)))continue
         ctx.beginPath()
         ctx.roundRect(
           x + c * cell + inset,
@@ -278,8 +289,30 @@ export class Renderer {
       }
       if (gem.flash > 0) scale *= 1 + gem.flash * 0.35
 
-      this.drawGem(gem, cx, cy, scale, alpha, time)
+      if(gem.kind>=0)this.drawGem(gem, cx, cy, scale, alpha, time)
     }
+    // Anchored blocks stay above incoming gems at a segmented refill boundary.
+    for(let i=0;i<this.geom.cells;i++){
+      const gem=at(game.grid,i);if(!gem||gem.kind>=0)continue
+      const p=this.centreOf(i),scale=gem.clearing?Math.max(0,1-clearP):1+(gem.flash>0?gem.flash*.15:0)
+      this.drawCrate(gem,p.x,p.y,scale,gem.clearing?1-clearP:1)
+    }
+  }
+
+  private drawCrate(gem: Gem,x:number,y:number,scale:number,alpha:number):void {
+    const ctx=this.ctx,s=this.layout.cell*.78
+    ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.globalAlpha=alpha
+    const fill=ctx.createLinearGradient(0,-s/2,0,s/2)
+    fill.addColorStop(0,'#b7d2ee');fill.addColorStop(.4,'#6687b9');fill.addColorStop(1,'#344f7c')
+    ctx.fillStyle='#172c50';ctx.beginPath();ctx.roundRect(-s/2,-s/2+4,s,s,9);ctx.fill()
+    ctx.fillStyle=fill;ctx.strokeStyle=gem.flash>0?'#fff1a3':'#d9e9fc';ctx.lineWidth=2
+    ctx.beginPath();ctx.roundRect(-s/2,-s/2,s,s-3,9);ctx.fill();ctx.stroke()
+    ctx.strokeStyle='#294572';ctx.lineWidth=3;ctx.beginPath()
+    ctx.moveTo(-s*.32,-s*.32);ctx.lineTo(s*.32,s*.24);ctx.moveTo(s*.32,-s*.32);ctx.lineTo(-s*.32,s*.24);ctx.stroke()
+    for(let n=0;n<(gem.durability??0);n++){
+      ctx.fillStyle='#ffe373';ctx.beginPath();ctx.arc((n-((gem.durability??0)-1)/2)*10,s*.28,3.5,0,Math.PI*2);ctx.fill()
+    }
+    ctx.restore()
   }
 
   private drawGem(

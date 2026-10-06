@@ -349,7 +349,7 @@ const hooks: Partial<GameHooks> = {
     combo.report(chain)
     // Reported by kind rather than by mission: the board has no idea which
     // three missions are running today, and should not have to.
-    reportMission('gems', cells.length)
+    reportMission('gems', cells.filter(cell=>(game.grid[cell]?.kind??-1)>=0).length)
     reportMission('chain', chain)
     // What the hit is worth: how much of the board went at once, and how deep
     // into a chain it landed. A three-gem match at the top of a chain is not an
@@ -622,8 +622,12 @@ async function showLevelComplete(level: number): Promise<void> {
     overlay.show({
       kicker: missionCaption(m), title: copy.cleared, celebration: 'clear',
       growth: resultGrowth(earned),
-      hero: { value: n(game.score), caption: t('pointsBanked'),
-        flair: claim.reward ? `${copy.first} · +${claim.reward} ${t('starterCoins')}` : copy.complete },
+      rewards: [
+        {icon:'star',label:t('pointsBanked'),value:n(game.score)},
+        {icon:'coin',label:t('starterCoins'),value:`+${claim.reward}`},
+        {icon:'missions',label:'XP',value:`+${claim.xp}`},
+        ...(claim.item?[{icon:claim.item,label:ITEM_LABELS[claim.item](),value:'+1'}]:[]),
+      ],
       body: growthResult(earned),
       action: next && claim.ok ? copy.next : copy.back,
       onAction: next && claim.ok ? () => { world.select(next.id); startRun([], next) } : goHome,
@@ -664,7 +668,7 @@ async function startRun(boosters: readonly Item[] = [], mission: Mission | null 
   try {
     const kept = suspendedRun()
     if (kept?.attempt) await player.settle(kept.attempt, kept.record, kept.outcome ?? 'quit', true)
-    await player.begin(id, true, 0, Date.now(), boosters, `${mission ? 7 : 5}:${seed >>> 0}:${mission?.id ?? ''}`)
+    await player.begin(id, true, 0, Date.now(), boosters, `${mission ? 8 : 5}:${seed >>> 0}:${mission?.id ?? ''}`)
   } catch {
     startingRun = false
     saveFailure(() => void startRun(boosters, mission))
@@ -681,7 +685,7 @@ async function startRun(boosters: readonly Item[] = [], mission: Mission | null 
   overlay.hide()
   if (screens.active === 'home' || screens.active === 'map') returnDestination = mission ? 'map' : screens.active
   if (mission) returnDestination = 'map'
-  game.restart(seed, mission ? 7 : 5, mission?.id)
+  game.restart(seed, mission ? 8 : 5, mission?.id)
   resetPlayView()
   // Play again stays on the same screen, so its screen-change hook won't run.
   if (screens.active === 'game') hud.reset()

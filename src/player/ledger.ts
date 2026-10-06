@@ -5,9 +5,10 @@ import { BOARD } from '../game/types.ts'
 import { COSMETICS, emptyPlayer, levelFor, addXp, metricsOf, settlePlayer, resetStats, type PlayerState, type Outcome, type Round } from './model.ts'
 import { bindEconomy, coins, stash, BOOSTER_LIMIT, payoutFor } from '../meta.ts'
 import type { Item } from '../game/items.ts'
+import { itemForLevel } from '../game/items.ts'
 
 export const PLAYER_DB = 'chroma-match-player-v1'
-export interface Settlement { ok: boolean; persistent: boolean; xp: number; reward: number; first: boolean; before: number; after: number }
+export interface Settlement { ok: boolean; persistent: boolean; xp: number; reward: number; first: boolean; before: number; after: number; item?: Item }
 /** One document, one IndexedDB read-write transaction: XP, coins, unlocks and stats commit together. */
 export class PlayerLedger {
   state = emptyPlayer()
@@ -142,6 +143,8 @@ export class PlayerLedger {
       const ready = m ? unlocked(s.campaign, m) : true
       if (m && !ready) return no
       const result = settlePlayer(s, id, round, proof.progress, proof.need, m?.reward ?? 0, ready, terminal)
+      const item=m && proof.rules>=8 && result.first ? itemForLevel(m.step) : undefined
+      if(item)s.stash[item]++
       if (m && round.clears) s.campaign.completed[m.id] = Math.max(s.campaign.completed[m.id] ?? 0, proof.score)
       // Endless payout is part of the same terminal transaction, not a second wallet write.
       if (!m && terminal && round.actions > 0) {
@@ -149,7 +152,7 @@ export class PlayerLedger {
         s.coins += earned; result.coins += earned
       }
       return { ok: true, persistent: true, xp: result.xp,
-        reward: result.coins, first: result.first, before, after: levelFor(s.growth.totalXp).level }
+        reward: result.coins, first: result.first, before, after: levelFor(s.growth.totalXp).level, ...(item?{item}:{}) }
     })
   }
   async equip(kind: 'frame' | 'title', id: string): Promise<void> {

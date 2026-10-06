@@ -88,3 +88,36 @@
   .overlay:not(#sheet-studio-files) :is(button,summary),.shop button,.hub-nav > button,.game .item { transition:none; }
   #sheet-ranks .sheet-panel { transition:none; }
 }
+/* Success is earned: static reward groups remain legible throughout bursts. */
+#overlay[data-celebration='clear'] .card-kicker {color:#c7dfff;}
+#overlay .result-growth {background:#172d52;border:2px solid #7fa9e0;color:#f7fbff;}
+#overlay .result-growth span {color:#ffe284;}
+#overlay .result-growth small {color:#c7dfff;}
+#overlay .result-growth progress {accent-color:#ffd260;}
+#overlay .card {position:relative;}
+.result-rewards { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0; }
+.result-rewards[hidden],.result-fireworks[hidden] {display:none;}
+.result-rewards > div {background:#203c75;border:2px solid #6fa5e8;border-radius:14px;padding:10px 8px;box-shadow:inset 0 3px #4676b4,0 4px #12264c;}
+.result-rewards dt {display:flex;align-items:center;justify-content:center;gap:5px;color:#eef6ff;font-size:13px;font-weight:700;}
+.result-rewards .game-icon {width:32px;height:32px;flex:0 0 32px;}
+.result-rewards dd {margin:4px 0 0;color:#fff0a5;font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.15;}
+.result-fireworks {position:fixed;inset:0;pointer-events:none;overflow:hidden;}
+.result-fireworks > span {position:absolute;left:calc(18% + var(--burst)*32%);top:calc(22% + var(--burst)*12%);}
+.result-fireworks i {position:absolute;width:5px;height:16px;border-radius:4px;background:#ffe284;box-shadow:0 0 6px #ffba53;transform:rotate(var(--angle));animation:result-burst 1.45s calc(var(--burst)*.22s) ease-out both;}
+.result-fireworks i:nth-child(3n) {background:#80f5ff;box-shadow:0 0 6px #28c9ff;}
+.result-fireworks i:nth-child(3n+1) {background:#ff8ecf;box-shadow:0 0 6px #ff61a8;}
+@keyframes result-burst {0%{opacity:0;transform:rotate(var(--angle)) translateY(0) scale(.3)}15%{opacity:1}100%{opacity:0;transform:rotate(var(--angle)) translateY(-140px) scale(.4)}}
+@media(prefers-reduced-motion:reduce){.result-fireworks{display:none;}}
+@media(max-height:600px){.result-rewards{gap:6px;margin:8px 0}.result-rewards > div{padding:6px}.result-rewards dd{font-size:22px}.result-rewards .game-icon{width:26px;height:26px;flex-basis:26px}}
+@media(max-height:700px){#overlay[data-celebration='clear'] .victory{height:64px;margin:0 0 6px}#overlay[data-celebration='clear'] #victory-avatar{width:56px;height:56px}#overlay .result-growth{margin:8px 0;padding:8px 12px}#overlay .result-rewards{margin:10px 0}#overlay[data-celebration='clear'] .card{padding:18px}}
+@media(min-width:600px) and (max-height:500px){
+  #overlay[data-celebration='clear'] .card:has(.result-rewards:not([hidden])) {width:min(680px,100%);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:8px 16px;padding:18px;}
+  #overlay[data-celebration='clear'] .card:has(.result-rewards:not([hidden])) .victory {display:none;}
+  #overlay:has(.result-rewards:not([hidden])) #overlay-kicker {grid-column:1;grid-row:1;margin:0;}
+  #overlay:has(.result-rewards:not([hidden])) #overlay-title {grid-column:1;grid-row:2;margin:0;font-size:24px;}
+  #overlay:has(.result-rewards:not([hidden])) .result-growth {grid-column:1;grid-row:3;margin:0;}
+  #overlay:has(.result-rewards:not([hidden])) .result-rewards {grid-column:2;grid-row:1 / 4;margin:0;}
+  #overlay:has(.result-rewards:not([hidden])) #overlay-body {grid-column:1 / -1;grid-row:4;margin:0;}
+  #overlay:has(.result-rewards:not([hidden])) #overlay-action {grid-column:1;grid-row:5;margin:0;min-height:44px;}
+  #overlay:has(.result-rewards:not([hidden])) #overlay-home {grid-column:2;grid-row:5;margin:0;min-height:44px;}
+}

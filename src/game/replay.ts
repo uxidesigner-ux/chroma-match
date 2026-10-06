@@ -19,7 +19,7 @@ import type { Action } from './game.ts'
 import { ITEMS } from './items.ts'
 import type { Item } from './items.ts'
 import type { Geom } from './types.ts'
-import { FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER, SUPPLIES_HEADER, CAMPAIGN_HEADER, ADVENTURE_HEADER } from './rules.ts'
+import { FUSION_HEADER, SQUARE_HEADER, VARIETY_HEADER, SUPPLIES_HEADER, CAMPAIGN_HEADER, ADVENTURE_HEADER, TERRAIN_HEADER } from './rules.ts'
 import { MISSIONS, WORLD_MISSIONS, type Mission } from './campaign.ts'
 import type { RulesVersion } from './rules.ts'
 import { UPGRADES } from './variety.ts'
@@ -31,7 +31,7 @@ const SETTLE_LIMIT = 4000
 export const MAX_MOVES = 4000
 /** Two base36 characters carry one action, so everything below has to fit. */
 const PACK_LIMIT = 36 * 36
-const FIRST_HEADER = Math.min(...[ADVENTURE_HEADER, CAMPAIGN_HEADER, SUPPLIES_HEADER, VARIETY_HEADER, SQUARE_HEADER, FUSION_HEADER].map(h => Number.parseInt(h, 36)))
+const FIRST_HEADER = Math.min(...[TERRAIN_HEADER, ADVENTURE_HEADER, CAMPAIGN_HEADER, SUPPLIES_HEADER, VARIETY_HEADER, SQUARE_HEADER, FUSION_HEADER].map(h => Number.parseInt(h, 36)))
 
 /** Neighbour offsets, in the order their index is encoded. */
 const DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
@@ -67,7 +67,7 @@ export function rulesOf(record: RunRecord): RulesVersion {
   // Ranking labels can be painted before asynchronous verification rejects a
   // malformed remote row. Detection must not take the entire list down.
   const moves = typeof record.moves === 'string' ? record.moves : ''
-  return moves.startsWith(ADVENTURE_HEADER) ? 7 : moves.startsWith(CAMPAIGN_HEADER) ? 6 : moves.startsWith(SUPPLIES_HEADER) ? 5 : moves.startsWith(VARIETY_HEADER) ? 4 : moves.startsWith(SQUARE_HEADER) ? 3
+  return moves.startsWith(TERRAIN_HEADER) ? 8 : moves.startsWith(ADVENTURE_HEADER) ? 7 : moves.startsWith(CAMPAIGN_HEADER) ? 6 : moves.startsWith(SUPPLIES_HEADER) ? 5 : moves.startsWith(VARIETY_HEADER) ? 4 : moves.startsWith(SQUARE_HEADER) ? 3
     : moves.startsWith(FUSION_HEADER) ? 2 : 1
 }
 export function missionOf(record: RunRecord): Mission | null {
@@ -375,7 +375,7 @@ export function restoreRun(game: Game, record: RunRecord): boolean {
 export function recordOf(game: Game): RunRecord {
   return {
     seed: game.seed,
-    moves: (game.rules >= 6 ? (game.rules === 6 ? CAMPAIGN_HEADER : ADVENTURE_HEADER) + (game.rules === 6 ? MISSIONS : WORLD_MISSIONS).findIndex(m => m.id === game.mission?.id).toString(36).padStart(2, '0') : game.rules === 5 ? SUPPLIES_HEADER : game.rules === 4 ? VARIETY_HEADER : game.rules === 3 ? SQUARE_HEADER : game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
+    moves: (game.rules >= 6 ? (game.rules === 8 ? TERRAIN_HEADER : game.rules === 6 ? CAMPAIGN_HEADER : ADVENTURE_HEADER) + (game.rules === 6 ? MISSIONS : WORLD_MISSIONS).findIndex(m => m.id === game.mission?.id).toString(36).padStart(2, '0') : game.rules === 5 ? SUPPLIES_HEADER : game.rules === 4 ? VARIETY_HEADER : game.rules === 3 ? SQUARE_HEADER : game.rules === 2 ? FUSION_HEADER : '') + encodeMoves(game.geom, game.log),
     score: game.score,
     level: game.level,
     board: boardOf(game.geom),

@@ -76,6 +76,8 @@ export const ZH: Strings = {
   fusionRules: '合体规则',
   boardKeys: '方向键移动，Enter或Space选择或交换。Escape取消选择，Tab离开棋盘。',
   boardCell: '第{row}行第{col}列：{gem}，{power}。',
+  boardCrate: '坚固方块，还需击中{hits}次。匹配相邻宝石或使用道具。',
+  boardVoid: '棋盘外的空白区域。',
   boardSelected: '已选中。请选择相邻宝石交换。',
   boardNormal: '普通宝石', boardRow: '横向条纹', boardColumn: '纵向条纹', boardBomb: '炸弹', boardPrism: '棱镜',
   legacyRules: '原规则 · 继续存档',

@@ -1,6 +1,8 @@
 import type { Power } from './types.ts'
 
-export type RulesVersion = 1 | 2 | 3 | 4 | 5 | 6 | 7
+export type RulesVersion = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+/** Terrain and stationary crates; old campaign replays remain unchanged. */
+export const TERRAIN_HEADER = 'zs'
 export const CURRENT_RULES: RulesVersion = 5
 /** v6 records a bounded authored mission before any action; endless stays v5. */
 export const CAMPAIGN_HEADER = 'zu'

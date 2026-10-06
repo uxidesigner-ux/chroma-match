@@ -13,7 +13,8 @@ export type { GemStyle, Shape } from './skins/types.ts'
  */
 export function styleFor(kind: number): GemStyle {
   const palette = activeSkin().palette
-  return palette[kind % palette.length] as GemStyle
+  // Crates are not gem colours; their break particles use a safe warm tint.
+  return palette[kind < 0 ? 0 : kind % palette.length] as GemStyle
 }
 
 /** The plate, the wells and the rings, for the active skin. */

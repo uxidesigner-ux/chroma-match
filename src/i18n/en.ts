@@ -94,6 +94,8 @@ export const EN = {
   fusionRules: 'Fusion rules',
   boardKeys: 'Arrow keys move. Enter or Space selects or swaps. Escape cancels the selection. Tab leaves the board.',
   boardCell: 'Row {row}, column {col}: {gem}, {power}.',
+  boardCrate: 'Layered block, {hits} hits remaining. Clear adjacent gems or use an item.',
+  boardVoid: 'Outside the board.',
   boardSelected: 'Selected. Choose a neighbour to swap.',
   boardNormal: 'normal gem', boardRow: 'row stripe', boardColumn: 'column stripe', boardBomb: 'bomb', boardPrism: 'prism',
   legacyRules: 'Original rules · saved run',
