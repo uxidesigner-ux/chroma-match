@@ -10,10 +10,11 @@ import { missionTitle, worldCopy, missionCaption } from './world-copy.ts'
 import { MapCamera, type MapPoint } from './map-camera.ts'
 import { varietyCopy } from './variety-copy.ts'
 import { MapLife } from './map-life.ts'
+import { icon, type GameIcon } from './game-icons.ts'
+import { regionContour } from './region-art.ts'
 
 const el = (id: string) => document.getElementById(id)!
-const mark: Record<Region, string> = { forest: '◆', volcano: '✹', prism: '✦', relay: '⚙' }
-const positions = [[10, 118 / 220 * 100], [29, 20], [50, 145 / 220 * 100], [71, 42 / 220 * 100], [90, 114 / 220 * 100]] as const
+const regionIcon: Record<Region,GameIcon> = {forest:'map',volcano:'bomb',prism:'star',relay:'gear'}
 const forestPath: readonly (readonly [number,number])[] = [[.58,.82],[.56,.785],[.53,.752],[.49,.72],[.455,.686],
   [.442,.65],[.465,.62],[.51,.597],[.56,.58],[.61,.56],[.646,.53],[.65,.50],[.62,.469],[.567,.447],[.51,.430],
   [.455,.423],[.398,.415],[.353,.393],[.349,.365],[.377,.343],[.422,.326],[.478,.309],[.533,.293],[.562,.271],
@@ -21,8 +22,8 @@ const forestPath: readonly (readonly [number,number])[] = [[.58,.82],[.56,.785],
 const landmark: Record<Region, MapPoint> = { forest: {x:.28,y:.24}, volcano: {x:.75,y:.25}, prism: {x:.24,y:.60}, relay: {x:.74,y:.60} }
 export function pointFor(mission: Mission): MapPoint {
   if (mission.region === 'forest') { const [x,y] = forestPath[mission.step-1]!; return {x,y} }
-  const origin = landmark[mission.region], [x,y] = positions[mission.step-1]!
-  return { x: origin.x + (x/100-.5)*.29, y: origin.y + (y/100-.5)*.18 }
+  const origin = landmark[mission.region], row=Math.floor((mission.step-1)/5), column=(mission.step-1)%5
+  return {x:origin.x+((row%2?4-column:column)-2)*.057,y:origin.y+.165-row*.061}
 }
 
 /** Presentation only: the authored v6 missions, stock, saves and claims do not change. */
@@ -36,6 +37,7 @@ export class WorldMap {
   private rewardSource: Mission | undefined
   private regionList = document.querySelector<HTMLDetailsElement>('.world-list')!
   private camera: MapCamera
+  private glow=document.createElement('div')
 
   constructor(readonly progress: CampaignProgress, private play: (m: Mission) => void,
     private playerName: () => string) {
@@ -58,7 +60,8 @@ export class WorldMap {
     }
     const art = el('world-art'), plane = document.createElement('div')
     art.removeAttribute('aria-hidden'); plane.className = 'world-plane'
-    plane.append(el('world-image'), this.pins, document.querySelector('.world-journey')!)
+    this.glow.className='region-glow'; this.glow.setAttribute('aria-hidden','true')
+    plane.append(el('world-image'), this.glow, this.pins, document.querySelector('.world-journey')!)
     art.append(plane)
     this.camera = new MapCamera(art, plane, () => this.overview())
     art.addEventListener('mapfocus', () => { this.camera.focus(pointFor(this.mission), this.camera.mode === 'world'); this.refresh() })
@@ -130,18 +133,23 @@ export class WorldMap {
     const image = el('world-image') as HTMLImageElement
     const src = `${import.meta.env.BASE_URL}${this.camera.mode === 'region' && m.region === 'forest' ? 'chroma-forest-v2.webp' : this.camera.mode === 'world' && this.camera.wide ? 'chroma-world-wide-v2.webp' : 'chroma-world-v2.webp'}`
     if (image.getAttribute('src') !== src) image.src = src
-    if (this.missionButtons.childElementCount !== missions.length) {
+    this.glow.style.clipPath=regionContour(m.region,this.camera.wide&&this.camera.mode==='world')
+    this.glow.style.backgroundImage=`url("${src}")`
+    this.glow.dataset.selectionRegion=m.region
+    const centre=landmark[m.region]
+    this.glow.style.setProperty('--glow-x',`${centre.x*100}%`)
+    this.glow.style.setProperty('--glow-y',`${(this.camera.wide?m.region==='forest'||m.region==='volcano'?.25:.70:centre.y)*100}%`)
+    // Same-sized regions still have different node identities. Reusing a
+    // focused forest node prevented a later regional focus event from firing.
+    if (this.missionButtons.dataset.missionRegion !== m.region || this.missionButtons.childElementCount !== missions.length) {
+      this.missionButtons.dataset.missionRegion=m.region
       this.missionButtons.replaceChildren()
       for (const mission of missions) {
         const button = document.createElement('button')
         button.type = 'button'; button.className = 'world-mission'; button.dataset.missionStep = String(mission.step)
         button.addEventListener('click', () => this.select(`${this.mission.region}-${button.dataset.missionStep}`))
         button.addEventListener('focus', () => {
-          const r = button.getBoundingClientRect()
-          if (button.matches(':focus-visible') || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) {
-            // Move immediately before the browser tries to scroll a hidden-overflow camera.
-            this.camera.focus(pointFor(missionFor(`${this.mission.region}-${button.dataset.missionStep}`)!), false, false)
-          }
+          this.camera.reveal(pointFor(missionFor(`${this.mission.region}-${button.dataset.missionStep}`)!),button.matches(':focus-visible'))
         })
         this.missionButtons.append(button)
       }
@@ -184,19 +192,20 @@ export class WorldMap {
       const label = `${copy.regions[r]} · ${done}/${regionMissions.length} · ${status}${open ? '' : `. ${copy.unlock}`}`
       button.setAttribute('aria-label', label); button.title = label
       const badge = document.createElement('span'); badge.className = 'world-pin-badge'
-      badge.setAttribute('aria-hidden', 'true'); badge.textContent = mark[r]
+      badge.setAttribute('aria-hidden', 'true'); badge.append(icon(({forest:'map',volcano:'bomb',prism:'star',relay:'gear'} as Record<Region,GameIcon>)[r]))
       const seal = document.createElement('span'); seal.className = 'world-pin-seal'
-      seal.textContent = open ? done === regionMissions.length ? '✓' : `${done}/${regionMissions.length}` : ''
+      if (!open || done === regionMissions.length) seal.append(icon(open?'check':'lock'))
+      else seal.textContent = `${done}/${regionMissions.length}`
       if (!open) seal.classList.add('world-lock')
       badge.append(seal)
-      const title = document.createElement('strong'); title.textContent = copy.regions[r]
-      button.replaceChildren(badge, title)
+      button.replaceChildren(badge)
       const row = el('world-region-list').querySelector<HTMLButtonElement>(`[data-list-region="${r}"]`)!
-      row.textContent = `${mark[r]} ${copy.regions[r]} · ${done}/${regionMissions.length} · ${status}`
+      row.replaceChildren(icon(regionIcon[r]),document.createTextNode(`${done}/${regionMissions.length}`))
+      row.setAttribute('aria-label',label)
       row.setAttribute('aria-pressed', String(r === m.region))
     }
     el('world-region').textContent = copy.regions[m.region]
-    el('world-region-mark').textContent = mark[m.region]
+    el('world-region-mark').replaceChildren(icon(regionIcon[m.region]))
     el('world-stage-number').textContent = `${m.step}/${missions.length}`
     this.missionButtons.setAttribute('aria-label', `${copy.regions[m.region]} ${copy.missions}`)
     let completed = 0
@@ -209,7 +218,8 @@ export class WorldMap {
       const status = done ? copy.complete : ready ? copy.available : copy.locked
       const number = document.createElement('span'); number.className = 'world-node-number'; number.textContent = String(next.step)
       const stateMark = document.createElement('span'); stateMark.className = 'world-node-state'
-      stateMark.setAttribute('aria-hidden', 'true'); stateMark.textContent = done ? '✓' : ''
+      stateMark.setAttribute('aria-hidden', 'true')
+      if(done || !ready) stateMark.append(icon(done?'check':'lock'))
       if (!ready) stateMark.classList.add('world-lock')
       button.replaceChildren(number, stateMark)
       button.dataset.state = done ? 'complete' : ready ? 'available' : 'locked'
@@ -219,7 +229,7 @@ export class WorldMap {
       const mode = missionMode(next)
       if (mode) {
         const rule = document.createElement('span'); rule.className = 'world-node-rule'; rule.setAttribute('aria-hidden','true')
-        rule.textContent = mode === 'factory' ? '✹' : mode === 'festival' ? '✦' : '⇄'; button.append(rule)
+        rule.append(icon(mode === 'factory' ? 'bomb' : mode === 'festival' ? 'star' : 'shuffle')); button.append(rule)
       }
     }
     // Reveal complete node-to-node segments; transformed SVG dash lengths can
@@ -247,8 +257,10 @@ export class WorldMap {
     el('world-note').textContent = !this.progress.persistent ? copy.storage : !ready ? copy.required.replace('{mission}', prerequisite) : ''
     el('world-note').hidden = !el('world-note').textContent
     el('map-character').querySelector('span:last-child')!.textContent = copy.character
+    el('map-character').setAttribute('aria-label',copy.character);el('map-character').title=copy.character
     el('map-nav-current').textContent = copy.map
     el('map-shop').querySelector('span:last-child')!.textContent = t('quickShop')
+    el('map-shop').setAttribute('aria-label',t('quickShop'));el('map-shop').title=t('quickShop')
     for (const [id, label] of [['map-ranks', t('quickRanks')], ['map-today', t('quickToday')], ['map-freeplay', copy.free]]) {
       el(id!).querySelector('.sr-only')!.textContent = label!
       el(id!).title = label!

@@ -144,6 +144,13 @@ export class MapCamera {
     this.y = (bounds.height < 540 ? bounds.height * .42 : 120 + (bounds.height - 346) / 2) - point.y * HEIGHT * this.scale
     this.apply(animate)
   }
+  reveal(point: MapPoint, keyboard: boolean): void {
+    const bounds=this.viewport.getBoundingClientRect()
+    // Focus can arrive during a camera transition. Its current DOM rectangle
+    // may be visible while the destination is offscreen; use target coordinates.
+    const x=this.x+point.x*WIDTH*this.scale, y=this.y+point.y*HEIGHT*this.scale
+    if(keyboard || x<26 || x>bounds.width-26 || y<26 || y>bounds.height-26) this.focus(point,false,false)
+  }
   restoreRegion(point: MapPoint): void {
     if (!this.lastRegion) { this.focus(point, true); return }
     this.mode = 'region'; Object.assign(this, this.lastRegion); this.apply(true)

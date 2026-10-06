@@ -78,7 +78,7 @@ of the player's task. The product has one anime character editor and one profile
   once after replay verification. Keep mission goals/moves/rules in the record,
   retain v1-v5 saves and do not post campaign scores to endless rankings.
   Map is a full-viewport game scene, not an explanatory page. Compact landmark
-  markers, five numbered mission nodes, earned path, reward and Play/Continue
+  markers, numbered mission nodes, earned path, reward and Play/Continue
   are the visible hierarchy. Rules/goals stay in accessible action context and
   actual game preparation; only a lock prerequisite or storage failure adds a
   visible note. Native Map-tab region list, Character and Shop remain reachable.
@@ -86,13 +86,20 @@ of the player's task. The product has one anime character editor and one profile
   wallet once, with static feedback for reduced motion. No timers, paid unlocks,
   boss phases or cloud-progress claim. See `docs/world-map.md` for rules and
   `docs/fullscreen-map.md` for the current lobby; original proposal is preserved.
-- The expanded campaign is v7 (`zt`): 30 authored forest stages with breathers and
+- The expanded campaign is v7 (`zt`): 30 authored stages in each of four regions (120 total), with breathers and
   alternating collect/create/factory/festival/relay goals; preserve the immutable
   original v6 table for old saves. The shared dimensional HUD and dock persist in
   Map, Character and Shop, but are truly hidden in games and editing. A bounded
   world/region camera moves one artwork/route scene while native 52px targets and
   HUD remain readable. Keyboard focus reveals offscreen stages without browser
   scrolling; minimum regional zoom prevents neighboring targets overlapping.
+- Current visual direction explicitly favors colorful, tangible casual-game props
+  over restrained application glyphs. Original transparent 3D-style raster icons
+  share gold bevels, readable silhouettes and dimensional shading. Navigation is
+  icon-only with accessible names; region titles are nonvisual. Terrain selection
+  uses a soft clipped luminance shimmer, never a rectangular frame. Keep progress,
+  lock state and primary Play readable. The 3D character implementation is frozen;
+  character rendering tests are paused while map/game coverage remains active.
 - Player growth is device-local, separate from score and puzzle stage. First clears
   give 100 XP, genuine replays 40, natural failures 0–15, quits zero partial XP.
   Requirements plateau at 200; overflow carries; rewards are 20 coins per level and

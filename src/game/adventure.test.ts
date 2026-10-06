@@ -8,13 +8,18 @@ import { recordOf, restoreRun, verifyRun, missionOf, rulesOf } from './replay.ts
 import { metricsOf } from '../player/model.ts'
 import { checkEntry } from '../leaderboard/verify.ts'
 test('expanded forest is thirty authored stages; v6 table and shared logical mission identities stay intact', () => {
-  assert.equal(MISSIONS.length, 20); assert.equal(WORLD_MISSIONS.length, 45)
-  assert.equal(WORLD_MISSIONS.filter(m => m.region === 'forest').length, 30)
+  assert.equal(MISSIONS.length, 20); assert.equal(WORLD_MISSIONS.length, 120)
+  for(const region of ['forest','volcano','prism','relay']) assert.equal(WORLD_MISSIONS.filter(m => m.region === region).length, 30)
   assert.deepEqual(WORLD_MISSIONS.slice(0, 5), MISSIONS.slice(0, 5))
   assert.throws(() => new Game({}, WORLD_MISSIONS[5]!.seed, BOARD, 6, 'forest-6'), /v6/)
 })
-test('all 30 forest stages can be cleared with finite legal tools and greedy swaps; complete records prove exact metrics', () => {
-  for (const m of WORLD_MISSIONS.filter(m => m.region === 'forest')) {
+test('the first 45 v7 replay indices are immutable when regions grow',()=>{
+  const ids=[...Array.from({length:30},(_,i)=>`forest-${i+1}`),...['volcano','prism','relay'].flatMap(r=>Array.from({length:5},(_,i)=>`${r}-${i+1}`))]
+  assert.deepEqual(WORLD_MISSIONS.slice(0,45).map(m=>m.id),ids)
+  assert.equal(new Set(WORLD_MISSIONS.map(m=>m.id)).size,120)
+})
+test('all 120 regional stages can be cleared with finite legal tools and greedy swaps; complete records prove exact metrics', () => {
+  for (const m of WORLD_MISSIONS) {
     const g = new Game({}, m.seed, BOARD, 7, m.id)
     const settle = () => { for (let i = 0; i < 4000 && g.phaseKind !== 'idle'; i++) g.update(1/60); assert.equal(g.phaseKind, 'idle') }
     assert.equal(g.matchedPowers, 0)

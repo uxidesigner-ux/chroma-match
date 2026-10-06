@@ -1,0 +1,35 @@
+/* Original dimensional props; never applied inside the frozen character UI. */
+.game-icon.game-icon { display: inline-block; width: 32px; height: 32px; flex: 0 0 auto; background: var(--game-icon) center/contain no-repeat; mask: none; -webkit-mask: none; border: 0; border-radius: 0; box-shadow: none; color: transparent; font-size: 0; vertical-align: middle; pointer-events: none; }
+.game-icon.game-icon::before, .game-icon.game-icon::after { display: none; }
+.hub-nav #map-nav-current, .hub-nav #map-character > span:last-child, .hub-nav #map-shop > span:last-child, #world-region { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.hub-nav .world-nav-mark, .hub-nav .hud-ico { width: 56px; height: 56px; }
+.hub-nav { border: 3px solid #f6bc4f; background: linear-gradient(#74451e,#372212); box-shadow: inset 0 2px #ffe9a0, 0 5px 0 #271909, 0 9px 18px #04182480; }
+.hub-nav button, .hub-nav summary { border: 2px solid #c18130; border-radius: 14px; background: linear-gradient(#326aa0,#1b376a); box-shadow: inset 0 3px #83bde84d, 0 3px #142841; min-height: 66px; }
+.hub-nav button[aria-current='page'], .hub-nav summary[aria-current='page'] { background: linear-gradient(#ffd66a,#d98b21); border-color: #ffe9a0; box-shadow: inset 0 3px #fff4c0, 0 3px #84551d; }
+.coin.game-icon { width: 22px; height: 22px; }
+.world-completion-mark.game-icon { width: 18px; height: 18px; }
+.shop .item-art.game-icon { width: 64px; height: 64px; }
+.game .item-art.game-icon { width: 40px; height: 40px; }
+.daily-gift.game-icon { width: 96px; height: 96px; }
+.world-secondary .game-icon, .map-camera-controls .game-icon { width: 36px; height: 36px; }
+.world-pin.world-pin, .world-pin.world-pin:focus-visible { width: 80px; border: none; background: none; outline: none !important; }
+.world-plane .world-pin-badge { width: 72px; height: 72px; border: none; background: none; box-shadow: none; }
+.world-pin[aria-pressed='true'] .world-pin-badge { border: none; box-shadow: none; transform: none; }
+.world-pin-badge > .game-icon { width: 72px; height: 72px; filter: drop-shadow(0 5px 3px #04182480); }
+.world-pin:focus-visible .world-pin-badge { outline: 3px solid #fff4a8; outline-offset: 4px; border-radius: 50%; }
+.world-pin-seal { font-weight: 900; background: #102c42; color: #fff2bb; border: 2px solid #f6bc4f; }
+.world-pin-seal .game-icon, .world-node-state .game-icon { width: 22px; height: 22px; }
+.world-node-rule .game-icon { width: 24px; height: 24px; }
+.world-lock:has(.game-icon)::before, .world-lock:has(.game-icon)::after { display: none; }
+.world-region-row { display: flex; align-items: center; gap: 12px; }
+.world-region-row .game-icon { width: 44px; height: 44px; }
+.region-glow { position: absolute; inset: 0; pointer-events: none; background-size: 100% 100%; mask-image: radial-gradient(ellipse 24% 24% at var(--glow-x) var(--glow-y),#000 20%,transparent 100%); opacity: .32; filter: brightness(1.65) saturate(1.25); animation: terrain-glow 3s ease-in-out infinite; }
+.game-icon.icon-fallback { background: none; color: #ffe59a; font-size: 24px; text-align: center; }
+.region-glow::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 24% 25%,#fff8c9 0 2px,transparent 6px), radial-gradient(ellipse at 70% 26%,#fff8c9 0 3px,transparent 7px),radial-gradient(ellipse at 20% 65%,#fff8c9 0 3px,transparent 7px),radial-gradient(ellipse at 77% 66%,#fff8c9 0 2px,transparent 6px); animation: terrain-sparkle 1.8s ease-in-out infinite alternate; }
+.world[data-map-view='region'] .region-glow { display: none; }
+.world-plane[data-life='paused'] .region-glow, .world-plane[data-life='paused'] .region-glow::after { animation-play-state: paused; }
+@keyframes terrain-glow { 0%,100% { opacity: .08; } 50% { opacity: .35; } }
+@keyframes terrain-sparkle { from { opacity: .25; } to { opacity: 1; } }
+#board-scroll-up .game-icon { transform: rotate(90deg); }
+#board-scroll-down .game-icon { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .region-glow, .region-glow::after { animation: none; opacity: .2; } }

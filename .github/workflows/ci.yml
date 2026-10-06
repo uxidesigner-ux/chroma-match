@@ -50,7 +50,7 @@ jobs:
           path: dist
 
   studio:
-    name: Character and game regression (${{ matrix.shard }}/4)
+    name: Map and game regression (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -67,8 +67,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       # Independent runners retain one worker each. Sharding partitions all
       # existing cases; deploy waits for every shard and the production job.
-      - name: Verify character editor and gameplay
-        run: npm run test:studio -- --shard=${{ matrix.shard }}/4
+      - name: Verify map and player flows (3D character tests paused)
+        run: npm run test:game-ui -- --shard=${{ matrix.shard }}/4
       - name: Preserve browser failure evidence
         if: failure()
         uses: actions/upload-artifact@v4

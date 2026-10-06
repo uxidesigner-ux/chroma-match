@@ -2,6 +2,7 @@ import { player } from '../player/ledger.ts'
 import { COSMETICS, levelFor, statsFor, type PlayMode } from '../player/model.ts'
 import { growthCopy } from './growth-copy.ts'
 import { n, onLanguageChange, t } from '../i18n/index.ts'
+import { icon as gameIcon, type GameIcon } from './game-icons.ts'
 
 export class PlayerPanel {
   private root = document.createElement('div')
@@ -28,7 +29,7 @@ export class PlayerPanel {
     for (const key of ['used', 'average', 'chain', 'created', 'fusions', 'noItems']) {
       const row = document.createElement('div'), icon = document.createElement('span'), title = document.createElement('dt'), value = document.createElement('dd')
       icon.className = 'stats-icon'; icon.setAttribute('aria-hidden', 'true')
-      icon.textContent = ({ used: '⚒', average: '▦', chain: '↗', created: '✦', fusions: '✧', noItems: '✓' } as Record<string,string>)[key]!
+      icon.append(gameIcon(({used:'hammer',average:'missions',chain:'rocket',created:'star',fusions:'shuffle',noItems:'check'} as Record<string,GameIcon>)[key]!))
       title.id = `stats-${key}-label`; value.id = `stats-${key}`
       row.append(icon, title, value); this.el('stats-grid').append(row)
     }

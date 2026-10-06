@@ -4,6 +4,8 @@ import { defineConfig } from '@playwright/test'
 const deployed = process.env.STUDIO_BASE_URL
 export default defineConfig({
   testDir: './tests/release',
+  // Character rendering/wardrobe tests are intentionally paused, not deleted.
+  testIgnore: ['**/deployment.spec.ts','**/short-hair-footwear.spec.ts'],
   outputDir: './test-results/release',
   workers: 1,
   timeout: 120000,

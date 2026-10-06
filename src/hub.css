@@ -103,7 +103,7 @@ html.hub-open .shop-head .wallet-coins { display: none; }
 
 /* The camera moves artwork + route together. HUD and action dock never move. */
 .world { display: block; padding: 0; }
-.world-art { z-index: 0; touch-action: none; overscroll-behavior: none; background: #073a5e; }
+.world-art { z-index: 0; overflow: clip; touch-action: none; overscroll-behavior: none; background: #073a5e; }
 .world-art, .world-art * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .world[data-map-view='region'] .world-art { cursor: grab; }
 .world[data-map-view='region'] .world-art[data-dragging='true'] { cursor: grabbing; }

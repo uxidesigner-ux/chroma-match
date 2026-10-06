@@ -69,6 +69,33 @@ export const WORLD_MISSIONS: readonly Mission[] = Object.freeze([
     seed: (431 + step * 719) >>> 0, reward: step % 5 === 0 ? 150 : 70 + Math.floor(step / 5) * 10,
   })),
   ...MISSIONS.filter(m => m.region !== 'forest'),
+  // Append only: the first 45 v7 indices are already encoded in saved replays.
+  ...(['volcano', 'prism', 'relay'] as const).flatMap((region, r) => {
+    const chapters: readonly (readonly [number, Goal])[] = region === 'volcano' ? [
+      [24,{kind:'score',need:2400}],[23,{kind:'colour',colour:0,need:34}],[23,{kind:'power',need:16}],[24,{kind:'colour',colour:3,need:38}],[25,{kind:'score',need:5200}],
+      [25,{kind:'colour',colour:0,need:30}],[24,{kind:'power',need:18}],[24,{kind:'score',need:4400}],[25,{kind:'colour',colour:1,need:46}],[26,{kind:'power',need:24}],
+      [25,{kind:'score',need:3200}],[24,{kind:'colour',colour:3,need:42}],[25,{kind:'power',need:24}],[25,{kind:'colour',colour:0,need:52}],[26,{kind:'score',need:7400}],
+      [26,{kind:'colour',colour:1,need:36}],[25,{kind:'score',need:5800}],[25,{kind:'power',need:28}],[26,{kind:'colour',colour:3,need:58}],[26,{kind:'score',need:9000}],
+      [26,{kind:'score',need:4200}],[25,{kind:'colour',colour:0,need:52}],[26,{kind:'power',need:32}],[26,{kind:'colour',colour:1,need:62}],[27,{kind:'score',need:11000}],
+    ] : region === 'prism' ? [
+      [24,{kind:'colour',colour:2,need:38}],[23,{kind:'score',need:3800}],[23,{kind:'colour',colour:1,need:48}],[24,{kind:'power',need:20}],[25,{kind:'score',need:7800}],
+      [25,{kind:'score',need:3400}],[24,{kind:'colour',colour:0,need:50}],[24,{kind:'power',need:22}],[25,{kind:'colour',colour:2,need:60}],[26,{kind:'score',need:9000}],
+      [25,{kind:'colour',colour:1,need:44}],[24,{kind:'power',need:24}],[25,{kind:'score',need:6200}],[25,{kind:'colour',colour:0,need:68}],[26,{kind:'score',need:10400}],
+      [26,{kind:'score',need:4200}],[25,{kind:'colour',colour:2,need:58}],[25,{kind:'power',need:28}],[26,{kind:'colour',colour:1,need:76}],[26,{kind:'score',need:11600}],
+      [26,{kind:'colour',colour:0,need:50}],[25,{kind:'score',need:8200}],[26,{kind:'power',need:32}],[26,{kind:'colour',colour:2,need:84}],[27,{kind:'score',need:13000}],
+    ] : [
+      [24,{kind:'power',need:14}],[23,{kind:'colour',colour:3,need:34}],[23,{kind:'score',need:3800}],[24,{kind:'power',need:20}],[25,{kind:'score',need:5800}],
+      [25,{kind:'score',need:2800}],[24,{kind:'power',need:20}],[24,{kind:'colour',colour:0,need:44}],[25,{kind:'score',need:4800}],[26,{kind:'power',need:26}],
+      [25,{kind:'colour',colour:3,need:36}],[24,{kind:'score',need:5200}],[25,{kind:'power',need:26}],[25,{kind:'colour',colour:1,need:52}],[26,{kind:'score',need:7800}],
+      [26,{kind:'power',need:20}],[25,{kind:'colour',colour:0,need:44}],[25,{kind:'score',need:6400}],[26,{kind:'power',need:30}],[26,{kind:'score',need:9400}],
+      [26,{kind:'score',need:4000}],[25,{kind:'power',need:28}],[26,{kind:'colour',colour:3,need:56}],[26,{kind:'power',need:34}],[27,{kind:'score',need:11500}],
+    ]
+    return chapters.map(([moves, goal], i) => Object.freeze({
+      id: `${region}-${i+6}`, region, step: i+6, moves, goal:Object.freeze(goal),
+      seed: (84017 + r*15485863 + (i+6)*719) >>> 0,
+      reward: (i+6)%5===0 ? 150+Math.floor((i+6)/5)*10 : 70+Math.floor((i+6)/5)*10,
+    }))
+  }),
 ])
 export function missionFor(id: unknown): Mission | null {
   return typeof id === 'string' ? WORLD_MISSIONS.find(m => m.id === id) ?? null : null
