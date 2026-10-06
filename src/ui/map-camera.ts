@@ -165,7 +165,7 @@ export class MapCamera {
     const top = document.querySelector('.hub-header')?.getBoundingClientRect().bottom ?? 112
     const bottom = document.querySelector('.world-footer')!.getBoundingClientRect().top
     const pins = [...document.querySelectorAll<HTMLElement>('.world-plane .world-pin')]
-    const half = Math.max(short ? 34 : 40, ...pins.map(pin => pin.offsetHeight / 2)) + 10
+    const half = Math.max(26, ...pins.map(pin => pin.offsetHeight / 2)) + 8
     const low = Math.min(top + half, bottom - half)
     const high = Math.max(low, bottom - half)
     const sx = short ? bounds.width * [.13,.38,.63,.87][index]!

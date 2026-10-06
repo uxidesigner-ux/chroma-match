@@ -16,6 +16,11 @@
 .world-plane .world-pin-badge { width: 72px; height: 72px; border: none; background: none; box-shadow: none; }
 .world-pin[aria-pressed='true'] .world-pin-badge { border: none; box-shadow: none; transform: none; }
 .world-pin-badge > .game-icon { width: 72px; height: 72px; filter: drop-shadow(0 5px 3px #04182480); }
+/* Leave two distinct touch rows when a translated storage warning grows the dock. */
+@media (max-height: 650px) and (max-width: 479px) {
+  .world-pin.world-pin { width: 64px; }
+  .world-plane .world-pin-badge, .world-pin-badge > .game-icon { width: 52px; height: 52px; }
+}
 .world-pin:focus-visible .world-pin-badge { outline: 3px solid #fff4a8; outline-offset: 4px; border-radius: 50%; }
 .world-pin-seal { font-weight: 900; background: #102c42; color: #fff2bb; border: 2px solid #f6bc4f; }
 .world-pin-seal .game-icon, .world-node-state .game-icon { width: 22px; height: 22px; }

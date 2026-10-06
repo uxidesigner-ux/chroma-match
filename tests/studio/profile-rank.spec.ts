@@ -83,6 +83,8 @@ test('a short phone leaves two landmark rows clear even with a storage-error foo
   await page.addInitScript(()=>Object.defineProperty(window,'indexedDB',{get:()=>{throw new DOMException('Blocked','SecurityError')}}))
   await boot(page)
   await expect(page.locator('#world-note')).toBeVisible()
+  // Exercise a taller localized warning even on platforms with narrower fonts.
+  await page.locator('#world-note').evaluate(e=>{e.style.fontSize='14px'})
   // The asynchronous storage error enlarges the footer; its ResizeObserver
   // repositions landmarks on the next layout frame. Assert settled geometry.
   await expect.poll(()=>page.locator('.world-pin').evaluateAll(pins=>{
