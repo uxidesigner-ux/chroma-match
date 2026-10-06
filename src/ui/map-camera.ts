@@ -28,15 +28,29 @@ export class MapCamera {
     })
     viewport.addEventListener('pointerdown', event => {
       if (this.mode !== 'region') return
-      this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY }); this.moved = false
+      if (event.pointerType === 'mouse' && event.button !== 0) return
+      if (!this.pointers.size) {
+        // Pick up the rendered camera, not the animation's distant endpoint.
+        const matrix = new DOMMatrix(getComputedStyle(plane).transform)
+        this.x = matrix.m41; this.y = matrix.m42; this.scale = matrix.a
+        this.moved = false
+      }
+      this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      this.apply(false)
+      // Capture background touches immediately, even if the finger exits the
+      // viewport before crossing the drag threshold. Keep native node taps.
+      if (!(event.target as Element).closest('button')) viewport.setPointerCapture(event.pointerId)
       this.captureStart()
     })
+    viewport.addEventListener('dragstart', event => event.preventDefault())
     viewport.addEventListener('pointermove', event => {
       if (!this.pointers.has(event.pointerId) || !this.initial) return
       this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
       const point = this.midpoint(), start = this.initial, distance = this.distance()
-      if (Math.hypot(point.x - start.point.x, point.y - start.point.y) > 6 || this.pointers.size > 1) {
+      if (this.moved || Math.hypot(point.x - start.point.x, point.y - start.point.y) > 6 || this.pointers.size > 1) {
+        event.preventDefault()
         this.moved = true; viewport.setPointerCapture(event.pointerId)
+        viewport.dataset.dragging = 'true'
         if (this.pointers.size > 1 && start.distance) {
           const next = clamp(start.scale * distance / start.distance, this.minimum(), this.maximum())
           const bounds = viewport.getBoundingClientRect()
@@ -50,7 +64,10 @@ export class MapCamera {
     const end = (event: PointerEvent) => {
       this.pointers.delete(event.pointerId)
       if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId)
-      if (this.pointers.size) this.captureStart(); else this.initial = null
+      if (this.pointers.size) this.captureStart(); else {
+        this.initial = null; delete viewport.dataset.dragging
+        if (this.scale < this.minimum()) this.zoom(this.minimum(),undefined,true)
+      }
     }
     viewport.addEventListener('pointerup', end)
     viewport.addEventListener('pointercancel', event => { end(event); if (!this.pointers.size) this.moved = false })
@@ -59,7 +76,10 @@ export class MapCamera {
       // capture loss cancels the gesture; preserve suppression of drag clicks.
       if (this.pointers.has(event.pointerId)) { end(event); if (!this.pointers.size) this.moved = false }
     })
-    viewport.addEventListener('click', event => { if (this.moved) { event.preventDefault(); event.stopPropagation(); this.moved = false } }, true)
+    viewport.addEventListener('click', event => {
+      if (this.moved && event.detail !== 0) { event.preventDefault(); event.stopPropagation() }
+      this.moved = false
+    }, true)
     viewport.addEventListener('wheel', event => {
       if (this.mode !== 'region') return
       // Ctrl-wheel belongs to browser accessibility zoom, never intercept it.
@@ -146,12 +166,12 @@ export class MapCamera {
     const sy = short ? (low + high)/2 : Math.max(low, Math.min(high, this.y + point.y * height * this.scale))
     return { x: (sx - this.x) / (width * this.scale), y: (sy - this.y) / (height * this.scale) }
   }
-  private zoom(next: number, point?: MapPoint): void {
+  private zoom(next: number, point?: MapPoint, animate = false): void {
     const bounds = this.viewport.getBoundingClientRect(), origin = point ?? { x: bounds.width / 2, y: bounds.height / 2 }
     next = clamp(next,this.minimum(),this.maximum())
     this.x = origin.x - (origin.x - this.x) * next / this.scale
     this.y = origin.y - (origin.y - this.y) * next / this.scale
-    this.scale = next; this.apply(false)
+    this.scale = next; this.apply(animate)
   }
   private captureStart(): void { this.initial = { point: this.midpoint(), x: this.x, y: this.y, distance: this.distance(), scale: this.scale } }
   private minimum(): number { const r = this.viewport.getBoundingClientRect(); return Math.max(1.4,r.width/WIDTH,r.height/HEIGHT) }
@@ -161,9 +181,12 @@ export class MapCamera {
   private apply(animate: boolean): void {
     if (this.mode === 'region') {
       const bounds = this.viewport.getBoundingClientRect()
-      this.scale = Math.max(this.scale,this.minimum())
-      this.x = clamp(this.x, bounds.width-WIDTH*this.scale, 0)
-      this.y = clamp(this.y, bounds.height-HEIGHT*this.scale, 0)
+      // A gesture may interrupt an overview→region scale transition. Preserve
+      // that rendered scale until release rather than jumping under the finger.
+      if (!this.pointers.size) this.scale = Math.max(this.scale,this.minimum())
+      const dx = bounds.width-WIDTH*this.scale, dy = bounds.height-HEIGHT*this.scale
+      this.x = dx > 0 ? dx/2 : clamp(this.x, dx, 0)
+      this.y = dy > 0 ? dy/2 : clamp(this.y, dy, 0)
     }
     this.plane.style.transition = animate && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'transform 240ms cubic-bezier(.2,.8,.2,1)' : 'none'
     this.plane.style.transform = `translate(${this.x}px,${this.y}px) scale(${this.scale})`

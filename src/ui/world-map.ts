@@ -9,6 +9,7 @@ import { suspendedRun } from '../suspend.ts'
 import { missionTitle, worldCopy, missionCaption } from './world-copy.ts'
 import { MapCamera, type MapPoint } from './map-camera.ts'
 import { varietyCopy } from './variety-copy.ts'
+import { MapLife } from './map-life.ts'
 
 const el = (id: string) => document.getElementById(id)!
 const mark: Record<Region, string> = { forest: '◆', volcano: '✹', prism: '✦', relay: '⚙' }
@@ -66,6 +67,8 @@ export class WorldMap {
       if (unlocked(progress.state, this.mission)) this.play(this.mission)
     })
     const image = el('world-image') as HTMLImageElement
+    image.draggable = false
+    new MapLife(image, plane, el('screen-map'))
     const unavailable = () => el('world-art').classList.add('art-unavailable')
     image.addEventListener('error', unavailable)
     image.addEventListener('load', () => el('world-art').classList.remove('art-unavailable'))
@@ -125,7 +128,7 @@ export class WorldMap {
     const m = this.mission, count = Object.keys(state.completed).length
     const missions = WORLD_MISSIONS.filter(a => a.region === m.region)
     const image = el('world-image') as HTMLImageElement
-    const src = `${import.meta.env.BASE_URL}${this.camera.mode === 'region' && m.region === 'forest' ? 'chroma-forest-v1.jpg' : this.camera.mode === 'world' && this.camera.wide ? 'chroma-world-wide-v1.jpg' : 'chroma-world-v1.jpg'}`
+    const src = `${import.meta.env.BASE_URL}${this.camera.mode === 'region' && m.region === 'forest' ? 'chroma-forest-v2.webp' : this.camera.mode === 'world' && this.camera.wide ? 'chroma-world-wide-v2.webp' : 'chroma-world-v2.webp'}`
     if (image.getAttribute('src') !== src) image.src = src
     if (this.missionButtons.childElementCount !== missions.length) {
       this.missionButtons.replaceChildren()

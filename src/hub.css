@@ -104,6 +104,23 @@ html.hub-open .shop-head .wallet-coins { display: none; }
 /* The camera moves artwork + route together. HUD and action dock never move. */
 .world { display: block; padding: 0; }
 .world-art { z-index: 0; touch-action: none; overscroll-behavior: none; background: #073a5e; }
+.world-art, .world-art * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.world[data-map-view='region'] .world-art { cursor: grab; }
+.world[data-map-view='region'] .world-art[data-dragging='true'] { cursor: grabbing; }
+.world-plane #world-image { -webkit-user-drag: none; pointer-events: none; }
+.world-plane[data-life='running'] #world-image { opacity: 0; }
+.map-life-surface, .map-life-fauna { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.map-life-surface[hidden], .map-life-fauna[hidden], .map-life-flight[hidden] { display: none; }
+.map-life-fauna { overflow: hidden; }
+.map-life-flight { position: absolute; width: 34px; height: 34px; pointer-events: none; animation: map-life-flight var(--flight-duration) ease-in-out var(--flight-delay) infinite; }
+.map-life-flight img { display: block; width: 100%; height: 100%; object-fit: contain; animation: map-life-wing 1.1s ease-in-out infinite; }
+.map-life-butterfly { width: 16px; height: 16px; }
+.map-life-butterfly img { animation-name: map-life-butterfly-wing; animation-duration: .35s; }
+.world-plane[data-life='paused'] .map-life-flight, .world-plane[data-life='paused'] .map-life-flight img { animation-play-state: paused; }
+@keyframes map-life-flight { 0% { transform: translate(-35px, 12px) rotate(-25deg); } 30% { transform: translate(45px,-24px) rotate(15deg); } 65% { transform: translate(90px,8px) rotate(160deg); } 100% { transform: translate(-35px,12px) rotate(335deg); } }
+@keyframes map-life-wing { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(.65); } }
+@keyframes map-life-butterfly-wing { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(.24); } }
+@media (prefers-reduced-motion: reduce) { .map-life-flight, .map-life-flight img { animation: none; } }
 .world-art::after { z-index: 2; background: linear-gradient(180deg, #04182440, transparent 22%, transparent 70%, #04182460); }
 .world-plane { position: absolute; left: 0; top: 0; width: 1024px; height: 1536px; transform-origin: 0 0; }
 .world-plane #world-image { width: 100%; height: 100%; object-fit: fill; transform: none; transition: none; }

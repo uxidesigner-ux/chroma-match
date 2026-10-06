@@ -275,7 +275,7 @@ for (const reducedMotion of ['reduce', 'no-preference'] as const) {
 }
 
 test('production map keeps controls usable when art or campaign storage is unavailable', async ({ page }, info) => {
-  await page.route('**/chroma-world-v1.jpg', route => route.abort())
+  await page.route(/\/chroma-world-v\d+\.(jpg|webp)(?:\?.*)?$/, route => route.abort())
   await page.addInitScript(() => {
     Object.defineProperty(window,'indexedDB',{get:()=>{throw new DOMException('Blocked','SecurityError')}})
   })
