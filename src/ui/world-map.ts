@@ -131,7 +131,7 @@ export class WorldMap {
     const m = this.mission, count = Object.keys(state.completed).length
     const missions = WORLD_MISSIONS.filter(a => a.region === m.region)
     const image = el('world-image') as HTMLImageElement
-    const src = `${import.meta.env.BASE_URL}${this.camera.mode === 'region' && m.region === 'forest' ? 'chroma-forest-v2.webp' : this.camera.mode === 'world' && this.camera.wide ? 'chroma-world-wide-v2.webp' : 'chroma-world-v2.webp'}`
+    const src = `${import.meta.env.BASE_URL}${this.camera.mode === 'region' && m.region === 'forest' ? 'chroma-forest-v3.webp' : this.camera.mode === 'world' && this.camera.wide ? 'chroma-world-wide-v3.webp' : 'chroma-world-v3.webp'}`
     if (image.getAttribute('src') !== src) image.src = src
     this.glow.style.clipPath=regionContour(m.region,this.camera.wide&&this.camera.mode==='world')
     this.glow.style.backgroundImage=`url("${src}")`

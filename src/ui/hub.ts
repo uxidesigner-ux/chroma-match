@@ -6,6 +6,7 @@ import { player } from '../player/ledger.ts'
 import { levelFor } from '../player/model.ts'
 import { growthCopy } from './growth-copy.ts'
 import { onLanguageChange, t } from '../i18n/index.ts'
+import { paintRank } from './profile-rank.ts'
 
 /** The same mounted HUD/navigation survives map, character and shop switches. */
 export class Hub {
@@ -47,6 +48,8 @@ export class Hub {
     const progress = levelFor(player.state.growth.totalXp)
     document.getElementById('hub-level')!.textContent = `Lv.${progress.level}`
     document.getElementById('hud-player-level')!.textContent = `Lv.${progress.level}`
+    paintRank(document.getElementById('map-profile')!,document.getElementById('hub-level')!,progress.level)
+    paintRank(document.querySelector('.hud-face')!,document.getElementById('hud-player-level')!,progress.level)
     document.getElementById('hud-character')!.dataset.frame = player.state.growth.frame
     document.querySelector<HTMLElement>('#hub-xp > i')!.style.setProperty('--xp', String(progress.xp / progress.need))
     document.getElementById('map-profile')!.setAttribute('aria-label', `${t('profileAria')} · ${growthCopy().level} ${progress.level}, ${progress.xp}/${progress.need} XP`)

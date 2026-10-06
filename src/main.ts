@@ -6,6 +6,8 @@ import './variety.css'
 import './world-map.css'
 import './hub.css'
 import './game-icons.css'
+import './profile-rank.css'
+import './casual-ui.css'
 import { installGameIcons } from './ui/game-icons.ts'
 installGameIcons()
 import { player, type Settlement } from './player/ledger.ts'
@@ -165,6 +167,7 @@ const packs = new PackShelf()
 const today = new TodayPanel()
 const friends = new FriendsPanel()
 const ranksSheet = new Sheet('sheet-ranks')
+document.getElementById('ranks-close')!.addEventListener('click',()=>ranksSheet.hide())
 const creator = new Creator(() => screens.show('home'))
 const profile = new ProfileCard(
   () => readStored(NAME_KEY),
@@ -867,7 +870,7 @@ document.getElementById('map-character')!.addEventListener('click', () => screen
 document.getElementById('lobby-map')!.addEventListener('click', () => screens.show('map'))
 document.getElementById('map-freeplay')!.addEventListener('click', () => requestNewRun())
 document.getElementById('map-profile')!.addEventListener('click', () => profile.open())
-document.getElementById('map-ranks')!.addEventListener('click', () => { ranksSheet.show(); void home.refresh() })
+document.getElementById('map-ranks')!.addEventListener('click', () => { ranksSheet.show(document.getElementById('ranks-title')!); void home.refresh() })
 document.getElementById('map-today')!.addEventListener('click', () => document.getElementById('today-row')!.click())
 for (const id of ['map-shop', 'map-wallet']) document.getElementById(id)!.addEventListener('click', () => {
   if (screens.active === 'shop') return
@@ -877,7 +880,7 @@ for (const id of ['map-shop', 'map-wallet']) document.getElementById(id)!.addEve
 })
 
 document.getElementById('open-ranks')?.addEventListener('click', () => {
-  ranksSheet.show()
+  ranksSheet.show(document.getElementById('ranks-title')!)
   // Refreshed on the way in rather than on a timer: the board is only worth a
   // network round trip at the moment somebody asks to look at it.
   void home.refresh()

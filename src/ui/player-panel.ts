@@ -3,6 +3,7 @@ import { COSMETICS, levelFor, statsFor, type PlayMode } from '../player/model.ts
 import { growthCopy } from './growth-copy.ts'
 import { n, onLanguageChange, t } from '../i18n/index.ts'
 import { icon as gameIcon, type GameIcon } from './game-icons.ts'
+import { paintRank, paintLevel, profileRankPreview } from './profile-rank.ts'
 
 export class PlayerPanel {
   private root = document.createElement('div')
@@ -55,6 +56,10 @@ export class PlayerPanel {
   refresh(): void {
     const copy = growthCopy(), state = player.state, p = levelFor(state.growth.totalXp)
     this.el('growth-heading').textContent = copy.level; this.el('player-level').textContent = `Lv.${n(p.level)}`
+    const portrait=profileRankPreview()
+    paintRank(portrait.surface,portrait.badge,p.level)
+    portrait.surface.dataset.frame=state.growth.frame
+    paintLevel(this.el('player-level'),p.level)
     const bar = this.el('player-xp') as HTMLProgressElement
     bar.value = p.xp; bar.max = p.need; bar.setAttribute('aria-label', `${copy.level} ${p.level}: ${p.xp}/${p.need} XP`)
     this.el('player-xp-text').textContent = `${n(p.xp)} / ${n(p.need)} XP`

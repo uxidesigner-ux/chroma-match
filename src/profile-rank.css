@@ -1,0 +1,45 @@
+/* Physical portrait ornaments share the original gold/blue game-prop material. */
+.rank-surface { --rank-size: 96px; position: relative; width: var(--rank-size); height: calc(var(--rank-size) + 22px); flex: none; isolation: isolate; }
+.rank-surface::before { content: ''; position: absolute; left: 0; top: 0; width: var(--rank-size); height: var(--rank-size); z-index: 2; background: var(--rank-art) center/contain no-repeat; pointer-events: none; filter: drop-shadow(0 3px 2px #04182480); }
+.rank-surface > canvas { position: absolute; left: 17%; top: calc(var(--rank-size) * .17); width: 66% !important; height: calc(var(--rank-size) * .66) !important; border-radius: 10%; background: #163347; outline: none !important; border: none !important; }
+.profile-level-badge { display: grid; place-items: center; width: 104px; height: 46px; padding: 6px 12px 10px; border: 0; border-radius: 0; box-shadow: none; background: var(--rank-badge) center/100% 100% no-repeat; color: #fff6c7; text-shadow: 0 2px #081a30; font-size: 22px; font-weight: 950; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
+.profile-level-badge.profile-level-fallback { background: #142b45; border: 3px solid #ffd35e; border-radius: 8px; }
+.rank-art-fallback::before { border: 5px solid #edbd66; border-radius: 12px; }
+.rank-surface > .profile-level-badge { position: absolute; left: 50%; top: calc(var(--rank-size) * .82); transform: translateX(-50%); width: calc(var(--rank-size) * 1.02); height: calc(var(--rank-size) * .44); z-index: 3; pointer-events: none; }
+.profile-level-badge[data-digits='long'] { font-size: 16px; }
+.hub-header #map-profile.rank-surface { width: 96px !important; height: 118px !important; border: none; border-radius: 0; box-shadow: none; padding: 0; overflow: visible; background: none; }
+.hub-header #map-profile.rank-surface > #map-avatar { width: 66% !important; height: calc(var(--rank-size) * .66) !important; }
+.hub-header .world-identity { overflow: visible; }
+.hub-header .world-identity > div { min-width: 0; }
+.hub-header[data-frame='leaf'] .rank-surface::before, #profile-rank[data-frame='leaf']::before, #hud-character[data-frame='leaf'] .rank-surface::before { filter: drop-shadow(0 2px 3px #65e69d); }
+.hub-header[data-frame='crystal'] .rank-surface::before, #profile-rank[data-frame='crystal']::before, #hud-character[data-frame='crystal'] .rank-surface::before { filter: drop-shadow(0 2px 3px #68cfff); }
+.hub-header[data-frame='crown'] .rank-surface::before, #profile-rank[data-frame='crown']::before, #hud-character[data-frame='crown'] .rank-surface::before { filter: drop-shadow(0 2px 3px #ffd45e); }
+#profile-rank { --rank-size: 148px; height: 190px; margin: 0 auto 8px; }
+#profile-rank > .profile-level-badge { font-size: 28px; }
+#player-level.profile-level-badge { width: 116px; height: 52px; font-size: 24px; }
+.game .hud-face.rank-surface { --rank-size: 100%; height: auto; aspect-ratio: 1; }
+.game .hud-face.rank-surface::before { inset: -12.5%; width: 125%; height: 125%; }
+.game .hud-face.rank-surface > #hud-avatar { left: 6%; top: 6%; width: 88% !important; height: 88% !important; }
+.game .hud-face.rank-surface > #hud-player-level.profile-level-badge { top: auto; bottom: -2px; left: 50%; right: auto; width: 105%; height: 38px; font-size: 17px; padding: 4px 7px 8px; border: 0; border-radius: 0; background: var(--rank-badge) center/100% 100% no-repeat; color: #fff6c7; }
+.game .hud-face.rank-surface > #hud-player-level.profile-level-fallback { background: #142b45; border: 2px solid #ffd35e; border-radius: 6px; }
+.game .hud-reaction { margin-top: 4px; }
+[data-play-compact='true'] .game .hud-face.rank-surface > #hud-player-level.profile-level-badge { font-size: 13px; height: 26px; bottom: -7px; }
+.hub-header .profile-level-badge[data-digits='medium'] { font-size: 18px; }
+.rank-surface > .profile-level-badge[data-digits='long'], #player-level.profile-level-badge[data-digits='long'] { font-size: 14px; }
+.game .hud-face.rank-surface > #hud-player-level.profile-level-badge[data-digits='long'] { font-size: 12px; }
+@media(max-width:360px) {
+  .hub-header .world-utilities { flex-direction: column; gap: 8px; }
+  .hub-header .world-identity { max-width: calc(100% - 60px); }
+  .hub-header #map-name { max-width: 32vw; }
+}
+/* Small landscape must leave the map's four 52px landmarks reachable. */
+@media(max-height:650px) and (max-width:479px) {
+  .hub-header #map-profile.rank-surface { --rank-size: 72px; width: 72px !important; height: 92px !important; }
+  .hub-header .profile-level-badge { font-size: 16px; padding: 3px 5px 6px; }
+  .hub-header .profile-level-badge[data-digits='medium'], .hub-header .profile-level-badge[data-digits='long'] { font-size: 12px; }
+}
+@media(max-height:440px) {
+  .hub-header #map-profile.rank-surface { --rank-size: 64px; width: 64px !important; height: 82px !important; }
+  .hub-header .profile-level-badge { font-size: 14px; padding: 2px 4px 4px; }
+  .hub-header .profile-level-badge[data-digits='medium'], .hub-header .profile-level-badge[data-digits='long'] { font-size: 11px; }
+}

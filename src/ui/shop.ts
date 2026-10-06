@@ -66,7 +66,7 @@ export class Shop {
     for (const item of ITEMS) {
       const owned = document.querySelector<HTMLElement>(`[data-owned="${item}"]`)
       if (owned) {
-        owned.textContent = `${held[item]} held`
+        owned.textContent = `×${held[item]}`
         owned.classList.toggle('is-none', held[item] === 0)
       }
       const button = document.querySelector<HTMLButtonElement>(`[data-buy="${item}"]`)

@@ -100,6 +100,15 @@ of the player's task. The product has one anime character editor and one profile
   uses a soft clipped luminance shimmer, never a rectangular frame. Keep progress,
   lock state and primary Play readable. The 3D character implementation is frozen;
   character rendering tests are paused while map/game coverage remains active.
+- Controls and panels share chunky blue/violet/gold bevels, raised lower edges
+  and a short 4px press response without moving hit-target layout. Map landmarks,
+  52px mission discs and in-game tools use the same physical material family.
+  Original v3 map artwork favors rounded toy-like dioramas over dense painted
+  detail, while the 2.5D interaction and region/mission identities stay intact.
+  Rankings open full-screen with a visible localized banner, close button,
+  Everyone/Friends keyboard tabs and a list using the full remaining height.
+  Real local/shared statuses, empty/error cases and focus return are preserved;
+  do not fabricate lives, currencies or production leaderboard rows from references.
 - Player growth is device-local, separate from score and puzzle stage. First clears
   give 100 XP, genuine replays 40, natural failures 0–15, quits zero partial XP.
   Requirements plateau at 200; overflow carries; rewards are 20 coins per level and
@@ -110,6 +119,13 @@ of the player's task. The product has one anime character editor and one profile
   and recent-20 filters, real sample sizes and a statistics-only reset. Do not
   fabricate historic metrics or promise account/cloud persistence. See
   `docs/adventure-growth-checkpoint.md` and the growth/statistics design plans.
+- Cached profile portraits use original dimensional metal frames that grow at
+  levels 1/3/10/20/35/50. Level numbers are large HTML text inside a heavy navy/gold
+  plaque, not baked into artwork. Hub, profile sheet and gameplay share the same
+  earned tier. Existing equipped cosmetics remain stored and add an accent glow;
+  no new XP requirement, paid gate or character-model change is introduced.
+  Compact landscape prioritizes reachable map targets, and game chrome preserves
+  the board's available height. See `docs/profile-rank.md`.
 - Library, undo and file restore edit a draft; only explicit Apply changes the profile.
 
 ## Current scope decision

@@ -1,0 +1,90 @@
+/* Tangible casual-game material. Character renderer/editor stays untouched. */
+.overlay:not(#sheet-studio-files) { --panel:#243c5a; --bg:#15273e; --text:#f7fbff; --muted:#bdd1e8; --line:#4f729b; --focus-ring:#fff0a6; }
+.overlay:not(#sheet-studio-files) > .card {
+  background:linear-gradient(150deg,#344b70,#20334f); color:var(--text);
+  border:4px solid #9ac4f0; border-radius:26px;
+  box-shadow:inset 0 3px 0 #fff6,inset 0 -7px 0 #0b1b37aa,0 8px 0 #0c1930,0 18px 38px #020b23a8;
+}
+.overlay:not(#sheet-studio-files) .sheet-title, .overlay:not(#sheet-studio-files) h2 { text-shadow:0 2px 0 #122540; }
+.overlay:not(#sheet-studio-files) .sheet-panel { border-radius:26px 26px 0 0; }
+.overlay:not(#sheet-studio-files) .profile-sheet-head { background:#263b5d; border-bottom:2px solid #557da4; }
+
+/* Keep existing target boxes: visual depth must never consume board space. */
+:is(.hub-header,.hub-nav,.world-footer,.map-camera-controls,.world-secondary,.shop,.game) :is(.btn,.circle-button,.world-quick,.item,.game-exit),
+.overlay:not(#sheet-studio-files) :is(button,summary), .shop button,
+.hub-nav > button, .hub-nav .world-list > summary {
+  --button-face:#526daf; --button-light:#a7cbff; --button-edge:#233d73;
+  background:linear-gradient(155deg,var(--button-light) -60%,var(--button-face) 45%,color-mix(in srgb,var(--button-face) 75%,#182b50));
+  border:2px solid color-mix(in srgb,var(--button-light) 78%,white); color:#fff;
+  box-shadow:inset 0 2px 0 #fff8,inset 0 -3px 0 #0002,0 5px 0 var(--button-edge),0 7px 9px #071b3640;
+  text-shadow:0 2px 0 #14274688; font-weight:850;
+  transition:translate 100ms ease-out,filter 100ms ease-out,box-shadow 100ms ease-out;
+}
+.overlay:not(#sheet-studio-files) .btn-primary, .world-footer #world-play, .shop .pack-buy, .hub-nav [aria-current='page'] {
+  --button-face:#ffbf29; --button-light:#fff2a3; --button-edge:#a66512;
+  background:linear-gradient(#ffe77b,#ffc538 55%,#efa822); border-color:#fff2b0; color:#3a2307;
+  box-shadow:inset 0 3px #fff9,inset 0 -3px #cf820740,0 5px 0 #a66816,0 8px 12px #06152c50;
+  text-shadow:0 1px #fff5;
+}
+.overlay:not(#sheet-studio-files) .btn-ghost { --button-face:#8053cf; --button-light:#d6b8ff; --button-edge:#493079; }
+:is(.hub-header,.hub-nav,.world-footer,.map-camera-controls,.world-secondary,.shop,.game) :is(.btn,.circle-button,.world-quick,.item,.game-exit):active:not(:disabled),
+.overlay:not(#sheet-studio-files) :is(button,summary):active:not(:disabled), .shop button:active:not(:disabled),
+.hub-nav > button:active, .hub-nav .world-list > summary:active {
+  translate:0 4px; filter:brightness(1.08); box-shadow:inset 0 2px #fff7,0 1px 0 var(--button-edge,#a66816);
+}
+.game .item, .game .game-exit { border-radius:50%; background:linear-gradient(#5d88c4,#294b80); border-color:#afd3ff; }
+.game .item[aria-pressed='true'] { border-color:#fff2a3; box-shadow:inset 0 2px #fff8,0 5px #604512,0 0 0 3px #ffd64a; }
+.overlay:not(#sheet-studio-files) button:disabled, .shop button:disabled, .game .item:disabled { filter:saturate(.25); opacity:.6; }
+.overlay:not(#sheet-studio-files) button:is([aria-pressed='true'],[aria-selected='true'],[aria-checked='true']) { border-color:#ffe899; }
+@media(hover:hover) { :is(.hub-nav,.world-footer,.shop,.game) button:hover:not(:disabled),.overlay:not(#sheet-studio-files) .btn:hover:not(:disabled) { filter:brightness(1.1); } }
+
+.shop :is(.pack,.shop-row), .overlay:not(#sheet-studio-files) :is(.stats-grid > div,.cosmetic-list > button,.mission) {
+  background:linear-gradient(150deg,#3d5380,#283c5c); color:#f5f9ff; border:2px solid #728fb3;
+  box-shadow:inset 0 2px #ffffff30,0 4px #122542; border-radius:16px;
+}
+.shop { --text:#f5f9ff; --muted:#cedcf0; background:radial-gradient(ellipse at 50% 0,#365279,#142941 75%); }
+.shop :is(.pack,.shop-row) { --text:#fff; --muted:#e2dcff; background:linear-gradient(150deg,#8461ba,#4c508e); border-color:#bf9cf5; }
+.shop .shop-owned { color:#fff4be; font-weight:850; }
+.shop .shop-row { grid-template-columns:64px minmax(0,1fr) auto auto; gap:8px; padding:12px; }
+.overlay:not(#sheet-studio-files) .cosmetic-list > button[aria-pressed='true'] { border-color:#ffe58c; background:linear-gradient(#796532,#4c432e); }
+.overlay:not(#sheet-studio-files) :is(.post-input,.friend-input) { background:#152944; color:#fff; border:2px solid #6087ac; box-shadow:inset 0 3px 0 #07132480; border-radius:14px; }
+.overlay:not(#sheet-studio-files) .set-switch { background:linear-gradient(#23375a,#456289); border:2px solid #85a6cb; box-shadow:inset 0 2px 3px #071525; }
+.overlay:not(#sheet-studio-files) .set-switch::after { background:linear-gradient(#ffe9a0,#ffb526); box-shadow:inset 0 2px #fff8,0 2px 0 #af6e13; top:1px; left:1px; }
+.overlay:not(#sheet-studio-files) .set-row.is-on .set-switch { background:linear-gradient(#9ddb67,#48a154); border-color:#bced88; }
+
+/* Full-screen leaderboard uses the existing modal ownership / escape return. */
+#sheet-ranks { padding:0; background:#0e1f35; align-items:stretch; }
+#sheet-ranks .sheet-panel { width:100%; height:100dvh; max-height:none; max-width:none; border:0; border-radius:0; padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); overflow:hidden; background:radial-gradient(ellipse at 50% 0,#304d79,#102037 70%); }
+#sheet-ranks .sheet-handle { display:none; }
+#sheet-ranks .ranks { height:100%; max-height:none; max-width:720px; margin:auto; display:flex; flex-direction:column; min-height:0; border:0; background:none; overflow:hidden; }
+.ranks-banner { position:relative; flex:none; display:flex; align-items:center; justify-content:center; min-height:70px; margin:4px 0 16px; padding:10px 56px; border:3px solid #acd9ff; border-radius:20px; background:linear-gradient(#67b8ff,#2f80e9 58%,#2964c4); box-shadow:inset 0 3px #ffffff80,0 6px 0 #143d7e,0 10px 16px #030b2040; }
+.ranks-banner h2 { font-size:clamp(22px,4vw,30px); font-weight:950; color:white; margin:0; text-align:center; line-height:1.15; }
+.ranks-banner #ranks-close { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:44px; height:44px; }
+#sheet-ranks .ranks-head { flex:none; flex-wrap:wrap; align-items:center; padding:0 2px 10px; }
+#sheet-ranks .ranks-tabs { flex:1; display:flex; }
+#sheet-ranks .ranks-tab { flex:1; min-height:44px; border-radius:12px; margin-bottom:5px; }
+#sheet-ranks .ranks-tab.is-on { background:linear-gradient(#9cceff,#478fe0); border-color:#cde8ff; }
+#sheet-ranks .ranks-note { flex-basis:100%; color:#bed0e5; font-size:12px; letter-spacing:0; text-transform:none; text-align:center; }
+#sheet-ranks .ranks-list { min-height:0; flex:1; overflow:auto; padding:2px 2px 12px; }
+#sheet-ranks .rank { min-height:64px; align-items:center; padding:12px; margin:0 0 10px; border:2px solid #849ab5; border-radius:14px; background:linear-gradient(#52647e,#354a66); box-shadow:inset 0 2px #ffffff40,0 4px #13273e; color:#fff; gap:8px; grid-template-columns:30px minmax(0,1fr) 12px auto; }
+#sheet-ranks .rank.has-face { grid-template-columns:30px 26px minmax(0,1fr) 12px auto; }
+#sheet-ranks .rank-mine { background:linear-gradient(#6db8ff,#276bc1); border-color:#bce8ff; }
+#sheet-ranks .rank-pos { display:grid; place-items:center; width:28px; height:32px; border:2px solid #99c3e7; border-radius:8px; background:linear-gradient(#637c97,#3d526d); color:white; font-weight:900; text-shadow:0 2px #233146; }
+#sheet-ranks .rank:nth-child(-n+3) .rank-pos { border-color:#ffe7a3; background:linear-gradient(#ffd95b,#d6931a); color:#45290a; text-shadow:none; }
+#sheet-ranks .rank-score { padding:5px 8px; background:#173050; border-radius:12px; font-size:clamp(13px,3.5vw,17px); }
+#sheet-ranks .rank-level { display:block; margin:2px 0 0; font-size:11px; color:#c5daf2; }
+#sheet-ranks .friends-tools { flex:none; background:#29405f; border:2px solid #6c92b8; border-radius:16px; padding:10px; }
+#sheet-ranks .ranks-empty { margin:12px 0; padding:32px 20px; border:2px solid #547392; border-radius:20px; background:#203653; color:#c6d9eb; }
+#sheet-ranks .friend-input { min-width:0; }
+
+/* Disc nodes sit on a visible cylinder, rather than a flat numbered circle. */
+.world-plane .world-mission { border:3px solid #c4eeff; background:linear-gradient(#75d8ff,#35a9e6 60%,#258bc6); color:#fff; font-size:21px; font-weight:950; text-shadow:0 2px #116799; box-shadow:inset 0 3px #ffffff80,inset 0 -3px #1876a550,0 6px 0 #1b628c,0 9px 0 #b7deeb,0 12px 10px #06233d66; }
+.world-plane .world-mission[data-state='available'] { background:linear-gradient(#bbef79,#69c539 60%,#51ae2b); border-color:#e0ffc0; text-shadow:0 2px #318819; box-shadow:inset 0 3px #fff9,0 6px #327922,0 9px #bdedac,0 12px 10px #06233d66; }
+.world-plane .world-mission[data-state='complete'] { background:linear-gradient(#89dafa,#37a5db); border-color:#c6f1ff; }
+.world-plane .world-mission[data-state='locked'] { background:linear-gradient(#9dc7d3,#6295a9); border-color:#d1e5eb; color:#effaff; }
+.world-plane .world-mission[aria-pressed='true'] { border-color:#fff5a8; filter:brightness(1.1); }
+.world-plane .world-mission:active { filter:brightness(1.2); box-shadow:inset 0 3px #fff9,0 2px #1b628c,0 4px #b7deeb; }
+@media(prefers-reduced-motion:reduce) {
+  .overlay:not(#sheet-studio-files) :is(button,summary),.shop button,.hub-nav > button,.game .item { transition:none; }
+  #sheet-ranks .sheet-panel { transition:none; }
+}

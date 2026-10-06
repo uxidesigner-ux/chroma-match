@@ -43,7 +43,16 @@ export class HomeScreen {
         this.setMode(next)
         void this.refresh()
       })
+      tab.addEventListener('keydown',event=>{
+        if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return
+        event.preventDefault()
+        const mode=event.key==='Home'?'everyone':event.key==='End'?'friends':this.mode==='everyone'?'friends':'everyone'
+        this.setMode(mode)
+        document.querySelector<HTMLButtonElement>(`[data-board="${mode}"]`)!.focus()
+        void this.refresh()
+      })
     }
+    this.setMode('everyone')
   }
 
   /**
@@ -76,6 +85,7 @@ export class HomeScreen {
       const on = (tab.dataset.board ?? 'everyone') === mode
       tab.classList.toggle('is-on', on)
       tab.setAttribute('aria-selected', String(on))
+      tab.tabIndex=on?0:-1
     }
     this.onMode?.(mode)
   }
@@ -87,6 +97,7 @@ export class HomeScreen {
 
   async refresh(): Promise<void> {
     const generation = ++this.generation
+    this.list.setAttribute('aria-busy','true')
     this.note.textContent = this.mode === 'friends' ? t('loading') : this.board.label
 
     let entries: LeaderboardEntry[]
@@ -102,15 +113,19 @@ export class HomeScreen {
         this.note.textContent = friends.label
       } else {
         ;[entries, mine] = await Promise.all([this.board.top(SHOWN), this.board.best()])
+        if (generation !== this.generation) return
         this.note.textContent = this.board.label
       }
     } catch {
+      if (generation !== this.generation) return
       // A board that will not load must not block the Play button.
       this.note.textContent = t('boardUnavailable')
       this.renderList([])
+      this.list.setAttribute('aria-busy','false')
       return
     }
     if (generation !== this.generation) return
+    this.list.setAttribute('aria-busy','false')
 
     this.renderList(entries)
     if (entries.some(entry => entry.run && rulesOf(entry.run) >= 4)) this.note.textContent += ` · ${entries.some(entry => entry.run && rulesOf(entry.run) === 5) ? experienceCopy().suppliedRanking : varietyCopy().ranking}`

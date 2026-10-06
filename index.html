@@ -92,7 +92,7 @@
       <section class="screen world" id="screen-map" aria-labelledby="world-heading">
         <h1 id="world-heading" class="sr-only">Chroma Isles</h1>
         <div class="world-art" id="world-art" aria-hidden="true">
-          <img id="world-image" src="%BASE_URL%chroma-world-v2.webp" alt="" width="1024" height="1536" fetchpriority="high" />
+          <img id="world-image" src="%BASE_URL%chroma-world-v3.webp" alt="" width="1024" height="1536" fetchpriority="high" />
         </div>
         <header class="world-header">
           <div class="world-identity">
@@ -543,9 +543,11 @@
       <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="ranks-title">
         <span class="sheet-handle" aria-hidden="true"></span>
         <section class="ranks">
-
+          <div class="ranks-banner">
+            <h2 id="ranks-title" tabindex="-1" data-i18n="leaderboard">Leaderboard</h2>
+            <button class="circle-button sheet-close" id="ranks-close" type="button" data-i18n-attr="aria-label:close title:close"><span aria-hidden="true">×</span></button>
+          </div>
           <header class="ranks-head">
-            <h2 class="sr-only" id="ranks-title" data-i18n="leaderboard">Leaderboard</h2>
             <!--
               Two boards, not two screens. A friends board on its own page is a
               page nobody opens; next to the global one it is a comparison, which
@@ -573,7 +575,7 @@
                 Friends
               </button>
             </div>
-            <span class="ranks-note" id="ranks-note">Loading&hellip;</span>
+            <span class="ranks-note" id="ranks-note" role="status">Loading&hellip;</span>
           </header>
 
           <!-- Only on the friends tab: your code to hand out, and a box to
