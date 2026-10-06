@@ -12,19 +12,11 @@ import { varietyCopy } from './variety-copy.ts'
 import { MapLife } from './map-life.ts'
 import { icon, type GameIcon } from './game-icons.ts'
 import { regionContour } from './region-art.ts'
+import { pointFor, regionalArt } from './region-routes.ts'
 
 const el = (id: string) => document.getElementById(id)!
 const regionIcon: Record<Region,GameIcon> = {forest:'map',volcano:'bomb',prism:'star',relay:'gear'}
-const forestPath: readonly (readonly [number,number])[] = [[.58,.82],[.56,.785],[.53,.752],[.49,.72],[.455,.686],
-  [.442,.65],[.465,.62],[.51,.597],[.56,.58],[.61,.56],[.646,.53],[.65,.50],[.62,.469],[.567,.447],[.51,.430],
-  [.455,.423],[.398,.415],[.353,.393],[.349,.365],[.377,.343],[.422,.326],[.478,.309],[.533,.293],[.562,.271],
-  [.605,.252],[.654,.236],[.653,.211],[.616,.188],[.588,.166],[.589,.126]]
 const landmark: Record<Region, MapPoint> = { forest: {x:.28,y:.24}, volcano: {x:.75,y:.25}, prism: {x:.24,y:.60}, relay: {x:.74,y:.60} }
-export function pointFor(mission: Mission): MapPoint {
-  if (mission.region === 'forest') { const [x,y] = forestPath[mission.step-1]!; return {x,y} }
-  const origin = landmark[mission.region], row=Math.floor((mission.step-1)/5), column=(mission.step-1)%5
-  return {x:origin.x+((row%2?4-column:column)-2)*.057,y:origin.y+.165-row*.061}
-}
 
 /** Presentation only: the authored v6 missions, stock, saves and claims do not change. */
 export class WorldMap {
@@ -131,7 +123,7 @@ export class WorldMap {
     const m = this.mission, count = Object.keys(state.completed).length
     const missions = WORLD_MISSIONS.filter(a => a.region === m.region)
     const image = el('world-image') as HTMLImageElement
-    const src = `${import.meta.env.BASE_URL}${this.camera.mode === 'region' && m.region === 'forest' ? 'chroma-forest-v3.webp' : this.camera.mode === 'world' && this.camera.wide ? 'chroma-world-wide-v3.webp' : 'chroma-world-v3.webp'}`
+    const src = `${import.meta.env.BASE_URL}${this.camera.mode === 'region' ? regionalArt[m.region] : this.camera.wide ? 'chroma-world-wide-v3.webp' : 'chroma-world-v3.webp'}`
     if (image.getAttribute('src') !== src) image.src = src
     this.glow.style.clipPath=regionContour(m.region,this.camera.wide&&this.camera.mode==='world')
     this.glow.style.backgroundImage=`url("${src}")`
@@ -149,7 +141,9 @@ export class WorldMap {
         button.type = 'button'; button.className = 'world-mission'; button.dataset.missionStep = String(mission.step)
         button.addEventListener('click', () => this.select(`${this.mission.region}-${button.dataset.missionStep}`))
         button.addEventListener('focus', () => {
-          this.camera.reveal(pointFor(missionFor(`${this.mission.region}-${button.dataset.missionStep}`)!),button.matches(':focus-visible'))
+          // Pointerdown starts a gesture before native focus arrives. Do not
+          // move under a finger; keyboard/programmatic focus still reveals.
+          if(!this.camera.gesturing)this.camera.reveal(pointFor(missionFor(`${this.mission.region}-${button.dataset.missionStep}`)!),button.matches(':focus-visible'))
         })
         this.missionButtons.append(button)
       }

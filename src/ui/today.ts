@@ -52,7 +52,7 @@ export class TodayPanel {
   private announce: ((state: DailyState) => void) | null = null
 
   constructor() {
-    this.row.addEventListener('click', () => this.sheet.show())
+    this.row.addEventListener('click', () => this.open())
     this.daily.addEventListener('click', async () => {
       this.daily.disabled = true
       try {
@@ -63,6 +63,13 @@ export class TodayPanel {
         this.announce?.(claimed)
       } catch { this.dailySub.textContent = growthCopy().saveError; this.daily.disabled = false }
     })
+  }
+
+  open(): void {
+    this.refresh()
+    const title=el('sheet-today-title')
+    title.tabIndex=-1
+    this.sheet.show(title)
   }
 
   /** Fires whenever coins or the stash changed, so the wallet can repaint. */

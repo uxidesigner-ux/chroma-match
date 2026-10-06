@@ -153,7 +153,8 @@ export class MapLife {
     }
     gl.uniform4f(gl.getUniformLocation(program,'scene'),(scene.left-view.left)/view.width,(scene.top-view.top)/view.height,scene.width/view.width,scene.height/view.height)
     gl.uniform1f(gl.getUniformLocation(program,'time'),this.elapsed)
-    gl.uniform1f(gl.getUniformLocation(program,'forest'),this.image.src.includes('forest') ? 1 : 0)
+    // All regional scenes share the terrace composition, unlike the overview.
+    gl.uniform1f(gl.getUniformLocation(program,'forest'),/chroma-(forest|volcano|prism|relay)-/.test(this.image.src) ? 1 : 0)
     gl.uniform1f(gl.getUniformLocation(program,'wide'),this.image.src.includes('wide') ? 1 : 0)
     gl.drawArrays(gl.TRIANGLES,0,6)
   }

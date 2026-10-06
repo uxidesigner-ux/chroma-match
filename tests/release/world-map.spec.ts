@@ -228,6 +228,37 @@ test('production map and campaign progress survive offline reload; utilities and
   } finally { await context.setOffline(false) }
 })
 
+test('production visited regional terraces and five shared destinations survive offline recovery',async({page,context})=>{
+  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'})
+  await boot(page)
+  await expect.poll(()=>page.evaluate(()=>Boolean(navigator.serviceWorker.controller))).toBe(true)
+  await page.reload();await expect(page.locator('#splash')).toBeHidden()
+  for(const name of ['forest','volcano','prism','relay']){
+    await region(page,name)
+    await expect(page.locator('#world-image')).toHaveAttribute('src',new RegExp(`chroma-${name}-`))
+    await expect.poll(()=>page.locator('#world-image').evaluate(async e=>Boolean(await caches.match((e as HTMLImageElement).src)))).toBe(true)
+  }
+  await expect.poll(()=>page.evaluate(async()=>Boolean(await caches.match(location.href)))).toBe(true)
+  await context.setOffline(true)
+  try{
+    await page.reload();await expect(page.locator('#splash')).toBeHidden()
+    for(const name of ['forest','volcano','prism','relay']){
+      await region(page,name)
+      await expect(page.locator('.world-mission')).toHaveCount(30)
+      await expect.poll(()=>page.locator('#world-image').evaluate(e=>(e as HTMLImageElement).naturalWidth)).toBe(2048)
+      const last=page.locator('[data-mission-step="30"]')
+      await last.focus();await page.keyboard.press('Enter');await expect(last).toHaveAttribute('aria-pressed','true')
+    }
+    for(const [id,sheet] of [['map-today','sheet-today'],['map-ranks','sheet-ranks']]){
+      await page.locator(`#${id}`).focus();await page.keyboard.press('Enter')
+      await expect(page.locator(`#${sheet}`)).toBeVisible();await page.keyboard.press('Escape')
+      await expect(page.locator(`#${id}`)).toBeFocused()
+    }
+    await page.locator('#map-shop').click();await expect(page.locator('#screen-shop')).toBeVisible()
+    await expect(page.locator('.hub-nav #map-today')).toBeVisible()
+  }finally{await context.setOffline(false)}
+})
+
 for (const reducedMotion of ['reduce', 'no-preference'] as const) {
   test(`production map earned feedback originates from the cleared node and respects ${reducedMotion}`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion })

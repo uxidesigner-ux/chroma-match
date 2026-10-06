@@ -62,11 +62,14 @@ export class MapCamera {
       }
     })
     const end = (event: PointerEvent) => {
+      // Overview taps never started a regional gesture. Do not settle/zoom
+      // their camera on release: an instant transform can steal the node tap.
+      if(!this.pointers.has(event.pointerId))return
       this.pointers.delete(event.pointerId)
       if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId)
       if (this.pointers.size) this.captureStart(); else {
         this.initial = null; delete viewport.dataset.dragging
-        if (this.scale < this.minimum()) this.zoom(this.minimum(),undefined,true)
+        if (this.mode==='region' && this.scale < this.minimum()) this.zoom(this.minimum(),undefined,true)
       }
     }
     viewport.addEventListener('pointerup', end)
@@ -113,6 +116,11 @@ export class MapCamera {
     })
     chromeObserver.observe(viewport.parentElement!.querySelector('.world-footer')!)
     chromeObserver.observe(document.querySelector('.world-header')!)
+    const visibilityObserver=new MutationObserver(()=>{
+      if(viewport.closest('[hidden],[inert]'))this.cancelGesture()
+    })
+    visibilityObserver.observe(viewport.closest('.screen')!,{attributes:true,attributeFilter:['hidden']})
+    visibilityObserver.observe(document.querySelector('.app')!,{attributes:true,attributeFilter:['inert']})
     onLanguageChange(() => this.labels())
     this.labels(); this.overview(false)
   }
@@ -125,6 +133,7 @@ export class MapCamera {
     }
   }
   overview(animate = true): void {
+    this.cancelGesture()
     if (this.mode === 'region') this.lastRegion = { x: this.x, y: this.y, scale: this.scale }
     this.mode = 'world'
     const bounds = this.viewport.getBoundingClientRect()
@@ -136,26 +145,28 @@ export class MapCamera {
     this.apply(animate)
   }
   focus(point: MapPoint, fresh = false, animate = true): void {
+    this.cancelGesture()
     this.mode = 'region'
     this.plane.style.width = `${WIDTH}px`; this.plane.style.height = `${HEIGHT}px`
-    const bounds = this.viewport.getBoundingClientRect()
+    const clear = this.clearArea()
     this.scale = fresh ? Math.max(1,this.minimum()) : Math.max(this.minimum(), this.scale)
-    this.x = bounds.width / 2 - point.x * WIDTH * this.scale
-    this.y = (bounds.height < 540 ? bounds.height * .42 : 120 + (bounds.height - 346) / 2) - point.y * HEIGHT * this.scale
+    this.x = (clear.left + clear.right) / 2 - point.x * WIDTH * this.scale
+    this.y = (clear.top + clear.bottom) / 2 - point.y * HEIGHT * this.scale
     this.apply(animate)
   }
   reveal(point: MapPoint, keyboard: boolean): void {
-    const bounds=this.viewport.getBoundingClientRect()
+    const clear=this.clearArea()
     // Focus can arrive during a camera transition. Its current DOM rectangle
     // may be visible while the destination is offscreen; use target coordinates.
     const x=this.x+point.x*WIDTH*this.scale, y=this.y+point.y*HEIGHT*this.scale
-    if(keyboard || x<26 || x>bounds.width-26 || y<26 || y>bounds.height-26) this.focus(point,false,false)
+    if(keyboard || x<clear.left || x>clear.right || y<clear.top || y>clear.bottom) this.focus(point,false,false)
   }
   restoreRegion(point: MapPoint): void {
     if (!this.lastRegion) { this.focus(point, true); return }
     this.mode = 'region'; Object.assign(this, this.lastRegion); this.apply(true)
   }
   get wide(): boolean { const r = this.viewport.getBoundingClientRect(); return r.width > r.height * 1.15 }
+  get gesturing(): boolean { return this.pointers.size>0 }
   /** Keep native overview landmarks clear of fixed chrome when cover crops the artwork. */
   worldPosition(point: MapPoint, index: number): MapPoint {
     const bounds = this.viewport.getBoundingClientRect()
@@ -165,20 +176,48 @@ export class MapCamera {
     const top = document.querySelector('.hub-header')?.getBoundingClientRect().bottom ?? 112
     const bottom = document.querySelector('.world-footer')!.getBoundingClientRect().top
     const pins = [...document.querySelectorAll<HTMLElement>('.world-plane .world-pin')]
-    const half = Math.max(26, ...pins.map(pin => pin.offsetHeight / 2)) + 8
+    const half = Math.max(short ? 22 : 26, ...pins.map(pin => pin.offsetHeight / 2)) + (short ? 6 : 8)
+    if (short) {
+      // The five-slot mobile dock occupies the bottom. Use the clear area
+      // beside the Play dock, not a row behind the profile or the footer.
+      const dock = document.querySelector('.world-footer')!.getBoundingClientRect()
+      const nav = document.querySelector('.hub-nav')?.getBoundingClientRect()
+      const left = Math.min(bounds.width - half * 3, dock.right + half)
+      const right = bounds.width - half
+      const low = top + half, high = Math.max(low, (nav?.top ?? bounds.bottom) - half)
+      const sx = index % 2 ? right : left, sy = index < 2 ? low : high
+      return { x: (sx - this.x) / (width * this.scale), y: (sy - this.y) / (height * this.scale) }
+    }
     const low = Math.min(top + half, bottom - half)
     const high = Math.max(low, bottom - half)
-    const sx = short ? bounds.width * [.13,.38,.63,.87][index]!
-      : Math.max(58, Math.min(bounds.width - (bounds.width < 760 ? 122 : 72), this.x + point.x * width * this.scale))
-    const sy = short ? (low + high)/2 : Math.max(low, Math.min(high, this.y + point.y * height * this.scale))
+    const sx = Math.max(58, Math.min(bounds.width - (bounds.width < 760 ? 122 : 72), this.x + point.x * width * this.scale))
+    const sy = Math.max(low, Math.min(high, this.y + point.y * height * this.scale))
     return { x: (sx - this.x) / (width * this.scale), y: (sy - this.y) / (height * this.scale) }
   }
   private zoom(next: number, point?: MapPoint, animate = false): void {
-    const bounds = this.viewport.getBoundingClientRect(), origin = point ?? { x: bounds.width / 2, y: bounds.height / 2 }
+    const clear = this.clearArea(), origin = point ?? { x: (clear.left + clear.right) / 2, y: (clear.top + clear.bottom) / 2 }
     next = clamp(next,this.minimum(),this.maximum())
     this.x = origin.x - (origin.x - this.x) * next / this.scale
     this.y = origin.y - (origin.y - this.y) * next / this.scale
     this.scale = next; this.apply(animate)
+  }
+  private clearArea(): {left:number;right:number;top:number;bottom:number} {
+    const view=this.viewport.getBoundingClientRect()
+    const header=document.querySelector('.hub-header')?.getBoundingClientRect()
+    const dock=document.querySelector('.world-footer')!.getBoundingClientRect()
+    const nav=document.querySelector('.hub-nav')?.getBoundingClientRect()
+    const landscape=view.height<=540 && view.width>=480
+    const left=landscape ? Math.min(view.width-100,dock.right-view.left+36) : 70
+    const right=Math.max(left+52,view.width-70)
+    const top=(header?.bottom ?? view.top+100)-view.top+36
+    const bottom=Math.max(top, (landscape ? nav?.top ?? view.bottom : dock.top)-view.top-36)
+    return {left,right,top,bottom}
+  }
+  private cancelGesture(): void {
+    const ids=[...this.pointers.keys()]
+    this.pointers.clear(); this.initial=null; this.moved=false
+    for(const id of ids)if(this.viewport.hasPointerCapture(id))this.viewport.releasePointerCapture(id)
+    delete this.viewport.dataset.dragging
   }
   private captureStart(): void { this.initial = { point: this.midpoint(), x: this.x, y: this.y, distance: this.distance(), scale: this.scale } }
   private minimum(): number { const r = this.viewport.getBoundingClientRect(); return Math.max(1.4,r.width/WIDTH,r.height/HEIGHT) }
@@ -199,6 +238,7 @@ export class MapCamera {
     this.plane.style.transform = `translate(${this.x}px,${this.y}px) scale(${this.scale})`
     this.plane.style.setProperty('--camera-inverse',String(1/this.scale))
     this.viewport.parentElement!.dataset.mapView = this.mode
-    for (const button of this.controls.querySelectorAll<HTMLButtonElement>('[data-camera="in"], [data-camera="out"]')) button.disabled = this.mode !== 'region'
+    for (const button of this.controls.querySelectorAll<HTMLButtonElement>('[data-camera="in"], [data-camera="out"]'))
+      button.disabled = this.mode !== 'region' || (button.dataset.camera === 'in' ? this.scale >= this.maximum()-.001 : this.scale <= this.minimum()+.001)
   }
 }

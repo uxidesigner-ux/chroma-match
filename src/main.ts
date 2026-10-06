@@ -871,7 +871,7 @@ document.getElementById('lobby-map')!.addEventListener('click', () => screens.sh
 document.getElementById('map-freeplay')!.addEventListener('click', () => requestNewRun())
 document.getElementById('map-profile')!.addEventListener('click', () => profile.open())
 document.getElementById('map-ranks')!.addEventListener('click', () => { ranksSheet.show(document.getElementById('ranks-title')!); void home.refresh() })
-document.getElementById('map-today')!.addEventListener('click', () => document.getElementById('today-row')!.click())
+document.getElementById('map-today')!.addEventListener('click', () => today.open())
 for (const id of ['map-shop', 'map-wallet']) document.getElementById(id)!.addEventListener('click', () => {
   if (screens.active === 'shop') return
   shopDestination = screens.active === 'home' ? 'home' : 'map'

@@ -6,6 +6,26 @@
 .hub-nav { border: 3px solid #f6bc4f; background: linear-gradient(#74451e,#372212); box-shadow: inset 0 2px #ffe9a0, 0 5px 0 #271909, 0 9px 18px #04182480; }
 .hub-nav button, .hub-nav summary { border: 2px solid #c18130; border-radius: 14px; background: linear-gradient(#326aa0,#1b376a); box-shadow: inset 0 3px #83bde84d, 0 3px #142841; min-height: 66px; }
 .hub-nav button[aria-current='page'], .hub-nav summary[aria-current='page'] { background: linear-gradient(#ffd66a,#d98b21); border-color: #ffe9a0; box-shadow: inset 0 3px #fff4c0, 0 3px #84551d; }
+/* Five equal destinations with stable 44px+ targets, including narrow landscape. */
+.hub-nav > button, .hub-nav .world-list > summary { padding-inline: 0; min-width: 44px; }
+@media (max-width: 600px), (max-height: 540px) {
+  .hub-nav { gap: 4px; }
+  .hub-nav .world-nav-mark, .hub-nav .hud-ico { width: 40px; height: 40px; }
+}
+@media (max-height: 540px) and (min-width: 480px) {
+  .hub-nav { width: min(360px, calc(100% - 24px)); }
+  .world-footer { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 88px); }
+  .world-footer { padding: 6px; }
+  .world-footer .world-stage { min-height: 24px; margin-bottom: 3px; gap: 4px; font-size: 12px; }
+  .world-footer .world-stage .game-icon { width: 24px; height: 24px; }
+  .world-footer #world-note { margin-bottom: 4px; line-height: 1.3; }
+  .world-footer #world-play, .world-footer #map-continue { min-height: 44px; padding: 6px; font-size: 16px; line-height: 1.15; }
+  .world-footer #world-play .game-icon { width: 24px; height: 24px; }
+  .world-footer #map-continue-sub { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .world-plane .world-pin.world-pin, .world-plane .world-pin.world-pin:focus-visible { width: 52px; padding-block: 1px; }
+  .world-plane .world-pin .world-pin-badge, .world-plane .world-pin-badge > .game-icon { width: 44px; height: 44px; }
+  .map-camera-controls { left: auto; right: 68px; top: max(12px, env(safe-area-inset-top)); display: grid; grid-template-columns: repeat(2,44px); }
+}
 .coin.game-icon { width: 22px; height: 22px; }
 .world-completion-mark.game-icon { width: 18px; height: 18px; }
 .shop .item-art.game-icon { width: 64px; height: 64px; }
