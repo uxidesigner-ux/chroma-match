@@ -24,6 +24,7 @@ test('profile is a roomy page with thick identity gauge, nested utilities and re
     await page.locator('#map-profile').click()
     await expect(page.locator('#screen-map')).toBeHidden()
     await expect(page.locator('#sheet-profile')).not.toHaveClass(/overlay|sheet\b/)
+    await expect(page.locator('#sheet-profile')).toHaveCSS('touch-action', 'pan-y pinch-zoom')
     await expect(page.locator('.app')).not.toHaveAttribute('inert', '')
     await expect(page.locator('#sheet-profile-title')).toBeFocused()
     await expect(page.locator('.hub-nav')).toBeVisible()

@@ -15,7 +15,7 @@
 #sheet-profile.profile-page {
   --text: #f7fbff; --muted: #c7d9ee; --focus-ring: #fff0a6;
   position: fixed; inset: 0; z-index: 10; display: block;
-  height: 100dvh; overflow: auto; overscroll-behavior: contain; touch-action: pan-y;
+  height: 100dvh; overflow: auto; overscroll-behavior: contain; touch-action: pan-y pinch-zoom;
   color: var(--text); background: radial-gradient(ellipse at 50% 0, #365279, #142941 70%);
   padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   scroll-padding-top: 100px;
