@@ -161,12 +161,19 @@ touchTest('regional touch drag tracks reversal, preserves node taps and leaves b
   await page.setViewportSize({width:390,height:844}); await boot(page)
   await page.locator('[data-region="forest"]').tap()
   await expect.poll(()=>page.locator('.world-plane').evaluate(e=>getComputedStyle(e).transitionDuration)).toBe('0.24s')
-  // Start during the focus transition: a touch must pick up its visible position.
-  const before=await page.locator('.world-plane').evaluate(e=>new DOMMatrix(getComputedStyle(e).transform).m42)
+  // Measure in the pointer event itself, before the camera's bubble handler.
+  // A remote runner can advance the 240ms transition between two CDP calls;
+  // comparing an earlier frame to touchStart confuses real animation with a snap.
+  await page.locator('#world-art').evaluate(viewport=>viewport.addEventListener('pointerdown',()=>{
+    viewport.dataset.testPickupY=String(new DOMMatrix(getComputedStyle(viewport.querySelector('.world-plane')!).transform).m42)
+  },{capture:true,once:true}))
   const session=await page.context().newCDPSession(page)
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:210,y:410,id:1}]})
+  const pickup=await page.locator('#world-art').getAttribute('data-test-pickup-y')
+  expect(pickup).not.toBeNull()
+  const before=Number(pickup)
   const start=await page.locator('.world-plane').evaluate(e=>new DOMMatrix(getComputedStyle(e).transform).m42)
-  expect(Math.abs(start-before)).toBeLessThan(220)
+  expect(Math.abs(start-before)).toBeLessThan(1)
   await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:210,y:470,id:1}]})
   await expect(page.locator('#world-art')).toHaveAttribute('data-dragging','true')
   await expect(page.locator('.map-life-surface')).toBeHidden()
