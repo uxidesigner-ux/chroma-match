@@ -178,14 +178,19 @@ export class MapCamera {
     const pins = [...document.querySelectorAll<HTMLElement>('.world-plane .world-pin')]
     const half = Math.max(short ? 22 : 26, ...pins.map(pin => pin.offsetHeight / 2)) + (short ? 6 : 8)
     if (short) {
-      // The five-slot mobile dock occupies the bottom. Use the clear area
-      // beside the Play dock, not a row behind the profile or the footer.
+      // Preserve the artwork anchors instead of collecting all four landmarks
+      // in two columns beside the dock. Avoid chrome only where it actually sits.
       const dock = document.querySelector('.world-footer')!.getBoundingClientRect()
       const nav = document.querySelector('.hub-nav')?.getBoundingClientRect()
-      const left = Math.min(bounds.width - half * 3, dock.right + half)
-      const right = bounds.width - half
-      const low = top + half, high = Math.max(low, (nav?.top ?? bounds.bottom) - half)
-      const sx = index % 2 ? right : left, sy = index < 2 ? low : high
+      const header = document.querySelector('.hub-header')?.getBoundingClientRect()
+      let sx = clamp(this.x + point.x * width * this.scale, half, bounds.width - half)
+      // On very short phones the forest and coast otherwise share the same
+      // narrow gap between the header and action. Keep their targets distinct.
+      if (bounds.width < 600 && index === 0) sx = Math.max(sx, dock.right + 4)
+      let sy = clamp(this.y + point.y * height * this.scale, half, bounds.height - half)
+      if (header && sx - half < header.right && sx + half > header.left) sy = Math.max(sy, header.bottom + half)
+      if (sx - half < dock.right && sx + half > dock.left) sy = Math.min(sy, dock.top - half)
+      if (nav && sx - half < nav.right && sx + half > nav.left) sy = Math.min(sy, nav.top - half)
       return { x: (sx - this.x) / (width * this.scale), y: (sy - this.y) / (height * this.scale) }
     }
     const low = Math.min(top + half, bottom - half)

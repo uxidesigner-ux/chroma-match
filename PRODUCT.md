@@ -34,9 +34,18 @@ of the player's task. The product has one anime character editor and one profile
 - The default home is a four-region adventure map. Character remains the
   rotatable full-body 3D lobby; release its renderer when leaving Character.
   Remember the last Map/Character destination. Map never waits for a VRM load.
-- Profile and icon-only utilities own the lobby header. Ranks/missions/shop use
-  a separate footer row, above Play. Play remains primary, labeled customization secondary,
-  gestures a quiet grouped toolbar, and help/settings unframed utility icons.
+- Profile and icon-only utilities own the lobby header. Map/Character/Missions/
+  Ranks/Shop share one persistent dock below Play. Play remains primary, labeled
+  customization secondary in Character, gestures a quiet grouped toolbar, and
+  help/settings smaller dimensional utility icons.
+  The map's scene-first HUD separates portrait/name/XP from a currency pill;
+  earned frames and level plaques remain prominent without a large enclosing card.
+  Five shared destinations sit on one plinth, with only the current page raised.
+  Stage-specific Play carries the actual selected stage and matching region symbol;
+  first-clear coins use a small capsule and overall completion lives in the region list.
+  Overview waypoints are compact medals, preserving visible landmarks and terrain shimmer.
+  At 480px landscape, reserve a 260px dock and a separate action column, not overlapping targets.
+  See `docs/scene-first-lobby.md` for acceptance and verification.
   Portrait badges and keyboard focus rings are never clipped to the profile row;
   dragging a 3D preview hides pointer focus only, with keyboard focus restored
   on key input or the next keyboard entry.

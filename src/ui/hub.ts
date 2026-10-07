@@ -16,6 +16,10 @@ export class Hub {
     const app = document.querySelector('.app')!
     this.header.classList.add('hub-header'); this.nav.classList.add('hub-nav')
     app.append(this.header, this.nav)
+    // Identity and currency are separate HUD objects, not one large profile card.
+    this.header.insertBefore(document.getElementById('map-wallet')!, this.header.querySelector('.world-utilities'))
+    // Overall completion belongs to the map list, not the selected-stage reward.
+    document.getElementById('world-region-list')!.prepend(document.querySelector('.world-progress')!)
     new ResizeObserver(() => {
       const height = this.header.getBoundingClientRect().height
       if (height) document.documentElement.style.setProperty('--hub-header-height', `${Math.ceil(height)}px`)

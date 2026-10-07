@@ -191,6 +191,7 @@ export class WorldMap {
       if (!open || done === regionMissions.length) seal.append(icon(open?'check':'lock'))
       else seal.textContent = `${done}/${regionMissions.length}`
       if (!open) seal.classList.add('world-lock')
+      button.dataset.selectedStep = r === m.region ? String(m.step) : ''
       badge.append(seal)
       button.replaceChildren(badge)
       const row = el('world-region-list').querySelector<HTMLButtonElement>(`[data-list-region="${r}"]`)!
@@ -201,6 +202,7 @@ export class WorldMap {
     el('world-region').textContent = copy.regions[m.region]
     el('world-region-mark').replaceChildren(icon(regionIcon[m.region]))
     el('world-stage-number').textContent = `${m.step}/${missions.length}`
+    el('world-stage-number').setAttribute('aria-label', `${t('levelN', { level: m.step })}, ${missions.length} ${copy.missions}`)
     this.missionButtons.setAttribute('aria-label', `${copy.regions[m.region]} ${copy.missions}`)
     let completed = 0
     for (const button of this.missionButtons.querySelectorAll<HTMLButtonElement>('button')) {
@@ -243,7 +245,10 @@ export class WorldMap {
     el('world-loot').dataset.claimed = String(done)
     const play = el('world-play') as HTMLButtonElement
     play.disabled = !ready
-    el('world-play-label').textContent = !ready ? copy.locked : done ? copy.replay : copy.play
+    el('world-play-label').textContent = `${t('levelN', { level: m.step })} · ${!ready ? copy.locked : done ? copy.replay : copy.play}`
+    el('world-play').dataset.selectedRegion = m.region
+    // Keep the region symbol and actual selection together on the action itself.
+    el('world-play-region').replaceChildren(icon(regionIcon[m.region]))
     play.setAttribute('aria-label', `${!ready ? copy.locked : done ? copy.replay : copy.play}, ${copy.regions[m.region]} ${m.step}`)
     // No idle prose. Only a prerequisite or a real persistence error occupies
     // this lane, and the full explanation remains in the accessible context.
