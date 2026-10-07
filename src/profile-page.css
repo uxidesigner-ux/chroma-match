@@ -60,7 +60,10 @@
 .profile-page .growth-heading { gap: 20px; margin-bottom: 22px; flex-wrap: wrap; }
 .profile-page .growth-heading h3 { font-size: 22px; color: #fff; }
 .profile-page #player-level { font-size: 30px; }
-.profile-page .growth-bar { height: 24px; border-radius: 10px; }
+.profile-page .growth-bar { appearance: none; height: 24px; border: 2px solid #a7cbff; border-radius: 10px; overflow: hidden; background: #10283c; box-shadow: inset 0 3px #0005, 0 3px #0b2037; }
+.profile-page .growth-bar::-webkit-progress-bar { background: linear-gradient(#10283c, #1c3850); border-radius: 7px; box-shadow: inset 0 3px 4px #0005; }
+.profile-page .growth-bar::-webkit-progress-value { background: linear-gradient(#c2f69b, #74ce40 55%, #439529); border-radius: 7px; box-shadow: inset 0 2px #e9ffc9; }
+.profile-page .growth-bar::-moz-progress-bar { background: linear-gradient(#c2f69b, #74ce40 55%, #439529); border-radius: 7px; box-shadow: inset 0 2px #e9ffc9; }
 .profile-page :is(.growth-summary, .growth-next, .growth-local) { margin: 14px 0; line-height: 1.6; color: #d1e1f3; font-size: 14px; }
 .profile-page #player-xp-text { font-size: 20px; font-weight: 900; color: #fff2ad; }
 .profile-page .growth-collection { margin-top: 24px; }

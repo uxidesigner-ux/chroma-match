@@ -13,6 +13,7 @@ test('production profile page owns utilities and returns to the live map without
   await page.locator('#map-profile').click()
   await expect(page.locator('#screen-map')).toBeHidden()
   await expect(page.locator('#sheet-profile-title')).toBeFocused()
+  await expect(page.locator('#player-xp')).toHaveCSS('appearance','none')
   await expect(page.locator('#profile-close .game-icon')).toHaveAttribute('data-game-icon','arrow')
   await page.locator('#map-settings').click(); await page.keyboard.press('Escape')
   await expect(page.locator('#map-settings')).toBeFocused()

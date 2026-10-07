@@ -27,6 +27,7 @@ test('profile is a roomy page with thick identity gauge, nested utilities and re
     await expect(page.locator('.app')).not.toHaveAttribute('inert', '')
     await expect(page.locator('#sheet-profile-title')).toBeFocused()
     await expect(page.locator('.hub-nav')).toBeVisible()
+    await expect(page.locator('#player-xp')).toHaveCSS('appearance', 'none')
     await page.locator('#map-settings').click(); await page.keyboard.press('Escape')
     await expect(page.locator('#map-settings')).toBeFocused()
     await page.locator('#profile-utilities [data-action="how-to"]').click()
