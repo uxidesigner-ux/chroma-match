@@ -1,9 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 
 // This suite explicitly exercises the preserved Character/free-play destination.
-// Fresh-map entry and regional campaign flows are covered in world-map.spec.ts.
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('chroma-match:destination', 'character'))
+// Locale/viewport preparation coverage stays on Map, avoiding repeated entry
+// into the frozen character renderer. Other cases preserve the legacy entry.
+test.beforeEach(async ({ page }, info) => {
+  await page.addInitScript(destination => localStorage.setItem('chroma-match:destination', destination), info.title.includes('supplied-item guidance') ? 'map' : 'character')
 })
 import { Game } from '../../src/game/game.ts'
 import { BOOSTER_LIMIT, recordOf, verifyRun } from '../../src/game/replay.ts'
@@ -101,15 +102,16 @@ test('production v4 continue retains its original inventory before a genuinely n
 
 test('production supplied-item guidance reflows on short phones and folds in all locales', async ({ page }, info) => {
   await prepare(page, { hammer: 1, rocket: 1, bomb: 1 })
-  await page.locator('#start-game').click()
+  await page.locator('#map-freeplay').click()
   for (const [width, height] of [[320, 568], [390, 844], [844, 390], [720, 720]]) {
     await page.setViewportSize({ width: width!, height: height! })
     for (const skin of ['paper', 'jewel', 'glass']) for (const lang of ['ko', 'en', 'ja', 'zh-Hans']) {
       // Existing native locale controls, not a development API.
-      await page.locator('#loadout-cancel').click(); await page.locator('#map-settings').click()
+      await page.locator('#loadout-cancel').click(); await page.locator('#map-profile').click(); await page.locator('#map-settings').click()
       await page.locator(`button[data-lang="${lang}"]`).click()
       await page.locator(`button[data-skin-id="${skin}"]`).click()
-      await page.keyboard.press('Escape'); await page.locator('#start-game').click()
+      await page.keyboard.press('Escape'); await page.locator('#profile-close').click()
+      await expect(page.locator('#screen-map')).toBeVisible(); await page.locator('#map-freeplay').click()
       await expect(page.locator('#loadout-supply')).toContainText('3')
       await expect(page.locator('#loadout-title')).toBeInViewport()
       await page.locator('#loadout-start').focus()

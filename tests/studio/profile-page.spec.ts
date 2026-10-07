@@ -1,0 +1,70 @@
+import { expect, test } from '@playwright/test'
+
+test('profile is a roomy page with thick identity gauge, nested utilities and reversible navigation', async ({ page }, info) => {
+  const errors: string[] = [], models: string[] = []
+  page.on('pageerror', e => errors.push(e.message))
+  page.on('request', r => { if (/\.vrm(?:\?|$)/.test(r.url())) models.push(r.url()) })
+  await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com|seed-san\.vrm/, r => r.abort())
+  await page.addInitScript(() => {
+    localStorage.setItem('chroma-match:granted', '1')
+    localStorage.setItem('chroma-match:lang', 'ko')
+    localStorage.setItem('chroma-match:name', 'james')
+  })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/?seed=7'); await expect(page.locator('#splash')).toBeHidden()
+  for (const [width, height] of [[320,568], [390,690], [480,320], [720,720], [1280,800]]) {
+    await page.setViewportSize({ width: width!, height: height! })
+    const geometry = await page.evaluate(() => {
+      const name = document.getElementById('map-name')!.getBoundingClientRect(), bar = document.getElementById('hub-xp')!.getBoundingClientRect()
+      return { above: name.bottom <= bar.top, height: bar.height, right: bar.right }
+    })
+    expect(geometry.above).toBe(true); expect(geometry.height).toBeGreaterThanOrEqual(24)
+    expect(geometry.right).toBeLessThanOrEqual(width!)
+    await expect(page.locator('#map-settings')).toBeHidden()
+    await page.locator('#map-profile').click()
+    await expect(page.locator('#screen-map')).toBeHidden()
+    await expect(page.locator('#sheet-profile')).not.toHaveClass(/overlay|sheet\b/)
+    await expect(page.locator('.app')).not.toHaveAttribute('inert', '')
+    await expect(page.locator('#sheet-profile-title')).toBeFocused()
+    await expect(page.locator('.hub-nav')).toBeVisible()
+    await page.locator('#map-settings').click(); await page.keyboard.press('Escape')
+    await expect(page.locator('#map-settings')).toBeFocused()
+    await page.locator('#profile-utilities [data-action="how-to"]').click()
+    await expect(page.locator('#help')).toBeVisible()
+    await page.keyboard.press('Escape'); await expect(page.locator('#sheet-profile')).toBeVisible()
+    await page.locator('#stats-reset').scrollIntoViewIfNeeded()
+    await expect(page.locator('#profile-close')).toBeInViewport()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    expect(await page.locator('.stats-grid > div').evaluateAll(es => es.every(e => {
+      const r=e.getBoundingClientRect(); return r.width>=100 && r.right<=innerWidth
+    }))).toBe(true)
+    expect(await page.locator('.stats-grid > div').evaluateAll(es => es.every(e => {
+      const icon=e.querySelector('.stats-icon')!.getBoundingClientRect(), label=e.querySelector('dt')!.getBoundingClientRect(), value=e.querySelector('dd')!.getBoundingClientRect()
+      return icon.bottom <= label.top && label.bottom <= value.top
+    }))).toBe(true)
+    await page.screenshot({ path: info.outputPath(`profile-stats-${width}.png`) })
+    await page.locator('#profile-name-input').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: info.outputPath(`profile-hero-${width}.png`) })
+    await page.locator('#profile-close').click()
+    await expect(page.locator('#screen-map')).toBeVisible()
+    await expect(page.locator('#map-profile')).toBeFocused()
+  }
+  await page.locator('.world-pin[data-region="prism"]').click()
+  const camera=await page.locator('.world-plane').evaluate(e=>getComputedStyle(e).transform)
+  await page.locator('#map-profile').click(); await page.goBack()
+  await expect(page.locator('#screen-map')).toBeVisible()
+  expect(await page.locator('.world-plane').evaluate(e=>getComputedStyle(e).transform)).toBe(camera)
+  await page.goForward(); await expect(page.locator('#sheet-profile')).toBeVisible()
+  await page.locator('#profile-name-input').fill('abcdefghijklmnop')
+  await page.locator('#profile-close').click(); await expect(page.locator('#screen-map')).toBeVisible()
+  await expect(page.locator('#map-name')).toHaveText('abcdefghijklmnop')
+  await page.locator('#map-profile').click()
+  await page.reload(); await expect(page.locator('#splash')).toBeHidden()
+  await expect(page.locator('#screen-map')).toBeVisible()
+  await page.locator('#map-profile').click()
+  await page.locator('#profile-close').evaluate(e => { (e as HTMLButtonElement).click(); (e as HTMLButtonElement).click() })
+  await expect(page.locator('#screen-map')).toBeVisible()
+  await page.locator('#map-profile').click()
+  await page.locator('#map-shop').click(); await expect(page.locator('#screen-shop')).toBeVisible()
+  expect(errors).toEqual([]); expect(models).toEqual([])
+})

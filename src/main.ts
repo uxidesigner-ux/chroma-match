@@ -9,6 +9,7 @@ import './game-icons.css'
 import './profile-rank.css'
 import './casual-ui.css'
 import './lobby-scene.css'
+import './profile-page.css'
 import { installGameIcons } from './ui/game-icons.ts'
 installGameIcons()
 import { player, type Settlement } from './player/ledger.ts'
@@ -178,6 +179,7 @@ const profile = new ProfileCard(
     creator.open()
     screens.show('creator')
   },
+  screens,
 )
 let campaignStorage: Storage | null = null
 try { campaignStorage = localStorage } catch { /* unavailable storage remains a playable session */ }

@@ -4,7 +4,7 @@ import { cleanName } from '../leaderboard/types.ts'
 import { codeFor } from '../social/code.ts'
 import { publishProfile } from '../social/players.ts'
 import { myAvatar, paintAvatar } from '../avatar/store.ts'
-import { Sheet } from './sheet.ts'
+import type { Screens, ScreenName } from './screens.ts'
 import { onLanguageChange, t } from '../i18n/index.ts'
 import { PlayerPanel } from './player-panel.ts'
 
@@ -17,25 +17,15 @@ function el<T extends HTMLElement>(id: string): T {
 const CARD_SIZE = 124
 const PREVIEW_SIZE = 116
 
-/**
- * The player, on the launch screen and behind it.
- *
- * The card is the one thing on the home screen that is about *them* rather than
- * about the game: a face, a name, and the three numbers worth carrying between
- * sessions. Everything it cannot fit — the whole customiser, the name field,
- * and signing in — is behind it in a sheet, because a launch screen that opens
- * on an identity form is a launch screen nobody plays from.
- *
- * The avatar is drawn, not uploaded. That is what makes it free to put a face
- * on every row of a friends board, and what will make a locked hairstyle a
- * one-word change in the catalogue rather than an asset pipeline.
- */
+/** Cached player identity and its full-page account/growth destination. */
 export class ProfileCard {
   private face = el<HTMLButtonElement>('profile-face')
   private canvas = el<HTMLCanvasElement>('profile-avatar')
   private cardName = el('profile-name')
 
-  private sheet = new Sheet('sheet-profile')
+  private destination: ScreenName = 'map'
+  private opener: HTMLElement | null = null
+  private returning = false
   private preview = el<HTMLCanvasElement>('profile-preview')
   private nameInput = el<HTMLInputElement>('profile-name-input')
   private codeLine = el('profile-code')
@@ -50,9 +40,26 @@ export class ProfileCard {
     private storedName: () => string,
     private saveName: (name: string) => void,
     private openCreator: () => void,
+    private screens: Screens,
   ) {
+    // A reload starts at the remembered hub, so an old profile history marker
+    // must not make the next Back return to an already-open profile.
+    if (history.state?.chromaProfile) history.replaceState({ ...history.state, chromaProfile: false }, '')
     this.face.addEventListener('click', () => this.open())
-    el('profile-close').addEventListener('click', () => this.sheet.hide())
+    el('profile-close').addEventListener('click', () => this.back())
+    window.addEventListener('popstate', () => {
+      this.returning = false
+      if (history.state?.chromaProfile) this.open(false)
+      else if (this.screens.active === 'profile') this.restore()
+    })
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && this.screens.active === 'profile' && !document.querySelector('.app')!.hasAttribute('inert')) {
+        event.preventDefault(); this.back()
+      }
+    })
+    this.screens.onChange(name => {
+      if (name !== 'profile' && history.state?.chromaProfile) history.replaceState({ ...history.state, chromaProfile: false }, '')
+    })
     this.action.addEventListener('click', () => void this.toggleAccount())
 
     this.nameInput.addEventListener('input', () => {
@@ -67,10 +74,9 @@ export class ProfileCard {
       }
     })
 
-    // Character editing has its own screen; this sheet keeps the things
+    // Character editing has its own screen; this page keeps the things
     // that are about the account rather than about the character.
     el('profile-edit').addEventListener('click', () => {
-      this.sheet.hide()
       this.openCreator()
     })
 
@@ -87,13 +93,31 @@ export class ProfileCard {
     this.listeners.push(listener)
   }
 
-  open(): void {
+  open(push = true): void {
+    if (this.screens.active === 'profile') return
+    this.destination = this.screens.active
+    this.opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    this.returning = false
     this.nameInput.value = this.storedName()
     this.refresh()
-    this.sheet.show(el('sheet-profile-title'))
+    if (push) history.pushState({ ...history.state, chromaProfile: true }, '')
+    this.screens.show('profile')
+    el('sheet-profile').scrollTop = 0
+    el('sheet-profile-title').focus({ preventScroll: true })
   }
 
-  /** Repaints the face this sheet shows, after the creator changed it. */
+  private back(): void {
+    if (this.returning) return
+    if (history.state?.chromaProfile) { this.returning = true; history.back() }
+    else this.restore()
+  }
+
+  private restore(): void {
+    this.screens.show(this.destination)
+    if (this.opener?.getClientRects().length) this.opener.focus({ preventScroll: true })
+  }
+
+  /** Repaints the cached face after the creator changed it. */
   refresh(): void {
     this.growth.refresh()
     paintAvatar(this.preview, myAvatar(), PREVIEW_SIZE, { round: true })

@@ -122,7 +122,7 @@ test('world overview fixed controls remain visible and unoccluded across phone, 
   for(const [width,height]of[[320,568],[390,690],[390,844],[480,320],[844,390],[720,720],[1280,800]]){
     await page.setViewportSize({width:width!,height:height!})
     await expect.poll(()=>page.evaluate(()=>{
-      const nodes=[...document.querySelectorAll<HTMLElement>('.world-pin,.world-quick,#world-play,#map-wallet,#map-profile,.world-utilities > button,.world-nav > button,.world-list > summary')]
+      const nodes=[...document.querySelectorAll<HTMLElement>('.world-pin,.world-quick,#world-play,#map-wallet,#map-profile,.world-utilities > button,.world-nav > button,.world-list > summary')].filter(e=>e.getClientRects().length)
       const errors:string[]=[]
       for(const e of nodes){const r=e.getBoundingClientRect();const name=e.id||e.dataset.region||e.className
         if(r.width<44||r.height<44)errors.push(`${name}:size`)

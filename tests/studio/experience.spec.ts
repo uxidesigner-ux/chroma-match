@@ -27,7 +27,7 @@ test('3D loading never blocks a player who chooses to enter now', async ({ page 
 test('settings and nested rules own focus, Escape closes only the top layer', async ({ page }) => {
   await page.goto('/')
   await enterLobby(page)
-  await page.locator('#map-settings').click()
+  await page.locator('#map-profile').click(); await page.locator('#map-settings').click()
   await expect(page.getByRole('radio', { name: '한국어', exact: true })).toBeFocused()
   await expect(page.locator('main')).toHaveAttribute('inert', '')
   for (let i = 0; i < 22; i++) {
@@ -37,6 +37,7 @@ test('settings and nested rules own focus, Escape closes only the top layer', as
   await page.keyboard.press('Escape')
   await expect(page.locator('#sheet-settings')).toBeHidden()
   await expect(page.locator('#map-settings')).toBeFocused()
+  await page.locator('#profile-close').click(); await expect(page.locator('#screen-home')).toBeVisible()
   await page.locator('#start-game').click()
   await page.locator('#loadout-start').click()
   await page.locator('#pause').click()
@@ -129,7 +130,7 @@ test('settings have touch-sized choices and keyboard theme selection keeps visib
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
   await enterLobby(page)
-  await page.locator('#map-settings').click()
+  await page.locator('#map-profile').click(); await page.locator('#map-settings').click()
   // Measure the final layout, not the sheet's entrance transform.
   await expect.poll(() => page.locator('#sheet-settings .sheet-panel').evaluate(node =>
     new DOMMatrix(getComputedStyle(node).transform).isIdentity)).toBe(true)

@@ -18,6 +18,7 @@ export class Hub {
     app.append(this.header, this.nav)
     // Identity and currency are separate HUD objects, not one large profile card.
     this.header.insertBefore(document.getElementById('map-wallet')!, this.header.querySelector('.world-utilities'))
+    document.getElementById('profile-utilities')!.append(this.header.querySelector('.world-utilities')!)
     // Overall completion belongs to the map list, not the selected-stage reward.
     document.getElementById('world-region-list')!.prepend(document.querySelector('.world-progress')!)
     new ResizeObserver(() => {
@@ -27,7 +28,8 @@ export class Hub {
     const profile = document.getElementById('map-profile')!
     const badge = document.createElement('span'); badge.id = 'hub-level'; badge.className = 'level-badge'
     const xp = document.createElement('span'); xp.id = 'hub-xp'; xp.className = 'xp-track'; xp.setAttribute('aria-hidden', 'true')
-    xp.append(document.createElement('i'))
+    const xpLabel = document.createElement('span'); xpLabel.id = 'hub-xp-label'
+    xp.append(document.createElement('i'), xpLabel)
     profile.append(badge)
     document.getElementById('map-name')!.after(xp)
     const title = document.createElement('span'); title.id = 'hub-title'
@@ -41,8 +43,8 @@ export class Hub {
   }
   refresh(): void {
     const active = this.screens.active, visible = active === 'map' || active === 'home' || active === 'shop'
-    this.header.hidden = !visible; this.nav.hidden = !visible
-    document.documentElement.classList.toggle('hub-open', visible)
+    this.header.hidden = !visible; this.nav.hidden = !visible && active !== 'profile'
+    document.documentElement.classList.toggle('hub-open', visible || active === 'profile')
     for (const [id, screen] of [['world-list-label', 'map'], ['map-character', 'home'], ['map-shop', 'shop']]) {
       const node = document.getElementById(id!)!
       if (active === screen) node.setAttribute('aria-current', 'page')
@@ -56,6 +58,7 @@ export class Hub {
     paintRank(document.querySelector('.hud-face')!,document.getElementById('hud-player-level')!,progress.level)
     document.getElementById('hud-character')!.dataset.frame = player.state.growth.frame
     document.querySelector<HTMLElement>('#hub-xp > i')!.style.setProperty('--xp', String(progress.xp / progress.need))
+    document.getElementById('hub-xp-label')!.textContent = `${progress.xp}/${progress.need}`
     document.getElementById('map-profile')!.setAttribute('aria-label', `${t('profileAria')} · ${growthCopy().level} ${progress.level}, ${progress.xp}/${progress.need} XP`)
     this.header.dataset.frame = player.state.growth.frame
     const title = player.state.growth.title

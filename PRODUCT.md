@@ -34,7 +34,12 @@ of the player's task. The product has one anime character editor and one profile
 - The default home is a four-region adventure map. Character remains the
   rotatable full-body 3D lobby; release its renderer when leaving Character.
   Remember the last Map/Character destination. Map never waits for a VRM load.
-- Profile and icon-only utilities own the lobby header. Map/Character/Missions/
+- Profile identity owns the lobby header; the name sits above a thick 24px XP
+  gauge. Settings/help live inside the dedicated, scrollable Profile page,
+  reached through the portrait. Back restores the previous destination and
+  focus; browser Back/Forward also navigate the profile. Generous dimensional
+  cards group identity, growth, real play statistics and account actions.
+  Map/Character/Missions/
   Ranks/Shop share one persistent dock below Play. Play remains primary, labeled
   customization secondary in Character, gestures a quiet grouped toolbar, and
   help/settings smaller dimensional utility icons.
@@ -144,7 +149,7 @@ of the player's task. The product has one anime character editor and one profile
   `docs/adventure-growth-checkpoint.md` and the growth/statistics design plans.
 - Cached profile portraits use original dimensional metal frames that grow at
   levels 1/3/10/20/35/50. Level numbers are large HTML text inside a heavy navy/gold
-  plaque, not baked into artwork. Hub, profile sheet and gameplay share the same
+  plaque, not baked into artwork. Hub, profile page and gameplay share the same
   earned tier. Existing equipped cosmetics remain stored and add an accent glow;
   no new XP requirement, paid gate or character-model change is introduced.
   Compact landscape prioritizes reachable map targets, and game chrome preserves

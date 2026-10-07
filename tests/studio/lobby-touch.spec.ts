@@ -79,7 +79,7 @@ test('a diagonal touch rotates without scrolling or reload, matches right-arrow 
   expect(await page.evaluate(() => ({ time: performance.timeOrigin, scroll: document.querySelector('.home')!.scrollTop, avatar: localStorage.getItem('chroma-match:avatar') }))).toEqual(initial)
   await session.detach()
   // Only the model consumes touch panning; other screens keep their scroll owners.
-  await page.locator('#map-settings').click()
+  await page.locator('#map-profile').click(); await page.locator('#map-settings').click()
   await expect(page.locator('#sheet-settings')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.locator('#map-settings')).toBeFocused()

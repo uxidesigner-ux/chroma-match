@@ -27,7 +27,7 @@ export class PlayerPanel {
         <p id="stats-confirm-text"></p><button class="btn btn-primary" type="button" id="stats-confirm-yes"></button><button class="btn btn-ghost" type="button" id="stats-confirm-no"></button>
       </div><p id="player-status" role="status" class="growth-summary"></p>
     </section>`
-    document.getElementById('profile-edit')!.before(this.root)
+    document.getElementById('profile-growth-slot')!.append(this.root)
     for (const key of ['used', 'average', 'chain', 'created', 'fusions', 'noItems']) {
       const row = document.createElement('div'), icon = document.createElement('span'), title = document.createElement('dt'), value = document.createElement('dd')
       icon.className = 'stats-icon'; icon.setAttribute('aria-hidden', 'true')

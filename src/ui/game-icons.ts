@@ -20,7 +20,7 @@ function decorate(node: HTMLElement, name: GameIcon): void {
 }
 export function installGameIcons(): void {
   const glyphs: Record<string,GameIcon>={back:'arrow',exit:'exit',gear:'gear',help:'help',ranks:'ranks',today:'missions',shop:'shop',figure:'character',edit:'edit',pause:'pause',shuffle:'shuffle'}
-  const ids:Record<string,GameIcon>={'board-scroll-up':'arrow','board-scroll-down':'arrow','profile-close':'close'}
+  const ids:Record<string,GameIcon>={'board-scroll-up':'arrow','board-scroll-down':'arrow','profile-close':'arrow'}
   const scan=(root:ParentNode)=>{
     const nodes=[...(root instanceof HTMLElement?[root]:[]),...root.querySelectorAll<HTMLElement>('.hud-ico,.item-art,.coin,.daily-gift,.victory-star,.world-completion-mark,.rotate-icon,.world-nav-mark,.world-infinity,.world-play-mark,.world-wallet-add,[data-camera],.sheet-close,#board-scroll-up,#board-scroll-down,#profile-close')]
     for(const node of nodes){

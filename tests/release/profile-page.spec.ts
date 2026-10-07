@@ -1,0 +1,28 @@
+import { expect, test } from '@playwright/test'
+
+test('production profile page owns utilities and returns to the live map without character loading', async ({ page }, info) => {
+  const errors: string[] = [], models: string[] = []
+  page.on('pageerror', e => errors.push(e.message))
+  page.on('request', r => { if (/\.vrm(?:\?|$)/.test(r.url())) models.push(r.url()) })
+  await page.route(/googleapis\.com|firebaseio\.com|firebaseapp\.com|seed-san\.vrm/, r=>r.abort())
+  await page.addInitScript(()=>{localStorage.setItem('chroma-match:granted','1');localStorage.setItem('chroma-match:lang','ko')})
+  await page.setViewportSize({width:390,height:690})
+  await page.goto('./'); await expect(page.locator('#splash')).toBeHidden()
+  await expect(page.locator('#hub-xp')).toHaveCSS('height','24px')
+  await expect(page.locator('#map-settings')).toBeHidden()
+  await page.locator('#map-profile').click()
+  await expect(page.locator('#screen-map')).toBeHidden()
+  await expect(page.locator('#sheet-profile-title')).toBeFocused()
+  await expect(page.locator('#profile-close .game-icon')).toHaveAttribute('data-game-icon','arrow')
+  await page.locator('#map-settings').click(); await page.keyboard.press('Escape')
+  await expect(page.locator('#map-settings')).toBeFocused()
+  await page.locator('#profile-utilities [data-action="how-to"]').click()
+  await expect(page.locator('#help')).toBeVisible(); await page.keyboard.press('Escape')
+  await page.screenshot({path:info.outputPath('production-profile.png')})
+  await page.locator('#stats-reset').scrollIntoViewIfNeeded()
+  await expect(page.locator('#profile-close')).toBeInViewport()
+  await page.locator('#profile-close').click()
+  await expect(page.locator('#screen-map')).toBeVisible()
+  await expect(page.locator('#map-profile')).toBeFocused()
+  expect(errors).toEqual([]); expect(models).toEqual([])
+})

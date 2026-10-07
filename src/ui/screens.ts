@@ -1,4 +1,4 @@
-export type ScreenName = 'map' | 'home' | 'shop' | 'game' | 'creator'
+export type ScreenName = 'map' | 'home' | 'shop' | 'game' | 'creator' | 'profile'
 
 /**
  * Shows one screen at a time. Kept deliberately dumb — it toggles `hidden` and
@@ -16,8 +16,10 @@ export class Screens {
     const shop = document.getElementById('screen-shop')
     const game = document.getElementById('screen-game')
     const creator = document.getElementById('screen-creator')
-    if (!map || !home || !shop || !game || !creator) throw new Error('Missing a screen element')
-    this.nodes = { map, home, shop, game, creator }
+    const profile = document.getElementById('sheet-profile')
+    if (!map || !home || !shop || !game || !creator || !profile) throw new Error('Missing a screen element')
+    document.querySelector('.app')!.append(profile)
+    this.nodes = { map, home, shop, game, creator, profile }
     try { if (localStorage.getItem('chroma-match:destination') === 'character') this.current = 'home' } catch { /* map is the safe default */ }
     for (const [key, node] of Object.entries(this.nodes)) node.hidden = key !== this.current
   }

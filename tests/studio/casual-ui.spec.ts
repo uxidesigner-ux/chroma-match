@@ -31,7 +31,7 @@ test('full-screen rankings preserve real rows, tabs, scrolling and focus return 
   await expect(page.locator('#sheet-ranks')).toBeHidden();expect(errors).toEqual([])
 })
 test('dimensional panel controls have a press response without changing hit target geometry',async({page},info)=>{
-  await boot(page);await page.locator('#map-settings').click()
+  await boot(page);await page.locator('#map-profile').click();await page.locator('#map-settings').click()
   await expect(page.locator('#sheet-settings')).toBeVisible()
   const sound=page.locator('#set-sound'),before=await sound.getAttribute('aria-checked')
   await sound.click();await expect(sound).toHaveAttribute('aria-checked',before==='true'?'false':'true')

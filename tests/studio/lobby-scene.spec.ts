@@ -68,9 +68,11 @@ test('stage action remains readable in all four languages and total completion s
   await expect(page.locator('#world-region-list #world-progress')).toHaveText('1/120')
   await page.keyboard.press('Escape')
   for (const [lang, text] of [['en','Level 2'],['ja','レベル2'],['zh-Hans','第2关'],['ko','2단계']]) {
-    await page.locator('#map-settings').click()
+    await page.locator('#map-profile').click(); await page.locator('#map-settings').click()
     await page.locator(`#set-langs [data-lang="${lang}"]`).click()
     await page.keyboard.press('Escape')
+    await page.locator('#profile-close').click()
+    await expect(page.locator('#screen-map')).toBeVisible()
     await expect(page.locator('#world-play-label')).toContainText(text!)
     expect(await page.locator('#world-play-label').evaluate(e => {
       const a = e.getBoundingClientRect(), b = e.closest('button')!.getBoundingClientRect()

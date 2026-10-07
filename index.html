@@ -481,22 +481,23 @@
 
     <!--
       Who the player is: the face they play as, the name that posts, and the
-      account it all hangs off. One sheet, because they are one subject — an
+      account it all hangs off. One full-page destination — an
       avatar editor on its own page and a sign-in row somewhere else is two
       places to go to answer the same question.
     -->
-    <div class="overlay sheet" id="sheet-profile" hidden>
-      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-profile-title">
-        <span class="sheet-handle" aria-hidden="true"></span>
-        <header class="profile-sheet-head">
+    <section class="screen profile-page" id="sheet-profile" aria-labelledby="sheet-profile-title" hidden>
+      <div class="profile-page-content">
+        <header class="profile-page-head">
+          <button class="circle-button" id="profile-close" type="button" data-i18n-attr="aria-label:back title:back"><span aria-hidden="true">←</span></button>
           <h2 class="sheet-title" id="sheet-profile-title" tabindex="-1" data-i18n="profileTitle">Your profile</h2>
-          <button class="circle-button" id="profile-close" type="button" data-i18n-attr="aria-label:close title:close"><span aria-hidden="true">×</span></button>
+          <div id="profile-utilities"></div>
         </header>
 
+        <section class="profile-hero">
         <div class="editor">
           <canvas class="editor-preview" id="profile-preview" aria-hidden="true"></canvas>
           <label class="editor-name">
-            <span class="sr-only" data-i18n="displayName">Display name</span>
+            <span data-i18n="displayName">Display name</span>
             <input
               class="post-input"
               id="profile-name-input"
@@ -513,14 +514,17 @@
         <button class="btn btn-primary profile-edit" id="profile-edit" type="button" data-i18n="editAvatar">
           Edit character
         </button>
-
+        </section>
+        <div id="profile-growth-slot"></div>
+        <section class="profile-account" aria-labelledby="account-sub">
         <p class="sheet-sub" id="account-sub">Sign in to keep your runs across devices</p>
         <p class="profile-code" id="profile-code" hidden></p>
         <button class="btn btn-primary sheet-cta" id="account-action" type="button">
           Sign in with Google
         </button>
+        </section>
       </div>
-    </div>
+    </section>
 
     <!--
       The board, over the launch screen rather than on it. It was the tallest

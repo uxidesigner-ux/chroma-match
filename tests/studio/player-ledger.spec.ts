@@ -162,7 +162,7 @@ test('My Play shows actual sample/average and reset preserves growth, wallet and
   await page.locator('[data-mode="adventure"]').click()
   await page.locator('#stats-reset').scrollIntoViewIfNeeded()
   await expect(page.locator('#profile-close')).toBeInViewport()
-  await expect(page.locator('#profile-close')).toHaveAccessibleName('닫기')
+  await expect(page.locator('#profile-close')).toHaveAccessibleName('뒤로')
   const before=await readPlayer(page),avatar=await page.evaluate(()=>localStorage.getItem('chroma-match:avatar'))
   await page.screenshot({path:info.outputPath('player-growth-stats.png')})
   await page.locator('#stats-reset').click(); await page.locator('#stats-confirm-no').click()
