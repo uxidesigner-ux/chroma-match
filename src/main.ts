@@ -10,6 +10,9 @@ import './profile-rank.css'
 import './casual-ui.css'
 import './lobby-scene.css'
 import './profile-page.css'
+import './analytics.css'
+import { analytics } from './analytics/client.ts'
+import { AnalyticsConsent } from './ui/analytics-consent.ts'
 import { installGameIcons } from './ui/game-icons.ts'
 installGameIcons()
 import { player, type Settlement } from './player/ledger.ts'
@@ -159,6 +162,7 @@ let lastSettlement: Settlement | null = null
 let lastSettlementCursor = ''
 let settlementTask: Promise<Settlement> | null = null
 const screens = new Screens()
+const analyticsConsent = new AnalyticsConsent(screens)
 const splash = new Splash(() => welcomeHome())
 const lobby = new Lobby({
   onProgress: (pct) => splash.setProgress(pct),
@@ -229,6 +233,7 @@ profile.onChange(() => {
  * publishProfile reads the avatar itself rather than taking it as an argument.
  */
 creator.onChange(async () => {
+  analytics.event('character_save')
   world.refresh()
   profile.refresh()
   hud.refreshAvatar()
@@ -388,6 +393,7 @@ const hooks: Partial<GameHooks> = {
     tray.flash(item)
   },
   onItemUsed(item, cell) {
+    analytics.event('item_use', { ...analyticsContext(), item_id: item })
     hud.react('power')
     reportMission('item', 1)
     if (item === 'bow' || item === 'shuffle') combo.reportEvent(t(item === 'bow' ? 'itemBow' : 'itemShuffle'))
@@ -472,15 +478,28 @@ const hooks: Partial<GameHooks> = {
 async function settleCurrent(outcome: 'cleared' | 'failed' | 'quit', terminal: boolean, payout = 0): Promise<Settlement> {
   if (settlementTask) return settlementTask
   const record = recordOf(game), id = attemptId
+  const beforeAttempt = player.state.attempts[id] ? { ...player.state.attempts[id]! } : null
   suspendRun(record, id, outcome === 'cleared' ? undefined : outcome)
   settlementTask = player.settle(id, record, outcome, terminal, payout)
   try {
     const result = await settlementTask
     if (!result.ok) throw new Error('unverified result')
+    const afterAttempt = player.state.attempts[id]
+    const freshResult = outcome === 'cleared' ? (afterAttempt?.paidClears ?? 0) > (beforeAttempt?.paidClears ?? 0) : !beforeAttempt?.finished
+    if (freshResult) {
+      const metrics = { ...analyticsContext(), outcome, score: game.score, moves_used: game.log.length,
+        items_used: game.log.filter(action => action.kind === 'item').length }
+      analytics.event('level_end', { ...metrics, success: outcome === 'cleared' }, `level:${id}:${game.level}:${outcome}`)
+      if (terminal) analytics.event('game_end', metrics, `end:${id}:${outcome}`)
+    }
     if (record.moves !== lastSettlementCursor || !lastSettlement) { lastSettlement = result; lastSettlementCursor = record.moves }
     if (terminal && result.persistent) clearSuspended()
     return lastSettlement ?? result
   } finally { settlementTask = null }
+}
+function analyticsContext(): Record<string, string | number> {
+  return {mode: game.mission ? 'adventure' : 'free', region: game.mission?.region ?? 'none',
+    stage: game.mission?.step ?? 0, level: game.level, level_name: game.mission?.id ?? `free-${game.level}`, rules_version: game.rules}
 }
 function growthResult(result: Settlement): string {
   if (!result.persistent) return growthCopy().saveError
@@ -623,6 +642,7 @@ function resetPlayView(): void {
 
 function advanceStage(): void {
   if (!game.nextLevel()) return
+  analytics.event('level_start', analyticsContext())
   effects.clear()
   combo.hide()
   if (game.bonusRound) combo.reportEvent(varietyCopy().bonus[game.bonusRound])
@@ -716,6 +736,8 @@ async function startRun(boosters: readonly Item[] = [], mission: Mission | null 
   shop.refresh()
 
   screens.show('game')
+  analytics.event('game_start', analyticsContext())
+  analytics.event('level_start', analyticsContext())
   if (game.bonusRound) combo.reportEvent(varietyCopy().bonus[game.bonusRound])
   hud.invalidate()
   renderer.resize()
@@ -798,6 +820,7 @@ async function continueRun(): Promise<boolean> {
   else returnDestination = screens.active === 'home' ? 'home' : 'map'
   resetPlayView()
   screens.show('game')
+  if (game.status === 'playing') analytics.event('game_resume', analyticsContext())
   renderer.resize()
   canvas.focus({ preventScroll: true })
   if (game.status === 'levelComplete') showLevelComplete(game.level)
@@ -821,6 +844,7 @@ function paintContinue(): void {
 }
 
 screens.onChange((name) => {
+  analytics.screen(name)
   document.documentElement.classList.toggle('game-open', name === 'game')
   document.documentElement.classList.toggle('map-open', name === 'map')
   if (name === 'map') world.refresh()
@@ -1198,6 +1222,9 @@ function welcomeHome(): void {
 }
 document.documentElement.classList.toggle('map-open', screens.active === 'map')
 hub.refresh()
+analytics.screen(screens.active)
+analytics.start()
+analyticsConsent.ready()
 if (screens.active === 'home') lobby.show()
 else { splash.setProgress(100); void splash.finish(true) }
 requestAnimationFrame(frame)

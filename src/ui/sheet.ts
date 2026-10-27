@@ -1,4 +1,5 @@
 import { ModalLayer } from './modal.ts'
+import { analytics } from '../analytics/client.ts'
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id)
@@ -45,6 +46,8 @@ export class Sheet {
   }
 
   show(initial?: HTMLElement): void {
+    const menu = ({'sheet-ranks': 'leaderboard', 'sheet-today': 'missions', 'sheet-settings': 'settings', help: 'help'} as Record<string, string>)[this.root.id]
+    if (this.hidden && menu) analytics.event('menu_open', {menu})
     const mine = ++this.generation
     this.modal.open(initial)
     // `hidden` and the transition's starting class have to land in different
