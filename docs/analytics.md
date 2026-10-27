@@ -18,6 +18,23 @@ measurement was already OFF and remains OFF: history changes, search forms,
 downloads and outbound links must not generate uncontrolled duplicate/private
 events. No new account, API key, permissions, paid service or dependency.
 
+The property now has six event-scoped custom dimensions: 게임 지역 (`region`),
+게임 스테이지 (`stage`), 게임 모드 (`mode`), 게임 결과 (`outcome`),
+사용 아이템 (`item_id`), 메뉴 (`menu`). Three general-unit custom metrics are
+also registered: 게임 아이템 사용 수 (`items_used`), 게임 점수 (`score`),
+게임 행동 수 (`moves_used`). These definitions were saved and verified in the
+Google Analytics interface on 2026-10-27; registration is not evidence of received
+production data.
+
+For run totals or per-run averages, filter metrics to `game_end` before summing
+or dividing by its event count. `level_end` contains the run's cumulative snapshot,
+so combining the two event types or summing free-play stage snapshots overcounts.
+`moves_used` is the action log length, including items and stage transitions,
+rather than a pure count of gem swaps. Use `item_use` event counts for accepted
+uses by item type and `level_end` counts grouped by outcome for authored-stage
+completion/failure analysis. These results cover consenting, unblocked visitors
+and runs that actually settle; closing a tab is not a verified quit result.
+
 This change starts at live `714ba55`, in `codex/ga4-analytics`. The still-local
 `bb22c98` explorer/whole-island redesign is preserved and is NOT part of this
 analytics-only release. The live character renderer and its paused tests remain
