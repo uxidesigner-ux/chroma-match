@@ -1,0 +1,8 @@
+#analytics-consent .analytics-panel { width: min(400px, 100%); }
+.analytics-panel h2 { font-size: 24px; line-height: 1.3; margin: 0 0 16px; }
+.analytics-panel p { color: #e4edf8; font-size: 15px; line-height: 1.6; margin: 0 0 20px; text-wrap: pretty; }
+.analytics-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.analytics-actions .btn { min-height: 48px; margin: 0; white-space: normal; }
+.analytics-panel > a { display: inline-block; margin-top: 18px; color: #d6e8ff; text-decoration: underline; font-size: 13px; }
+.analytics-panel :is(button, a):focus-visible { outline: 3px solid #fff0a6; outline-offset: 3px; }
+@media (max-height: 400px) { #analytics-consent .analytics-panel { padding: 16px; } .analytics-panel p { font-size: 14px; margin-bottom: 12px; } .analytics-panel h2 { font-size: 20px; margin-bottom: 10px; } .analytics-panel > a { margin-top: 12px; } }
