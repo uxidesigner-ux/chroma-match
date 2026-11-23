@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { AUTHORED_LEVEL_COUNT, createBlankLevel, deriveGoals, getLevel, validateLevel } from './levels.ts'
 import { cellPlayable, type LevelDefinition, type ObstacleDefinition } from './model.ts'
+import { MAX_LEVEL } from './progression.ts'
 
 function accepted(level: LevelDefinition): LevelDefinition {
   const result = validateLevel(level)
@@ -36,7 +37,7 @@ test('curated progression teaches distinct goals on varied board geometries', ()
 
 test('generated campaign geometry and collectible inventories stay structurally possible across many seeds', () => {
   const geometry = new Set<string>(), difficulties = new Set<string>()
-  const ids = [...Array.from({ length: 1000 }, (_, i) => i + 1), 12297, 15321, 65535, 100000, 999999]
+  const ids = [...Array.from({ length: 1000 }, (_, i) => i + 1), 12000, 12297, 15321, 20000, 65535, 100000, 999999, 1000000, 0x100000000+12000, MAX_LEVEL-1, MAX_LEVEL]
   for (const id of ids) {
     const level = accepted(getLevel(id)), occupied = new Set<number>()
     for (const o of level.obstacles) for (const cell of o.cells) {
@@ -76,7 +77,7 @@ test('definitions are deterministic independent copies and tolerate invalid requ
   a.goals[0]!.count = 1
   a.obstacles[0]!.cells.length = 0
   assert.deepEqual(getLevel(91), b)
-  for (const value of [NaN, Infinity, -1, 0, 1.5, 1000000]) assert.equal(getLevel(value).id, 1)
+  for (const value of [NaN, Infinity, -1, 0, 1.5, MAX_LEVEL+1]) assert.equal(getLevel(value).id, 1)
   assert.equal(getLevel(999999).id, 999999)
 })
 
@@ -102,7 +103,7 @@ test('editor goals reflect inventory, not HP, and subtract already painted jelly
 test('validator rejects malformed top-level inputs and bounded numeric violations', () => {
   for (const bad of [null, [], 'level', 1, true]) rejected(bad)
   for (const [key, values] of Object.entries({
-    id: [0, 1000000, NaN, Infinity, '1'], cols: [4, 13, 1e9, null], rows: [0, 1000],
+    id: [0, MAX_LEVEL+1, NaN, Infinity, '1'], cols: [4, 13, 1e9, null], rows: [0, 1000],
     moves: [0, -1, 201, 1.5, NaN], colours: [2, 5, null], seed: [-1, 0x100000000, Infinity],
     version: [2, null], difficulty: ['impossible'], provenance: ['official'], name: ['', 'x'.repeat(81)],
   })) for (const value of values) rejected({ ...createBlankLevel(), [key]: value })
@@ -178,4 +179,16 @@ test('editor dimensions are bounded before allocation and validator returns isol
   output.goals[0]!.count = 1
   assert.notEqual(input.obstacles[0]!.cells[0], 98)
   assert.equal(input.goals[0]!.count, 18)
+})
+
+test('high level bits affect generated boards instead of repeating at every 2^32 levels',()=>{
+  const first=getLevel(20000)
+  for(const multiple of [1,2,17,1024]){
+    const id=20000+multiple*0x100000000,high=accepted(getLevel(id))
+    assert.equal(high.id,id)
+    assert.notEqual(high.seed,first.seed)
+    assert.notDeepEqual({mask:high.mask,obstacles:high.obstacles},{mask:first.mask,obstacles:first.obstacles})
+    assert.deepEqual(high,getLevel(id),'a high-numbered board remains reproducible')
+  }
+  assert.equal(accepted(getLevel(MAX_LEVEL)).id,MAX_LEVEL)
 })

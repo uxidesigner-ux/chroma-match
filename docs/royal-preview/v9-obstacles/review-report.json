@@ -1,0 +1,93 @@
+{
+  "renderer": "production RoyalRenderer; existing asset pack",
+  "materialAtlas": {
+    "type": "static GameState diagnostic",
+    "kinds": [
+      "box",
+      "stone",
+      "ice",
+      "gift",
+      "cuckoo",
+      "dynamite"
+    ],
+    "hp": [
+      12,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1
+    ],
+    "initialHp": 12,
+    "stock": 3,
+    "reducedMotion": true
+  },
+  "cycleDiagnostic": {
+    "kinds": [
+      "cuckoo",
+      "dynamite"
+    ],
+    "shellHp": [
+      3,
+      2,
+      1,
+      3,
+      2,
+      1
+    ],
+    "stock": [
+      2,
+      2,
+      2,
+      1,
+      1,
+      1
+    ],
+    "totalHits": [
+      6,
+      5,
+      4,
+      3,
+      2,
+      1
+    ],
+    "reducedMotion": true
+  },
+  "footprints": "L-shaped 3-cell objects clipped around normal shield pieces",
+  "coldOneHit": "all six kinds initialHp=hp=1",
+  "actualUI": [
+    "box 3->2->1->removed",
+    "gift 2->1 with seven reward toys",
+    "closed nest unchanged after ignored hammer; settled pixel equality"
+  ],
+  "phoneViews": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "deviceScaleFactor": 2,
+    "levels": [
+      4,
+      12297
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false
+  },
+  "verification": {
+    "typecheck": "pass",
+    "helperTests": 3,
+    "targetedNestTests": 2
+  },
+  "notes": [
+    "Hit cue shows total successful hits until removal, not the currently refilling shell only.",
+    "Gift stock is reward quantity and never multiplies required hits.",
+    "Cuckoo and dynamite shell wear resets when a content item is consumed; content art/count and total-hit cue decrease.",
+    "No engine rules changed."
+  ]
+}

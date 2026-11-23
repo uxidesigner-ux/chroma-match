@@ -1,5 +1,6 @@
 import './home.css'
 import { iconData } from './art.ts'
+import { MAX_LEVEL, normalizeLevelId } from './progression.ts'
 
 export interface HomeState {
   level: number; stars: number; coins: number; completed: number; streak: number;
@@ -165,12 +166,13 @@ export function mountHome(container: HTMLElement, callbacks: HomeCallbacks): Hom
   function refresh(): void {
     const state = callbacks.getState()
     const integer = (value: number, min = 0, max = 99999999): number => Number.isFinite(value) ? Math.min(max, Math.max(min, Math.floor(value))) : min
-    const levels = integer(state.level, 1, 999999), tasks = integer(state.tasks, 0, 6), streak = integer(state.streak, 0, 3)
+    const levels = normalizeLevelId(state.level), tasks = integer(state.tasks, 0, 6), streak = integer(state.streak, 0, 3)
     const values: Record<string, string> = {
       level: state.customBoardName ? '나만의 보드' : `레벨 ${levels}`, coins: integer(state.coins).toLocaleString('ko-KR'), stars: integer(state.stars).toLocaleString('ko-KR'),
-      completed: `${integer(state.completed).toLocaleString('ko-KR')}개 완료`, tasks: `${tasks}/6`, streak: `${streak}/3`,
+      completed: `${integer(state.completed, 0, MAX_LEVEL).toLocaleString('ko-KR')}개 완료`, tasks: `${tasks}/6`, streak: `${streak}/3`,
     }
     for (const node of shell.querySelectorAll<HTMLElement>('[data-home-value]')) node.textContent = values[node.dataset.homeValue ?? ''] ?? ''
+    shell.querySelector<HTMLElement>('[data-home-value="level"]')!.dataset.longLevel = String(String(levels).length > 8)
     shell.querySelector<HTMLElement>('[data-home-fill="tasks"]')!.style.width = `${tasks / 6 * 100}%`
     shell.querySelector<HTMLButtonElement>('#home-play')!.setAttribute('aria-label', state.customBoardName ? `${state.customBoardName} 이어하기` : `레벨 ${levels} 플레이`)
     shell.querySelector<HTMLButtonElement>('.coin-resource')!.setAttribute('aria-label', `보유 코인 ${values.coins}개, 왕국 보기`)

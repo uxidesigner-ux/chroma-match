@@ -1,10 +1,10 @@
 import { makeRng } from '../game/rng.ts'
+import { isLevelId, normalizeLevelId } from './progression.ts'
 import {
   cellPlayable, type Colour, type Difficulty, type GoalDefinition, type GoalKind,
   type LevelDefinition, type ObstacleDefinition, type ObstacleKind, type Power,
 } from './model.ts'
 
-const MAX_LEVEL = 999999
 const powers: readonly Power[] = ['rocket-h', 'rocket-v', 'propeller', 'tnt', 'lightball']
 const obstacleKinds: readonly ObstacleKind[] = ['box', 'gift', 'ice', 'stone', 'cuckoo', 'dynamite']
 const goalKinds: readonly GoalKind[] = ['colour', 'box', 'toy', 'ice', 'stone', 'cuckoo', 'dynamite', 'jelly']
@@ -13,7 +13,17 @@ const goalOrder: readonly GoalKind[] = ['toy', 'dynamite', 'cuckoo', 'box', 'ice
 const goalFor: Record<ObstacleKind, GoalKind> = { box: 'box', gift: 'toy', ice: 'ice', stone: 'stone', cuckoo: 'cuckoo', dynamite: 'dynamite' }
 const integer = (v: unknown, min: number, max: number): v is number => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max
 const record = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v)
-const seedFor = (id: number): number => (Math.imul(id, 2654435761) ^ 0x62de991f) >>> 0
+const seedFor = (id: number): number => {
+  const legacy = (Math.imul(id, 2654435761) ^ 0x62de991f) >>> 0
+  const high = Math.floor(id / 0x100000000)
+  if (!high) return legacy
+  // Preserve all existing levels while removing the old forced 2^32-ID period.
+  // A finite layout vocabulary can still repeat; uniqueness is not promised.
+  let mixed = Math.imul(high, 0x9e3779b9)
+  mixed = Math.imul(mixed ^ mixed >>> 16, 0x85ebca6b)
+  mixed = Math.imul(mixed ^ mixed >>> 13, 0xc2b2ae35)
+  return (legacy ^ mixed ^ mixed >>> 16) >>> 0
+}
 const inventory = (o: ObstacleDefinition): number => o.kind === 'gift' || o.kind === 'cuckoo' || o.kind === 'dynamite' ? o.stock ?? 1 : 1
 
 /** The goal count is work still required; pre-painted jelly is not counted again. */
@@ -222,7 +232,7 @@ function generated(id: number): LevelDefinition {
 
 /** Returns a fresh independent definition, so editor changes never mutate the campaign. */
 export function getLevel(requested: number): LevelDefinition {
-  const id = integer(requested, 1, MAX_LEVEL) ? requested : 1
+  const id = normalizeLevelId(requested)
   return id === 12297 ? reference12297() : id <= recipes.length ? authored(id) : generated(id)
 }
 
@@ -255,7 +265,7 @@ export function validateLevel(value: unknown): { level?: LevelDefinition; errors
   if (Object.keys(v).some(key => !topKeys.has(key))) errors.push('알 수 없는 레벨 속성이 있습니다.')
   const bad = (condition: boolean, message: string): void => { if (condition) errors.push(message) }
   bad(v.version !== 1, '지원하는 레벨 형식은 version 1입니다.')
-  bad(!integer(v.id, 1, MAX_LEVEL), '레벨 번호는 1~999999 정수여야 합니다.')
+  bad(!isLevelId(v.id), '레벨 번호는 1 이상의 안전한 정수여야 합니다.')
   bad(typeof v.name !== 'string' || v.name.trim().length < 1 || v.name.length > 80, '이름은 1~80자로 입력하세요.')
   bad(!integer(v.cols, 5, 12) || !integer(v.rows, 5, 12), '보드 가로·세로는 각각 5~12칸이어야 합니다.')
   bad(!integer(v.moves, 1, 200), '이동 횟수는 1~200 정수여야 합니다.')

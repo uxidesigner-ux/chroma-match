@@ -1,0 +1,8 @@
+/* Keep exact, long stage numbers readable without stretching mobile controls. */
+#level-label[data-long-level=true]{font-size:clamp(12px,3.4vw,18px);letter-spacing:-.4px;overflow-wrap:anywhere}
+#result-level[data-long-level=true]{font-size:clamp(17px,5vw,25px);overflow-wrap:anywhere}
+.home-play-button [data-long-level=true]{font-size:clamp(17px,4.5vw,23px);white-space:normal;overflow-wrap:anywhere;min-width:0;max-width:100%}
+.level-tile[data-long-level=true]{min-width:0;font-size:11px;line-height:1.15}
+.level-tile[data-long-level=true]>span{display:block;overflow-wrap:anywhere;max-width:100%}
+.pagination>span{min-width:0;overflow-wrap:anywhere;text-align:center;line-height:1.25}
+.pagination>button{flex-shrink:0}

@@ -1,6 +1,6 @@
 # Chroma Match
 
-> **개인용 왕실 리뉴얼 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. 프로펠러가 남은 목표와 운반 폭발 범위를 평가하고, 라이트볼은 구체에서 선택한 색의 블록으로 광선을 발사해 도착 순간 파괴합니다. [v8 타깃·광선 개선](docs/royal-power-direction-v8.md) · [v7 버튼·인터랙션 검수](docs/royal-rich-interaction-v7.md) · [iPhone 앱 준비·설치 안내](ios/README.md) · [실행 및 설정 안내](docs/ROYAL-LOCAL.md)
+> **개인용 왕실 리뉴얼 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. 장애물 여섯 종류에 영구적인 파손 단계와 남은 타격 표식을 적용했고, 999999판 이후에도 생성 캠페인이 이어집니다. [v9 장애물·연속 레벨 개선](docs/royal-obstacles-progression-v9.md) · [v8 타깃·광선 개선](docs/royal-power-direction-v8.md) · [v7 버튼·인터랙션 검수](docs/royal-rich-interaction-v7.md) · [iPhone 앱 준비·설치 안내](ios/README.md) · [실행 및 설정 안내](docs/ROYAL-LOCAL.md)
 
 ## 현재 개인용 게임
 

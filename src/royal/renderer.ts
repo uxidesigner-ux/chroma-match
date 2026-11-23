@@ -1,6 +1,7 @@
 import { cellPlayable, type EffectEvent, type GameState, type LevelDefinition, type ObstacleState, type Piece, type Tool } from './model.ts'
 import { iconData } from './art.ts'
 import { rasterIcon } from './raster-art.ts'
+import { obstacleDamage } from './obstacle-damage.ts'
 import { CLEAR_DURATION, INVALID_SWAP_DURATION, MATCH_CONVERGE_DURATION, POWER_CREATION_DURATION, PROPELLER_LIFT_DURATION, SWAP_DURATION, fallDuration } from './timing.ts'
 export { iconData } from './art.ts'
 
@@ -457,34 +458,192 @@ export class RoyalRenderer {
   private drawObstacle(state: GameState, obstacle: ObstacleState): void {
     const cols = state.level.cols, s = this.size, ctx = this.ctx
     let c0 = cols, c1 = 0, r0 = state.level.rows, r1 = 0
-    for (const cell of obstacle.cells) { c0 = Math.min(c0, cell % cols); c1 = Math.max(c1, cell % cols); r0 = Math.min(r0, Math.floor(cell / cols)); r1 = Math.max(r1, Math.floor(cell / cols)) }
+    const footprint = new Path2D()
+    for (const cell of obstacle.cells) {
+      c0 = Math.min(c0, cell % cols); c1 = Math.max(c1, cell % cols); r0 = Math.min(r0, Math.floor(cell / cols)); r1 = Math.max(r1, Math.floor(cell / cols))
+      const p = this.centreOf(cell); footprint.rect(p.x - s / 2, p.y - s / 2, s + .1, s + .1)
+    }
     const x = this.offsetX + c0 * s + s * .035, y = this.offsetY + r0 * s + s * .035
     const w = (c1 - c0 + 1) * s - s * .07, h = (r1 - r0 + 1) * s - s * .07
     let hitAge = 1
     for (const cell of obstacle.cells) { const birth = this.damage.get(cell); if (birth !== undefined) hitAge = Math.min(hitAge, (this.clock - birth) / .25) }
-    ctx.save()
+    ctx.save(); ctx.clip(footprint)
     if (!this.calm && hitAge < 1) ctx.translate(Math.sin(hitAge * 29) * s * .055 * (1 - hitAge), 0)
+    if (obstacle.kind === 'cuckoo' || obstacle.kind === 'dynamite') {
+      const chip = s * .13 * obstacleDamage(obstacle).wear
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w - chip * 1.8, y)
+      ctx.lineTo(x + w - chip * 1.5, y + chip); ctx.lineTo(x + w, y + chip * .5)
+      ctx.lineTo(x + w, y + h); ctx.lineTo(x + chip * 1.6, y + h)
+      ctx.lineTo(x + chip * 1.9, y + h - chip); ctx.lineTo(x, y + h - chip * .6)
+      ctx.closePath(); ctx.clip()
+    }
     ctx.shadowColor = '#1f285b66'; ctx.shadowBlur = s * .045; ctx.shadowOffsetY = s * .045
     if (obstacle.kind === 'gift') this.drawGift(x, y, w, h, obstacle.hp)
     else if (obstacle.kind === 'dynamite') this.drawDynamite(x, y, w, h, obstacle)
     else if (obstacle.kind === 'cuckoo') this.drawNest(x, y, w, h, obstacle)
-    else {
-      for (const cell of obstacle.cells) {
-        const p = this.centreOf(cell)
-        sprite(ctx, obstacle.kind, p.x, p.y, s * 1.18)
-      }
-    }
+    else for (const cell of obstacle.cells) this.drawMaterialCell(cell, obstacle)
     ctx.shadowColor = 'transparent'
-    if (obstacle.kind !== 'dynamite' && obstacle.kind !== 'cuckoo' && obstacle.kind !== 'gift') {
-      const hp = Math.min(6, obstacle.hp)
-      for (let i = 0; i < hp; i++) {
-        ctx.beginPath(); ctx.arc(x + w / 2 + (i - (hp - 1) / 2) * s * .12, y + h - s * .14, s * .035, 0, TAU)
-        ctx.fillStyle = '#fff3a0'; ctx.fill(); ctx.strokeStyle = '#744e2f'; ctx.lineWidth = 1; ctx.stroke()
-      }
-    }
+    this.drawShellWear(x, y, w, h, obstacle)
     if (hitAge < .65) {
       ctx.globalAlpha = (1 - hitAge / .65) * .3; ctx.fillStyle = '#fff8b5'
-      rounded(ctx, x, y, w, h, s * .1); ctx.fill()
+      rounded(ctx, x, y, w, h, s * .1); ctx.fill(); ctx.globalAlpha = 1
+    }
+    this.drawObstacleCues(obstacle)
+    ctx.restore()
+  }
+
+  /** Persistent state art; transient impact flashes never stand in for damage. */
+  private drawMaterialCell(cell: number, obstacle: ObstacleState): void {
+    const ctx = this.ctx, s = this.size, p = this.centreOf(cell)
+    const { wear } = obstacleDamage(obstacle)
+    ctx.save(); ctx.translate(p.x, p.y)
+    // Missing corners expose the board rather than painting a fake dark chip.
+    const notch = s * wear * (obstacle.kind === 'box' ? .11 : .15)
+    ctx.beginPath(); ctx.moveTo(-s * .49, -s * .49); ctx.lineTo(s * .30, -s * .49)
+    ctx.lineTo(s * .34 - notch * .3, -s * .49 + notch); ctx.lineTo(s * .49, -s * .40 + notch * .3)
+    ctx.lineTo(s * .49, s * .49); ctx.lineTo(-s * .34, s * .49)
+    ctx.lineTo(-s * .33 + notch * .4, s * .49 - notch); ctx.lineTo(-s * .49, s * .34 - notch * .2)
+    ctx.closePath(); ctx.clip()
+    if (obstacle.kind === 'ice') ctx.globalAlpha = 1 - wear * .24
+    sprite(ctx, obstacle.kind, 0, 0, s * (1.18 - (obstacle.kind === 'ice' ? .13 : obstacle.kind === 'stone' ? .05 : 0) * wear))
+    ctx.shadowColor = 'transparent'; ctx.globalAlpha = 1
+    if (obstacle.kind === 'box') {
+      if (obstacle.hp <= 2) {
+        // Keep the rich outer frame; replace the intact centre brace with bare,
+        // bevelled wood. A two-hit crate retains one diagonal, a one-hit crate none.
+        for (let plank = 0; plank < 3; plank++) {
+          const py = -s * .255 + plank * s * .215
+          plate(ctx, -s * .355, py, s * .71, s * .218, s * .014, plank % 2 ? '#e9a34e' : '#f9b65b', '#b76c28', '#88451d', s * .022)
+          line(ctx, -s * .325, py + s * .035, s * .325, py + s * .035, '#ffe3a0b8', s * .018)
+          line(ctx, -s * .26, py + s * .09, -s * .07, py + s * .085, '#9b531d55', s * .012)
+          line(ctx, s * .08, py + s * .15, s * .28, py + s * .155, '#81401c55', s * .01)
+        }
+        if (obstacle.hp === 2) {
+          line(ctx, -s * .33, s * .32, s * .33, -s * .25, '#81421f', s * .13)
+          line(ctx, -s * .33, s * .30, s * .33, -s * .27, '#f4bc68', s * .095)
+          line(ctx, -s * .31, s * .28, s * .31, -s * .26, '#ffe1a1', s * .018)
+          for (const sign of [-1, 1]) { ctx.fillStyle = '#8b4b20'; ctx.beginPath(); ctx.arc(sign * s * .285, -sign * s * .245, s * .022, 0, TAU); ctx.fill() }
+        }
+      }
+      this.drawFracture(-s * .29, -s * .29, s * .67, wear, 'wood')
+      if (wear > .55) {
+        ctx.fillStyle = '#fff0b0'; ctx.beginPath(); ctx.moveTo(s * .30, -s * .43); ctx.lineTo(s * .26, -s * .32); ctx.lineTo(s * .37, -s * .38); ctx.closePath(); ctx.fill()
+        line(ctx, -s * .39, s * .28, -s * .31, s * .36, '#ffdb8e', s * .022)
+      }
+    } else if (obstacle.kind === 'stone') {
+      this.drawFracture(-s * .30, -s * .34, s * .72, wear, 'stone')
+      if (wear > .35) {
+        ctx.fillStyle = '#605d86'; ctx.beginPath(); ctx.moveTo(s * .26, -s * .33); ctx.lineTo(s * .37, -s * .24); ctx.lineTo(s * .21, -s * .18); ctx.closePath(); ctx.fill()
+        line(ctx, s * .21, -s * .18, s * .37, -s * .24, '#eee9ff', s * .026)
+      }
+      if (wear > .7) { ctx.fillStyle = '#575976'; ctx.beginPath(); ctx.moveTo(-s * .37, s * .20); ctx.lineTo(-s * .15, s * .28); ctx.lineTo(-s * .30, s * .37); ctx.closePath(); ctx.fill() }
+    } else this.drawFracture(-s * .29, -s * .34, s * .70, wear, 'ice')
+    ctx.restore()
+  }
+
+  private drawFracture(x: number, y: number, size: number, wear: number, material: 'wood' | 'stone' | 'ice' | 'metal'): void {
+    if (wear <= 0) return
+    const ctx = this.ctx
+    const paths = [
+      [[.52, .02], [.45, .24], [.57, .38], [.39, .59], [.49, .77], [.32, .98]],
+      [[.57, .38], [.79, .31], [.98, .46]],
+      [[.39, .59], [.19, .51], [.02, .64]],
+      [[.49, .77], [.71, .83], [.88, .98]],
+    ]
+    const shadow = material === 'ice' ? '#2d8bb8' : material === 'wood' ? '#643314' : material === 'metal' ? '#243251' : '#42465f'
+    const light = material === 'ice' ? '#f3ffff' : material === 'wood' ? '#ffe5a4' : '#ebeafa'
+    ctx.save(); ctx.lineJoin = 'miter'; ctx.lineCap = 'round'
+    for (let j = 0; j < paths.length; j++) {
+      if (j > 0 && wear < j * .22) continue
+      const points = paths[j]!, count = j === 0 ? Math.min(points.length, 2 + Math.floor(wear * 4)) : points.length
+      ctx.beginPath()
+      for (let i = 0; i < count; i++) { const q = points[i]!; if (i === 0) ctx.moveTo(x + q[0]! * size, y + q[1]! * size); else ctx.lineTo(x + q[0]! * size, y + q[1]! * size) }
+      ctx.strokeStyle = shadow; ctx.lineWidth = size * (material === 'ice' ? .026 : .022 + wear * .027); ctx.stroke()
+      ctx.translate(-size * .009, size * .008); ctx.strokeStyle = light; ctx.lineWidth = size * (material === 'ice' ? .017 : .013); ctx.stroke(); ctx.translate(size * .009, -size * .008)
+    }
+    ctx.restore()
+  }
+
+  private drawShellWear(x: number, y: number, w: number, h: number, obstacle: ObstacleState): void {
+    const ctx = this.ctx, s = this.size, info = obstacleDamage(obstacle), wear = info.wear
+    if (obstacle.kind === 'gift') {
+      // Gift art is fitted rather than stretched; attach its reinforcement to
+      // the actual package edge, never to transparent space beside the sprite.
+      const source = rasterIcon(obstacle.hp >= 4 ? 'gift-full' : obstacle.hp === 3 ? 'gift-ribbon' : obstacle.hp === 2 ? 'gift-seal' : 'gift-open')
+      const bounds = source ? rasterRegions.get(source)?.bounds : undefined
+      if (bounds) {
+        const rotate = w > h && bounds.h > bounds.w
+        const bw = rotate ? bounds.h : bounds.w, bh = rotate ? bounds.w : bounds.h
+        const scale = Math.min(w / bw, h / bh), ww = bw * scale, hh = bh * scale
+        x += (w - ww) / 2; y += (h - hh) / 2; w = ww; h = hh
+      }
+    }
+    if (obstacle.kind === 'gift' && wear > 0) {
+      // The four supplied wrap stages remain the main silhouette. Fine tears
+      // make high-HP custom wrapping visibly wear between those stages too.
+      ctx.save(); ctx.globalAlpha = .35 + wear * .55
+      for (let i = 0; i < Math.ceil(wear * 4); i++) {
+        const px = x + w * (.08 + i * .22), py = y + h * (.15 + (i % 2) * .57)
+        line(ctx, px, py, px + s * .08, py + s * .045, '#650c35', s * .028)
+        line(ctx, px + s * .02, py - s * .01, px + s * .085, py + s * .025, '#ffb9cc', s * .016)
+      }
+      ctx.restore()
+    }
+    if (obstacle.kind === 'cuckoo') {
+      // Wear belongs to the current wooden shell; the visible birds and their
+      // count belong to stock and therefore do not refill with the shell.
+      ctx.save(); ctx.translate(x + w * .035, y + h * .18); ctx.scale(.16, 1)
+      this.drawFracture(0, 0, Math.min(h * .62, s * .85), wear, 'wood'); ctx.restore()
+      if (wear > .4) {
+        line(ctx, x + w * .11, y + h * .91, x + w * .27, y + h * .87, '#6d3216', s * .045)
+        line(ctx, x + w * .12, y + h * .94, x + w * .26, y + h * .90, '#ffd99b', s * .025)
+      }
+    } else if (obstacle.kind === 'dynamite') {
+      this.drawFracture(x + w * .08, y + h * .74, Math.min(w * .56, h * .30), wear, 'metal')
+      if (wear > .3) {
+        ctx.save(); ctx.globalAlpha = .3 + wear * .45
+        ctx.strokeStyle = '#17284a'; ctx.lineWidth = s * .035; ctx.beginPath(); ctx.ellipse(x + w * .82, y + h * .86, s * .075, s * .035, -.4, 0, Math.PI); ctx.stroke()
+        line(ctx, x + w * .75, y + h * .87, x + w * .84, y + h * .89, '#e8e8f1', s * .018); ctx.restore()
+      }
+    }
+    // An extra riveted reinforcement disappears at each custom shell hit.
+    // These sit on the rim and leave the texture/character in the centre clear.
+    for (let i = 0; i < info.extraLayers; i++) {
+      const edge = i % 4, step = Math.floor(i / 4), offset = .22 + step * .25
+      const px = x + w * (edge === 1 ? .93 : edge === 3 ? .07 : offset)
+      const py = y + h * (edge === 0 ? .08 : edge === 2 ? .91 : offset)
+      const wood = obstacle.kind === 'box' || obstacle.kind === 'cuckoo'
+      const icy = obstacle.kind === 'ice'
+      ctx.save(); ctx.translate(px, py); if (edge % 2) ctx.rotate(Math.PI / 2)
+      plate(ctx, -s * .09, -s * .035, s * .18, s * .07, s * .018, icy ? '#efffff' : wood ? '#ffe3a0' : '#e4ecff', icy ? '#85dfff' : wood ? '#c78a36' : '#8596bd', icy ? '#448cc9' : wood ? '#8b4e22' : '#4c5e85', s * .015)
+      ctx.fillStyle = icy ? '#fff' : '#6b6a70'; ctx.beginPath(); ctx.arc(-s * .055, 0, s * .012, 0, TAU); ctx.arc(s * .055, 0, s * .012, 0, TAU); ctx.fill(); ctx.restore()
+    }
+  }
+
+  private drawObstacleCues(obstacle: ObstacleState): void {
+    const ctx = this.ctx, s = this.size, info = obstacleDamage(obstacle)
+    const cells = [...obstacle.cells].sort((a, b) => a - b), lower = this.centreOf(cells[cells.length - 1]!)
+    const hits = info.remainingHits, pips = hits <= 4, text = String(hits)
+    const width = pips ? s * (.12 + hits * .105) : s * (.24 + text.length * .135)
+    const height = s * .22, x = lower.x + s * .43 - width, y = lower.y + s * .20
+    ctx.save(); ctx.shadowColor = '#141c5088'; ctx.shadowBlur = s * .025; ctx.shadowOffsetY = s * .018
+    plate(ctx, x, y, width, height, height / 2, '#244c76', '#153354', '#f7d876', s * .018)
+    ctx.shadowColor = 'transparent'
+    if (pips) for (let i = 0; i < hits; i++) {
+      const px = x + s * .11 + i * s * .105, py = y + height / 2
+      ctx.fillStyle = '#fff0a2'; ctx.beginPath(); ctx.moveTo(px, py - s * .042); ctx.lineTo(px + s * .035, py); ctx.lineTo(px, py + s * .042); ctx.lineTo(px - s * .035, py); ctx.closePath(); ctx.fill()
+    }
+    else {
+      const px = x + s * .10, py = y + height / 2
+      ctx.fillStyle = '#ffe99a'; ctx.beginPath(); ctx.moveTo(px, py - s * .037); ctx.lineTo(px + s * .03, py); ctx.lineTo(px, py + s * .037); ctx.lineTo(px - s * .03, py); ctx.closePath(); ctx.fill()
+      ctx.fillStyle = '#fff5d0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `900 ${Math.max(8, s * .17)}px system-ui, sans-serif`; ctx.fillText(text, x + (width + s * .12) / 2, y + height * .51)
+    }
+    if (info.repeating || obstacle.kind === 'gift' && info.contentCount > 1) {
+      const upper = this.centreOf(cells[0]!), count = String(info.contentCount), ww = s * (.40 + count.length * .13)
+      const bx = upper.x - s * .43, by = upper.y - s * .43
+      plate(ctx, bx, by, ww, s * .245, s * .10, '#fff3cc', '#e6c681', '#a8752a', s * .018)
+      sprite(ctx, obstacle.kind === 'gift' ? 'toy' : obstacle.kind, bx + s * .14, by + s * .12, s * .26)
+      ctx.font = `900 ${Math.max(8, s * .15)}px system-ui, sans-serif`; ctx.textAlign = 'left'; ctx.fillStyle = '#4a3750'; ctx.fillText(`×${count}`, bx + s * .26, by + s * .125)
     }
     ctx.restore()
   }
