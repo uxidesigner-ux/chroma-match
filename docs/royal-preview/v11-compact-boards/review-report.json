@@ -1,0 +1,449 @@
+{
+  "baselineCommit": "ccc6083",
+  "measurements": [
+    {
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "safeArea": {
+        "top": 59,
+        "bottom": 34
+      },
+      "level": 23,
+      "beforeBoard": {
+        "cols": 8,
+        "rows": 11
+      },
+      "afterBoard": {
+        "cols": 8,
+        "rows": 9
+      },
+      "beforeCell": 40.09,
+      "afterCell": 46.88,
+      "gainPercent": 16.94,
+      "canvas": {
+        "x": 2,
+        "y": 241,
+        "width": 389,
+        "height": 455,
+        "top": 241,
+        "right": 391,
+        "bottom": 696,
+        "left": 2
+      },
+      "grid": {
+        "x": 9,
+        "y": 257.56,
+        "width": 375,
+        "height": 421.88,
+        "bottom": 679.44
+      },
+      "footerBottom": 818,
+      "undersizedTargets": [],
+      "pageErrors": [],
+      "overflow": {
+        "horizontal": 0,
+        "vertical": 0
+      }
+    },
+    {
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "safeArea": {
+        "top": 59,
+        "bottom": 34
+      },
+      "level": 30,
+      "beforeBoard": {
+        "cols": 10,
+        "rows": 11
+      },
+      "afterBoard": {
+        "cols": 8,
+        "rows": 9
+      },
+      "beforeCell": 37.5,
+      "afterCell": 46.88,
+      "gainPercent": 25.01,
+      "canvas": {
+        "x": 2,
+        "y": 241,
+        "width": 389,
+        "height": 455,
+        "top": 241,
+        "right": 391,
+        "bottom": 696,
+        "left": 2
+      },
+      "grid": {
+        "x": 9,
+        "y": 257.56,
+        "width": 375,
+        "height": 421.88,
+        "bottom": 679.44
+      },
+      "footerBottom": 818,
+      "undersizedTargets": [],
+      "pageErrors": [],
+      "overflow": {
+        "horizontal": 0,
+        "vertical": 0
+      }
+    },
+    {
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "safeArea": {
+        "top": 59,
+        "bottom": 34
+      },
+      "level": 36,
+      "beforeBoard": {
+        "cols": 10,
+        "rows": 11
+      },
+      "afterBoard": {
+        "cols": 8,
+        "rows": 9
+      },
+      "beforeCell": 37.5,
+      "afterCell": 46.88,
+      "gainPercent": 25.01,
+      "canvas": {
+        "x": 2,
+        "y": 241,
+        "width": 389,
+        "height": 455,
+        "top": 241,
+        "right": 391,
+        "bottom": 696,
+        "left": 2
+      },
+      "grid": {
+        "x": 9,
+        "y": 257.56,
+        "width": 375,
+        "height": 421.88,
+        "bottom": 679.44
+      },
+      "footerBottom": 818,
+      "undersizedTargets": [],
+      "pageErrors": [],
+      "overflow": {
+        "horizontal": 0,
+        "vertical": 0
+      }
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 667
+      },
+      "safeArea": null,
+      "level": 23,
+      "beforeBoard": {
+        "cols": 8,
+        "rows": 11
+      },
+      "afterBoard": {
+        "cols": 8,
+        "rows": 9
+      },
+      "beforeCell": 33.18,
+      "afterCell": 40.56,
+      "gainPercent": 22.24,
+      "canvas": {
+        "x": 2,
+        "y": 164,
+        "width": 371,
+        "height": 379,
+        "top": 164,
+        "right": 373,
+        "bottom": 543,
+        "left": 2
+      },
+      "grid": {
+        "x": 25.28,
+        "y": 171,
+        "width": 324.44,
+        "height": 365,
+        "bottom": 536
+      },
+      "footerBottom": 661,
+      "undersizedTargets": [],
+      "pageErrors": [],
+      "overflow": {
+        "horizontal": 0,
+        "vertical": 0
+      }
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 667
+      },
+      "safeArea": null,
+      "level": 30,
+      "beforeBoard": {
+        "cols": 10,
+        "rows": 11
+      },
+      "afterBoard": {
+        "cols": 8,
+        "rows": 9
+      },
+      "beforeCell": 33.18,
+      "afterCell": 40.56,
+      "gainPercent": 22.24,
+      "canvas": {
+        "x": 2,
+        "y": 164,
+        "width": 371,
+        "height": 379,
+        "top": 164,
+        "right": 373,
+        "bottom": 543,
+        "left": 2
+      },
+      "grid": {
+        "x": 25.28,
+        "y": 171,
+        "width": 324.44,
+        "height": 365,
+        "bottom": 536
+      },
+      "footerBottom": 661,
+      "undersizedTargets": [],
+      "pageErrors": [],
+      "overflow": {
+        "horizontal": 0,
+        "vertical": 0
+      }
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 667
+      },
+      "safeArea": null,
+      "level": 36,
+      "beforeBoard": {
+        "cols": 10,
+        "rows": 11
+      },
+      "afterBoard": {
+        "cols": 8,
+        "rows": 9
+      },
+      "beforeCell": 33.18,
+      "afterCell": 40.56,
+      "gainPercent": 22.24,
+      "canvas": {
+        "x": 2,
+        "y": 164,
+        "width": 371,
+        "height": 379,
+        "top": 164,
+        "right": 373,
+        "bottom": 543,
+        "left": 2
+      },
+      "grid": {
+        "x": 25.28,
+        "y": 171,
+        "width": 324.44,
+        "height": 365,
+        "bottom": 536
+      },
+      "footerBottom": 661,
+      "undersizedTargets": [],
+      "pageErrors": [],
+      "overflow": {
+        "horizontal": 0,
+        "vertical": 0
+      }
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "safeArea": null,
+      "level": 23,
+      "beforeBoard": {
+        "cols": 8,
+        "rows": 11
+      },
+      "afterBoard": {
+        "cols": 8,
+        "rows": 9
+      },
+      "beforeCell": 46.5,
+      "afterCell": 46.5,
+      "gainPercent": 0.0,
+      "canvas": {
+        "x": 2,
+        "y": 182,
+        "width": 386,
+        "height": 534,
+        "top": 182,
+        "right": 388,
+        "bottom": 716,
+        "left": 2
+      },
+      "grid": {
+        "x": 9,
+        "y": 239.75,
+        "width": 372,
+        "height": 418.5,
+        "bottom": 658.25
+      },
+      "footerBottom": 838,
+      "undersizedTargets": [],
+      "pageErrors": [],
+      "overflow": {
+        "horizontal": 0,
+        "vertical": 0
+      }
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "safeArea": null,
+      "level": 30,
+      "beforeBoard": {
+        "cols": 10,
+        "rows": 11
+      },
+      "afterBoard": {
+        "cols": 8,
+        "rows": 9
+      },
+      "beforeCell": 37.2,
+      "afterCell": 46.5,
+      "gainPercent": 25.0,
+      "canvas": {
+        "x": 2,
+        "y": 182,
+        "width": 386,
+        "height": 534,
+        "top": 182,
+        "right": 388,
+        "bottom": 716,
+        "left": 2
+      },
+      "grid": {
+        "x": 9,
+        "y": 239.75,
+        "width": 372,
+        "height": 418.5,
+        "bottom": 658.25
+      },
+      "footerBottom": 838,
+      "undersizedTargets": [],
+      "pageErrors": [],
+      "overflow": {
+        "horizontal": 0,
+        "vertical": 0
+      }
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "safeArea": null,
+      "level": 36,
+      "beforeBoard": {
+        "cols": 10,
+        "rows": 11
+      },
+      "afterBoard": {
+        "cols": 8,
+        "rows": 9
+      },
+      "beforeCell": 37.2,
+      "afterCell": 46.5,
+      "gainPercent": 25.0,
+      "canvas": {
+        "x": 2,
+        "y": 182,
+        "width": 386,
+        "height": 534,
+        "top": 182,
+        "right": 388,
+        "bottom": 716,
+        "left": 2
+      },
+      "grid": {
+        "x": 9,
+        "y": 239.75,
+        "width": 372,
+        "height": 418.5,
+        "bottom": 658.25
+      },
+      "footerBottom": 838,
+      "undersizedTargets": [],
+      "pageErrors": [],
+      "overflow": {
+        "horizontal": 0,
+        "vertical": 0
+      }
+    }
+  ],
+  "touchAndPreservation": {
+    "errors": [],
+    "touchCases": [
+      {
+        "level": 23,
+        "cols": 8,
+        "rows": 9,
+        "subject": "ice-1",
+        "cell": 7,
+        "beforeHp": 3,
+        "afterHp": 2,
+        "movesBefore": 31,
+        "movesAfter": 31,
+        "turn": 0,
+        "aim": {
+          "x": 360.5625,
+          "y": 281
+        }
+      },
+      {
+        "level": 24,
+        "cols": 8,
+        "rows": 9,
+        "subject": "gift-1",
+        "cell": 7,
+        "beforeHp": 4,
+        "afterHp": 3,
+        "movesBefore": 29,
+        "movesAfter": 29,
+        "turn": 0,
+        "aim": {
+          "x": 360.5625,
+          "y": 281
+        }
+      }
+    ],
+    "reference": {
+      "level": 12297,
+      "cols": 9,
+      "rows": 11
+    },
+    "custom": {
+      "cols": 11,
+      "rows": 11
+    }
+  },
+  "visualReview": "Reviewed real UI level23 at safe and short phone sizes, authored30 and generated36. No HUD/label/control collisions; board fits viewport. Normal390x844 level23 was already width-limited, so cell size stays46.5px.",
+  "limit": "Safe areas simulated using59px top and34px bottom shell padding in Chrome. CSS was unchanged during this data-size comparison."
+}

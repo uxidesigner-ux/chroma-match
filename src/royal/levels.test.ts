@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { AUTHORED_LEVEL_COUNT, createBlankLevel, deriveGoals, getLevel, validateLevel } from './levels.ts'
+import { AUTHORED_LEVEL_COUNT, CAMPAIGN_MAX_COLS, CAMPAIGN_MAX_ROWS, LEVEL_PREVIEWS, createBlankLevel, deriveGoals, getLevel, validateLevel } from './levels.ts'
 import { cellPlayable, type LevelDefinition, type ObstacleDefinition } from './model.ts'
 import { MAX_LEVEL } from './progression.ts'
 
@@ -16,6 +16,13 @@ function rejected(value: unknown, message?: RegExp): void {
   assert.ok(result.errors.length)
   if (message) assert.match(result.errors.join(' '), message)
 }
+function hasFreeMatchArea(level: LevelDefinition, occupied: Set<number>): boolean {
+  for (let row = 0; row <= level.rows - 3; row++) for (let col = 0; col <= level.cols - 3; col++) {
+    const cells = Array.from({ length: 9 }, (_, i) => (row + Math.floor(i / 3)) * level.cols + col + i % 3)
+    if (cells.every(cell => cellPlayable(level, cell) && !occupied.has(cell))) return true
+  }
+  return false
+}
 
 test('curated progression teaches distinct goals on varied board geometries', () => {
   assert.equal(AUTHORED_LEVEL_COUNT, 32)
@@ -29,14 +36,19 @@ test('curated progression teaches distinct goals on varied board geometries', ()
   assert.ok(levels[12]!.goals.some(g => g.kind === 'stone'))
   assert.ok(levels[13]!.goals.some(g => g.kind === 'dynamite'))
   assert.ok(levels.every(level => level.provenance === 'authored'))
-  assert.ok(new Set(levels.map(level => level.mask.join('/'))).size >= 20)
+  assert.ok(new Set(levels.map(level => level.mask.join('/'))).size >= 18, 'compact boards keep distinct terraces, wings, courtyards and other shapes')
+  assert.ok(new Set(levels.map(level => JSON.stringify(level.obstacles))).size >= 26, 'shared dimensions still have distinct obstacle layouts')
+  for (const preview of LEVEL_PREVIEWS) {
+    const level = levels[preview.id - 1]!
+    assert.deepEqual([preview.cols, preview.rows], [level.cols, level.rows])
+  }
   assert.equal(new Set(levels.map(level => level.difficulty)).size, 4)
   assert.equal(levels[20]!.difficulty, 'normal')
   assert.ok(levels[20]!.obstacles.length < levels[19]!.obstacles.length, 'a simpler board follows the challenge')
 })
 
-test('generated campaign geometry and collectible inventories stay structurally possible across many seeds', () => {
-  const geometry = new Set<string>(), difficulties = new Set<string>()
+test('compact campaign geometry and collectible inventories stay structurally possible across many seeds', () => {
+  const geometry = new Set<string>(), layouts = new Set<string>(), difficulties = new Set<string>()
   const ids = [...Array.from({ length: 1000 }, (_, i) => i + 1), 12000, 12297, 15321, 20000, 65535, 100000, 999999, 1000000, 0x100000000+12000, MAX_LEVEL-1, MAX_LEVEL]
   for (const id of ids) {
     const level = accepted(getLevel(id)), occupied = new Set<number>()
@@ -47,11 +59,46 @@ test('generated campaign geometry and collectible inventories stay structurally 
     }
     const free = level.mask.join('').split('').filter(c => c === '1').length - occupied.size
     assert.ok(free >= 9)
+    if (level.provenance !== 'reference-reconstruction') {
+      assert.ok(level.cols <= CAMPAIGN_MAX_COLS && level.rows <= CAMPAIGN_MAX_ROWS, `campaign ${id} must fit the mobile board limit`)
+      assert.ok(hasFreeMatchArea(level, occupied), `campaign ${id} needs an unobstructed 3×3 starting match area`)
+    }
     assert.ok(level.goals.length >= 1)
-    geometry.add(level.mask.join('/')); difficulties.add(level.difficulty)
+    assert.deepEqual(level.goals.filter(goal => goal.kind !== 'colour'), deriveGoals(level).filter(goal => goal.kind !== 'colour'), `level ${id} goals must match the placed inventory and unpainted jelly`)
+    geometry.add(level.mask.join('/')); layouts.add(JSON.stringify([level.mask, level.obstacles])); difficulties.add(level.difficulty)
   }
-  assert.ok(geometry.size > 100)
+  assert.ok(geometry.size >= 45, 'a compact vocabulary still varies the board silhouette')
+  assert.ok(layouts.size > 500, 'obstacle placements supply variety within the smaller dimensions')
   assert.equal(difficulties.size, 4)
+})
+
+test('level 23 keeps its ice and bird challenge within nine rows', () => {
+  const level = accepted(getLevel(23))
+  assert.deepEqual([level.cols, level.rows, level.moves], [8, 9, 31])
+  assert.deepEqual(level.goals, [{ kind: 'cuckoo', count: 2 }, { kind: 'ice', count: 8 }])
+  assert.equal(level.obstacles.filter(o => o.kind === 'ice').length, 8)
+  assert.equal(level.obstacles.filter(o => o.kind === 'cuckoo').length, 1)
+  assert.match(level.description!, /테라스의 얼음/)
+})
+
+test('compact revisions preserve established seeds, difficulty and move budgets', () => {
+  const established = [
+    { id: 33, seed: 133707470, moves: 32, difficulty: 'normal' },
+    { id: 41, seed: 876405830, moves: 31, difficulty: 'super-hard' },
+    { id: 42, seed: 2546429461, moves: 31, difficulty: 'hard' },
+    { id: 57, seed: 1485078902, moves: 35, difficulty: 'normal' },
+    { id: 12000, seed: 179753471, moves: 32, difficulty: 'normal' },
+    { id: 20000, seed: 3437083967, moves: 32, difficulty: 'hard' },
+    { id: 999999, seed: 1018891664, moves: 33, difficulty: 'normal' },
+  ]
+  for (const expected of established) {
+    const { id, seed, moves, difficulty } = getLevel(expected.id)
+    assert.deepEqual({ id, seed, moves, difficulty }, expected)
+  }
+  const compact = getLevel(42)
+  assert.deepEqual([compact.cols, compact.rows], [8, 9])
+  assert.deepEqual(compact.mask, ['11000011', '11000011', ...Array(7).fill('11111111')])
+  assert.deepEqual(compact.goals, [{ kind: 'toy', count: 5 }, { kind: 'cuckoo', count: 4 }, { kind: 'jelly', count: 62 }])
 })
 
 test('reference 12297 remains a labelled reconstruction with its own mask and achievable observations', () => {
@@ -173,7 +220,10 @@ test('initial powers preserve authored placements and cannot overlap or inject u
 test('editor dimensions are bounded before allocation and validator returns isolated data', () => {
   assert.equal(createBlankLevel(1000000000, NaN).cols, 8)
   assert.equal(createBlankLevel(1000000000, NaN).rows, 9)
-  accepted(createBlankLevel(5, 5)); accepted(createBlankLevel(12, 12))
+  accepted(createBlankLevel(5, 5))
+  const custom = createBlankLevel(12, 12), restored = accepted(JSON.parse(JSON.stringify(custom)))
+  assert.deepEqual([restored.cols, restored.rows], [12, 12], 'campaign caps must not resize existing custom boards')
+  assert.deepEqual(restored, custom)
   const input = getLevel(12297), output = accepted(input)
   output.obstacles[0]!.cells[0] = 98
   output.goals[0]!.count = 1

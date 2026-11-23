@@ -5,6 +5,10 @@ import {
   type LevelDefinition, type ObstacleDefinition, type ObstacleKind, type Power,
 } from './model.ts'
 
+export const CAMPAIGN_MAX_COLS = 8
+export const CAMPAIGN_MAX_ROWS = 9
+const campaignSize = (cols: number, rows: number): [number, number] => [Math.min(CAMPAIGN_MAX_COLS, cols), Math.min(CAMPAIGN_MAX_ROWS, rows)]
+
 const powers: readonly Power[] = ['rocket-h', 'rocket-v', 'propeller', 'tnt', 'lightball']
 const obstacleKinds: readonly ObstacleKind[] = ['box', 'gift', 'ice', 'stone', 'cuckoo', 'dynamite']
 const goalKinds: readonly GoalKind[] = ['colour', 'box', 'toy', 'ice', 'stone', 'cuckoo', 'dynamite', 'jelly']
@@ -90,27 +94,27 @@ const recipes: readonly Recipe[] = [
   { name: '얼음 길', size: [8, 8], shape: 'hourglass', moves: 28, ice: 5, introduction: '얼음 옆에서 매치하면 끝부분이 줄어들어요. 길을 열어 보세요.' },
   { name: '겨울의 선물', size: [8, 9], shape: 'cross', moves: 30, gifts: 4, ice: 3, introduction: '선물과 얼음 사이에 로켓을 만들어 보세요.' },
   { name: '뻐꾸기 시계', size: [8, 8], shape: 'rectangle', moves: 28, cuckoo: 1, boxes: 4, introduction: '둥지 문이 열린 차례에 옆에서 매치하면 새를 모을 수 있어요.' },
-  { name: '두 개의 둥지', size: [9, 9], shape: 'wings', moves: 31, cuckoo: 2, jelly: true, introduction: '문은 이동마다 열리고 닫혀요. 열린 둥지를 찾아보세요.' },
+  { name: '두 개의 둥지', size: [8, 9], shape: 'wings', moves: 31, cuckoo: 2, jelly: true, introduction: '문은 이동마다 열리고 닫혀요. 열린 둥지를 찾아보세요.' },
   { name: '돌의 정원', size: [8, 9], shape: 'terrace', moves: 30, stone: 3, boxes: 5, introduction: '돌은 파워업으로 세 번 타격해야 부서져요.' },
   { name: '회랑의 불꽃', size: [8, 8], shape: 'rounded', moves: 29, dynamite: 1, introduction: '다이너마이트와 같은 색을 옆에서 매치하면 큰 폭발이 일어나요.' },
-  { name: '왕실 금고', size: [9, 9], shape: 'courtyard', moves: 28, difficulty: 'super-hard', gifts: 5, stone: 3, introduction: '파워업끼리 합치면 두꺼운 장애물도 빠르게 열 수 있어요.' },
+  { name: '왕실 금고', size: [8, 9], shape: 'courtyard', moves: 28, difficulty: 'super-hard', gifts: 5, stone: 3, introduction: '파워업끼리 합치면 두꺼운 장애물도 빠르게 열 수 있어요.' },
   { name: '햇살 아래 젤리', size: [8, 9], shape: 'diamond', moves: 30, jelly: true, colours: [{ colour: 3, count: 24 }], introduction: '잎을 모으며 가장자리까지 젤리를 퍼뜨리세요.' },
-  { name: '정원 파티', size: [9, 10], shape: 'rounded', moves: 32, gifts: 6, cuckoo: 1, introduction: '선물의 장난감과 열린 둥지의 새를 함께 모으세요.' },
-  { name: '유리창 너머', size: [9, 9], shape: 'windows', moves: 29, ice: 6, jelly: true, introduction: '작은 빈 칸들이 낙하 경로를 나눠요.' },
-  { name: '불꽃 분수', size: [9, 10], shape: 'u', moves: 30, dynamite: 1, boxes: 10, jelly: true, introduction: '다이너마이트로 넓은 보드의 상자들을 동시에 타격하세요.' },
-  { name: '왕의 시험', size: [9, 10], shape: 'wings', moves: 28, difficulty: 'extreme', gifts: 5, stone: 4, cuckoo: 1, introduction: '목표가 많은 판에서는 특수 블록 조합이 큰 도움이 돼요.' },
+  { name: '정원 파티', size: [8, 9], shape: 'rounded', moves: 32, gifts: 6, cuckoo: 1, introduction: '선물의 장난감과 열린 둥지의 새를 함께 모으세요.' },
+  { name: '유리창 너머', size: [8, 9], shape: 'windows', moves: 29, ice: 6, jelly: true, introduction: '작은 빈 칸들이 낙하 경로를 나눠요.' },
+  { name: '불꽃 분수', size: [8, 9], shape: 'u', moves: 30, dynamite: 1, boxes: 10, jelly: true, introduction: '다이너마이트로 넓은 보드의 상자들을 동시에 타격하세요.' },
+  { name: '왕의 시험', size: [8, 9], shape: 'wings', moves: 28, difficulty: 'extreme', gifts: 5, stone: 4, cuckoo: 1, introduction: '목표가 많은 판에서는 특수 블록 조합이 큰 도움이 돼요.' },
   { name: '새로운 산책', size: [7, 8], shape: 'cross', moves: 28, boxes: 5, colours: [{ colour: 0, count: 24 }], introduction: '잠깐 숨을 고르며 왕관과 상자를 모으세요.' },
-  { name: '연못의 선물', size: [9, 9], shape: 'courtyard', moves: 32, gifts: 7, jelly: true, introduction: '선물 아래에 있던 바닥도 젤리로 채워야 해요.' },
-  { name: '얼음 탑', size: [8, 11], shape: 'terrace', moves: 31, ice: 8, cuckoo: 1, introduction: '세로로 긴 보드는 세로 로켓과 대포를 활용해 보세요.' },
-  { name: '황금 다리', size: [10, 9], shape: 'wings', moves: 29, difficulty: 'hard', gifts: 6, dynamite: 1, introduction: '양쪽 날개를 잇는 중앙 통로가 중요해요.' },
-  { name: '꽃잎 미로', size: [9, 10], shape: 'windows', moves: 32, boxes: 8, ice: 4, jelly: true, introduction: '여러 곳에 퍼진 젤리를 연결해 보세요.' },
-  { name: '시계의 무도회', size: [10, 10], shape: 'rounded', moves: 32, cuckoo: 2, gifts: 5, introduction: '열린 둥지와 선물상자에 맞는 순서로 움직이세요.' },
-  { name: '돌과 불꽃', size: [9, 10], shape: 'hourglass', moves: 30, stone: 5, dynamite: 1, introduction: '다이너마이트와 파워업으로 돌의 겹을 벗겨내세요.' },
-  { name: '별빛 회랑', size: [9, 11], shape: 'u', moves: 30, difficulty: 'super-hard', gifts: 7, cuckoo: 1, jelly: true, introduction: '좁은 날개에서도 프로펠러로 먼 목표를 도울 수 있어요.' },
-  { name: '왕실 축제', size: [10, 10], shape: 'arch', moves: 33, gifts: 6, ice: 4, dynamite: 1, introduction: '여러 기믹이 만난 정원에서 큰 연쇄를 만들어 보세요.' },
-  { name: '왕관의 정원', size: [10, 11], shape: 'courtyard', moves: 29, difficulty: 'extreme', stone: 5, gifts: 7, cuckoo: 1, jelly: true, introduction: '목표와 남은 이동을 살피며 모든 장치를 활용하세요.' },
-  { name: '비밀의 테라스', size: [8, 10], shape: 'terrace', moves: 32, boxes: 10, jelly: true, introduction: '계단 모양 가장자리까지 젤리를 퍼뜨려 보세요.' },
-  { name: '축하의 불꽃', size: [10, 10], shape: 'diamond', moves: 33, dynamite: 2, gifts: 6, introduction: '색을 맞춰 다이너마이트를 연속으로 작동시키세요.' },
+  { name: '연못의 선물', size: [8, 9], shape: 'courtyard', moves: 32, gifts: 7, jelly: true, introduction: '선물 아래에 있던 바닥도 젤리로 채워야 해요.' },
+  { name: '얼음 탑', size: [8, 9], shape: 'terrace', moves: 31, ice: 8, cuckoo: 1, introduction: '계단 모양 테라스의 얼음을 깨고 열린 둥지의 새를 모으세요.' },
+  { name: '황금 다리', size: [8, 9], shape: 'wings', moves: 29, difficulty: 'hard', gifts: 6, dynamite: 1, introduction: '양쪽 날개를 잇는 중앙 통로가 중요해요.' },
+  { name: '꽃잎 미로', size: [8, 9], shape: 'windows', moves: 32, boxes: 8, ice: 4, jelly: true, introduction: '여러 곳에 퍼진 젤리를 연결해 보세요.' },
+  { name: '시계의 무도회', size: [8, 9], shape: 'rounded', moves: 32, cuckoo: 2, gifts: 5, introduction: '열린 둥지와 선물상자에 맞는 순서로 움직이세요.' },
+  { name: '돌과 불꽃', size: [8, 9], shape: 'hourglass', moves: 30, stone: 5, dynamite: 1, introduction: '다이너마이트와 파워업으로 돌의 겹을 벗겨내세요.' },
+  { name: '별빛 회랑', size: [8, 9], shape: 'u', moves: 30, difficulty: 'super-hard', gifts: 7, cuckoo: 1, jelly: true, introduction: '좁은 날개에서도 프로펠러로 먼 목표를 도울 수 있어요.' },
+  { name: '왕실 축제', size: [8, 9], shape: 'arch', moves: 33, gifts: 6, ice: 4, dynamite: 1, introduction: '여러 기믹이 만난 정원에서 큰 연쇄를 만들어 보세요.' },
+  { name: '왕관의 정원', size: [8, 9], shape: 'courtyard', moves: 29, difficulty: 'extreme', stone: 5, gifts: 7, cuckoo: 1, jelly: true, introduction: '목표와 남은 이동을 살피며 모든 장치를 활용하세요.' },
+  { name: '비밀의 테라스', size: [8, 9], shape: 'terrace', moves: 32, boxes: 10, jelly: true, introduction: '계단 모양 가장자리까지 젤리를 퍼뜨려 보세요.' },
+  { name: '축하의 불꽃', size: [8, 9], shape: 'diamond', moves: 33, dynamite: 2, gifts: 6, introduction: '색을 맞춰 다이너마이트를 연속으로 작동시키세요.' },
 ]
 
 /** Keep a wide free match area in the centre, rather than fencing off every spawn. */
@@ -173,7 +177,7 @@ function decorate(level: LevelDefinition, recipe: Recipe): void {
 
 function authored(id: number): LevelDefinition {
   const recipe = recipes[id - 1]!
-  const [cols, rows] = recipe.size
+  const [cols, rows] = campaignSize(...recipe.size)
   const level: LevelDefinition = {
     version: 1, id, name: recipe.name, cols, rows, mask: shapeMask(cols, rows, recipe.shape), moves: recipe.moves,
     difficulty: recipe.difficulty ?? 'normal', colours: 4, seed: seedFor(id), goals: [], obstacles: [], jelly: [],
@@ -203,7 +207,10 @@ function reference12297(): LevelDefinition {
 
 function generated(id: number): LevelDefinition {
   const seed = seedFor(id), rng = makeRng(seed)
-  const cols = 7 + rng.int(4), rows = 8 + rng.int(4)
+  // Keep both original RNG draws so existing compact boards, shape families,
+  // difficulty and move budgets retain their seeded campaign identities.
+  const designedCols = 7 + rng.int(4), designedRows = 8 + rng.int(4)
+  const [cols, rows] = campaignSize(designedCols, designedRows)
   const shapes: Shape[] = ['rectangle', 'rounded', 'hourglass', 'courtyard', 'u', 'stairs', 'cross', 'wings', 'terrace', 'windows', 'arch', 'diamond']
   const shape = rng.pick(shapes)
   const roll = rng.int(20)
@@ -213,7 +220,7 @@ function generated(id: number): LevelDefinition {
   const archetype = rng.int(6)
   const recipe: Recipe = {
     name: `${['정원', '회랑', '테라스', '왕실', '분수', '탑'][archetype]}의 모험`, size: [cols, rows], shape,
-    moves: 33 + Math.floor((cols * rows - 70) / 12) - rank * 2, difficulty,
+    moves: 33 + Math.floor((designedCols * designedRows - 70) / 12) - rank * 2, difficulty,
     introduction: '목표와 보드 모양에 맞춰 특수 블록을 활용해 보세요.',
   }
   if (archetype === 0) { recipe.boxes = 7 + tier + rank; recipe.gifts = 3 + rank; recipe.jelly = true }
@@ -237,7 +244,10 @@ export function getLevel(requested: number): LevelDefinition {
 }
 
 export const AUTHORED_LEVEL_COUNT = recipes.length
-export const LEVEL_PREVIEWS = recipes.map((recipe, i) => ({ id: i + 1, name: recipe.name, difficulty: recipe.difficulty ?? 'normal' as Difficulty, cols: recipe.size[0], rows: recipe.size[1] }))
+export const LEVEL_PREVIEWS = recipes.map((recipe, i) => {
+  const [cols, rows] = campaignSize(...recipe.size)
+  return { id: i + 1, name: recipe.name, difficulty: recipe.difficulty ?? 'normal' as Difficulty, cols, rows }
+})
 
 function adjacent(cell: number, cols: number, total: number): number[] {
   return [cell % cols > 0 ? cell - 1 : -1, cell % cols < cols - 1 ? cell + 1 : -1, cell - cols, cell + cols].filter(c => c >= 0 && c < total)
