@@ -1,12 +1,13 @@
 import { makeRng } from '../game/rng.ts'
 import { isLevelId, normalizeLevelId } from './progression.ts'
+import { generateCampaignLevel } from './campaign-generator.ts'
+import { CAMPAIGN_MAX_COLS, CAMPAIGN_MAX_ROWS } from './campaign-geometry.ts'
+export { CAMPAIGN_MAX_COLS, CAMPAIGN_MAX_ROWS } from './campaign-geometry.ts'
 import {
   cellPlayable, type Colour, type Difficulty, type GoalDefinition, type GoalKind,
   type LevelDefinition, type ObstacleDefinition, type ObstacleKind, type Power,
 } from './model.ts'
 
-export const CAMPAIGN_MAX_COLS = 8
-export const CAMPAIGN_MAX_ROWS = 9
 const campaignSize = (cols: number, rows: number): [number, number] => [Math.min(CAMPAIGN_MAX_COLS, cols), Math.min(CAMPAIGN_MAX_ROWS, rows)]
 
 const powers: readonly Power[] = ['rocket-h', 'rocket-v', 'propeller', 'tnt', 'lightball']
@@ -206,35 +207,7 @@ function reference12297(): LevelDefinition {
 }
 
 function generated(id: number): LevelDefinition {
-  const seed = seedFor(id), rng = makeRng(seed)
-  // Keep both original RNG draws so existing compact boards, shape families,
-  // difficulty and move budgets retain their seeded campaign identities.
-  const designedCols = 7 + rng.int(4), designedRows = 8 + rng.int(4)
-  const [cols, rows] = campaignSize(designedCols, designedRows)
-  const shapes: Shape[] = ['rectangle', 'rounded', 'hourglass', 'courtyard', 'u', 'stairs', 'cross', 'wings', 'terrace', 'windows', 'arch', 'diamond']
-  const shape = rng.pick(shapes)
-  const roll = rng.int(20)
-  const difficulty: Difficulty = roll === 0 ? 'extreme' : roll < 4 ? 'super-hard' : roll < 9 ? 'hard' : 'normal'
-  const tier = Math.min(4, Math.floor((id - 33) / 20))
-  const rank = difficulties.indexOf(difficulty)
-  const archetype = rng.int(6)
-  const recipe: Recipe = {
-    name: `${['정원', '회랑', '테라스', '왕실', '분수', '탑'][archetype]}의 모험`, size: [cols, rows], shape,
-    moves: 33 + Math.floor((designedCols * designedRows - 70) / 12) - rank * 2, difficulty,
-    introduction: '목표와 보드 모양에 맞춰 특수 블록을 활용해 보세요.',
-  }
-  if (archetype === 0) { recipe.boxes = 7 + tier + rank; recipe.gifts = 3 + rank; recipe.jelly = true }
-  if (archetype === 1) { recipe.gifts = 5 + tier; recipe.cuckoo = rank > 1 ? 2 : 1 }
-  if (archetype === 2) { recipe.ice = 6 + tier; recipe.dynamite = 1; recipe.jelly = true }
-  if (archetype === 3) { recipe.stone = 3 + rank; recipe.boxes = 5 + tier; recipe.dynamite = 1 }
-  if (archetype === 4) { recipe.cuckoo = 2; recipe.gifts = 4 + rank; recipe.jelly = true }
-  if (archetype === 5) { recipe.gifts = 4 + tier; recipe.ice = 3 + rank; recipe.dynamite = 1 }
-  const level: LevelDefinition = {
-    version: 1, id, name: recipe.name, cols, rows, mask: shapeMask(cols, rows, shape, rng.int(3)), moves: recipe.moves,
-    difficulty, colours: 4, seed, goals: [], obstacles: [], jelly: [], provenance: 'generated', description: recipe.introduction,
-  }
-  decorate(level, recipe)
-  return level
+  return generateCampaignLevel(id, seedFor(id), deriveGoals)
 }
 
 /** Returns a fresh independent definition, so editor changes never mutate the campaign. */

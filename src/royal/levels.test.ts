@@ -81,24 +81,16 @@ test('level 23 keeps its ice and bird challenge within nine rows', () => {
   assert.match(level.description!, /테라스의 얼음/)
 })
 
-test('compact revisions preserve established seeds, difficulty and move budgets', () => {
+test('authored boards keep their established challenge and generated IDs keep their seed identity', () => {
   const established = [
-    { id: 33, seed: 133707470, moves: 32, difficulty: 'normal' },
-    { id: 41, seed: 876405830, moves: 31, difficulty: 'super-hard' },
-    { id: 42, seed: 2546429461, moves: 31, difficulty: 'hard' },
-    { id: 57, seed: 1485078902, moves: 35, difficulty: 'normal' },
-    { id: 12000, seed: 179753471, moves: 32, difficulty: 'normal' },
-    { id: 20000, seed: 3437083967, moves: 32, difficulty: 'hard' },
-    { id: 999999, seed: 1018891664, moves: 33, difficulty: 'normal' },
+    { id: 23, seed: 1411741688, moves: 31, difficulty: 'normal' },
+    { id: 30, seed: 3898530721, moves: 29, difficulty: 'extreme' },
   ]
   for (const expected of established) {
     const { id, seed, moves, difficulty } = getLevel(expected.id)
     assert.deepEqual({ id, seed, moves, difficulty }, expected)
   }
-  const compact = getLevel(42)
-  assert.deepEqual([compact.cols, compact.rows], [8, 9])
-  assert.deepEqual(compact.mask, ['11000011', '11000011', ...Array(7).fill('11111111')])
-  assert.deepEqual(compact.goals, [{ kind: 'toy', count: 5 }, { kind: 'cuckoo', count: 4 }, { kind: 'jelly', count: 62 }])
+  for (const [id, seed] of [[33, 133707470], [42, 2546429461], [12000, 179753471], [20000, 3437083967], [999999, 1018891664]]) assert.equal(getLevel(id!).seed, seed)
 })
 
 test('reference 12297 remains a labelled reconstruction with its own mask and achievable observations', () => {

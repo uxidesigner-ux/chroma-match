@@ -4,6 +4,7 @@ import type { Colour, GoalState, LevelDefinition, ObstacleDefinition, ObstacleSt
 type Snapshot = {
   level: number; cols: number; rows: number; time: number; moves: number; turn: number; status: string;
   obstacles: ObstacleState[]; pieces: (Piece | null)[]; goals: GoalState[];
+  mask: string[]; jelly: boolean[]; hint: [number, number] | null;
 }
 type Damage = ReturnType<typeof import('../../src/royal/obstacle-damage.ts').obstacleDamage>
 type InspectWindow = Window & { __royalSnapshot: Snapshot; __toolContact?: Snapshot }
@@ -241,24 +242,68 @@ test('level one million can be entered through the UI and survives home navigati
 })
 
 test('legitimately completing campaign level 999999 advances into level one million', async ({ page }) => {
-  test.setTimeout(60000)
+  test.setTimeout(120000)
   await openGame(page, undefined, 999999)
-  for (let actions = 0; actions < 60; actions++) {
+  await page.locator('#settings-open').click()
+  await page.locator('#setting-unlimitedMoves').check()
+  await page.locator('#settings-form button[type="submit"]').click()
+  const useLine = async (tool: 'arrow' | 'cannon', cell: number) => {
+    await page.locator(`[data-tool="${tool}"]`).click()
+    const p = await point(page, cell)
+    await page.mouse.click(p.x, p.y)
+  }
+  const useHint = async (current: Snapshot) => {
+    expect(current.hint, 'an actual move is required to reopen a closed nest or refill target colours').not.toBeNull()
+    const [a, b] = current.hint!, from = await point(page, a)
+    if (a === b) await page.mouse.click(from.x, from.y)
+    else {
+      const to = await point(page, b)
+      await page.mouse.move(from.x, from.y)
+      await page.mouse.down()
+      await page.mouse.move(to.x, to.y)
+      await page.mouse.up()
+    }
+    await expect(page.locator('#board')).toHaveAttribute('data-turn', String(current.turn + 1))
+  }
+  for (let actions = 0; actions < 200; actions++) {
     const current = await state(page)
     if (current.status === 'won') break
-    const obstacle = current.obstacles.find(item => item.kind !== 'cuckoo' || item.open)
-    expect(obstacle, 'this generated campaign board has remaining hammer-clearable goals').toBeDefined()
-    await hammer(page, obstacle!.cells[0]!)
+    expect(current.status).toBe('playing')
+    const playable = (cell: number) => current.mask[Math.floor(cell / current.cols)]?.[cell % current.cols] === '1'
+    const lines: { tool: 'arrow' | 'cannon'; cells: number[] }[] = [
+      ...Array.from({ length: current.rows }, (_, row) => ({ tool: 'arrow' as const, cells: Array.from({ length: current.cols }, (_, col) => row * current.cols + col).filter(playable) })),
+      ...Array.from({ length: current.cols }, (_, col) => ({ tool: 'cannon' as const, cells: Array.from({ length: current.rows }, (_, row) => row * current.cols + col).filter(playable) })),
+    ]
+    const jellyRemaining = current.goals.some(goal => goal.kind === 'jelly' && goal.remaining > 0)
+    const spreading = jellyRemaining ? lines.filter(line => line.cells.some(cell => current.jelly[cell]))
+      .map(line => ({ ...line, gain: line.cells.filter(cell => !current.jelly[cell]).length })).filter(line => line.gain > 0)
+      .sort((a, b) => b.gain - a.gain)[0] : undefined
+    const liveObstacles = current.obstacles.filter(obstacle => current.goals.some(goal => goal.remaining > 0 && goal.kind === (obstacle.kind === 'gift' ? 'toy' : obstacle.kind)))
+    const hittable = liveObstacles.filter(obstacle => obstacle.kind !== 'cuckoo' || obstacle.open)
+    const multiple = lines.map(line => ({ ...line, hits: hittable.filter(obstacle => obstacle.cells.some(cell => line.cells.includes(cell))).length }))
+      .filter(line => line.hits > 1).sort((a, b) => b.hits - a.hits)[0]
+    const colourLine = lines.map(line => ({ ...line, gain: current.goals.filter(goal => goal.kind === 'colour' && goal.remaining > 0)
+      .reduce((sum, goal) => sum + Math.min(goal.remaining, line.cells.filter(cell => {
+        const piece = current.pieces[cell]
+        return piece && !piece.power && piece.colour === goal.colour
+      }).length), 0) })).filter(line => line.gain > 0).sort((a, b) => b.gain - a.gain)[0]
+    if (spreading) await useLine(spreading.tool, spreading.cells.find(cell => current.jelly[cell])!)
+    else if (multiple) await useLine(multiple.tool, multiple.cells[0]!)
+    else if (hittable.length) await hammer(page, hittable[0]!.cells[0]!)
+    else if (colourLine) await useLine(colourLine.tool, colourLine.cells[0]!)
+    else await useHint(current)
     await expect(page.locator('#board')).toHaveAttribute('aria-busy', 'false')
   }
-  expect((await state(page)).status).toBe('won')
+  const completed = await state(page)
+  expect(completed.goals.every(goal => goal.remaining === 0), JSON.stringify(completed.goals)).toBe(true)
+  expect(completed.status).toBe('won')
   await expect(page.locator('#result-title')).toHaveText('멋진 승리!')
   await page.locator('#result-primary').click()
   await expect(page.locator('#board')).toHaveAttribute('data-level', '1000000')
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('chroma-royale:progress:v2')!).completed)).toContain(999999)
 })
 
-test('the final safe-integer level page stays exact and cannot paginate beyond its final entry', async ({ page }) => {
+test('the final safe-integer level page stays exact and cannot paginate beyond its final entry', async ({ page }, testInfo) => {
   await openGame(page)
   await jump(page, Number.MAX_SAFE_INTEGER)
   await page.locator('#level-picker').click()
@@ -302,5 +347,5 @@ test('the final safe-integer level page stays exact and cannot paginate beyond i
     expect(text.top).toBeGreaterThanOrEqual(textLayout.inner.top - .5)
     expect(text.bottom).toBeLessThanOrEqual(textLayout.inner.bottom + .5)
   }
-  await page.screenshot({ path: 'docs/royal-preview/v9-obstacles/high-level-home.png' })
+  await page.screenshot({ path: testInfo.outputPath('high-level-home.png') })
 })

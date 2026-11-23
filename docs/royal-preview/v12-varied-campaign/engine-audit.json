@@ -1,0 +1,897 @@
+{
+  "scope": "Independent local engine and generated-definition regression audit. Does not establish human win rate, original-game equivalence, or an optimal difficulty curve.",
+  "engine": {
+    "ids": [
+      {
+        "band": "early",
+        "id": 33
+      },
+      {
+        "band": "early",
+        "id": 34
+      },
+      {
+        "band": "early",
+        "id": 35
+      },
+      {
+        "band": "early",
+        "id": 36
+      },
+      {
+        "band": "early",
+        "id": 37
+      },
+      {
+        "band": "early",
+        "id": 38
+      },
+      {
+        "band": "early",
+        "id": 39
+      },
+      {
+        "band": "early",
+        "id": 40
+      },
+      {
+        "band": "early",
+        "id": 41
+      },
+      {
+        "band": "early",
+        "id": 42
+      },
+      {
+        "band": "middle",
+        "id": 93
+      },
+      {
+        "band": "middle",
+        "id": 94
+      },
+      {
+        "band": "middle",
+        "id": 95
+      },
+      {
+        "band": "middle",
+        "id": 96
+      },
+      {
+        "band": "middle",
+        "id": 97
+      },
+      {
+        "band": "middle",
+        "id": 98
+      },
+      {
+        "band": "middle",
+        "id": 99
+      },
+      {
+        "band": "middle",
+        "id": 100
+      },
+      {
+        "band": "middle",
+        "id": 101
+      },
+      {
+        "band": "middle",
+        "id": 102
+      },
+      {
+        "band": "late",
+        "id": 993
+      },
+      {
+        "band": "late",
+        "id": 994
+      },
+      {
+        "band": "late",
+        "id": 995
+      },
+      {
+        "band": "late",
+        "id": 996
+      },
+      {
+        "band": "late",
+        "id": 997
+      },
+      {
+        "band": "late",
+        "id": 998
+      },
+      {
+        "band": "late",
+        "id": 999
+      },
+      {
+        "band": "late",
+        "id": 1000
+      },
+      {
+        "band": "late",
+        "id": 1001
+      },
+      {
+        "band": "late",
+        "id": 1002
+      },
+      {
+        "band": "high",
+        "id": 999999
+      },
+      {
+        "band": "high",
+        "id": 1000000
+      },
+      {
+        "band": "high",
+        "id": 4294967331
+      },
+      {
+        "band": "high",
+        "id": 9007199254740991
+      }
+    ],
+    "seeds": {
+      "offsets": [
+        7,
+        777,
+        2026
+      ],
+      "formula": "(level.seed + offset) >>> 0"
+    },
+    "limits": {
+      "maxTurns": 200,
+      "maxSettleUpdates": 500,
+      "simulationSecondsPerUpdate": 0.1
+    },
+    "policies": {
+      "hint": "First engine.hint(); no tools or boosters.",
+      "greedy": "One-step local immediate goal/match scoring, no lookahead or refill prediction; engine hint chooses existing powers. No tools or boosters."
+    },
+    "reports": [
+      {
+        "generator": "baseline",
+        "policy": "hint",
+        "runs": 102,
+        "summary": [
+          {
+            "band": "early",
+            "runs": 30,
+            "wins": 19,
+            "meanCoverage": 0.846,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 2,
+            "meanOrdinaryMoves": 13.4,
+            "startingFallbackPowers": 0,
+            "shuffles": 1,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 6.8
+          },
+          {
+            "band": "middle",
+            "runs": 30,
+            "wins": 13,
+            "meanCoverage": 0.796,
+            "medianCoverage": 0.975,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 10,
+            "startingFallbackPowers": 0,
+            "shuffles": 6,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 9.1
+          },
+          {
+            "band": "late",
+            "runs": 30,
+            "wins": 15,
+            "meanCoverage": 0.793,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 8.8,
+            "startingFallbackPowers": 0,
+            "shuffles": 5,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 5.5
+          },
+          {
+            "band": "high",
+            "runs": 12,
+            "wins": 10,
+            "meanCoverage": 0.946,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 11.3,
+            "startingFallbackPowers": 0,
+            "shuffles": 0,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 6.5
+          }
+        ]
+      },
+      {
+        "generator": "baseline",
+        "policy": "greedy",
+        "runs": 102,
+        "summary": [
+          {
+            "band": "early",
+            "runs": 30,
+            "wins": 26,
+            "meanCoverage": 0.974,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 2,
+            "meanOrdinaryMoves": 13.4,
+            "startingFallbackPowers": 0,
+            "shuffles": 1,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 6.2
+          },
+          {
+            "band": "middle",
+            "runs": 30,
+            "wins": 25,
+            "meanCoverage": 0.98,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 10,
+            "startingFallbackPowers": 0,
+            "shuffles": 3,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 9.1
+          },
+          {
+            "band": "late",
+            "runs": 30,
+            "wins": 21,
+            "meanCoverage": 0.959,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 8.8,
+            "startingFallbackPowers": 0,
+            "shuffles": 3,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 7.7
+          },
+          {
+            "band": "high",
+            "runs": 12,
+            "wins": 11,
+            "meanCoverage": 0.995,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 11.3,
+            "startingFallbackPowers": 0,
+            "shuffles": 0,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 6.9
+          }
+        ]
+      },
+      {
+        "generator": "new",
+        "policy": "hint",
+        "runs": 102,
+        "summary": [
+          {
+            "band": "early",
+            "runs": 30,
+            "wins": 17,
+            "meanCoverage": 0.865,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 2,
+            "meanOrdinaryMoves": 8.1,
+            "startingFallbackPowers": 0,
+            "shuffles": 0,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 6.1
+          },
+          {
+            "band": "middle",
+            "runs": 30,
+            "wins": 14,
+            "meanCoverage": 0.769,
+            "medianCoverage": 0.974,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 9.4,
+            "startingFallbackPowers": 0,
+            "shuffles": 0,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 5.1
+          },
+          {
+            "band": "late",
+            "runs": 30,
+            "wins": 14,
+            "meanCoverage": 0.834,
+            "medianCoverage": 0.984,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 8.9,
+            "startingFallbackPowers": 0,
+            "shuffles": 0,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 5.4
+          },
+          {
+            "band": "high",
+            "runs": 12,
+            "wins": 3,
+            "meanCoverage": 0.823,
+            "medianCoverage": 0.824,
+            "minOrdinaryMoves": 2,
+            "meanOrdinaryMoves": 5.6,
+            "startingFallbackPowers": 0,
+            "shuffles": 0,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 4.7
+          }
+        ],
+        "objectiveProgress": [
+          {
+            "kind": "toy",
+            "targetRuns": 75,
+            "progressed": 74,
+            "cleared": 43,
+            "meanFractionCleared": 0.8296
+          },
+          {
+            "kind": "cuckoo",
+            "targetRuns": 45,
+            "progressed": 44,
+            "cleared": 38,
+            "meanFractionCleared": 0.9194
+          },
+          {
+            "kind": "jelly",
+            "targetRuns": 63,
+            "progressed": 61,
+            "cleared": 24,
+            "meanFractionCleared": 0.7794
+          },
+          {
+            "kind": "dynamite",
+            "targetRuns": 27,
+            "progressed": 27,
+            "cleared": 27,
+            "meanFractionCleared": 1
+          },
+          {
+            "kind": "ice",
+            "targetRuns": 45,
+            "progressed": 44,
+            "cleared": 40,
+            "meanFractionCleared": 0.9333
+          },
+          {
+            "kind": "box",
+            "targetRuns": 45,
+            "progressed": 43,
+            "cleared": 28,
+            "meanFractionCleared": 0.8005
+          },
+          {
+            "kind": "stone",
+            "targetRuns": 12,
+            "progressed": 10,
+            "cleared": 7,
+            "meanFractionCleared": 0.7172
+          }
+        ]
+      },
+      {
+        "generator": "new",
+        "policy": "greedy",
+        "runs": 102,
+        "summary": [
+          {
+            "band": "early",
+            "runs": 30,
+            "wins": 23,
+            "meanCoverage": 0.958,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 2,
+            "meanOrdinaryMoves": 8.1,
+            "startingFallbackPowers": 0,
+            "shuffles": 0,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 5.1
+          },
+          {
+            "band": "middle",
+            "runs": 30,
+            "wins": 26,
+            "meanCoverage": 0.99,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 9.4,
+            "startingFallbackPowers": 0,
+            "shuffles": 1,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 6.3
+          },
+          {
+            "band": "late",
+            "runs": 30,
+            "wins": 26,
+            "meanCoverage": 0.985,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 1,
+            "meanOrdinaryMoves": 8.9,
+            "startingFallbackPowers": 0,
+            "shuffles": 0,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 5.3
+          },
+          {
+            "band": "high",
+            "runs": 12,
+            "wins": 11,
+            "meanCoverage": 0.999,
+            "medianCoverage": 1,
+            "minOrdinaryMoves": 2,
+            "meanOrdinaryMoves": 5.6,
+            "startingFallbackPowers": 0,
+            "shuffles": 0,
+            "invalid": 0,
+            "missingHints": 0,
+            "rejectedHints": 0,
+            "settleTimeouts": 0,
+            "maxSettleSeconds": 4
+          }
+        ],
+        "objectiveProgress": [
+          {
+            "kind": "toy",
+            "targetRuns": 75,
+            "progressed": 75,
+            "cleared": 74,
+            "meanFractionCleared": 0.9978
+          },
+          {
+            "kind": "cuckoo",
+            "targetRuns": 45,
+            "progressed": 45,
+            "cleared": 45,
+            "meanFractionCleared": 1
+          },
+          {
+            "kind": "jelly",
+            "targetRuns": 63,
+            "progressed": 63,
+            "cleared": 50,
+            "meanFractionCleared": 0.9658
+          },
+          {
+            "kind": "dynamite",
+            "targetRuns": 27,
+            "progressed": 27,
+            "cleared": 27,
+            "meanFractionCleared": 1
+          },
+          {
+            "kind": "ice",
+            "targetRuns": 45,
+            "progressed": 45,
+            "cleared": 45,
+            "meanFractionCleared": 1
+          },
+          {
+            "kind": "box",
+            "targetRuns": 45,
+            "progressed": 45,
+            "cleared": 45,
+            "meanFractionCleared": 1
+          },
+          {
+            "kind": "stone",
+            "targetRuns": 12,
+            "progressed": 12,
+            "cleared": 10,
+            "meanFractionCleared": 0.9773
+          }
+        ]
+      }
+    ],
+    "interpretation": "Zero invalid definitions, missing/rejected hints, unexpected starting fallback powers, and settlement timeouts in all four 102-run samples. New greedy policy made progress on every individual target type/run; first-scan hint sometimes ignored goals. Aggregate coverage weights goal units and is dominated by large jelly goals; inspect per-kind progress alongside it. Completed runs are diagnostic only, not a human success-rate estimate."
+  },
+  "structure": {
+    "method": "Independent accounting of definitions: hitWork sums hp, multiplying stock only for cuckoo/dynamite; gift stock is a reward. Geometry recomputed without campaign helper calls. Work/move is structural pressure, not a human difficulty/win-rate estimate.",
+    "sampleCount": 1680,
+    "violations": 0,
+    "checks": [
+      "Generated dimensions at most 8 by 9",
+      "At least 20 free cells in one orthogonally connected region",
+      "At least one fully free 3 by 3 region",
+      "At least 70% of free cells participate in a straight-three or 2 by 2 venue",
+      "Every non-stone obstacle has a free matching-venue neighbour",
+      "Every jelly seed occupies a free matching venue",
+      "Production level validation reports no error"
+    ],
+    "bands": [
+      {
+        "band": "early",
+        "firstId": 33,
+        "lastId": 272,
+        "samples": 240,
+        "hitWork": 23.0792,
+        "moves": 30.9208,
+        "workPerMove": 0.7391,
+        "minWorkPerMove": 0.2581,
+        "maxWorkPerMove": 1.2571,
+        "meanDensity": 0.3051,
+        "maxDensity": 0.4255,
+        "minFree": 27,
+        "minVenueFraction": 0.8824,
+        "meanKinds": 2.3,
+        "uniqueMasks": 240,
+        "uniqueLayouts": 240,
+        "adjacentMaskRepeats": 0
+      },
+      {
+        "band": "thousand",
+        "firstId": 993,
+        "lastId": 1232,
+        "samples": 240,
+        "hitWork": 27.075,
+        "moves": 31.925,
+        "workPerMove": 0.8363,
+        "minWorkPerMove": 0.303,
+        "maxWorkPerMove": 1.5745,
+        "meanDensity": 0.3325,
+        "maxDensity": 0.4483,
+        "minFree": 27,
+        "minVenueFraction": 0.8056,
+        "meanKinds": 2.3,
+        "uniqueMasks": 240,
+        "uniqueLayouts": 240,
+        "adjacentMaskRepeats": 0
+      },
+      {
+        "band": "twelveThousand",
+        "firstId": 12298,
+        "lastId": 12537,
+        "samples": 240,
+        "hitWork": 37.3583,
+        "moves": 35.6833,
+        "workPerMove": 1.0317,
+        "minWorkPerMove": 0.3438,
+        "maxWorkPerMove": 1.7551,
+        "meanDensity": 0.3735,
+        "maxDensity": 0.4912,
+        "minFree": 24,
+        "minVenueFraction": 0.8182,
+        "meanKinds": 2.975,
+        "uniqueMasks": 240,
+        "uniqueLayouts": 240,
+        "adjacentMaskRepeats": 0
+      },
+      {
+        "band": "growthCap",
+        "firstId": 100033,
+        "lastId": 100272,
+        "samples": 240,
+        "hitWork": 47.6083,
+        "moves": 39.4292,
+        "workPerMove": 1.1913,
+        "minWorkPerMove": 0.3438,
+        "maxWorkPerMove": 1.8148,
+        "meanDensity": 0.4017,
+        "maxDensity": 0.5179,
+        "minFree": 23,
+        "minVenueFraction": 0.8214,
+        "meanKinds": 3.2208,
+        "uniqueMasks": 240,
+        "uniqueLayouts": 240,
+        "adjacentMaskRepeats": 0
+      },
+      {
+        "band": "million",
+        "firstId": 999993,
+        "lastId": 1000232,
+        "samples": 240,
+        "hitWork": 48.8875,
+        "moves": 39.9833,
+        "workPerMove": 1.2033,
+        "minWorkPerMove": 0.3438,
+        "maxWorkPerMove": 1.7143,
+        "meanDensity": 0.4021,
+        "maxDensity": 0.52,
+        "minFree": 23,
+        "minVenueFraction": 0.7895,
+        "meanKinds": 3.175,
+        "uniqueMasks": 240,
+        "uniqueLayouts": 240,
+        "adjacentMaskRepeats": 0
+      },
+      {
+        "band": "beyond32bit",
+        "firstId": 4294967331,
+        "lastId": 4294967570,
+        "samples": 240,
+        "hitWork": 47.6125,
+        "moves": 39.5458,
+        "workPerMove": 1.1874,
+        "minWorkPerMove": 0.3438,
+        "maxWorkPerMove": 1.7963,
+        "meanDensity": 0.4022,
+        "maxDensity": 0.5185,
+        "minFree": 22,
+        "minVenueFraction": 0.8667,
+        "meanKinds": 3.1625,
+        "uniqueMasks": 240,
+        "uniqueLayouts": 240,
+        "adjacentMaskRepeats": 0
+      },
+      {
+        "band": "maxSafe",
+        "firstId": 9007199254740752,
+        "lastId": 9007199254740991,
+        "samples": 240,
+        "hitWork": 46.6833,
+        "moves": 39.1417,
+        "workPerMove": 1.1734,
+        "minWorkPerMove": 0.3438,
+        "maxWorkPerMove": 1.7027,
+        "meanDensity": 0.4008,
+        "maxDensity": 0.5091,
+        "minFree": 24,
+        "minVenueFraction": 0.8235,
+        "meanKinds": 3.1708,
+        "uniqueMasks": 240,
+        "uniqueLayouts": 240,
+        "adjacentMaskRepeats": 0
+      }
+    ],
+    "matchedThemeRankRecovery": [
+      {
+        "key": "회랑:normal:recovery",
+        "earlySamples": 8,
+        "capSamples": 8,
+        "earlyHitWork": 11.125,
+        "capHitWork": 32.375,
+        "earlyWorkPerMove": 0.3728,
+        "capWorkPerMove": 0.8527
+      },
+      {
+        "key": "분수:normal:regular",
+        "earlySamples": 23,
+        "capSamples": 23,
+        "earlyHitWork": 17.0435,
+        "capHitWork": 35.1739,
+        "earlyWorkPerMove": 0.5689,
+        "capWorkPerMove": 0.952
+      },
+      {
+        "key": "테라스:normal:regular",
+        "earlySamples": 19,
+        "capSamples": 15,
+        "earlyHitWork": 15.4737,
+        "capHitWork": 41.1333,
+        "earlyWorkPerMove": 0.5521,
+        "capWorkPerMove": 1.1173
+      },
+      {
+        "key": "분수:hard:regular",
+        "earlySamples": 8,
+        "capSamples": 12,
+        "earlyHitWork": 17.125,
+        "capHitWork": 38.1667,
+        "earlyWorkPerMove": 0.5962,
+        "capWorkPerMove": 1.0363
+      },
+      {
+        "key": "탑:normal:recovery",
+        "earlySamples": 8,
+        "capSamples": 4,
+        "earlyHitWork": 16.875,
+        "capHitWork": 25.75,
+        "earlyWorkPerMove": 0.533,
+        "capWorkPerMove": 0.74
+      },
+      {
+        "key": "테라스:hard:regular",
+        "earlySamples": 8,
+        "capSamples": 12,
+        "earlyHitWork": 19.75,
+        "capHitWork": 44.3333,
+        "earlyWorkPerMove": 0.7062,
+        "capWorkPerMove": 1.2048
+      },
+      {
+        "key": "테라스:normal:recovery",
+        "earlySamples": 10,
+        "capSamples": 11,
+        "earlyHitWork": 10.8,
+        "capHitWork": 14.8182,
+        "earlyWorkPerMove": 0.3323,
+        "capWorkPerMove": 0.4406
+      },
+      {
+        "key": "회랑:normal:regular",
+        "earlySamples": 11,
+        "capSamples": 21,
+        "earlyHitWork": 17.0909,
+        "capHitWork": 53.5238,
+        "earlyWorkPerMove": 0.6451,
+        "capWorkPerMove": 1.3119
+      },
+      {
+        "key": "정원:hard:regular",
+        "earlySamples": 7,
+        "capSamples": 6,
+        "earlyHitWork": 27,
+        "capHitWork": 56.6667,
+        "earlyWorkPerMove": 0.8412,
+        "capWorkPerMove": 1.3368
+      },
+      {
+        "key": "왕실:normal:regular",
+        "earlySamples": 25,
+        "capSamples": 20,
+        "earlyHitWork": 36.16,
+        "capHitWork": 61.5,
+        "earlyWorkPerMove": 1.0231,
+        "capWorkPerMove": 1.4397
+      },
+      {
+        "key": "정원:normal:recovery",
+        "earlySamples": 9,
+        "capSamples": 11,
+        "earlyHitWork": 21.6667,
+        "capHitWork": 55,
+        "earlyWorkPerMove": 0.5874,
+        "capWorkPerMove": 1.1311
+      },
+      {
+        "key": "탑:hard:regular",
+        "earlySamples": 7,
+        "capSamples": 8,
+        "earlyHitWork": 22.1429,
+        "capHitWork": 48.125,
+        "earlyWorkPerMove": 0.8835,
+        "capWorkPerMove": 1.3953
+      },
+      {
+        "key": "탑:normal:regular",
+        "earlySamples": 15,
+        "capSamples": 26,
+        "earlyHitWork": 21.7333,
+        "capHitWork": 45.1538,
+        "earlyWorkPerMove": 0.8011,
+        "capWorkPerMove": 1.3176
+      },
+      {
+        "key": "분수:normal:recovery",
+        "earlySamples": 7,
+        "capSamples": 6,
+        "earlyHitWork": 12.1429,
+        "capHitWork": 34.6667,
+        "earlyWorkPerMove": 0.3557,
+        "capWorkPerMove": 0.8104
+      },
+      {
+        "key": "회랑:hard:regular",
+        "earlySamples": 7,
+        "capSamples": 4,
+        "earlyHitWork": 21.4286,
+        "capHitWork": 55.75,
+        "earlyWorkPerMove": 0.8014,
+        "capWorkPerMove": 1.3661
+      },
+      {
+        "key": "정원:normal:regular",
+        "earlySamples": 27,
+        "capSamples": 15,
+        "earlyHitWork": 29.963,
+        "capHitWork": 52.2667,
+        "earlyWorkPerMove": 0.882,
+        "capWorkPerMove": 1.2473
+      },
+      {
+        "key": "왕실:hard:regular",
+        "earlySamples": 11,
+        "capSamples": 6,
+        "earlyHitWork": 36,
+        "capHitWork": 68.6667,
+        "earlyWorkPerMove": 1.0921,
+        "capWorkPerMove": 1.5578
+      },
+      {
+        "key": "왕실:normal:recovery",
+        "earlySamples": 6,
+        "capSamples": 8,
+        "earlyHitWork": 27.6667,
+        "capHitWork": 65,
+        "earlyWorkPerMove": 0.7334,
+        "capWorkPerMove": 1.2494
+      },
+      {
+        "key": "정원:super-hard:regular",
+        "earlySamples": 3,
+        "capSamples": 4,
+        "earlyHitWork": 28.3333,
+        "capHitWork": 62.25,
+        "earlyWorkPerMove": 0.9103,
+        "capWorkPerMove": 1.4323
+      },
+      {
+        "key": "왕실:super-hard:regular",
+        "earlySamples": 3,
+        "capSamples": 4,
+        "earlyHitWork": 35.3333,
+        "capHitWork": 70.75,
+        "earlyWorkPerMove": 1.1133,
+        "capWorkPerMove": 1.5966
+      }
+    ],
+    "interpretation": "Actual hitWork/move rises through the growth bands within every compared theme/rank/recovery bucket (at least three samples at each endpoint). Density is bounded at 52%; sample minimum free cells is 22. Growth then intentionally plateaus. This measures structural pressure, not perceptual difficulty or solvability for every seed."
+  },
+  "browser": {
+    "tests": [
+      {
+        "name": "legitimately completing campaign level 999999 advances into level one million",
+        "passed": true,
+        "seconds": 12.8,
+        "method": "Actual UI with user settings unlimited tools/moves; row/column jelly spreading, goal-targeted tools, and legal hint moves for closed nests. Assert all goals clear and actual result UI before next-level click."
+      },
+      {
+        "name": "the final safe-integer level page stays exact and cannot paginate beyond its final entry",
+        "passed": true,
+        "seconds": 3.8,
+        "method": "Actual pagination and home at 375 by 667; exact full ID plus text Range bounds. Screenshot uses testInfo.outputPath."
+      }
+    ]
+  }
+}

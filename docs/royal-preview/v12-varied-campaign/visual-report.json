@@ -1,0 +1,3135 @@
+{
+  "atlas": "Static opening states rendered by the production renderer in a separate inspection panel; not actual gameplay captures.",
+  "sheets": [
+    {
+      "id": 33,
+      "cols": 8,
+      "rows": 8,
+      "mask": [
+        "11111111",
+        "11111111",
+        "01111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111"
+      ],
+      "name": "회랑의 산책",
+      "moves": 31,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 3
+        },
+        {
+          "kind": "cuckoo",
+          "count": 4
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "cuckoo-1",
+          "kind": "cuckoo",
+          "cells": [
+            9,
+            10,
+            17,
+            18
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            11,
+            19
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-3",
+          "kind": "gift",
+          "cells": [
+            25,
+            33
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "cuckoo-4",
+          "kind": "cuckoo",
+          "cells": [
+            26,
+            27,
+            34,
+            35
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            0,
+            8
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "cols": 8,
+      "rows": 8,
+      "mask": [
+        "01111110",
+        "11111111",
+        "11111111",
+        "11111111",
+        "01111111",
+        "11111111",
+        "11111111",
+        "01111110"
+      ],
+      "name": "분수의 모험",
+      "moves": 30,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 4
+        },
+        {
+          "kind": "cuckoo",
+          "count": 4
+        },
+        {
+          "kind": "jelly",
+          "count": 57
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "cuckoo-1",
+          "kind": "cuckoo",
+          "cells": [
+            44,
+            45,
+            52,
+            53
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            42,
+            50
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "cuckoo-3",
+          "kind": "cuckoo",
+          "cells": [
+            40,
+            41,
+            48,
+            49
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-4",
+          "kind": "gift",
+          "cells": [
+            23,
+            31
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            47,
+            55
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-6",
+          "kind": "gift",
+          "cells": [
+            46,
+            54
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "cols": 8,
+      "rows": 8,
+      "mask": [
+        "11110111",
+        "11111111",
+        "01111110",
+        "01111110",
+        "01111110",
+        "01111110",
+        "11111111",
+        "11111111"
+      ],
+      "name": "테라스의 모험",
+      "moves": 27,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "dynamite",
+          "count": 2
+        },
+        {
+          "kind": "ice",
+          "count": 6
+        },
+        {
+          "kind": "jelly",
+          "count": 53
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "dynamite-1",
+          "kind": "dynamite",
+          "cells": [
+            51,
+            52,
+            59,
+            60
+          ],
+          "hp": 1,
+          "stock": 2,
+          "colour": 3
+        },
+        {
+          "id": "ice-2",
+          "kind": "ice",
+          "cells": [
+            26,
+            34
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-3",
+          "kind": "ice",
+          "cells": [
+            30,
+            38
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-4",
+          "kind": "ice",
+          "cells": [
+            33,
+            41
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-5",
+          "kind": "ice",
+          "cells": [
+            3,
+            11
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-6",
+          "kind": "ice",
+          "cells": [
+            17,
+            25
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-7",
+          "kind": "ice",
+          "cells": [
+            5,
+            13
+          ],
+          "hp": 2
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "cols": 8,
+      "rows": 9,
+      "mask": [
+        "11111111",
+        "11111111",
+        "01111111",
+        "11000011",
+        "11000011",
+        "11000011",
+        "11111111",
+        "11111111",
+        "11111111"
+      ],
+      "name": "분수의 모험",
+      "moves": 30,
+      "difficulty": "hard",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 4
+        },
+        {
+          "kind": "cuckoo",
+          "count": 4
+        },
+        {
+          "kind": "ice",
+          "count": 1
+        },
+        {
+          "kind": "jelly",
+          "count": 57
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "cuckoo-1",
+          "kind": "cuckoo",
+          "cells": [
+            24,
+            25,
+            32,
+            33
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "ice-2",
+          "kind": "ice",
+          "cells": [
+            39,
+            47,
+            55
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-3",
+          "kind": "gift",
+          "cells": [
+            23,
+            31
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "cuckoo-4",
+          "kind": "cuckoo",
+          "cells": [
+            3,
+            4,
+            11,
+            12
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            7,
+            15
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-6",
+          "kind": "gift",
+          "cells": [
+            5,
+            13
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-7",
+          "kind": "gift",
+          "cells": [
+            63,
+            71
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "cols": 8,
+      "rows": 9,
+      "mask": [
+        "11111000",
+        "11111100",
+        "11111110",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11101111"
+      ],
+      "name": "테라스의 모험",
+      "moves": 29,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "dynamite",
+          "count": 2
+        },
+        {
+          "kind": "ice",
+          "count": 7
+        },
+        {
+          "kind": "jelly",
+          "count": 63
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "dynamite-1",
+          "kind": "dynamite",
+          "cells": [
+            62,
+            63,
+            70,
+            71
+          ],
+          "hp": 1,
+          "stock": 2,
+          "colour": 3
+        },
+        {
+          "id": "ice-2",
+          "kind": "ice",
+          "cells": [
+            27,
+            35
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-3",
+          "kind": "ice",
+          "cells": [
+            44,
+            52
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-4",
+          "kind": "ice",
+          "cells": [
+            26,
+            34
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-5",
+          "kind": "ice",
+          "cells": [
+            45,
+            53
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-6",
+          "kind": "ice",
+          "cells": [
+            25,
+            33
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-7",
+          "kind": "ice",
+          "cells": [
+            28,
+            36
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-8",
+          "kind": "ice",
+          "cells": [
+            61,
+            69
+          ],
+          "hp": 2
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "cols": 7,
+      "rows": 9,
+      "mask": [
+        "0111110",
+        "0111110",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "0111111",
+        "0111110",
+        "0111110"
+      ],
+      "name": "탑의 산책",
+      "moves": 31,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 3
+        },
+        {
+          "kind": "ice",
+          "count": 3
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "gift-1",
+          "kind": "gift",
+          "cells": [
+            27,
+            34
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "ice-2",
+          "kind": "ice",
+          "cells": [
+            4,
+            11
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-3",
+          "kind": "gift",
+          "cells": [
+            29,
+            36
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "ice-4",
+          "kind": "ice",
+          "cells": [
+            32,
+            39
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            16,
+            23
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "ice-6",
+          "kind": "ice",
+          "cells": [
+            44,
+            51
+          ],
+          "hp": 2
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "cols": 8,
+      "rows": 8,
+      "mask": [
+        "11100011",
+        "11100111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11100111",
+        "11100111"
+      ],
+      "name": "분수의 모험",
+      "moves": 29,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 4
+        },
+        {
+          "kind": "cuckoo",
+          "count": 4
+        },
+        {
+          "kind": "jelly",
+          "count": 53
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "cuckoo-1",
+          "kind": "cuckoo",
+          "cells": [
+            49,
+            50,
+            57,
+            58
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            21,
+            29
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "cuckoo-3",
+          "kind": "cuckoo",
+          "cells": [
+            19,
+            20,
+            27,
+            28
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-4",
+          "kind": "gift",
+          "cells": [
+            22,
+            30
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            48,
+            56
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-6",
+          "kind": "gift",
+          "cells": [
+            38,
+            46
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "cols": 7,
+      "rows": 9,
+      "mask": [
+        "1111111",
+        "1111111",
+        "0101011",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1101011",
+        "1111111",
+        "1111111"
+      ],
+      "name": "테라스의 모험",
+      "moves": 28,
+      "difficulty": "hard",
+      "goals": [
+        {
+          "kind": "dynamite",
+          "count": 2
+        },
+        {
+          "kind": "box",
+          "count": 3
+        },
+        {
+          "kind": "ice",
+          "count": 4
+        },
+        {
+          "kind": "jelly",
+          "count": 56
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "dynamite-1",
+          "kind": "dynamite",
+          "cells": [
+            25,
+            26,
+            32,
+            33
+          ],
+          "hp": 1,
+          "stock": 2,
+          "colour": 0
+        },
+        {
+          "id": "ice-2",
+          "kind": "ice",
+          "cells": [
+            42,
+            49,
+            56
+          ],
+          "hp": 3
+        },
+        {
+          "id": "box-3",
+          "kind": "box",
+          "cells": [
+            0
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-4",
+          "kind": "ice",
+          "cells": [
+            47,
+            54,
+            61
+          ],
+          "hp": 3
+        },
+        {
+          "id": "box-5",
+          "kind": "box",
+          "cells": [
+            1
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-6",
+          "kind": "ice",
+          "cells": [
+            6,
+            13,
+            20
+          ],
+          "hp": 3
+        },
+        {
+          "id": "box-7",
+          "kind": "box",
+          "cells": [
+            21
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-8",
+          "kind": "ice",
+          "cells": [
+            48,
+            55,
+            62
+          ],
+          "hp": 3
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "cols": 7,
+      "rows": 8,
+      "mask": [
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1100011",
+        "1100011"
+      ],
+      "name": "분수의 모험",
+      "moves": 28,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 3
+        },
+        {
+          "kind": "cuckoo",
+          "count": 4
+        },
+        {
+          "kind": "jelly",
+          "count": 48
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "cuckoo-1",
+          "kind": "cuckoo",
+          "cells": [
+            24,
+            25,
+            31,
+            32
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            30,
+            37
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "cuckoo-3",
+          "kind": "cuckoo",
+          "cells": [
+            47,
+            48,
+            54,
+            55
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-4",
+          "kind": "gift",
+          "cells": [
+            22,
+            29
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            26,
+            33
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "cols": 7,
+      "rows": 9,
+      "mask": [
+        "0011100",
+        "0111110",
+        "0111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "0111110",
+        "0011100"
+      ],
+      "name": "테라스의 도전",
+      "moves": 27,
+      "difficulty": "super-hard",
+      "goals": [
+        {
+          "kind": "dynamite",
+          "count": 2
+        },
+        {
+          "kind": "box",
+          "count": 5
+        },
+        {
+          "kind": "ice",
+          "count": 3
+        },
+        {
+          "kind": "jelly",
+          "count": 48
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "dynamite-1",
+          "kind": "dynamite",
+          "cells": [
+            21,
+            22,
+            28,
+            29
+          ],
+          "hp": 1,
+          "stock": 2,
+          "colour": 1
+        },
+        {
+          "id": "ice-2",
+          "kind": "ice",
+          "cells": [
+            4,
+            11,
+            18
+          ],
+          "hp": 3
+        },
+        {
+          "id": "box-3",
+          "kind": "box",
+          "cells": [
+            20
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-4",
+          "kind": "ice",
+          "cells": [
+            3,
+            10,
+            17
+          ],
+          "hp": 3
+        },
+        {
+          "id": "box-5",
+          "kind": "box",
+          "cells": [
+            42
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-6",
+          "kind": "ice",
+          "cells": [
+            46,
+            53,
+            60
+          ],
+          "hp": 3
+        },
+        {
+          "id": "box-7",
+          "kind": "box",
+          "cells": [
+            58
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-8",
+          "kind": "box",
+          "cells": [
+            2
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-9",
+          "kind": "box",
+          "cells": [
+            59
+          ],
+          "hp": 2
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "cols": 8,
+      "rows": 8,
+      "mask": [
+        "11101111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11100111",
+        "11100111",
+        "11100111"
+      ],
+      "name": "테라스의 산책",
+      "moves": 32,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "dynamite",
+          "count": 2
+        },
+        {
+          "kind": "ice",
+          "count": 4
+        },
+        {
+          "kind": "jelly",
+          "count": 55
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "dynamite-1",
+          "kind": "dynamite",
+          "cells": [
+            0,
+            1,
+            8,
+            9
+          ],
+          "hp": 1,
+          "stock": 2,
+          "colour": 0
+        },
+        {
+          "id": "ice-2",
+          "kind": "ice",
+          "cells": [
+            54,
+            62
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-3",
+          "kind": "ice",
+          "cells": [
+            18,
+            26
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-4",
+          "kind": "ice",
+          "cells": [
+            55,
+            63
+          ],
+          "hp": 2
+        },
+        {
+          "id": "ice-5",
+          "kind": "ice",
+          "cells": [
+            19,
+            27
+          ],
+          "hp": 2
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "cols": 8,
+      "rows": 8,
+      "mask": [
+        "00111100",
+        "00111100",
+        "11111111",
+        "11111111",
+        "11111111",
+        "01111111",
+        "11111111",
+        "11111111"
+      ],
+      "name": "회랑의 모험",
+      "moves": 26,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 4
+        },
+        {
+          "kind": "cuckoo",
+          "count": 4
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "cuckoo-1",
+          "kind": "cuckoo",
+          "cells": [
+            50,
+            51,
+            58,
+            59
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            12,
+            20
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-3",
+          "kind": "gift",
+          "cells": [
+            45,
+            53
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "cuckoo-4",
+          "kind": "cuckoo",
+          "cells": [
+            27,
+            28,
+            35,
+            36
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            13,
+            21
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-6",
+          "kind": "gift",
+          "cells": [
+            23,
+            31
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 1000,
+      "cols": 7,
+      "rows": 8,
+      "mask": [
+        "1111111",
+        "1111111",
+        "1111111",
+        "0100011",
+        "1100011",
+        "1111111",
+        "1111111",
+        "1111111"
+      ],
+      "name": "정원의 모험",
+      "moves": 32,
+      "difficulty": "hard",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 3
+        },
+        {
+          "kind": "box",
+          "count": 3
+        },
+        {
+          "kind": "ice",
+          "count": 3
+        },
+        {
+          "kind": "jelly",
+          "count": 47
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "ice-1",
+          "kind": "ice",
+          "cells": [
+            27,
+            34,
+            41
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            6,
+            13
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "box-3",
+          "kind": "box",
+          "cells": [
+            48
+          ],
+          "hp": 3
+        },
+        {
+          "id": "box-4",
+          "kind": "box",
+          "cells": [
+            42
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            2,
+            9
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "ice-6",
+          "kind": "ice",
+          "cells": [
+            4,
+            11,
+            18
+          ],
+          "hp": 3
+        },
+        {
+          "id": "box-7",
+          "kind": "box",
+          "cells": [
+            1
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-8",
+          "kind": "gift",
+          "cells": [
+            0,
+            7
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "ice-9",
+          "kind": "ice",
+          "cells": [
+            3,
+            10,
+            17
+          ],
+          "hp": 3
+        }
+      ]
+    },
+    {
+      "id": 1001,
+      "cols": 7,
+      "rows": 8,
+      "mask": [
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111110",
+        "1111110",
+        "1111100",
+        "1111000"
+      ],
+      "name": "탑의 모험",
+      "moves": 27,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 4
+        },
+        {
+          "kind": "ice",
+          "count": 3
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "ice-1",
+          "kind": "ice",
+          "cells": [
+            31,
+            38,
+            45
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            23,
+            30
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-3",
+          "kind": "gift",
+          "cells": [
+            39,
+            46
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "ice-4",
+          "kind": "ice",
+          "cells": [
+            29,
+            36,
+            43
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            25,
+            32
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "ice-6",
+          "kind": "ice",
+          "cells": [
+            8,
+            15,
+            22
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-7",
+          "kind": "gift",
+          "cells": [
+            37,
+            44
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 1002,
+      "cols": 8,
+      "rows": 9,
+      "mask": [
+        "01111110",
+        "01111110",
+        "11111111",
+        "11111111",
+        "11111110",
+        "11111111",
+        "11111111",
+        "01111110",
+        "01111110"
+      ],
+      "name": "회랑의 도전",
+      "moves": 34,
+      "difficulty": "super-hard",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 6
+        },
+        {
+          "kind": "cuckoo",
+          "count": 4
+        },
+        {
+          "kind": "box",
+          "count": 6
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "cuckoo-1",
+          "kind": "cuckoo",
+          "cells": [
+            4,
+            5,
+            12,
+            13
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            3,
+            11
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "box-3",
+          "kind": "box",
+          "cells": [
+            16
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-4",
+          "kind": "gift",
+          "cells": [
+            2,
+            10
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "cuckoo-5",
+          "kind": "cuckoo",
+          "cells": [
+            59,
+            60,
+            67,
+            68
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "box-6",
+          "kind": "box",
+          "cells": [
+            70
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-7",
+          "kind": "gift",
+          "cells": [
+            1,
+            9
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "box-8",
+          "kind": "box",
+          "cells": [
+            55
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-9",
+          "kind": "gift",
+          "cells": [
+            6,
+            14
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "box-10",
+          "kind": "box",
+          "cells": [
+            65
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-11",
+          "kind": "gift",
+          "cells": [
+            23,
+            31
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "box-12",
+          "kind": "box",
+          "cells": [
+            66
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-13",
+          "kind": "gift",
+          "cells": [
+            30,
+            38
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "box-14",
+          "kind": "box",
+          "cells": [
+            47
+          ],
+          "hp": 3
+        }
+      ]
+    },
+    {
+      "id": 1003,
+      "cols": 8,
+      "rows": 9,
+      "mask": [
+        "11100111",
+        "11100111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11100111",
+        "11100111"
+      ],
+      "name": "왕실의 산책",
+      "moves": 39,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "box",
+          "count": 8
+        },
+        {
+          "kind": "stone",
+          "count": 8
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "stone-1",
+          "kind": "stone",
+          "cells": [
+            9
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-2",
+          "kind": "box",
+          "cells": [
+            71
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-3",
+          "kind": "stone",
+          "cells": [
+            0
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-4",
+          "kind": "box",
+          "cells": [
+            44
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-5",
+          "kind": "stone",
+          "cells": [
+            62
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-6",
+          "kind": "box",
+          "cells": [
+            45
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-7",
+          "kind": "stone",
+          "cells": [
+            17
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-8",
+          "kind": "box",
+          "cells": [
+            43
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-9",
+          "kind": "stone",
+          "cells": [
+            70
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-10",
+          "kind": "box",
+          "cells": [
+            8
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-11",
+          "kind": "stone",
+          "cells": [
+            1
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-12",
+          "kind": "box",
+          "cells": [
+            54
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-13",
+          "kind": "stone",
+          "cells": [
+            25
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-14",
+          "kind": "box",
+          "cells": [
+            37
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-15",
+          "kind": "stone",
+          "cells": [
+            46
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-16",
+          "kind": "box",
+          "cells": [
+            42
+          ],
+          "hp": 2
+        }
+      ]
+    },
+    {
+      "id": 1004,
+      "cols": 8,
+      "rows": 9,
+      "mask": [
+        "11101111",
+        "11111111",
+        "11011011",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11011011",
+        "11111111",
+        "11111111"
+      ],
+      "name": "탑의 모험",
+      "moves": 29,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 5
+        },
+        {
+          "kind": "ice",
+          "count": 4
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "ice-1",
+          "kind": "ice",
+          "cells": [
+            55,
+            63,
+            71
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            40,
+            48
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-3",
+          "kind": "gift",
+          "cells": [
+            9,
+            17
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "ice-4",
+          "kind": "ice",
+          "cells": [
+            4,
+            12,
+            20
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            62,
+            70
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "ice-6",
+          "kind": "ice",
+          "cells": [
+            33,
+            41,
+            49
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-7",
+          "kind": "gift",
+          "cells": [
+            30,
+            38
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "ice-8",
+          "kind": "ice",
+          "cells": [
+            0,
+            8,
+            16
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-9",
+          "kind": "gift",
+          "cells": [
+            51,
+            59
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 1005,
+      "cols": 8,
+      "rows": 8,
+      "mask": [
+        "11000011",
+        "11000011",
+        "11111111",
+        "11111110",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111"
+      ],
+      "name": "정원의 모험",
+      "moves": 34,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 6
+        },
+        {
+          "kind": "box",
+          "count": 7
+        },
+        {
+          "kind": "jelly",
+          "count": 53
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "gift-1",
+          "kind": "gift",
+          "cells": [
+            45,
+            53
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-2",
+          "kind": "box",
+          "cells": [
+            46
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-3",
+          "kind": "box",
+          "cells": [
+            44
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-4",
+          "kind": "gift",
+          "cells": [
+            27,
+            35
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-5",
+          "kind": "box",
+          "cells": [
+            26
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-6",
+          "kind": "gift",
+          "cells": [
+            52,
+            60
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-7",
+          "kind": "box",
+          "cells": [
+            61
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-8",
+          "kind": "gift",
+          "cells": [
+            42,
+            50
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-9",
+          "kind": "box",
+          "cells": [
+            25
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-10",
+          "kind": "gift",
+          "cells": [
+            43,
+            51
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-11",
+          "kind": "box",
+          "cells": [
+            34
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-12",
+          "kind": "gift",
+          "cells": [
+            40,
+            48
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-13",
+          "kind": "box",
+          "cells": [
+            23
+          ],
+          "hp": 2
+        }
+      ]
+    },
+    {
+      "id": 1006,
+      "cols": 7,
+      "rows": 8,
+      "mask": [
+        "0001100",
+        "0111110",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "0111110",
+        "0011100"
+      ],
+      "name": "탑의 모험",
+      "moves": 24,
+      "difficulty": "hard",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 3
+        },
+        {
+          "kind": "dynamite",
+          "count": 2
+        },
+        {
+          "kind": "ice",
+          "count": 2
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "dynamite-1",
+          "kind": "dynamite",
+          "cells": [
+            19,
+            20,
+            26,
+            27
+          ],
+          "hp": 1,
+          "stock": 2,
+          "colour": 1
+        },
+        {
+          "id": "ice-2",
+          "kind": "ice",
+          "cells": [
+            18,
+            25,
+            32
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-3",
+          "kind": "gift",
+          "cells": [
+            15,
+            22
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "gift-4",
+          "kind": "gift",
+          "cells": [
+            17,
+            24
+          ],
+          "hp": 4,
+          "stock": 1
+        },
+        {
+          "id": "ice-5",
+          "kind": "ice",
+          "cells": [
+            14,
+            21,
+            28
+          ],
+          "hp": 3
+        },
+        {
+          "id": "gift-6",
+          "kind": "gift",
+          "cells": [
+            46,
+            53
+          ],
+          "hp": 4,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 1007,
+      "cols": 8,
+      "rows": 9,
+      "mask": [
+        "11100111",
+        "11100111",
+        "11100111",
+        "11111111",
+        "11111110",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111"
+      ],
+      "name": "테라스의 모험",
+      "moves": 30,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "dynamite",
+          "count": 2
+        },
+        {
+          "kind": "ice",
+          "count": 6
+        },
+        {
+          "kind": "jelly",
+          "count": 63
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "dynamite-1",
+          "kind": "dynamite",
+          "cells": [
+            35,
+            36,
+            43,
+            44
+          ],
+          "hp": 1,
+          "stock": 2,
+          "colour": 2
+        },
+        {
+          "id": "ice-2",
+          "kind": "ice",
+          "cells": [
+            37,
+            45,
+            53
+          ],
+          "hp": 3
+        },
+        {
+          "id": "ice-3",
+          "kind": "ice",
+          "cells": [
+            38,
+            46,
+            54
+          ],
+          "hp": 3
+        },
+        {
+          "id": "ice-4",
+          "kind": "ice",
+          "cells": [
+            34,
+            42,
+            50
+          ],
+          "hp": 3
+        },
+        {
+          "id": "ice-5",
+          "kind": "ice",
+          "cells": [
+            33,
+            41,
+            49
+          ],
+          "hp": 3
+        },
+        {
+          "id": "ice-6",
+          "kind": "ice",
+          "cells": [
+            47,
+            55,
+            63
+          ],
+          "hp": 3
+        },
+        {
+          "id": "ice-7",
+          "kind": "ice",
+          "cells": [
+            9,
+            17,
+            25
+          ],
+          "hp": 3
+        }
+      ]
+    },
+    {
+      "id": 1008,
+      "cols": 7,
+      "rows": 9,
+      "mask": [
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "0111111",
+        "1111111",
+        "1111111",
+        "0011100",
+        "0011100"
+      ],
+      "name": "회랑의 산책",
+      "moves": 31,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 3
+        },
+        {
+          "kind": "cuckoo",
+          "count": 4
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "cuckoo-1",
+          "kind": "cuckoo",
+          "cells": [
+            35,
+            36,
+            42,
+            43
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-2",
+          "kind": "gift",
+          "cells": [
+            41,
+            48
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "gift-3",
+          "kind": "gift",
+          "cells": [
+            14,
+            21
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "cuckoo-4",
+          "kind": "cuckoo",
+          "cells": [
+            2,
+            3,
+            9,
+            10
+          ],
+          "hp": 1,
+          "stock": 2,
+          "open": true
+        },
+        {
+          "id": "gift-5",
+          "kind": "gift",
+          "cells": [
+            6,
+            13
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 1009,
+      "cols": 8,
+      "rows": 9,
+      "mask": [
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111110",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111",
+        "11111111"
+      ],
+      "name": "정원의 모험",
+      "moves": 38,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 8
+        },
+        {
+          "kind": "box",
+          "count": 8
+        },
+        {
+          "kind": "jelly",
+          "count": 69
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "gift-1",
+          "kind": "gift",
+          "cells": [
+            0,
+            8
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-2",
+          "kind": "box",
+          "cells": [
+            71
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-3",
+          "kind": "box",
+          "cells": [
+            62
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-4",
+          "kind": "gift",
+          "cells": [
+            44,
+            52
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-5",
+          "kind": "box",
+          "cells": [
+            36
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-6",
+          "kind": "gift",
+          "cells": [
+            9,
+            17
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-7",
+          "kind": "box",
+          "cells": [
+            53
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-8",
+          "kind": "gift",
+          "cells": [
+            18,
+            26
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-9",
+          "kind": "box",
+          "cells": [
+            54
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-10",
+          "kind": "gift",
+          "cells": [
+            37,
+            45
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-11",
+          "kind": "box",
+          "cells": [
+            19
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-12",
+          "kind": "gift",
+          "cells": [
+            16,
+            24
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-13",
+          "kind": "box",
+          "cells": [
+            63
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-14",
+          "kind": "gift",
+          "cells": [
+            12,
+            20
+          ],
+          "hp": 3,
+          "stock": 1
+        },
+        {
+          "id": "box-15",
+          "kind": "box",
+          "cells": [
+            25
+          ],
+          "hp": 2
+        },
+        {
+          "id": "gift-16",
+          "kind": "gift",
+          "cells": [
+            58,
+            66
+          ],
+          "hp": 3,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": 1010,
+      "cols": 7,
+      "rows": 9,
+      "mask": [
+        "0011110",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "1111111",
+        "0111110"
+      ],
+      "name": "왕실의 모험",
+      "moves": 37,
+      "difficulty": "hard",
+      "goals": [
+        {
+          "kind": "dynamite",
+          "count": 2
+        },
+        {
+          "kind": "box",
+          "count": 9
+        },
+        {
+          "kind": "stone",
+          "count": 9
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "dynamite-1",
+          "kind": "dynamite",
+          "cells": [
+            42,
+            43,
+            49,
+            50
+          ],
+          "hp": 1,
+          "stock": 2,
+          "colour": 1
+        },
+        {
+          "id": "stone-2",
+          "kind": "stone",
+          "cells": [
+            9
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-3",
+          "kind": "box",
+          "cells": [
+            54
+          ],
+          "hp": 3
+        },
+        {
+          "id": "stone-4",
+          "kind": "stone",
+          "cells": [
+            10
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-5",
+          "kind": "box",
+          "cells": [
+            41
+          ],
+          "hp": 3
+        },
+        {
+          "id": "stone-6",
+          "kind": "stone",
+          "cells": [
+            59
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-7",
+          "kind": "box",
+          "cells": [
+            15
+          ],
+          "hp": 3
+        },
+        {
+          "id": "stone-8",
+          "kind": "stone",
+          "cells": [
+            18
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-9",
+          "kind": "box",
+          "cells": [
+            19
+          ],
+          "hp": 3
+        },
+        {
+          "id": "stone-10",
+          "kind": "stone",
+          "cells": [
+            34
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-11",
+          "kind": "box",
+          "cells": [
+            30
+          ],
+          "hp": 3
+        },
+        {
+          "id": "stone-12",
+          "kind": "stone",
+          "cells": [
+            31
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-13",
+          "kind": "box",
+          "cells": [
+            2
+          ],
+          "hp": 3
+        },
+        {
+          "id": "stone-14",
+          "kind": "stone",
+          "cells": [
+            22
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-15",
+          "kind": "box",
+          "cells": [
+            16
+          ],
+          "hp": 3
+        },
+        {
+          "id": "stone-16",
+          "kind": "stone",
+          "cells": [
+            61
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-17",
+          "kind": "box",
+          "cells": [
+            8
+          ],
+          "hp": 3
+        },
+        {
+          "id": "stone-18",
+          "kind": "stone",
+          "cells": [
+            60
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-19",
+          "kind": "box",
+          "cells": [
+            57
+          ],
+          "hp": 3
+        }
+      ]
+    },
+    {
+      "id": 1011,
+      "cols": 7,
+      "rows": 9,
+      "mask": [
+        "1111111",
+        "1111111",
+        "0111110",
+        "0111110",
+        "0111110",
+        "0111110",
+        "0111110",
+        "1111111",
+        "1111111"
+      ],
+      "name": "왕실의 모험",
+      "moves": 35,
+      "difficulty": "normal",
+      "goals": [
+        {
+          "kind": "box",
+          "count": 9
+        },
+        {
+          "kind": "stone",
+          "count": 9
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "stone-1",
+          "kind": "stone",
+          "cells": [
+            37
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-2",
+          "kind": "box",
+          "cells": [
+            54
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-3",
+          "kind": "stone",
+          "cells": [
+            53
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-4",
+          "kind": "box",
+          "cells": [
+            30
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-5",
+          "kind": "stone",
+          "cells": [
+            44
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-6",
+          "kind": "box",
+          "cells": [
+            55
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-7",
+          "kind": "stone",
+          "cells": [
+            36
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-8",
+          "kind": "box",
+          "cells": [
+            51
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-9",
+          "kind": "stone",
+          "cells": [
+            38
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-10",
+          "kind": "box",
+          "cells": [
+            47
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-11",
+          "kind": "stone",
+          "cells": [
+            23
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-12",
+          "kind": "box",
+          "cells": [
+            40
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-13",
+          "kind": "stone",
+          "cells": [
+            29
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-14",
+          "kind": "box",
+          "cells": [
+            16
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-15",
+          "kind": "stone",
+          "cells": [
+            43
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-16",
+          "kind": "box",
+          "cells": [
+            50
+          ],
+          "hp": 2
+        },
+        {
+          "id": "stone-17",
+          "kind": "stone",
+          "cells": [
+            33
+          ],
+          "hp": 2
+        },
+        {
+          "id": "box-18",
+          "kind": "box",
+          "cells": [
+            22
+          ],
+          "hp": 2
+        }
+      ]
+    }
+  ],
+  "phoneChecks": [
+    {
+      "level": 33,
+      "cols": 8,
+      "rows": 8,
+      "cell": 46.875,
+      "overflowX": 0,
+      "overflowY": 0,
+      "buttons": [
+        {
+          "id": "game-home",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "level-picker",
+          "width": 63.9375,
+          "height": 44
+        },
+        {
+          "id": "restart",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "hammer",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "arrow",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "cannon",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "shuffle",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "settings-open",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "editor-open",
+          "width": 62.390625,
+          "height": 44
+        },
+        {
+          "id": "kingdom-open",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "help-open",
+          "width": 52.875,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "level": 42,
+      "cols": 7,
+      "rows": 9,
+      "cell": 49,
+      "overflowX": 0,
+      "overflowY": 0,
+      "buttons": [
+        {
+          "id": "game-home",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "level-picker",
+          "width": 63.796875,
+          "height": 44
+        },
+        {
+          "id": "restart",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "hammer",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "arrow",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "cannon",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "shuffle",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "settings-open",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "editor-open",
+          "width": 62.390625,
+          "height": 44
+        },
+        {
+          "id": "kingdom-open",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "help-open",
+          "width": 52.875,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "level": 1000,
+      "cols": 7,
+      "rows": 8,
+      "cell": 53.57142857142857,
+      "overflowX": 0,
+      "overflowY": 0,
+      "buttons": [
+        {
+          "id": "game-home",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "level-picker",
+          "width": 83.796875,
+          "height": 44
+        },
+        {
+          "id": "restart",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "hammer",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "arrow",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "cannon",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "shuffle",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "settings-open",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "editor-open",
+          "width": 62.390625,
+          "height": 44
+        },
+        {
+          "id": "kingdom-open",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "help-open",
+          "width": 52.875,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "level": 12000,
+      "cols": 8,
+      "rows": 8,
+      "cell": 46.875,
+      "overflowX": 0,
+      "overflowY": 0,
+      "buttons": [
+        {
+          "id": "game-home",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "level-picker",
+          "width": 93.9375,
+          "height": 44
+        },
+        {
+          "id": "restart",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "hammer",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "arrow",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "cannon",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "shuffle",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "settings-open",
+          "width": 58,
+          "height": 58
+        },
+        {
+          "id": "editor-open",
+          "width": 62.390625,
+          "height": 44
+        },
+        {
+          "id": "kingdom-open",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "id": "help-open",
+          "width": 52.875,
+          "height": 44
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

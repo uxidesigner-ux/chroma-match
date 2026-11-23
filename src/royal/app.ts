@@ -304,4 +304,4 @@ window.addEventListener('royal-update-ready',()=>{
 void registerRoyalPwa()
 requestAnimationFrame(frame)
 // Keep a tiny read-only inspection surface in development, never a mutation API.
-if(import.meta.env.DEV)Object.defineProperty(window,'__royalSnapshot',{get:()=>({level:activeLevel.id,cols:activeLevel.cols,rows:activeLevel.rows,goals:structuredClone(engine.state.goals),obstacles:structuredClone(engine.state.obstacles),moves:engine.state.moves,status:engine.state.status,turn:engine.state.turn,locked:[...engine.state.locked],hint:engine.hint(),pieces:structuredClone(engine.state.pieces),time:engine.time}),configurable:true})
+if(import.meta.env.DEV)Object.defineProperty(window,'__royalSnapshot',{get:()=>({level:activeLevel.id,cols:activeLevel.cols,rows:activeLevel.rows,mask:[...activeLevel.mask],jelly:[...engine.state.jelly],goals:structuredClone(engine.state.goals),obstacles:structuredClone(engine.state.obstacles),moves:engine.state.moves,status:engine.state.status,turn:engine.state.turn,locked:[...engine.state.locked],hint:engine.hint(),pieces:structuredClone(engine.state.pieces),time:engine.time}),configurable:true})
