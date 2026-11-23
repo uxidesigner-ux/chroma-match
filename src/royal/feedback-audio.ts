@@ -76,6 +76,22 @@ export class RoyalSound {
     this.start(source, [filter, envelope], duration, delay)
   }
 
+  /** A charge grows toward its release; ordinary transient tones decay from their onset. */
+  private swell(from: number, to: number, duration: number, volume: number, type: OscillatorType = 'sine', delay = 0): void {
+    const context = this.context, output = this.output
+    if (!context || !output || context.state === 'closed' || this.voices.size >= this.maxVoices) return
+    const oscillator = context.createOscillator(), envelope = context.createGain(), at = context.currentTime + delay
+    oscillator.type = type
+    oscillator.frequency.setValueAtTime(from, at)
+    oscillator.frequency.exponentialRampToValueAtTime(to, at + duration)
+    envelope.gain.setValueAtTime(.0001, at)
+    envelope.gain.exponentialRampToValueAtTime(volume * .24, at + duration * .16)
+    envelope.gain.exponentialRampToValueAtTime(volume, at + duration * .82)
+    envelope.gain.exponentialRampToValueAtTime(.0001, at + duration)
+    oscillator.connect(envelope).connect(output)
+    this.start(oscillator, [envelope], duration, delay)
+  }
+
   play(cue: FeedbackCue): void {
     const strength = Math.min(1, Math.max(.1, cue.strength))
     switch (cue.kind) {
@@ -100,8 +116,27 @@ export class RoyalSound {
       case 'rocket': this.noise(4400, 700, .075, .28); this.tone(175, 70, .09, .29); break
       case 'propeller-launch': this.tone(280, 390, .22, .11, 'triangle'); this.tone(318, 450, .20, .08, 'triangle'); this.noise(1600, 2800, .17, .12); break
       case 'propeller': this.tone(370, 120, .075, .32); this.noise(2300, 550, .06, .23); this.tone(830, 720, .06, .09); break
-      case 'lightball-charge': this.tone(680, 1450, .20, .12); this.tone(1360, 2900, .15, .055, 'sine', .025); break
-      case 'lightball': this.noise(6500, 1700, .12, .28); this.tone(195, 90, .10, .27); this.tone(1150, 760, .13, .13); break
+      case 'lightball-charge': {
+        const duration = Math.min(.6, Math.max(.08, cue.duration ?? .24))
+        this.swell(180, 480, duration, .24 * strength, 'triangle')
+        this.swell(480, 1650, duration, .25 * strength)
+        this.swell(720, 2475, duration * .9, .12 * strength, 'sine', duration * .1)
+        this.noise(1100, 5400, duration, .07)
+        break
+      }
+      case 'lightball-release':
+        this.noise(4200, 8500, .16, .24)
+        this.tone(950, 1800, .23, .20, 'triangle'); this.tone(1900, 2600, .18, .085)
+        break
+      case 'lightball':
+        this.tone(165, 38, .23, .72 * strength); this.tone(330, 80, .15, .24)
+        this.noise(7600, 1400, .18, .43 * strength)
+        this.tone(1480, 960, .18, .21, 'triangle'); this.tone(2220, 1440, .14, .10)
+        break
+      case 'lightball-hit':
+        this.tone(1350, 850, .068, .17, 'triangle')
+        this.tone(220, 95, .045, .16 * strength)
+        break
       case 'land': this.tone(170, 88, .043, .10 * strength); this.noise(1300, 500, .025, .065 * strength); break
       case 'shuffle': this.noise(900, 3600, .19, .17); this.tone(430, 830, .16, .11, 'triangle'); break
       case 'win':

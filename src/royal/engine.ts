@@ -1,11 +1,12 @@
 import { makeRng, type Rng } from '../game/rng.ts'
-import { SWAP_DURATION, INVALID_SWAP_DURATION, MATCH_CONVERGE_DURATION, POWER_CREATION_DURATION, CLEAR_DURATION, TNT_WINDUP, TNT_FLASH_DURATION, PROPELLER_LIFT_DURATION, LIGHTBALL_CHARGE_DURATION, LIGHTBALL_RAY_DURATION, ROCKET_WINDUP, SUPER_REPEAT_DELAY, fallDuration, propellerDuration, rocketDuration } from './timing.ts'
+import { propellerTargets } from './targeting.ts'
+import { SWAP_DURATION, INVALID_SWAP_DURATION, MATCH_CONVERGE_DURATION, POWER_CREATION_DURATION, CLEAR_DURATION, TNT_WINDUP, TNT_FLASH_DURATION, PROPELLER_LIFT_DURATION, LIGHTBALL_CHARGE_DURATION, ROCKET_WINDUP, SUPER_REPEAT_DELAY, fallDuration, propellerDuration, rocketDuration, lightballRays } from './timing.ts'
 import { cellPlayable, type Colour, type EffectEvent, type EngineOptions, type GameState, type GoalKind, type LevelDefinition, type ObstacleState, type Piece, type Power, type Tool } from './model.ts'
 
 interface Match { cells: number[]; colour: Colour; power?: Power; centre: number }
 type EventInput = Omit<EffectEvent, 'at'>
 interface Job { columns: Set<number>; matchUntil?: number; at: number; phase: 'action' | 'impact' | 'clear' | 'fall'; depth: number; action?: () => void; wave?: Wave }
-interface Attack { cells: number[]; power: boolean; colour?: Colour; spread: boolean; adjacent: boolean; delay?: number; impact?: EventInput[]; launch?: () => Attack[]; homing?: { from: number; exclude: Set<number>; carry?: Power } }
+interface Attack { cells: number[]; power: boolean; colour?: Colour; spread: boolean; adjacent: boolean; delay?: number; impact?: EventInput[]; hitObstacles?: Set<string>; launch?: () => Attack[]; homing?: { from: number; exclude: Set<number>; carry?: Power } }
 interface Wave { pending: { at: number; attack: Attack }[]; created: Map<number, Piece>; installed: Set<number>; affected: Set<number>; fired: Set<number>; dynamiteFired: Set<string>; creationReady: number; operations: number }
 interface Flight { columns: Set<number>; at: number; from: number; to: number; spread: boolean; exclude: Set<number>; carry?: Power; targetId: string | number | null; attempts: number }
 const MAX_CASCADES = 40
@@ -259,18 +260,46 @@ export class RoyalEngine {
     for (const p of this.state.pieces) if (p && !p.power) counts[p.colour] = counts[p.colour]! + 1
     return counts.indexOf(Math.max(...counts)) as Colour
   }
-  private target(exclude: Set<number> = new Set(), spreadsJelly = false): number {
-    const goals = new Set(this.state.goals.filter(g => g.remaining > 0).map(g => g.kind))
-    const candidates = this.state.obstacles.filter(o => o.kind !== 'cuckoo' || o.open).flatMap(o => o.cells.slice(0, 1))
-    if (spreadsJelly && goals.has('jelly')) for (let i = 0; i < this.state.pieces.length; i++) if (cellPlayable(this.state.level, i) && !this.state.jelly[i]) candidates.push(i)
-    const all = this.state.pieces.flatMap((p, i) => p ? [i] : [])
-    const available = [...new Set(candidates)].filter(i => !exclude.has(i))
-    const fallback = all.filter(i => !exclude.has(i))
-    return this.rng.pick(available.length ? available : fallback.length ? fallback : all.length ? all : [0])
+  private target(exclude: Set<number> = new Set(), spreadsJelly = false, carry?: Power): number | undefined {
+    const candidates = propellerTargets(this.state, { exclude, spreadsJelly, ...(carry ? { carry } : {}),
+      reservations: [...this.flights].sort((a, b) => a.at - b.at).map(f => ({ cell: f.to, spreadsJelly: f.spread, ...(f.carry ? { carry: f.carry } : {}) })) })
+    return candidates.length ? this.rng.pick(candidates) : undefined
   }
   private attack(cells: number[], spread: boolean): Attack { return { cells, power: true, adjacent: false, spread } }
   private homing(from: number, spread: boolean, exclude: Set<number>, carry?: Power): Attack {
     return { cells: [], power: true, adjacent: false, spread, homing: { from, exclude, ...(carry ? { carry } : {}) } }
+  }
+  private lightballEvent(from: number, cells: number[], colour?: Colour, combo?: number): EventInput {
+    const rays = lightballRays(from, cells, this.cols)
+    const source = this.state.pieces[from]
+    return { kind: 'lightball', cells: [...new Set(cells)], from, power: 'lightball', rays,
+      pieces: [{ cell: from, piece: source?.power === 'lightball' ? { ...source } : { id: -1, colour: colour ?? 0, power: 'lightball' } }],
+      duration: Math.max(.22, ...rays.map(ray => ray.delay + ray.duration)),
+      ...(colour === undefined ? {} : { colour }), ...(combo === undefined ? {} : { combo }) }
+  }
+  private lightballAttacks(from: number, cells: number[], spread: boolean, colour?: Colour, combo?: number): Attack[] {
+    const event = this.lightballEvent(from, cells, colour, combo)
+    const repeats = this.options.superLightBall && cells.some(cell => this.owner.has(cell))
+    let volley = 0
+    const launch = (): Attack[] => {
+      // A second layer hit must have a real destination. Never fire another set
+      // of rays at the empty holes left behind by the first colour/board clear.
+      const repeating = volley++ > 0
+      const current = repeating ? this.lightballEvent(from, cells.filter(cell => cell === from || this.owner.has(cell) || this.state.pieces[cell] || spread && !this.state.jelly[cell]), colour, combo) : event
+      if (repeating && !current.rays!.length) return []
+      this.emit({ ...current, stage: 'launch', ...(repeats && !repeating ? { sourceHold: SUPER_REPEAT_DELAY } : {}) })
+      // Different cells of one large obstacle still lose only one layer per volley.
+      const hitObstacles = new Set<string>()
+      return [this.attack([from], spread), ...current.rays!.map(ray => ({
+        ...this.attack([ray.cell], spread), hitObstacles, delay: ray.delay + ray.duration,
+        impact: [{ kind: 'lightball' as const, from, to: ray.cell, cells: [ray.cell], power: 'lightball' as const,
+          stage: 'impact' as const, duration: TNT_FLASH_DURATION,
+          ...(colour === undefined ? {} : { colour }), ...(combo === undefined ? {} : { combo }) }],
+      }))]
+    }
+    const first = launch()
+    if (repeats) first.push({ cells: [], power: true, adjacent: false, spread, delay: event.duration! + SUPER_REPEAT_DELAY, launch })
+    return first
   }
   private powerAttacks(cell: number, power: Power, colour?: Colour, forcedSpread?: boolean): Attack[] {
     const spread = forcedSpread ?? this.state.jelly[cell] ?? false
@@ -292,9 +321,7 @@ export class RoyalEngine {
     }
     const selected = colour ?? this.mostCommon()
     const cells = [cell, ...this.state.pieces.flatMap((p, i) => p?.colour === selected && !p.power ? [i] : [])]
-    const event: EventInput = { kind: 'lightball', cells, from: cell, power, colour: selected }
-    this.emit({ ...event, stage: 'launch', duration: LIGHTBALL_RAY_DURATION })
-    return Array.from({ length: this.options.superLightBall ? 2 : 1 }, (_, repeat) => ({ ...this.attack(cells, spread), delay: LIGHTBALL_RAY_DURATION + repeat * SUPER_REPEAT_DELAY, impact: [{ ...event, stage: 'impact', duration: TNT_FLASH_DURATION }] }))
+    return this.lightballAttacks(cell, cells, spread, selected)
   }
 
   private comboAttacks(a: number, b: number, p: Power, q: Power): Attack[] {
@@ -302,22 +329,31 @@ export class RoyalEngine {
     const rocket = (v: Power) => v === 'rocket-h' || v === 'rocket-v'
     if (p === 'lightball' || q === 'lightball') {
       if (p === 'lightball' && q === 'lightball') {
-        const cells = this.allCells(), event: EventInput = { kind: 'lightball', cells, from: b, power: 'lightball', combo: 2 }
-        this.emit({ ...event, stage: 'launch', duration: LIGHTBALL_RAY_DURATION })
-        return Array.from({ length: this.options.superLightBall ? 2 : 1 }, (_, repeat) => ({ ...this.attack(cells, spread), delay: LIGHTBALL_RAY_DURATION + repeat * SUPER_REPEAT_DELAY, impact: [{ ...event, stage: 'impact', duration: TNT_FLASH_DURATION }] }))
+        return this.lightballAttacks(b, this.allCells(), spread, undefined, 2)
       }
       const other = p === 'lightball' ? q : p, colour = this.mostCommon()
       const targets = this.state.pieces.flatMap((piece, i) => piece && !piece.power && piece.colour === colour ? [i] : [])
-      this.emit({ kind: 'lightball', cells: [a, b, ...targets], from: p === 'lightball' ? a : b, power: 'lightball', colour, combo: 2, stage: 'launch', duration: LIGHTBALL_RAY_DURATION })
-      const attacks: Attack[] = [this.attack([a, b], spread)]
-      for (const i of targets) {
-        const next: Power = rocket(other) ? (this.rng.int(2) ? 'rocket-h' : 'rocket-v') : other
-        for (let repeat = 0; repeat < (this.options.superLightBall ? 2 : 1); repeat++) attacks.push({ cells: [], power: true, adjacent: false, spread, delay: LIGHTBALL_RAY_DURATION + repeat * SUPER_REPEAT_DELAY, launch: () => {
-          const duration = this.windup([next])
-          this.emit({ kind: 'activate', cells: [i], power: next, pieces: this.snapshots([i]).map(s => ({ cell: s.cell, piece: { ...s.piece, power: next } })), duration })
-          return [{ cells: [], power: true, adjacent: false, spread, delay: duration, launch: () => this.powerAttacks(i, next, undefined, spread) }]
-        } })
+      const from = p === 'lightball' ? a : b, event = this.lightballEvent(from, [a, b, ...targets], colour, 2)
+      // Consumed combo partner is not a colour target and never receives a fake ray.
+      event.rays = lightballRays(from, targets, this.cols)
+      event.duration = Math.max(.22, ...event.rays.map(ray => ray.delay + ray.duration))
+      const converted = new Map(targets.map(i => [i, rocket(other) ? (this.rng.int(2) ? 'rocket-h' : 'rocket-v') as Power : other]))
+      let volley = 0
+      const launch = (): Attack[] => {
+        const repeating = volley++ > 0
+        const live = targets.filter(cell => this.state.pieces[cell]?.colour === colour && !this.state.pieces[cell]?.power)
+        const current = repeating ? this.lightballEvent(from, [from, ...live], colour, 2) : event
+        if (repeating && !current.rays!.length) return []
+        this.emit({ ...current, stage: 'launch', ...(this.options.superLightBall && !repeating ? { sourceHold: this.windup([other]) + SUPER_REPEAT_DELAY } : {}) })
+        return current.rays!.map(ray => ({ cells: [], power: true, adjacent: false, spread, delay: ray.delay + ray.duration, launch: () => {
+          const next = converted.get(ray.cell)!, duration = Math.max(this.windup([next]), current.duration! - ray.delay - ray.duration + this.windup([next]))
+          this.emit({ kind: 'lightball', from, to: ray.cell, cells: [ray.cell], colour, power: 'lightball', combo: 2, stage: 'impact', duration: TNT_FLASH_DURATION })
+          this.emit({ kind: 'activate', cells: [ray.cell], power: next, pieces: this.snapshots([ray.cell]).map(s => ({ cell: s.cell, piece: { ...s.piece, power: next } })), duration })
+          return [{ cells: [], power: true, adjacent: false, spread, delay: duration, launch: () => this.powerAttacks(ray.cell, next, undefined, spread) }]
+        } }))
       }
+      const attacks = [this.attack([a, b], spread), ...launch()]
+      if (this.options.superLightBall) attacks.push({ cells: [], power: true, adjacent: false, spread, delay: event.duration! + this.windup([other]) + SUPER_REPEAT_DELAY, launch })
       return attacks
     }
     if (rocket(p) && rocket(q)) {
@@ -412,7 +448,7 @@ export class RoyalEngine {
   }
   private applyAttack(wave: Wave, attack: Attack): void {
     for (const event of attack.impact ?? []) this.emit(event)
-    const removed: {cell: number; piece: Piece}[] = [], hit = new Set<string>()
+    const removed: {cell: number; piece: Piece}[] = [], hit = attack.hitObstacles ?? new Set<string>()
     const cells = [...new Set(attack.cells)].filter(i => cellPlayable(this.state.level, i))
     for (const cell of cells) {
       wave.affected.add(cell)
@@ -451,7 +487,7 @@ export class RoyalEngine {
             wave.dynamiteFired.add(obstacle.id)
             const visible = this.allCells(), from = obstacle.cells[0]!
             this.emit({ kind: 'activate', cells: [...obstacle.cells], duration: TNT_WINDUP })
-            this.enqueue(wave, { ...this.attack(visible, attack.spread), delay: TNT_WINDUP, impact: [{ kind: 'lightball', cells: visible, from, stage: 'impact', duration: TNT_FLASH_DURATION }] })
+            this.enqueue(wave, { ...this.attack(visible, attack.spread), delay: TNT_WINDUP, impact: [{ kind: 'tnt', cells: visible, from, radius: Math.max(this.cols, this.rows), stage: 'impact', duration: TNT_FLASH_DURATION }] })
             obstacle.colour = (((obstacle.colour ?? 0) + 1) % Math.min(4, Math.max(3, this.state.level.colours))) as Colour
           }
           if (obstacle.stock > 0) { obstacle.hp = obstacle.initialHp; continue }
@@ -466,8 +502,9 @@ export class RoyalEngine {
     }
     if (removed.length) this.emit({ kind: 'clear', cells: removed.map(p => p.cell), pieces: removed, combo: this.state.combo, duration: CLEAR_DURATION })
   }
-  private launchFlight(from: number, spread: boolean, exclude: Set<number>, carry?: Power, attempts = 0, preferred?: number): void {
-    const to = preferred ?? this.target(exclude, spread)
+  private launchFlight(from: number, spread: boolean, exclude: Set<number>, carry?: Power, attempts = 0): void {
+    const to = this.target(exclude, spread, carry)
+    if (to === undefined) return
     exclude.add(to)
     const distance = Math.hypot(to % this.cols - from % this.cols, Math.floor(to / this.cols) - Math.floor(from / this.cols))
     const duration = propellerDuration(distance)
@@ -483,8 +520,7 @@ export class RoyalEngine {
     const owner = this.owner.get(flight.to), piece = this.state.pieces[flight.to]
     const live = flight.targetId === null ? flight.spread && !this.state.jelly[flight.to] : typeof flight.targetId === 'string' ? owner?.id === flight.targetId && (owner.kind !== 'cuckoo' || owner.open) : piece?.id === flight.targetId
     if (!live && flight.attempts < 2 && this.state.goals.some(g => g.remaining > 0)) {
-      const moved = typeof flight.targetId === 'number' ? this.state.pieces.findIndex(p => p?.id === flight.targetId) : -1
-      this.launchFlight(flight.to, flight.spread, flight.exclude, flight.carry, flight.attempts + 1, moved >= 0 ? moved : undefined)
+      this.launchFlight(flight.to, flight.spread, flight.exclude, flight.carry, flight.attempts + 1)
       return
     }
     this.emit({ kind: 'propeller', cells: [flight.to], from: flight.to, to: flight.to, stage: 'impact', duration: CLEAR_DURATION, ...(flight.carry ? {carriedPower:flight.carry} : {}) })

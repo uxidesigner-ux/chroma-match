@@ -178,7 +178,7 @@ test('super lightball pair removes two layers, normal pair one', () => {
   const game = new RoyalEngine(level({ obstacles: [obstacle('box', [0, 1], 3)] }), { superLightBall: true })
   power(game, 23, 'lightball'); power(game, 24, 'lightball')
   assert.equal(game.swap(23, 24), true)
-  advanceTo(game, SWAP_DURATION + LIGHTBALL_CHARGE_DURATION + LIGHTBALL_RAY_DURATION + SUPER_REPEAT_DELAY)
+  advanceTo(game, SWAP_DURATION + LIGHTBALL_CHARGE_DURATION + LIGHTBALL_RAY_DURATION * 2 + SUPER_REPEAT_DELAY)
   assert.equal(game.state.obstacles[0]!.hp, 1)
 })
 
@@ -558,7 +558,19 @@ test('absolute effect timestamps and final state are independent of update chunk
 function carriedTntFixture(overrides: [number, Colour][], chainedPower?: Power, seed = 2): RoyalEngine {
   const colours = Array.from({ length: 81 }, (_, cell) => ((Math.floor(cell / 9) + cell % 9) % 4) as Colour)
   for (const [cell, value] of overrides) colours[cell] = value
-  return new RoyalEngine(level({ cols: 9, rows: 9, mask: Array(9).fill('111111111'), seed, obstacles: [obstacle('stone', [0], 1)], goals: [{ kind: 'colour', colour: 0, count: 1000 }, { kind: 'stone', count: 1 }], pieces: colours.map((value, cell) => ({ cell, colour: value, ...(cell === 79 ? { power: 'propeller' as Power } : cell === 80 ? { power: 'tnt' as Power } : chainedPower && cell === 20 ? { power: chainedPower } : {}) })) }), { seed })
+  const game = new RoyalEngine(level({ cols: 9, rows: 9, mask: Array(9).fill('111111111'), seed, obstacles: [obstacle('stone', [0], 1)], goals: [{ kind: 'colour', colour: 0, count: 1000 }, { kind: 'stone', count: 1 }], pieces: colours.map((value, cell) => ({ cell, colour: value, ...(cell === 79 ? { power: 'propeller' as Power } : cell === 80 ? { power: 'tnt' as Power } : chainedPower && cell === 20 ? { power: chainedPower } : {}) })) }), { seed })
+  // This fixture isolates the historical corner-arrival timing race from target
+  // strategy. Keep the real seeded choice's RNG consumption, then route only the
+  // first flyer to the corner. targeting.test.ts covers actual objective choices.
+  const route = game as unknown as { target: (...args: unknown[]) => number | undefined }
+  const choose = route.target.bind(game)
+  let first = true
+  Object.defineProperty(game, 'target', { value: (...args: unknown[]) => {
+    const chosen = choose(...args)
+    if (first) { first = false; return 0 }
+    return chosen
+  } })
+  return game
 }
 
 for (const phase of ['before arrival', 'during carried TNT windup'] as const) test(`a carried blast reserves its full footprint ${phase} without charging rejected swaps`, () => {

@@ -1,0 +1,753 @@
+[
+  {
+    "name": "lightball-single",
+    "errors": [],
+    "input": {
+      "wall": 0.0020999999046325685,
+      "time": 0.5666,
+      "kind": "pointerup"
+    },
+    "selectedFrames": [
+      {
+        "frame": 0,
+        "secondsFromInput": 0.05
+      },
+      {
+        "frame": 2,
+        "secondsFromInput": 0.1333
+      },
+      {
+        "frame": 5,
+        "secondsFromInput": 0.2333
+      },
+      {
+        "frame": 8,
+        "secondsFromInput": 0.3333
+      },
+      {
+        "frame": 12,
+        "secondsFromInput": 0.4666
+      },
+      {
+        "frame": 14,
+        "secondsFromInput": 0.5334
+      },
+      {
+        "frame": 18,
+        "secondsFromInput": 0.6667
+      },
+      {
+        "frame": 21,
+        "secondsFromInput": 0.7667
+      },
+      {
+        "frame": 26,
+        "secondsFromInput": 0.9333
+      },
+      {
+        "frame": 30,
+        "secondsFromInput": 1.0667
+      },
+      {
+        "frame": 37,
+        "secondsFromInput": 1.3
+      },
+      {
+        "frame": 49,
+        "secondsFromInput": 1.6999
+      }
+    ],
+    "framesCaptured": 61,
+    "final": {
+      "turn": 1,
+      "moves": 19,
+      "status": "playing",
+      "locked": [],
+      "goals": [
+        {
+          "kind": "colour",
+          "count": 500,
+          "colour": 0,
+          "remaining": 488
+        }
+      ]
+    }
+  },
+  {
+    "name": "lightball-colour-swap",
+    "errors": [],
+    "input": {
+      "wall": 0.048699999809265135,
+      "time": 0.6332000000000001,
+      "kind": "pointermove"
+    },
+    "selectedFrames": [
+      {
+        "frame": 0,
+        "secondsFromInput": -0.0166
+      },
+      {
+        "frame": 4,
+        "secondsFromInput": 0.1167
+      },
+      {
+        "frame": 8,
+        "secondsFromInput": 0.25
+      },
+      {
+        "frame": 11,
+        "secondsFromInput": 0.35
+      },
+      {
+        "frame": 14,
+        "secondsFromInput": 0.45
+      },
+      {
+        "frame": 17,
+        "secondsFromInput": 0.55
+      },
+      {
+        "frame": 20,
+        "secondsFromInput": 0.65
+      },
+      {
+        "frame": 24,
+        "secondsFromInput": 0.7833
+      },
+      {
+        "frame": 28,
+        "secondsFromInput": 0.9166
+      },
+      {
+        "frame": 33,
+        "secondsFromInput": 1.0833
+      },
+      {
+        "frame": 40,
+        "secondsFromInput": 1.3166
+      },
+      {
+        "frame": 52,
+        "secondsFromInput": 1.7166
+      }
+    ],
+    "framesCaptured": 61,
+    "final": {
+      "turn": 1,
+      "moves": 19,
+      "status": "playing",
+      "locked": [],
+      "goals": [
+        {
+          "kind": "colour",
+          "count": 500,
+          "colour": 0,
+          "remaining": 500
+        }
+      ]
+    }
+  },
+  {
+    "name": "lightball-tnt",
+    "errors": [],
+    "input": {
+      "wall": 0.04980000019073486,
+      "time": 0.6333000000000001,
+      "kind": "pointermove"
+    },
+    "selectedFrames": [
+      {
+        "frame": 0,
+        "secondsFromInput": -0.0166
+      },
+      {
+        "frame": 5,
+        "secondsFromInput": 0.1501
+      },
+      {
+        "frame": 9,
+        "secondsFromInput": 0.2834
+      },
+      {
+        "frame": 12,
+        "secondsFromInput": 0.3834
+      },
+      {
+        "frame": 15,
+        "secondsFromInput": 0.4834
+      },
+      {
+        "frame": 20,
+        "secondsFromInput": 0.65
+      },
+      {
+        "frame": 24,
+        "secondsFromInput": 0.7834
+      },
+      {
+        "frame": 28,
+        "secondsFromInput": 0.9166
+      },
+      {
+        "frame": 31,
+        "secondsFromInput": 1.0167
+      },
+      {
+        "frame": 35,
+        "secondsFromInput": 1.1501
+      },
+      {
+        "frame": 39,
+        "secondsFromInput": 1.2834
+      },
+      {
+        "frame": 46,
+        "secondsFromInput": 1.5166
+      },
+      {
+        "frame": 52,
+        "secondsFromInput": 1.7166
+      },
+      {
+        "frame": 57,
+        "secondsFromInput": 1.8834
+      },
+      {
+        "frame": 67,
+        "secondsFromInput": 2.2167
+      },
+      {
+        "frame": 76,
+        "secondsFromInput": 2.5166
+      }
+    ],
+    "framesCaptured": 91,
+    "final": {
+      "turn": 1,
+      "moves": 19,
+      "status": "playing",
+      "locked": [],
+      "goals": [
+        {
+          "kind": "colour",
+          "count": 500,
+          "colour": 0,
+          "remaining": 485
+        }
+      ]
+    }
+  },
+  {
+    "name": "double-super",
+    "errors": [],
+    "input": {
+      "wall": 0.049699999809265136,
+      "time": 0.6500000000000001,
+      "kind": "pointermove"
+    },
+    "framesCaptured": 103,
+    "selectedFrames": [
+      {
+        "frame": 1,
+        "secondsFromInput": 0.0166
+      },
+      {
+        "frame": 8,
+        "secondsFromInput": 0.25
+      },
+      {
+        "frame": 13,
+        "secondsFromInput": 0.4166
+      },
+      {
+        "frame": 16,
+        "secondsFromInput": 0.5166
+      },
+      {
+        "frame": 20,
+        "secondsFromInput": 0.65
+      },
+      {
+        "frame": 23,
+        "secondsFromInput": 0.7499
+      },
+      {
+        "frame": 27,
+        "secondsFromInput": 0.8832
+      },
+      {
+        "frame": 31,
+        "secondsFromInput": 1.0166
+      },
+      {
+        "frame": 34,
+        "secondsFromInput": 1.1166
+      },
+      {
+        "frame": 37,
+        "secondsFromInput": 1.2166
+      },
+      {
+        "frame": 41,
+        "secondsFromInput": 1.3499
+      },
+      {
+        "frame": 44,
+        "secondsFromInput": 1.4499
+      },
+      {
+        "frame": 48,
+        "secondsFromInput": 1.5832
+      },
+      {
+        "frame": 52,
+        "secondsFromInput": 1.7166
+      },
+      {
+        "frame": 56,
+        "secondsFromInput": 1.8499
+      },
+      {
+        "frame": 64,
+        "secondsFromInput": 2.1165
+      }
+    ],
+    "fixture": {
+      "cols": 7,
+      "rows": 7,
+      "obstacles": [
+        {
+          "id": "layered-box-0",
+          "kind": "box",
+          "cells": [
+            0
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-3",
+          "kind": "box",
+          "cells": [
+            3
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-6",
+          "kind": "box",
+          "cells": [
+            6
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-21",
+          "kind": "box",
+          "cells": [
+            21
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-27",
+          "kind": "box",
+          "cells": [
+            27
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-42",
+          "kind": "box",
+          "cells": [
+            42
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-45",
+          "kind": "box",
+          "cells": [
+            45
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-48",
+          "kind": "box",
+          "cells": [
+            48
+          ],
+          "hp": 2
+        }
+      ]
+    },
+    "boxGoalTransitions": [
+      {
+        "secondsFromInput": -0.0167,
+        "boxRemaining": 8
+      },
+      {
+        "secondsFromInput": 1.4499,
+        "boxRemaining": 7
+      },
+      {
+        "secondsFromInput": 1.4832,
+        "boxRemaining": 5
+      },
+      {
+        "secondsFromInput": 1.5166,
+        "boxRemaining": 4
+      },
+      {
+        "secondsFromInput": 1.5499,
+        "boxRemaining": 3
+      },
+      {
+        "secondsFromInput": 1.5832,
+        "boxRemaining": 2
+      },
+      {
+        "secondsFromInput": 1.6166,
+        "boxRemaining": 0
+      }
+    ],
+    "final": {
+      "turn": 1,
+      "moves": 19,
+      "status": "playing",
+      "locked": [],
+      "goals": [
+        {
+          "kind": "box",
+          "count": 8,
+          "remaining": 0
+        },
+        {
+          "kind": "colour",
+          "count": 500,
+          "colour": 0,
+          "remaining": 490
+        }
+      ]
+    }
+  },
+  {
+    "name": "propeller-goal",
+    "errors": [],
+    "input": {
+      "wall": 0.0010999999046325684,
+      "time": 0.6167,
+      "kind": "pointerup"
+    },
+    "selectedFrames": [
+      {
+        "frame": 0,
+        "secondsFromInput": 0.0167
+      },
+      {
+        "frame": 3,
+        "secondsFromInput": 0.1167
+      },
+      {
+        "frame": 7,
+        "secondsFromInput": 0.25
+      },
+      {
+        "frame": 10,
+        "secondsFromInput": 0.35
+      },
+      {
+        "frame": 13,
+        "secondsFromInput": 0.45
+      },
+      {
+        "frame": 16,
+        "secondsFromInput": 0.55
+      },
+      {
+        "frame": 19,
+        "secondsFromInput": 0.65
+      },
+      {
+        "frame": 23,
+        "secondsFromInput": 0.7834
+      },
+      {
+        "frame": 27,
+        "secondsFromInput": 0.9167
+      },
+      {
+        "frame": 32,
+        "secondsFromInput": 1.0833
+      },
+      {
+        "frame": 39,
+        "secondsFromInput": 1.3166
+      },
+      {
+        "frame": 51,
+        "secondsFromInput": 1.7166
+      }
+    ],
+    "framesCaptured": 61,
+    "final": {
+      "turn": 1,
+      "moves": 19,
+      "status": "playing",
+      "locked": [],
+      "goals": [
+        {
+          "kind": "box",
+          "count": 1,
+          "remaining": 0
+        },
+        {
+          "kind": "colour",
+          "count": 500,
+          "colour": 0,
+          "remaining": 496
+        }
+      ]
+    }
+  },
+  {
+    "name": "double-super-11x11",
+    "errors": [],
+    "input": {
+      "wall": 0.03559999990463257,
+      "time": 0.6166,
+      "kind": "pointermove"
+    },
+    "framesCaptured": 103,
+    "selectedFrames": [
+      {
+        "frame": 1,
+        "secondsFromInput": 0.0166
+      },
+      {
+        "frame": 8,
+        "secondsFromInput": 0.2499
+      },
+      {
+        "frame": 13,
+        "secondsFromInput": 0.4166
+      },
+      {
+        "frame": 16,
+        "secondsFromInput": 0.5166
+      },
+      {
+        "frame": 20,
+        "secondsFromInput": 0.6499
+      },
+      {
+        "frame": 23,
+        "secondsFromInput": 0.7499
+      },
+      {
+        "frame": 27,
+        "secondsFromInput": 0.8833
+      },
+      {
+        "frame": 31,
+        "secondsFromInput": 1.0165
+      },
+      {
+        "frame": 34,
+        "secondsFromInput": 1.1166
+      },
+      {
+        "frame": 37,
+        "secondsFromInput": 1.2166
+      },
+      {
+        "frame": 41,
+        "secondsFromInput": 1.3498
+      },
+      {
+        "frame": 44,
+        "secondsFromInput": 1.4499
+      },
+      {
+        "frame": 48,
+        "secondsFromInput": 1.5833
+      },
+      {
+        "frame": 52,
+        "secondsFromInput": 1.7166
+      },
+      {
+        "frame": 56,
+        "secondsFromInput": 1.8499
+      },
+      {
+        "frame": 64,
+        "secondsFromInput": 2.1165
+      }
+    ],
+    "fixture": {
+      "cols": 11,
+      "rows": 11,
+      "obstacles": [
+        {
+          "id": "layered-box-0",
+          "kind": "box",
+          "cells": [
+            0
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-5",
+          "kind": "box",
+          "cells": [
+            5
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-10",
+          "kind": "box",
+          "cells": [
+            10
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-33",
+          "kind": "box",
+          "cells": [
+            33
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-43",
+          "kind": "box",
+          "cells": [
+            43
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-55",
+          "kind": "box",
+          "cells": [
+            55
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-65",
+          "kind": "box",
+          "cells": [
+            65
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-77",
+          "kind": "box",
+          "cells": [
+            77
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-87",
+          "kind": "box",
+          "cells": [
+            87
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-110",
+          "kind": "box",
+          "cells": [
+            110
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-115",
+          "kind": "box",
+          "cells": [
+            115
+          ],
+          "hp": 2
+        },
+        {
+          "id": "layered-box-120",
+          "kind": "box",
+          "cells": [
+            120
+          ],
+          "hp": 2
+        }
+      ]
+    },
+    "boxGoalTransitions": [
+      {
+        "secondsFromInput": -0.0167,
+        "boxRemaining": 12
+      },
+      {
+        "secondsFromInput": 1.5165,
+        "boxRemaining": 11
+      },
+      {
+        "secondsFromInput": 1.5499,
+        "boxRemaining": 10
+      },
+      {
+        "secondsFromInput": 1.5833,
+        "boxRemaining": 9
+      },
+      {
+        "secondsFromInput": 1.6165,
+        "boxRemaining": 7
+      },
+      {
+        "secondsFromInput": 1.6499,
+        "boxRemaining": 6
+      },
+      {
+        "secondsFromInput": 1.6832,
+        "boxRemaining": 4
+      },
+      {
+        "secondsFromInput": 1.7166,
+        "boxRemaining": 3
+      },
+      {
+        "secondsFromInput": 1.7499,
+        "boxRemaining": 2
+      },
+      {
+        "secondsFromInput": 1.7832,
+        "boxRemaining": 0
+      }
+    ],
+    "final": {
+      "turn": 1,
+      "moves": 19,
+      "status": "playing",
+      "locked": [],
+      "goals": [
+        {
+          "kind": "box",
+          "count": 12,
+          "remaining": 0
+        },
+        {
+          "kind": "colour",
+          "count": 500,
+          "colour": 0,
+          "remaining": 451
+        }
+      ]
+    }
+  }
+]

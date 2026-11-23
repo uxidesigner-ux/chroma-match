@@ -2,12 +2,16 @@ import assert from 'node:assert/strict'
 import { RoyalEngine } from '../src/royal/engine.ts'
 
 // Optional bounded stress audit: node scripts/audit-royal-motion.mjs
-// Drive only the public engine API; never edit the live board to force a race.
+// Run real objective targeting plus an isolated historical corner-arrival race.
+// Neither mode mutates the live board. The latter overrides only the first
+// target choice so the original creation/arrival interleaving remains covered.
 const starts = [.50, .58, .64, .70, .76, .82, .88, .94, 1.00]
 const powers = ['tnt', 'rocket-h', 'propeller', 'lightball']
-let checked = 0, rejected = 0, creations = 0
+const modes = ['objective-ai', 'historical-corner']
+const reports = Object.fromEntries(modes.map(mode => [mode, { checked: 0, accepted: 0, rejected: 0, alternativeMoves: 0, creations: 0 }]))
 
-for (const chain of powers) for (const start of starts) for (let seed = 1; seed <= 200; seed++) {
+for (const mode of modes) for (const chain of powers) for (const start of starts) for (let seed = 1; seed <= 200; seed++) {
+  const report = reports[mode]
   const colours = Array.from({ length: 81 }, (_, cell) => (Math.floor(cell / 9) + cell % 9) % 4)
   colours[22] = 0
   const level = {
@@ -20,21 +24,43 @@ for (const chain of powers) for (const start of starts) for (let seed = 1; seed 
     })),
   }
   const engine = new RoyalEngine(level, { seed })
+  if (mode === 'historical-corner') {
+    const choose = engine.target.bind(engine)
+    let first = true
+    Object.defineProperty(engine, 'target', { value: (...args) => {
+      const chosen = choose(...args)
+      if (first) { first = false; return 0 }
+      return chosen
+    } })
+  }
   engine.drainEvents()
   assert(engine.swap(79, 80))
   engine.update(start)
   const events = engine.drainEvents()
-  if (!engine.swap(13, 12)) { rejected++; continue }
+  let accepted = engine.swap(13, 12)
+  if (!accepted && mode === 'objective-ai') {
+    // The smarter cargo footprint can correctly reserve the old test swap.
+    // Exercise a different genuinely available normal match when one exists.
+    search: for (let cell = 0; cell < engine.state.pieces.length; cell++) {
+      if (!engine.state.pieces[cell] || engine.state.pieces[cell].power || engine.state.locked.has(cell)) continue
+      for (const neighbour of [cell % 9 < 8 ? cell + 1 : -1, cell + 9]) {
+        if (!engine.state.pieces[neighbour] || engine.state.pieces[neighbour].power || engine.state.locked.has(neighbour)) continue
+        if (engine.swap(cell, neighbour)) { accepted = true; report.alternativeMoves++; break search }
+      }
+    }
+  }
+  if (accepted) report.accepted++
+  else report.rejected++
   engine.update(3)
   events.push(...engine.drainEvents())
   for (let step = 0; step < 40 && engine.state.locked.size; step++) {
     engine.update(.5)
     events.push(...engine.drainEvents())
   }
-  const context = JSON.stringify({ chain, start, seed })
+  const context = JSON.stringify({ mode, chain, start, seed })
   const clears = events.filter(event => event.kind === 'clear')
   for (const event of events.filter(event => event.kind === 'power')) {
-    creations++
+    report.creations++
     const deadline = event.at + .15
     for (const original of event.pieces ?? []) {
       const removals = clears.filter(clear => clear.pieces?.some(item => item.piece.id === original.piece.id))
@@ -53,9 +79,9 @@ for (const chain of powers) for (const start of starts) for (let seed = 1; seed 
   assert(engine.state.pieces.every((piece, cell) => piece || occupied.has(cell)), `orphan hole: ${context}`)
   const ids = engine.state.pieces.filter(Boolean).map(piece => piece.id)
   assert.equal(new Set(ids).size, ids.length, `duplicate final ID: ${context}`)
-  checked++
+  report.checked++
 }
 
-console.log(JSON.stringify({ checked, rejected, creations,
+console.log(JSON.stringify({ reports,
   result: 'Contributors cleared once at their own convergence; settled occupancy and IDs valid.',
 }))

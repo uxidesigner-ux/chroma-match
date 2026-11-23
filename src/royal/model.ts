@@ -23,6 +23,7 @@ export interface GameState {
   jelly: boolean[]; goals: GoalState[]; moves: number; status: 'playing' | 'won' | 'lost';
   locked: Set<number>; turn: number; combo: number;
 }
+export interface LightballRay { cell: number; delay: number; duration: number }
 export interface EffectEvent {
   kind: 'swap' | 'invalid' | 'activate' | 'clear' | 'power' | 'rocket' | 'propeller' | 'tnt' | 'lightball' | 'damage' | 'collect' | 'fall' | 'shuffle' | 'tool' | 'win' | 'lose';
   /** Absolute simulation time at which this event starts. */
@@ -34,6 +35,10 @@ export interface EffectEvent {
   pieces?: { cell: number; piece: Piece }[];
   createdPiece?: Piece;
   carriedPower?: Power;
+  /** Actual per-target flight schedule, relative to this launch's simulation time. */
+  rays?: LightballRay[];
+  /** Keep the emitting sphere visible between super volleys, without extending ray travel. */
+  sourceHold?: number;
   /** Tool contact is emitted at the same instant as its logical damage. */
   tool?: Tool;
   stage?: 'launch' | 'impact';

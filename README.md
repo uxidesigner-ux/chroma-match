@@ -1,6 +1,6 @@
 # Chroma Match
 
-> **개인용 왕실 리뉴얼 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. 원형 도구 버튼과 전체 버튼의 누름/복귀, 블록 교환·착지·재질 파편, 충돌 시점의 효과음·햅틱을 개선했습니다. [v7 인터랙션 검수](docs/royal-rich-interaction-v7.md) · [iPhone 앱 준비·설치 안내](ios/README.md) · [영상 분석과 모션 검수](docs/research/royal-motion-v6.md) · [실행 및 설정 안내](docs/ROYAL-LOCAL.md)
+> **개인용 왕실 리뉴얼 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. 프로펠러가 남은 목표와 운반 폭발 범위를 평가하고, 라이트볼은 구체에서 선택한 색의 블록으로 광선을 발사해 도착 순간 파괴합니다. [v8 타깃·광선 개선](docs/royal-power-direction-v8.md) · [v7 버튼·인터랙션 검수](docs/royal-rich-interaction-v7.md) · [iPhone 앱 준비·설치 안내](ios/README.md) · [실행 및 설정 안내](docs/ROYAL-LOCAL.md)
 
 ## 현재 개인용 게임
 

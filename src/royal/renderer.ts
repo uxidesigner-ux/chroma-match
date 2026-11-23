@@ -206,6 +206,9 @@ export class RoyalRenderer {
         const cell = event.from ?? event.to ?? cells[0]
         if (cell !== undefined) this.impulses.push({ cell, birth, strength: event.kind === 'tnt' ? 1 : event.kind === 'tool' ? .8 : .4 })
       }
+      if (event.kind === 'lightball' && event.stage === 'impact') {
+        for (const cell of cells) this.burst(cell, '#fff3a4', this.calm ? 1 : 3, birth)
+      }
       if (event.kind === 'clear') {
         for (const cell of cells) {
           const old = event.pieces?.find(p => p.cell === cell)?.piece ?? this.previousPieces.get(cell)
@@ -248,7 +251,8 @@ export class RoyalRenderer {
         for (const cell of sample(cells, 24)) this.burst(cell, COLOURS[cell % 4]!, this.calm ? 2 : 10, birth)
       }
       if (['activate', 'rocket', 'tnt', 'lightball', 'propeller', 'power', 'shuffle', 'tool'].includes(event.kind)) {
-        const life = event.duration ?? (event.kind === 'power' ? POWER_CREATION_DURATION : .25)
+        const life = (event.duration ?? (event.kind === 'power' ? POWER_CREATION_DURATION : .25))
+          + (event.kind === 'lightball' && event.stage === 'launch' ? event.sourceHold ?? .06 : 0)
         if (event.kind === 'activate' && event.pieces?.length) {
           const previous = this.visuals.find(v => v.event.kind === 'activate' && v.event.power === event.power
             && Math.abs(v.birth + v.life - birth) < 1e-5 && v.event.pieces?.length === event.pieces!.length
@@ -261,7 +265,19 @@ export class RoyalRenderer {
       }
     }
     if (this.impulses.length > 18) this.impulses.splice(0, this.impulses.length - 18)
-    if (this.visuals.length > 80) this.visuals.splice(0, this.visuals.length - 80)
+    if (this.visuals.length > 80) {
+      // A volley owns every selected target. Never evict its source or arrival
+      // flashes merely because a conversion creates many child activations.
+      const lightballs = this.visuals.filter(v => v.event.kind === 'lightball' && v.event.stage !== 'impact')
+      const arrivals = new Map<number, Visual>()
+      for (const visual of this.visuals) if (visual.event.kind === 'lightball' && visual.event.stage === 'impact') {
+        // Repeated hits on one cell renew that cell's flash. Distinct cells are
+        // never sampled out, and at most one live arrival visual owns each cell.
+        for (const cell of visual.event.cells) arrivals.set(cell, visual.event.cells.length === 1 ? visual : { ...visual, event: { ...visual.event, cells: [cell] } })
+      }
+      const other = this.visuals.filter(v => v.event.kind !== 'lightball').slice(-80)
+      this.visuals = [...lightballs, ...arrivals.values(), ...other].sort((a, b) => a.birth - b.birth)
+    }
     if (this.ghosts.length > 150) this.ghosts.splice(0, this.ghosts.length - 150)
   }
 
@@ -277,6 +293,8 @@ export class RoyalRenderer {
     this.drawContact(state)
     const occupied = new Set(state.obstacles.flatMap(o => o.cells))
     const activating = new Set(this.visuals.filter(v => v.event.kind === 'activate' && this.clock >= v.birth && this.clock < v.birth + v.life).flatMap(v => v.event.pieces?.map(p => p.piece.id) ?? []))
+    const formations = new Map(this.visuals.filter(v => v.event.kind === 'power' && v.event.createdPiece && this.clock >= v.birth && this.clock < v.birth + v.life).map(v => [v.event.createdPiece!.id, v]))
+    const shuffled = this.visuals.find(v => v.event.kind === 'shuffle' && this.clock >= v.birth && this.clock < v.birth + v.life)
     const gathering = new Set(this.ghosts.filter(g => g.to !== undefined && this.clock < g.birth + g.life).map(g => g.piece.id))
     ctx.save(); ctx.clip(this.boardClip)
     for (let i = 0; i < state.pieces.length; i++) {
@@ -307,13 +325,11 @@ export class RoyalRenderer {
           }
         }
       }
-      if (!calm) for (const v of this.visuals) {
-        const age = this.clock - v.birth
-        if (age < 0 || age > v.life) continue
-        if (v.event.kind === 'power' && v.event.createdPiece?.id === piece.id) {
-          const t = clamp((age - MATCH_CONVERGE_DURATION) / Math.max(.01, v.life - MATCH_CONVERGE_DURATION))
-          sx *= .7 + .3 * t + Math.sin(t * Math.PI) * .22; sy *= .7 + .3 * t + Math.sin(t * Math.PI) * .22
-        }
+      const forming = formations.get(piece.id)
+      if (!calm && forming) {
+        const age = this.clock - forming.birth
+        const t = clamp((age - MATCH_CONVERGE_DURATION) / Math.max(.01, forming.life - MATCH_CONVERGE_DURATION))
+        sx *= .7 + .3 * t + Math.sin(t * Math.PI) * .22; sy *= .7 + .3 * t + Math.sin(t * Math.PI) * .22
       }
       if (!calm && this.press?.cell === i && !motion && !state.locked.has(i)) {
         const down = clamp((this.clock - this.press.at) / .055)
@@ -334,7 +350,6 @@ export class RoyalRenderer {
         const length = Math.hypot(pressureX, pressureY), limit = length ? Math.min(1, s * .045 / length) : 1
         dx += pressureX * limit; dy += pressureY * limit
       }
-      const shuffled = this.visuals.find(v => v.event.kind === 'shuffle' && this.clock >= v.birth && this.clock < v.birth + v.life)
       if (shuffled && !calm && !motion) {
         const t = clamp((this.clock - shuffled.birth) / shuffled.life), pulse = Math.sin(t * Math.PI)
         sx *= 1 - pulse * .09; sy *= 1 + pulse * .04; rotation += pulse * .10 * (i % 2 ? -1 : 1)
@@ -729,6 +744,109 @@ export class RoyalRenderer {
     ctx.restore()
   }
 
+  private drawLightballCore(p: { x: number; y: number }, age: number, charge: number, alpha = 1): void {
+    const ctx = this.ctx, s = this.size
+    ctx.save(); ctx.globalAlpha *= alpha
+    if (!this.calm) {
+      const radius = s * (.70 + charge * .24)
+      const glow = ctx.createRadialGradient(p.x, p.y, s * .13, p.x, p.y, radius)
+      glow.addColorStop(0, '#fff9bddd'); glow.addColorStop(.32, '#ffe16c99'); glow.addColorStop(.65, '#a7a9ff44'); glow.addColorStop(1, '#aa88ff00')
+      ctx.fillStyle = glow; ctx.fillRect(p.x - radius, p.y - radius, radius * 2, radius * 2)
+      ctx.save(); ctx.translate(p.x, p.y)
+      for (let orbit = 0; orbit < 2; orbit++) {
+        ctx.rotate(orbit ? .65 : -.35)
+        ctx.strokeStyle = orbit ? '#c5d5ffb0' : '#fff0a3e0'; ctx.lineWidth = s * .025
+        ctx.beginPath(); ctx.ellipse(0, 0, s * (.53 + charge * .08), s * .32, age * (orbit ? -2.6 : 2), -.3, Math.PI * 1.55); ctx.stroke()
+      }
+      for (let spark = 0; spark < 5; spark++) {
+        const angle = age * (2 + charge * 3) + spark * TAU / 5, distance = s * (.62 - charge * .10)
+        ctx.fillStyle = spark % 2 ? '#fff8cf' : '#d9dcff'
+        star(ctx, Math.cos(angle) * distance, Math.sin(angle) * distance * .8, s * (.035 + charge * .02), angle)
+      }
+      ctx.restore()
+    }
+    ctx.save(); ctx.translate(p.x, p.y)
+    const scale = this.calm ? 1 : 1 + charge * .12 + Math.sin(age * 18) * .018 * charge
+    ctx.scale(scale, scale)
+    sprite(ctx, 'lightball', 0, 0, s * .98)
+    if (!this.calm) {
+      // The original sphere stays legible inside the bright energy field.
+      const shine = ctx.createRadialGradient(-s * .07, -s * .10, 0, 0, 0, s * .31)
+      shine.addColorStop(0, '#ffffffb8'); shine.addColorStop(.28, '#fffad568'); shine.addColorStop(1, '#fff6a000')
+      ctx.globalAlpha *= .45 + charge * .4; ctx.fillStyle = shine; ctx.fillRect(-s * .35, -s * .35, s * .7, s * .7)
+    }
+    ctx.restore(); ctx.restore()
+  }
+
+  private drawLightball(event: EffectEvent, age: number, life: number, p: { x: number; y: number }): void {
+    const ctx = this.ctx, s = this.size, t = clamp(age / life)
+    if (event.stage === 'impact') {
+      for (const target of event.cells) {
+        const q = this.centreOf(target)
+        if (this.calm) {
+          ctx.save(); ctx.globalAlpha = (1 - t) * .28
+          rounded(ctx, q.x - s * .42, q.y - s * .42, s * .84, s * .84, s * .13)
+          ctx.fillStyle = '#fff1b2'; ctx.fill(); ctx.restore()
+        } else {
+          this.flash(q.x, q.y, s * .86, t, true)
+          ctx.save(); ctx.globalAlpha = (1 - t) * .7; ctx.strokeStyle = '#fff4b5'; ctx.lineWidth = s * .035 * (1 - t)
+          ctx.beginPath(); ctx.ellipse(q.x, q.y, s * (.23 + t * .29), s * (.18 + t * .23), 0, 0, TAU); ctx.stroke(); ctx.restore()
+        }
+      }
+      return
+    }
+    const rays = event.rays ?? event.cells.filter(cell => cell !== event.from).map(cell => ({ cell, delay: 0, duration: life }))
+    let firing = 0
+    for (const ray of rays) {
+      const elapsed = age - ray.delay
+      if (elapsed >= ray.duration) continue
+      const q = this.centreOf(ray.cell)
+      // Every real destination is shown from selection until its own arrival.
+      ctx.save(); ctx.globalAlpha = this.calm ? .25 : elapsed < 0 ? .25 : .40
+      rounded(ctx, q.x - s * .43, q.y - s * .43, s * .86, s * .86, s * .14)
+      ctx.strokeStyle = event.colour === undefined ? '#fff4b6' : COLOURS[event.colour]!
+      ctx.lineWidth = s * .04; ctx.stroke(); ctx.fillStyle = '#fff5bc'; ctx.globalAlpha *= .20; ctx.fill(); ctx.restore()
+      if (this.calm || elapsed < 0) continue
+      const progress = clamp(elapsed / Math.max(.001, ray.duration)), head = progress * (.70 + .30 * progress)
+      const dx = q.x - p.x, dy = q.y - p.y, distance = Math.max(1, Math.hypot(dx, dy))
+      const bend = Math.min(s * .60, distance * .11) * (ray.cell % 2 ? -1 : 1)
+      const cx = (p.x + q.x) / 2 - dy / distance * bend, cy = (p.y + q.y) / 2 + dx / distance * bend
+      const x = (1 - head) ** 2 * p.x + 2 * (1 - head) * head * cx + head ** 2 * q.x
+      const y = (1 - head) ** 2 * p.y + 2 * (1 - head) * head * cy + head ** 2 * q.y
+      firing = Math.max(firing, 1 - clamp(elapsed / .07))
+      ctx.save()
+      // Faint source connection plus a thick moving packet make the origin and
+      // exact travelling head readable without painting a full pre-arrival ray.
+      ctx.beginPath(); ctx.moveTo(p.x, p.y)
+      ctx.quadraticCurveTo(p.x + (cx - p.x) * head, p.y + (cy - p.y) * head, x, y)
+      ctx.strokeStyle = '#f7da8a66'; ctx.lineWidth = s * .035; ctx.stroke()
+      const tail = Math.max(0, head - .34)
+      ctx.beginPath()
+      for (let step = 0; step <= 6; step++) {
+        const u = tail + (head - tail) * step / 6
+        const px = (1 - u) ** 2 * p.x + 2 * (1 - u) * u * cx + u ** 2 * q.x
+        const py = (1 - u) ** 2 * p.y + 2 * (1 - u) * u * cy + u ** 2 * q.y
+        if (step) ctx.lineTo(px, py); else ctx.moveTo(px, py)
+      }
+      ctx.strokeStyle = '#a5a5ff80'; ctx.lineWidth = s * .19; ctx.stroke()
+      ctx.strokeStyle = '#ffdb66'; ctx.lineWidth = s * .095; ctx.stroke()
+      ctx.strokeStyle = '#fffef0'; ctx.lineWidth = s * .037; ctx.stroke()
+      const tip = ctx.createRadialGradient(x, y, 0, x, y, s * .22)
+      tip.addColorStop(0, '#ffffff'); tip.addColorStop(.23, '#fffcd8'); tip.addColorStop(.50, '#ffe285aa'); tip.addColorStop(1, '#a6a4ff00')
+      ctx.fillStyle = tip; ctx.fillRect(x - s * .22, y - s * .22, s * .44, s * .44)
+      ctx.fillStyle = '#ffffff'; star(ctx, x, y, s * .10, age * 7 + ray.cell)
+      ctx.restore()
+    }
+    // A later volley at this same origin replaces only the source art. The
+    // previous volley still owns any of its travelling rays/arrival effects.
+    const later = this.visuals.some(v => v.event.kind === 'lightball' && v.event.stage === 'launch' && v.event.from === event.from && v.birth > event.at && this.clock >= v.birth)
+    if (!later) {
+      const emissionEnd = event.duration ?? life, holding = age >= emissionEnd
+      const fade = event.sourceHold ? 1 : clamp((life - age) / .06)
+      this.drawLightballCore(p, age, holding ? .35 : .75 + firing * .25, this.calm ? 1 : fade)
+    }
+  }
+
   private drawTool(event: EffectEvent, t: number, p: { x: number; y: number }): void {
     const ctx = this.ctx, s = this.size
     // Tools damage on contact. These are contact/recoil frames, not a late
@@ -838,13 +956,15 @@ export class RoyalRenderer {
         for (const { cell: origin, piece } of event.pieces ?? []) {
           const q = this.centreOf(origin)
           if (!this.calm && piece.power === 'propeller') this.drawPropeller({ ...event, from: origin, to: origin }, age, visual.life, q)
+          else if (piece.power === 'lightball') this.drawLightballCore(q, age, t)
           else {
             const squeeze = this.calm ? 0 : Math.sin(t * Math.PI)
             ctx.save(); ctx.translate(q.x, q.y); ctx.scale(1 + squeeze * .13, 1 - squeeze * .10)
             sprite(ctx, piece.power ?? 'colour', 0, 0, s * .98, piece.colour); ctx.restore()
           }
         }
-      } else if (this.calm) {
+      } else if (event.kind === 'lightball') this.drawLightball(event, age, visual.life, p)
+      else if (this.calm) {
         if (event.stage !== 'launch') for (const target of sample(event.cells, 24)) {
           const q = this.centreOf(target)
           rounded(ctx, q.x - s * .38, q.y - s * .38, s * .76, s * .76, s * .12)
@@ -856,23 +976,6 @@ export class RoyalRenderer {
       else if (event.kind === 'tnt' && event.stage !== 'launch') this.flash(p.x, p.y, s * ((event.radius ?? 2) + .65), t, true, true)
       else if (event.kind === 'power') {
         if (age >= MATCH_CONVERGE_DURATION) this.flash(p.x, p.y, s * 1.15, clamp((age - MATCH_CONVERGE_DURATION) / (visual.life - MATCH_CONVERGE_DURATION)), true)
-      } else if (event.kind === 'lightball') {
-        if (event.stage === 'impact') {
-          for (const target of sample(event.cells, 30)) { const q = this.centreOf(target); this.flash(q.x, q.y, s * .65, t) }
-        } else {
-          this.flash(p.x, p.y, s * .7, t * .65)
-          const reach = clamp((t - .15) / .7)
-          for (const target of sample(event.cells.filter(i => i !== cell), 36)) {
-            const q = this.centreOf(target), cx = (p.x + q.x) / 2 + s * .18, cy = (p.y + q.y) / 2 - s * .25
-            const x = (1 - reach) ** 2 * p.x + 2 * (1 - reach) * reach * cx + reach ** 2 * q.x
-            const y = (1 - reach) ** 2 * p.y + 2 * (1 - reach) * reach * cy + reach ** 2 * q.y
-            ctx.globalAlpha = 1 - clamp((t - .85) / .15)
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo(p.x + (cx - p.x) * reach, p.y + (cy - p.y) * reach, x, y)
-            ctx.strokeStyle = '#f8d65a99'; ctx.lineWidth = s * .07; ctx.stroke()
-            ctx.strokeStyle = '#fffbe5'; ctx.lineWidth = s * .025; ctx.stroke()
-            ctx.fillStyle = '#ffffff'; star(ctx, x, y, s * .08, t * 4)
-          }
-        }
       } else if (event.kind === 'shuffle') {
         for (const target of sample(event.cells, 20)) { const q = this.centreOf(target); this.flash(q.x, q.y, s * .5, t) }
       }

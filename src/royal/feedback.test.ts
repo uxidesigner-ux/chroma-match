@@ -6,13 +6,14 @@ import type { EffectEvent } from './model.ts'
 function rig(withHaptics = true) {
   let now = 0, visible = true, unlocks = 0, stops = 0, cancels = 0, destroyed = 0
   const sounds: FeedbackCue[] = [], taps: FeedbackCue[] = []
+  const tapTimes: { kind: FeedbackCue['kind']; at: number }[] = []
   const runtime: FeedbackRuntime = {
     now: () => now, visible: () => visible,
     audio: { unlock: () => { unlocks++ }, play: cue => sounds.push({ ...cue }), stop: () => { stops++ }, destroy: () => { destroyed++ } },
-    ...(withHaptics ? { haptic: { mode: 'vibration' as const, play: (cue: FeedbackCue) => { taps.push({ ...cue }); return true }, cancel: () => { cancels++ } } } : {}),
+    ...(withHaptics ? { haptic: { mode: 'vibration' as const, play: (cue: FeedbackCue) => { taps.push({ ...cue }); tapTimes.push({ kind: cue.kind, at: now }); return true }, cancel: () => { cancels++ } } } : {}),
   }
   const feedback = new RoyalFeedback(runtime)
-  return { feedback, sounds, taps, advance: (ms: number) => { now += ms }, visible: (value: boolean) => { visible = value },
+  return { feedback, sounds, taps, tapTimes, advance: (ms: number) => { now += ms }, visible: (value: boolean) => { visible = value },
     get unlocks() { return unlocks }, get stops() { return stops }, get cancels() { return cancels }, get destroyed() { return destroyed } }
 }
 const event = (kind: EffectEvent['kind'], at: number, extra: Partial<EffectEvent> = {}): EffectEvent => ({ kind, at, cells: [3], ...extra })
@@ -125,6 +126,101 @@ test('flight sound is separate from the arrival tap, and power consumption alone
   assert.deepEqual(r.sounds.map(cue => cue.kind), ['propeller-launch']); assert.equal(r.taps.length, 0)
   r.advance(700); r.feedback.update([event('propeller', .7, { stage: 'impact' })], .7)
   assert.equal(r.taps[0]?.kind, 'propeller')
+})
+
+test('lightball starts one rising charge on activation and releases only when its rays launch', () => {
+  const r = rig(); r.feedback.unlock()
+  const activation = event('activate', 0, { cells: [3, 4], duration: .24, combo: 2,
+    pieces: [{ cell: 3, piece: { id: 11, colour: 0, power: 'lightball' } }, { cell: 4, piece: { id: 12, colour: 0, power: 'propeller' } }] })
+  r.feedback.update([activation], 0)
+  assert.deepEqual(r.sounds.map(cue => cue.kind), ['lightball-charge'])
+  assert.equal(r.sounds[0]?.duration, .24)
+  assert.equal(r.taps.length, 0, 'charging never starts a continuous vibration')
+  r.advance(120); r.feedback.update([structuredClone(activation)], .12)
+  assert.equal(r.sounds.length, 1)
+  r.advance(120); r.feedback.update([event('lightball', .24, { from: 3, cells: [5, 7, 9], stage: 'launch', duration: .78 })], .24)
+  assert.deepEqual(r.sounds.map(cue => cue.kind), ['lightball-charge', 'lightball-release'])
+  assert.deepEqual(r.taps.map(cue => cue.kind), ['lightball-release'])
+  r.advance(200); r.feedback.update([event('lightball', .44, { from: 3, to: 5, cells: [5], stage: 'impact' })], .44)
+  assert.equal(r.sounds.at(-1)?.kind, 'lightball')
+  assert.equal(r.taps.at(-1)?.strength, 1)
+})
+
+test('many lightball ray arrivals use one major blast and bounded short impact cues', () => {
+  const r = rig(); r.feedback.unlock()
+  r.feedback.update([event('activate', 0, { power: 'lightball', duration: .24 })], 0)
+  r.advance(240); r.feedback.update([event('lightball', .24, { from: 3, stage: 'launch' })], .24)
+  r.advance(200)
+  for (let i = 0; i < 36; i++) {
+    const at = .44 + i * .02, cell = i + 5
+    r.feedback.update([event('lightball', at, { from: 3, to: cell, cells: [cell], stage: 'impact' }), event('clear', at, { cells: [cell] }), event('damage', at, { cells: [cell] })], at)
+    r.advance(20)
+  }
+  assert.equal(r.sounds.filter(cue => cue.kind === 'lightball').length, 1)
+  assert.equal(r.sounds.filter(cue => cue.kind === 'match').length, 0, 'a ray impact replaces the same-frame generic clear pop')
+  const ticks = r.sounds.filter(cue => cue.kind === 'lightball-hit')
+  assert.ok(ticks.length >= 4 && ticks.length <= 10, `${ticks.length} short arrivals for 36 rays`)
+  const pulses = r.tapTimes.filter(cue => cue.kind === 'lightball-hit')
+  assert.ok(pulses.length >= 3 && pulses.length <= 6)
+  assert.ok(pulses.slice(1).every((pulse, i) => pulse.at - pulses[i]!.at >= 110))
+  assert.equal(r.taps.filter(cue => cue.kind === 'lightball').length, 1)
+})
+
+test('super lightball can release a second ray batch without restarting its charge or full blast', () => {
+  const r = rig(); r.feedback.unlock()
+  r.feedback.update([event('activate', 0, { power: 'lightball', duration: .24 })], 0)
+  r.advance(240); r.feedback.update([event('lightball', .24, { from: 3, stage: 'launch' })], .24)
+  r.advance(200); r.feedback.update([event('lightball', .44, { from: 3, to: 7, stage: 'impact' })], .44)
+  r.advance(150); r.feedback.update([event('lightball', .59, { from: 3, stage: 'launch' })], .59)
+  r.advance(200); r.feedback.update([event('lightball', .79, { from: 3, to: 7, stage: 'impact' })], .79)
+  assert.equal(r.sounds.filter(cue => cue.kind === 'lightball-charge').length, 1)
+  assert.equal(r.sounds.filter(cue => cue.kind === 'lightball-release').length, 2)
+  assert.equal(r.sounds.filter(cue => cue.kind === 'lightball').length, 1)
+  assert.equal(r.sounds.at(-1)?.kind, 'lightball-hit')
+})
+
+test('a falling tile cannot cut off the distinctive first lightball pulse', () => {
+  const r = rig(); r.feedback.unlock()
+  r.feedback.update([event('lightball', 0, { from: 3, to: 5, stage: 'impact' })], 0)
+  r.advance(80); r.feedback.update([event('fall', .08, { to: 6, duration: 0 })], .08)
+  assert.deepEqual(r.taps.map(cue => cue.kind), ['lightball'])
+  r.advance(40); r.feedback.update([event('fall', .12, { to: 7, duration: 0 })], .12)
+  assert.deepEqual(r.taps.map(cue => cue.kind), ['lightball', 'land'])
+})
+
+test('a chained lightball charge remains audible under an initiating explosion', () => {
+  const r = rig(); r.feedback.unlock()
+  r.feedback.update([event('tnt', 0, { stage: 'impact' }), event('activate', 0, { power: 'lightball', duration: .24 })], 0)
+  assert.deepEqual(r.sounds.map(cue => cue.kind), ['lightball-charge', 'tnt'])
+  assert.deepEqual(r.taps.map(cue => cue.kind), ['tnt'])
+})
+
+test('pausing or muting a lightball stops its swell without replaying it, and restart resets its wave', () => {
+  const r = rig(); r.feedback.unlock()
+  const activation = event('activate', 0, { power: 'lightball', duration: .24 })
+  r.feedback.update([activation], 0)
+  r.feedback.pause(); r.advance(1000); r.feedback.update([], .1)
+  assert.equal(r.stops, 1); assert.equal(r.sounds.length, 1)
+  r.feedback.configure({ sound: false, haptics: true })
+  r.advance(140); r.feedback.update([event('lightball', .24, { from: 3, stage: 'launch' })], .24)
+  assert.equal(r.stops, 2); assert.equal(r.sounds.length, 1)
+  assert.equal(r.taps[0]?.kind, 'lightball-release')
+  r.feedback.configure({ sound: true, haptics: false })
+  r.advance(200); r.feedback.update([event('lightball', .44, { from: 3, to: 5, stage: 'impact' })], .44)
+  assert.equal(r.sounds.at(-1)?.kind, 'lightball'); assert.equal(r.taps.length, 1)
+  r.feedback.reset(); r.feedback.update([activation], 0)
+  r.advance(440); r.feedback.update([event('lightball', .44, { from: 3, to: 5, stage: 'impact' })], .44)
+  assert.equal(r.sounds.filter(cue => cue.kind === 'lightball').length, 2)
+})
+
+test('new lightball release and arrival cues preserve the native semantic contract', () => {
+  const messages: { kind: string; intensity: number }[] = []
+  const output = createHapticOutput({ chromaNativeCapabilities: { haptics: true }, webkit: { messageHandlers: { chromaHaptics: { postMessage: message => messages.push(message) } } } }, undefined)!
+  assert.equal(output.play({ kind: 'lightball-charge', strength: .9, combo: 1 }), false)
+  output.play({ kind: 'lightball-release', strength: .72, combo: 1 })
+  output.play({ kind: 'lightball-hit', strength: .42, combo: 1 })
+  assert.deepEqual(messages, [{ kind: 'lightball', intensity: .72 }, { kind: 'match', intensity: .42 }])
+  assert.equal(vibrationPattern({ kind: 'lightball-hit', strength: .42, combo: 1 }), 8)
 })
 
 test('unsupported browsers remain playable without claiming physical haptics', () => {
