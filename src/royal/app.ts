@@ -4,6 +4,7 @@ import { mountHome } from './home.ts'
 import './fidelity.css'
 import './tactile.css'
 import './progression.css'
+import './board-layout.css'
 import { installPressFeedback } from './press.ts'
 import { RoyalFeedback } from './feedback.ts'
 import { initRoyalArt } from './art.ts'
@@ -33,9 +34,9 @@ app.innerHTML=`
 <main class="game-shell" aria-label="Chroma Royale 왕실 퍼즐">
  <header class="topbar"><button class="round-button" id="game-home" aria-label="홈으로">${picture('castle')}</button><button id="level-picker" class="level-pill"><small>CHROMA ROYALE</small><strong id="level-label">레벨 1</strong></button><button class="round-button" id="restart" aria-label="현재 레벨 다시 시작">↻</button></header>
  <div class="game-hud"><section class="hud-card objectives" aria-label="남은 목표"><h2>목표</h2><div id="goals" class="goal-grid"></div></section><div class="king-medallion"><div class="portrait"></div><div class="super-badge" id="super-badge">${picture('lightball')}<span id="super-count">ROYAL</span></div></div><section class="hud-card moves-card"><h2>이동 횟수</h2><strong id="moves">30</strong><span id="difficulty-label"></span></section></div>
- <div class="mission-caption"><span id="mission-name"></span><span id="mission-kind"></span></div>
+ <div class="mission-caption"><div class="mission-title"><span id="mission-name"></span><span id="mission-kind"></span></div><div class="game-tip" id="game-tip">같은 색 3개를 맞춰 목표를 모으세요</div></div>
  <div class="stage"><canvas id="board" tabindex="0" role="application" aria-label="퍼즐 보드. 방향키로 이동, Shift와 방향키로 교환, Enter로 선택하거나 특수 블록을 발동하세요" aria-describedby="board-status"></canvas><div id="combo-banner" class="combo-banner" aria-live="polite"></div></div>
- <div class="game-tip" id="game-tip">같은 색 3개를 맞춰 목표를 모으세요</div><p class="sr-only" id="board-status" aria-live="polite"></p>
+ <p class="sr-only" id="board-status" aria-live="polite"></p>
  <nav class="tools" aria-label="게임 도구">${(['hammer','arrow','cannon','shuffle'] as Tool[]).map((tool,i)=>`<button class="tool" data-tool="${tool}" aria-label="${['망치: 한 칸','화살: 가로줄','대포: 세로줄','광대 모자: 재배치'][i]}">${picture(tool)}<span class="tool-count">3</span><span class="tool-name">${['망치','화살','대포','광대 모자'][i]}</span></button>`).join('')}<button class="tool settings-tool" id="settings-open" aria-label="게임 설정">${picture('settings')}<span class="tool-name">설정</span></button></nav>
  <footer class="bottom-bar"><button id="editor-open">보드 만들기</button><button id="kingdom-open" aria-label="나의 왕국"><span id="star-balance">★ 0</span></button><button id="help-open" aria-label="게임 방법">게임 방법</button></footer>
 </main>
