@@ -26,6 +26,8 @@ export interface GameState {
 export interface EffectEvent {
   kind: 'swap' | 'invalid' | 'clear' | 'power' | 'rocket' | 'propeller' | 'tnt' | 'lightball' | 'damage' | 'collect' | 'fall' | 'shuffle' | 'win' | 'lose';
   cells: number[]; from?: number; to?: number; colour?: Colour; power?: Power; combo?: number;
+  /** Blast radius in board cells; presentation only, never used to apply damage. */
+  radius?: number;
 }
 export interface EngineOptions { seed?: number; unlimitedMoves?: boolean; startingBoosters?: Power[]; superLightBall?: boolean }
 export const COLOUR_NAMES = ['왕관', '책', '방패', '잎'] as const

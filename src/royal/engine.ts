@@ -215,16 +215,24 @@ export class RoyalEngine {
   }
   private powerAttacks(cell: number, power: Power, colour?: Colour, forcedSpread?: boolean): Attack[] {
     const spread = forcedSpread ?? this.state.jelly[cell] ?? false
-    this.emit({ kind: power.startsWith('rocket') ? 'rocket' : power as 'propeller' | 'tnt' | 'lightball', cells: [cell], power })
-    if (power === 'rocket-h') return [this.attack(this.row(cell), spread)]
-    if (power === 'rocket-v') return [this.attack(this.column(cell), spread)]
-    if (power === 'tnt') return [this.attack(this.radius(cell, 2), spread)]
+    if (power === 'rocket-h' || power === 'rocket-v') {
+      const cells = power === 'rocket-h' ? this.row(cell) : this.column(cell)
+      this.emit({ kind: 'rocket', cells, from: cell, power })
+      return [this.attack(cells, spread)]
+    }
+    if (power === 'tnt') {
+      const cells = this.radius(cell, 2)
+      this.emit({ kind: 'tnt', cells, from: cell, power, radius: 2 })
+      return [this.attack(cells, spread)]
+    }
     if (power === 'propeller') {
       const nearby = [cell, ...this.neighbours(cell)]
+      this.emit({ kind: 'propeller', cells: nearby, from: cell, power })
       return [this.attack(nearby, spread), this.homing(cell, spread, new Set(nearby))]
     }
     const selected = colour ?? this.mostCommon()
     const cells = [cell, ...this.state.pieces.flatMap((p, i) => p?.colour === selected && !p.power ? [i] : [])]
+    this.emit({ kind: 'lightball', cells, from: cell, power, colour: selected })
     const result = [this.attack(cells, spread)]
     if (this.options.superLightBall) result.push(this.attack(cells, spread))
     return result
@@ -237,10 +245,12 @@ export class RoyalEngine {
     if (p === 'lightball' || q === 'lightball') {
       if (p === 'lightball' && q === 'lightball') {
         const cells = this.state.pieces.map((_, i) => i).filter(i => cellPlayable(this.state.level, i))
+        this.emit({ kind: 'lightball', cells, from: b, power: 'lightball', combo: 2 })
         return Array.from({ length: this.options.superLightBall ? 2 : 1 }, () => this.attack(cells, spread))
       }
       const other = p === 'lightball' ? q : p, colour = this.mostCommon()
       const targets = this.state.pieces.flatMap((piece, i) => piece && !piece.power && piece.colour === colour ? [i] : [])
+      this.emit({ kind: 'lightball', cells: [a, b, ...targets], from: p === 'lightball' ? a : b, power: 'lightball', colour, combo: 2 })
       const attacks = [this.attack([a, b], spread)]
       for (const i of targets) {
         const next: Power = rocket(other) ? (this.rng.int(2) ? 'rocket-h' : 'rocket-v') : other
@@ -250,14 +260,31 @@ export class RoyalEngine {
       if (this.options.superLightBall) attacks.push(...attacks.map(at => ({ ...at, cells: [...at.cells] })))
       return attacks
     }
-    if (rocket(p) && rocket(q)) return [this.attack([...this.row(b), ...this.column(b), a], spread)]
+    if (rocket(p) && rocket(q)) {
+      const row = this.row(b), column = this.column(b)
+      this.emit({ kind: 'rocket', cells: row, from: b, power: 'rocket-h', combo: 2 })
+      this.emit({ kind: 'rocket', cells: column, from: b, power: 'rocket-v', combo: 2 })
+      return [this.attack([...row, ...column, a], spread)]
+    }
     if ((rocket(p) && q === 'tnt') || (rocket(q) && p === 'tnt')) {
       const cells = new Set([a, b]), c = b % this.cols, r = Math.floor(b / this.cols)
-      for (let y = Math.max(0, r - 1); y <= Math.min(this.rows - 1, r + 1); y++) for (const i of this.row(y * this.cols)) cells.add(i)
-      for (let x = Math.max(0, c - 1); x <= Math.min(this.cols - 1, c + 1); x++) for (const i of this.column(x)) cells.add(i)
+      for (let y = Math.max(0, r - 1); y <= Math.min(this.rows - 1, r + 1); y++) {
+        const row = this.row(y * this.cols)
+        for (const i of row) cells.add(i)
+        if (row.length) this.emit({ kind: 'rocket', cells: row, from: y * this.cols + c, power: 'rocket-h', combo: 2 })
+      }
+      for (let x = Math.max(0, c - 1); x <= Math.min(this.cols - 1, c + 1); x++) {
+        const column = this.column(x)
+        for (const i of column) cells.add(i)
+        if (column.length) this.emit({ kind: 'rocket', cells: column, from: r * this.cols + x, power: 'rocket-v', combo: 2 })
+      }
       return [this.attack([...cells], spread)]
     }
-    if (p === 'tnt' && q === 'tnt') return [this.attack([...this.radius(b, 4), a], spread)]
+    if (p === 'tnt' && q === 'tnt') {
+      const cells = [...new Set([...this.radius(b, 4), a])]
+      this.emit({ kind: 'tnt', cells, from: b, power: 'tnt', radius: 4, combo: 2 })
+      return [this.attack(cells, spread)]
+    }
     const nearby = [a, b, ...this.neighbours(b)]
     if (p === 'propeller' && q === 'propeller') {
       const used = new Set(nearby)
@@ -333,7 +360,7 @@ export class RoyalEngine {
             if (obstacle.kind === 'dynamite') {
               dynamiteFired.add(obstacle.id)
               const visible = this.state.pieces.map((_, i) => i).filter(i => cellPlayable(this.state.level, i))
-              queue.push(this.attack(visible, attack.spread)); this.emit({ kind: 'lightball', cells: [...obstacle.cells] })
+              queue.push(this.attack(visible, attack.spread)); this.emit({ kind: 'lightball', cells: visible, from: obstacle.cells[0]! })
               obstacle.colour = (((obstacle.colour ?? 0) + 1) % Math.min(4, Math.max(3, this.state.level.colours))) as Colour
             }
             if (obstacle.stock > 0) { obstacle.hp = obstacle.initialHp; continue }
@@ -416,7 +443,11 @@ export class RoyalEngine {
     // Matches crossing previously separate resolving columns are checked once they settle.
     const pending = this.matches()
     if (pending.length && this.state.turn > 0) { this.state.combo++; this.schedule(this.resolve(pending), 0); return }
-    if (this.state.goals.every(g => g.remaining <= 0)) { this.state.status = 'won'; this.emit({ kind: 'win', cells: [] }); return }
+    if (this.state.goals.every(g => g.remaining <= 0)) {
+      this.state.status = 'won'
+      this.emit({ kind: 'win', cells: this.state.pieces.map((_, i) => i).filter(i => cellPlayable(this.state.level, i)) })
+      return
+    }
     if (!this.options.unlimitedMoves && this.state.moves <= 0) { this.state.status = 'lost'; this.emit({ kind: 'lose', cells: [] }); return }
     if (!this.hint()) this.shuffleBoard(true)
   }

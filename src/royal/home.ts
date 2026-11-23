@@ -4,6 +4,7 @@ import { iconData } from './art.ts'
 export interface HomeState {
   level: number; stars: number; coins: number; completed: number; streak: number;
   tasks: number; superActive: boolean; lightWins: number;
+  customBoardName?: string;
 }
 export interface HomeCallbacks {
   getState: () => HomeState;
@@ -19,6 +20,14 @@ const localArtwork = (name: string): string => `${base}royal/${name}`
 const sceneFallback = localArtwork('castle-courtyard.webp')
 const homeArt = localArtwork('home-castle-v4.webp')
 const entryArt = localArtwork('entry-garden-v4.webp')
+const sceneDeadlineMs = 1800
+
+async function within<T>(pending: Promise<T>, milliseconds: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), milliseconds) })
+  try { return await Promise.race([pending.catch(() => null), deadline]) }
+  finally { clearTimeout(timer) }
+}
 
 /** Most lobby icons share the same prepared raster assets as the board. */
 function homeIcon(kind: 'coin' | 'heart' | 'castle' | 'map' | 'bell' | 'chest' | 'home'): string {
@@ -72,14 +81,21 @@ export function mountHome(container: HTMLElement, callbacks: HomeCallbacks): Hom
   splash.hidden = true
   splash.setAttribute('aria-label', 'Chroma Royale 시작 화면')
   splash.style.setProperty('--entry-scene', `url("${sceneFallback}")`)
-  splash.innerHTML = `<div class="entry-background" aria-hidden="true"></div><div class="entry-top">${logo()}</div><div class="entry-bottom"><button class="home-play-button entry-start" id="home-enter"><span class="play-button-trim"></span><span class="play-button-content"><strong>왕국으로 들어가기</strong></span><span class="play-button-glint"></span></button><p>나만의 속도로, 나만의 왕국에서</p></div>`
+  splash.innerHTML = `<div class="entry-background" aria-hidden="true"></div><div class="entry-top">${logo()}</div><div class="entry-bottom"><button class="home-play-button entry-start" id="home-enter"><span class="play-button-trim"></span><span class="play-button-content"><strong>왕국으로 들어가기</strong></span><span class="play-button-glint"></span></button><p class="entry-message" role="status" aria-live="polite">나만의 속도로, 나만의 왕국에서</p></div>`
   container.replaceChildren(shell, splash)
   let requestedView: 'home' | 'entry' | 'hidden' = 'home'
   let homeSceneReady = false
   let focusPlayOnReveal = false
 
+  function setPreparing(preparing: boolean): void {
+    splash.querySelector<HTMLButtonElement>('#home-enter')!.setAttribute('aria-busy', String(preparing))
+    splash.querySelector<HTMLElement>('#home-enter strong')!.textContent = preparing ? '정원 준비 중…' : '왕국으로 들어가기'
+    splash.querySelector<HTMLElement>('.entry-message')!.textContent = preparing ? '왕실 정원의 배경을 불러오고 있어요.' : '나만의 속도로, 나만의 왕국에서'
+  }
+
   function revealHome(): void {
     if (requestedView !== 'home') return
+    setPreparing(false)
     shell.hidden = false
     splash.hidden = true
     if (focusPlayOnReveal) {
@@ -102,22 +118,32 @@ export function mountHome(container: HTMLElement, callbacks: HomeCallbacks): Hom
   })
   // Keep the decoded bitmap in the DOM. Swapping a hidden CSS background caused
   // Chrome to decode it again on first reveal, briefly painting an empty lobby.
-  const prepareScene = async (src: string, target: HTMLElement, selector: string, property: string): Promise<void> => {
+  const decodedImage = async (src: string): Promise<HTMLImageElement> => {
     const asset = new Image()
     asset.alt = ''
     asset.draggable = false
     asset.decoding = 'sync'
     asset.className = 'royale-scene-art'
     asset.src = src
-    try { await asset.decode() }
-    catch {
-      asset.src = sceneFallback
-      try { await asset.decode() } catch { return }
-    }
+    await asset.decode()
+    return asset
+  }
+  const prepareScene = async (src: string, target: HTMLElement, selector: string, property: string): Promise<void> => {
     const scene = target.querySelector<HTMLElement>(selector)!
-    scene.append(asset)
-    scene.classList.add('has-scene-art')
-    target.style.setProperty(property, `url("${asset.src}")`)
+    let primaryShown = false
+    const display = (asset: HTMLImageElement): void => {
+      scene.replaceChildren(asset)
+      scene.classList.add('has-scene-art')
+      target.style.setProperty(property, `url("${asset.src}")`)
+    }
+    const primary = decodedImage(src)
+    void primary.then(asset => { primaryShown = true; display(asset) }).catch(() => {})
+    if (await within(primary, sceneDeadlineMs)) return
+    const fallback = decodedImage(sceneFallback)
+    void fallback.then(asset => { if (!primaryShown) display(asset) }).catch(() => {})
+    // A slow request must not hold navigation indefinitely. Both promises keep
+    // upgrading their decoded artwork later without changing the requested view.
+    await within(Promise.any([primary, fallback]), sceneDeadlineMs)
   }
   void prepareScene(homeArt, shell, '.home-scene', '--home-scene').then(() => {
     homeSceneReady = true
@@ -141,12 +167,12 @@ export function mountHome(container: HTMLElement, callbacks: HomeCallbacks): Hom
     const integer = (value: number, min = 0, max = 99999999): number => Number.isFinite(value) ? Math.min(max, Math.max(min, Math.floor(value))) : min
     const levels = integer(state.level, 1, 999999), tasks = integer(state.tasks, 0, 6), streak = integer(state.streak, 0, 3)
     const values: Record<string, string> = {
-      level: `레벨 ${levels}`, coins: integer(state.coins).toLocaleString('ko-KR'), stars: integer(state.stars).toLocaleString('ko-KR'),
+      level: state.customBoardName ? '나만의 보드' : `레벨 ${levels}`, coins: integer(state.coins).toLocaleString('ko-KR'), stars: integer(state.stars).toLocaleString('ko-KR'),
       completed: `${integer(state.completed).toLocaleString('ko-KR')}개 완료`, tasks: `${tasks}/6`, streak: `${streak}/3`,
     }
     for (const node of shell.querySelectorAll<HTMLElement>('[data-home-value]')) node.textContent = values[node.dataset.homeValue ?? ''] ?? ''
     shell.querySelector<HTMLElement>('[data-home-fill="tasks"]')!.style.width = `${tasks / 6 * 100}%`
-    shell.querySelector<HTMLButtonElement>('#home-play')!.setAttribute('aria-label', `레벨 ${levels} 플레이`)
+    shell.querySelector<HTMLButtonElement>('#home-play')!.setAttribute('aria-label', state.customBoardName ? `${state.customBoardName} 이어하기` : `레벨 ${levels} 플레이`)
     shell.querySelector<HTMLButtonElement>('.coin-resource')!.setAttribute('aria-label', `보유 코인 ${values.coins}개, 왕국 보기`)
     shell.querySelector<HTMLButtonElement>('.star-resource')!.setAttribute('aria-label', `보유 별 ${values.stars}개, 정원 꾸미기`)
     const taskCopy = shell.querySelector<HTMLElement>('.home-task-banner small')!
@@ -160,12 +186,12 @@ export function mountHome(container: HTMLElement, callbacks: HomeCallbacks): Hom
     requestedView = 'home'
     container.hidden = false
     if (homeSceneReady) revealHome()
-    else { shell.hidden = true; splash.hidden = false }
+    else { setPreparing(true); shell.hidden = true; splash.hidden = false }
   }
-  function hide(): void { requestedView = 'hidden'; focusPlayOnReveal = false; container.hidden = true }
+  function hide(): void { requestedView = 'hidden'; focusPlayOnReveal = false; setPreparing(false); container.hidden = true }
   refresh()
   return {
     show, hide, refresh, isVisible: () => !container.hidden,
-    showSplash: () => { refresh(); requestedView = 'entry'; container.hidden = false; shell.hidden = true; splash.hidden = false },
+    showSplash: () => { refresh(); requestedView = 'entry'; setPreparing(false); container.hidden = false; shell.hidden = true; splash.hidden = false },
   }
 }

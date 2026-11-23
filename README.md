@@ -1,10 +1,12 @@
 # Chroma Match
 
-> **개인용 왕실 리뉴얼 v4 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. [실행 및 설정 안내](docs/ROYAL-LOCAL.md)를 참고하세요. 사용자 요청으로 `main`에 반영하며, CI 통과 후 기존 GitHub Pages 주소를 갱신합니다.
+> **개인용 왕실 리뉴얼 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. v4는 `main` 반영과 Pages 배포를 마쳤으며, [후속 시작 성능·조합 효과 개선](docs/royal-followup-v5.md)을 이어 적용했습니다. [실행 및 설정 안내](docs/ROYAL-LOCAL.md)를 참고하세요.
 
 ## 현재 개인용 게임
 
 로컬 실행 주소: **http://127.0.0.1:5173/** (`Launch Chroma Royale.command`로 시작).
+
+공개 실행 주소: **https://uxidesigner-ux.github.io/chroma-match/**. 새 배포는 CI가 통과한 뒤 반영됩니다.
 
 - 목표 달성형 규칙, 로켓·프로펠러·TNT·라이트볼과 10종 조합
 - 레벨별 크기·모양, 다칸 장애물과 젤리 확산

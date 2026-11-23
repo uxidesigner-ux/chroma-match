@@ -142,10 +142,15 @@ test('home workshop starts a saved personal board and remains accessible after r
   await expect(page.locator('#mission-name')).toHaveText('나의 작은 정원')
   await expect(page.locator('#moves')).toHaveText('18')
   await page.locator('#game-home').click()
+  await expect(page.locator('#home-play')).toHaveText('나만의 보드')
+  await expect(page.locator('#home-play')).toHaveAccessibleName('나의 작은 정원 이어하기')
   await page.locator('.home-bottom-nav [data-home-action="editor"]').click()
   await expect(page.locator('#editor-name')).toHaveValue('나의 작은 정원')
   await page.locator('#editor-close').click()
   await expect(page.locator('#home-play')).toBeVisible()
+  await page.locator('#home-play').click()
+  await expect(page.locator('#mission-name')).toHaveText('나의 작은 정원')
+  await expect(page.locator('#moves')).toHaveText('18')
 })
 
 test('reload within the same session skips the entry screen and opens home', async ({ page }) => {
@@ -190,4 +195,63 @@ test('desktop entry and home keep the portrait composition within 550 pixels', a
   expect(home.width).toBe(entry.width)
   expect(home.x).toBeGreaterThanOrEqual(0)
   expect(home.x + home.width).toBeLessThanOrEqual(1280)
+})
+
+test('startup fetches one prepared sprite pack without downloading source atlases', async ({ page }) => {
+  const requested: string[] = []
+  page.on('request', request => requested.push(new URL(request.url()).pathname))
+  await enterHome(page)
+  const sourceAtlas = /\/(?:royal-sprites-v3|royal-obstacles-v3|blocks-v4|powers-v4|tools-v4|extras-v4|gifts-v4|goals-v4)\.webp$/
+  expect(requested.filter(path => path.endsWith('/royal/sprites-v5.json'))).toHaveLength(1)
+  expect(requested.filter(path => sourceAtlas.test(path))).toEqual([])
+  await expect(page.locator('.coin-resource img')).toHaveAttribute('src', /^data:image\/webp;base64,/)
+})
+
+test('a missing sprite pack retains playable vector artwork', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.route('**/royal/sprites-v5.json', route => route.fulfill({ status: 404, body: 'Unavailable' }))
+  await enterHome(page)
+  await expect(page.locator('.coin-resource img')).toHaveAttribute('src', /^data:image\/svg\+xml/)
+  await page.locator('#home-play').click()
+  await playHint(page)
+  expect(errors).toEqual([])
+})
+
+test('a stalled castle image shows preparation, reveals decoded fallback and cannot reopen home after play', async ({ page }) => {
+  let release = (): void => {}
+  const delayed = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/royal/home-castle-v4.webp', async route => { await delayed; await route.continue() })
+  try {
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+    await page.locator('#home-enter').click()
+    await expect(page.locator('#home-enter')).toHaveAttribute('aria-busy', 'true')
+    await expect(page.locator('.entry-message')).toContainText('불러오고 있어요')
+    await expect(page.locator('.royale-home')).toBeVisible({ timeout: 6500 })
+    await expect(page.locator('.home-scene .royale-scene-art')).toHaveAttribute('src', /castle-courtyard\.webp$/)
+    await expect(page.locator('.home-scene .royale-scene-art')).toBeVisible()
+    await page.locator('#home-play').click()
+    await expect(page.locator('#board')).toBeVisible()
+    release()
+    await expect(page.locator('.home-scene .royale-scene-art')).toHaveAttribute('src', /home-castle-v4\.webp$/)
+    await expect(page.locator('#home-mount')).toBeHidden()
+    await expect(page.locator('#board')).toBeVisible()
+  } finally { release() }
+})
+
+test('navigation remains available even when both castle image requests stall', async ({ page }) => {
+  let release = (): void => {}
+  const delayed = new Promise<void>(resolve => { release = resolve })
+  await page.route(/\/royal\/(?:home-castle-v4|castle-courtyard)\.webp$/, async route => { await delayed; await route.continue() })
+  try {
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+    await page.locator('#home-enter').click()
+    await expect(page.locator('.royale-home')).toBeVisible({ timeout: 6500 })
+    await expect(page.locator('#home-enter')).toHaveAttribute('aria-busy', 'false')
+    await page.locator('#home-play').click()
+    await expect(page.locator('#board')).toBeVisible()
+    release()
+    await expect(page.locator('.home-scene .royale-scene-art')).toHaveAttribute('src', /home-castle-v4\.webp$/)
+    await expect(page.locator('#home-mount')).toBeHidden()
+  } finally { release() }
 })

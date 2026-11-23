@@ -66,8 +66,10 @@ test('project-path assets, iPhone metadata and complete offline shell work', asy
   expect(cacheContents.urls.some(url => url.endsWith('/index.html'))).toBe(true)
   expect(cacheContents.urls.some(url => /\/assets\/.+\.js$/.test(url))).toBe(true)
   expect(cacheContents.urls.some(url => url.includes('/royal/'))).toBe(true)
+  expect(cacheContents.urls.some(url => url.endsWith('/royal/sprites-v5.json'))).toBe(true)
   expect(cacheContents.urls.every(url => !url.includes('.vrm') && !url.includes('firebase'))).toBe(true)
   await enterGame(page)
+  await expect(page.locator('[data-tool="hammer"] img')).toHaveAttribute('src', /^data:image\/webp;base64,/)
   await page.locator('#settings-open').click()
   await page.locator('#setting-level').fill('12297')
   await page.locator('#setting-unlimitedMoves').check()
@@ -84,6 +86,9 @@ test('project-path assets, iPhone metadata and complete offline shell work', asy
     expect(restored?.status()).toBe(200)
     if (browserName === 'chromium') expect(restored?.fromServiceWorker()).toBe(true)
     await enterGame(page)
+    // Offline recovery must preserve the prepared artwork, not silently fall
+    // back to the vector icons when the sprite pack misses the SW allowlist.
+    await expect(page.locator('[data-tool="hammer"] img')).toHaveAttribute('src', /^data:image\/webp;base64,/)
     await expect(page.locator('#level-label')).toHaveText('레벨 12297')
     await expect(page.locator('#moves')).toHaveText('∞')
     await expect(page.locator('#board')).toHaveAttribute('data-columns', '9')

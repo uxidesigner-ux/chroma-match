@@ -32,6 +32,27 @@ test('reference level 12297 uses 9x11 with four goals and settings persist',asyn
 test('keyboard hammer targets a cell and spends a tool without spending a move',async({page})=>{
  await openGame(page);const moves=await page.locator('#moves').innerText();await page.locator('[data-tool="hammer"]').click();await page.locator('#board').focus();await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowDown');await expect(page.locator('#board-status')).toContainText('2행 2열');await page.keyboard.press('Enter');await expect(page.locator('[data-tool="hammer"] .tool-count')).toHaveText('2');await expect(page.locator('#board')).toHaveAttribute('aria-busy','false');await expect(page.locator('#moves')).toHaveText(moves)
 })
+test('Shift+arrow combines adjacent power-ups in one move without wrapping at the board edge', async ({ page }) => {
+ await openGame(page)
+ await importCustom(page, {
+  ...custom(), goals: [{kind:'stone',count:1}],
+  obstacles: [{id:'distant-stone',kind:'stone',cells:[20],hp:1}],
+  pieces: [{cell:0,colour:0,power:'rocket-h'},{cell:1,colour:1,power:'tnt'}],
+ })
+ await page.locator('#editor-play').click()
+ const board=page.locator('#board')
+ await board.focus()
+ await page.keyboard.press('Shift+ArrowLeft')
+ await expect(board).toHaveAttribute('data-turn','0')
+ await expect(page.locator('#moves')).toHaveText('20')
+ await expect(page.locator('#board-status')).toContainText('1행 1열')
+ await page.keyboard.press('Shift+ArrowRight')
+ await expect(board).toHaveAttribute('data-turn','1')
+ await expect(page.locator('#moves')).toHaveText('19')
+ // The distant stone lies outside a single rocket or chained TNT radius.
+ // Only the combined three-column blast reaches it from the top row.
+ await expect(page.locator('#result-title')).toHaveText('멋진 승리!')
+})
 test('normal play wins, grants a star, opens the next level and spends a star on the kingdom',async({page})=>{
  test.setTimeout(60000);await openGame(page,{unlimitedMoves:true,speed:1.4})
  for(let i=0;i<70;i++){if(await page.locator('#board').getAttribute('data-status')!=='playing')break;await hintMove(page)}

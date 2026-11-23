@@ -51,7 +51,7 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') { event.respondWith(navigate(event)); return }
   const relative = url.pathname.slice(ROOT.pathname.length)
   // No account, analytics, VRM or legacy game caches. Only assets used by this app.
-  if (/^(assets\/[^/]+\.(?:js|css)|royal\/.+\.(?:webp|png|svg)|icons\/[^/]+\.png|manifest\.webmanifest)$/.test(relative)) event.respondWith(asset(request))
+  if (relative === 'royal/sprites-v5.json' || /^(assets\/[^/]+\.(?:js|css)|royal\/.+\.(?:webp|png|svg)|icons\/[^/]+\.png|manifest\.webmanifest)$/.test(relative)) event.respondWith(asset(request))
 })
 
 async function navigate(event) {

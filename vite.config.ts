@@ -11,10 +11,14 @@ function royalOffline(): Plugin {
     configResolved(config) { projectRoot = config.root; output = resolve(config.root, config.build.outDir); publicRoot = resolve(config.root, config.publicDir) },
     generateBundle(_options, bundle) {
       const staticFiles = ['index.html', 'manifest.webmanifest', 'royal/app-icon-v3-192.png', 'royal/app-icon-v3.png']
+      const spritePack = JSON.parse(readFileSync(join(publicRoot, 'royal/sprites-v5.json'), 'utf8')) as { sources: { file: string }[] }
+      // Atlas originals remain in source control for editing. The prepared pack
+      // supplies their runtime pixels without downloading both representations.
+      const sourceAtlases = new Set(spritePack.sources.map(source => `royal/${source.file}`))
       function collect(dir: string, prefix: string): void {
         for (const item of readdirSync(dir, { withFileTypes: true })) {
           if (item.isDirectory()) collect(join(dir, item.name), `${prefix}${item.name}/`)
-          else if (/\.(?:webp|svg)$/.test(item.name)) staticFiles.push(`${prefix}${item.name}`)
+          else if (!sourceAtlases.has(`${prefix}${item.name}`) && (/\.(?:webp|svg)$/.test(item.name) || `${prefix}${item.name}` === 'royal/sprites-v5.json')) staticFiles.push(`${prefix}${item.name}`)
         }
       }
       collect(join(publicRoot, 'royal'), 'royal/')

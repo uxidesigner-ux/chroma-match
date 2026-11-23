@@ -6,7 +6,7 @@
   "description": "A personal match-3 puzzle with a royal lobby, layered obstacles, level editor, and Canvas gameplay.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && node --check public/sw.js && vite build",
+    "build": "node scripts/build-royal-sprites.mjs --verify-sources && tsc --noEmit && node --check public/sw.js && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-game.mjs",
@@ -18,6 +18,7 @@
     "test:release": "playwright test --config playwright.royal-release.config.ts",
     "test:legacy-release": "playwright test --config playwright.release.config.ts",
     "icons": "node scripts/make-icons.mjs",
+    "sprites:build": "node scripts/build-royal-sprites.mjs",
     "tune": "node scripts/tune-board.ts",
     "test:royal": "playwright test --config playwright.royal.config.ts"
   },

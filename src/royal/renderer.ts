@@ -14,6 +14,8 @@ const sprites = new Map<string, HTMLImageElement>()
 interface RasterRegion { image: HTMLImageElement; bounds?: { x: number; y: number; w: number; h: number } }
 const rasterRegions = new Map<string, RasterRegion>()
 const clamp = (n: number, a = 0, b = 1): number => Math.min(b, Math.max(a, n))
+/** Cover the whole footprint while bounding per-frame rays and celebration work. */
+const sample = <T>(items: readonly T[], limit: number): T[] => items.length <= limit ? [...items] : Array.from({ length: limit }, (_, i) => items[Math.floor(i * (items.length - 1) / (limit - 1))]!)
 
 function sprite(ctx: Ctx, kind: string, x: number, y: number, size: number, colour = 0): void {
   const key = `${kind}:${colour}`
@@ -188,13 +190,19 @@ export class RoyalRenderer {
       } else if (event.kind === 'power') {
         for (const cell of cells) this.burst(cell, '#fff1a3', this.calm ? 3 : 18, true)
       } else if (event.kind === 'win') {
-        for (const cell of cells.slice(0, 30)) this.burst(cell, COLOURS[cell % 4]!, this.calm ? 2 : 12, true)
+        for (const cell of sample(cells, 30)) this.burst(cell, COLOURS[cell % 4]!, this.calm ? 2 : 12, true)
       }
       if (['rocket', 'tnt', 'lightball', 'propeller', 'power', 'shuffle'].includes(event.kind)) {
-        this.visuals.push({ event, birth: this.clock, life: event.kind === 'propeller' ? .48 : event.kind === 'lightball' ? .48 : .35 })
+        const life = event.kind === 'propeller' ? .48 : event.kind === 'lightball' ? event.combo ? .62 : .48 : event.kind === 'tnt' ? .4 + (event.radius ?? 2) * .035 : .35
+        this.visuals.push({ event, birth: this.clock, life })
       }
     }
-    if (this.visuals.length > 50) this.visuals.splice(0, this.visuals.length - 50)
+    if (this.visuals.length > 50) {
+      // Keep the combo's source flash/beam when it creates dozens of child blasts.
+      const priority = this.visuals.filter(v => v.event.combo).slice(-12)
+      const rest = this.visuals.filter(v => !priority.includes(v)).slice(-(50 - priority.length))
+      this.visuals = [...priority, ...rest]
+    }
     if (this.ghosts.length > 100) this.ghosts.splice(0, this.ghosts.length - 100)
   }
 
@@ -477,12 +485,27 @@ export class RoyalRenderer {
       const { event } = visual, t = clamp((this.clock - visual.birth) / visual.life)
       const cell = event.from ?? event.cells[0] ?? 0, p = this.centreOf(cell)
       ctx.save(); ctx.globalAlpha = (1 - t) * (this.calm ? .4 : 1)
+      if (this.calm) {
+        // Reduced motion communicates the affected tiles without flights, beam
+        // sweeps, expanding rings or a full-screen flash.
+        for (const target of sample(event.cells, 24)) {
+          const q = this.centreOf(target)
+          rounded(ctx, q.x - s * .4, q.y - s * .4, s * .8, s * .8, s * .12)
+          ctx.fillStyle = event.kind === 'lightball' ? '#f3ceff' : '#fff2a2'; ctx.fill()
+        }
+        ctx.restore(); continue
+      }
       if (event.kind === 'rocket') {
-        const horizontal = event.power !== 'rocket-v', reach = Math.max(this.width, this.height) * (.15 + t)
+        const horizontal = event.power !== 'rocket-v', reach = clamp(.16 + t * 1.2)
+        const positions = event.cells.map(i => this.centreOf(i))
+        const coordinates = positions.map(q => horizontal ? q.x : q.y)
+        const origin = horizontal ? p.x : p.y
+        const lo = Math.min(origin, ...coordinates) - s * .46, hi = Math.max(origin, ...coordinates) + s * .46
+        const start = origin + (lo - origin) * reach, end = origin + (hi - origin) * reach
         const wide = s * (.16 * (1 - t) + .04)
-        ctx.shadowColor = '#ffcd26'; ctx.shadowBlur = this.calm ? 0 : s * .3
-        if (horizontal) { line(ctx, p.x - reach, p.y, p.x + reach, p.y, '#ffc93d', wide * 2); line(ctx, p.x - reach, p.y, p.x + reach, p.y, '#fffad4', wide) }
-        else { line(ctx, p.x, p.y - reach, p.x, p.y + reach, '#ffc93d', wide * 2); line(ctx, p.x, p.y - reach, p.x, p.y + reach, '#fffad4', wide) }
+        ctx.shadowColor = '#ffcd26'; ctx.shadowBlur = s * .3
+        if (horizontal) { line(ctx, start, p.y, end, p.y, '#ffc93d', wide * 2); line(ctx, start, p.y, end, p.y, '#fffad4', wide) }
+        else { line(ctx, p.x, start, p.x, end, '#ffc93d', wide * 2); line(ctx, p.x, start, p.x, end, '#fffad4', wide) }
       } else if (event.kind === 'propeller' && event.to !== undefined) {
         const q = this.centreOf(event.to), bend = Math.sin(t * Math.PI) * s * .8
         const x = p.x + (q.x - p.x) * t + bend * .3, y = p.y + (q.y - p.y) * t - bend
@@ -492,13 +515,15 @@ export class RoyalRenderer {
         ctx.globalAlpha = 1; ctx.translate(x, y); ctx.rotate(this.calm ? 0 : t * TAU * 3)
         sprite(ctx, 'propeller', 0, 0, s * .9)
       } else if (event.kind === 'lightball') {
-        ctx.strokeStyle = '#fff296'; ctx.lineWidth = s * .04
-        if (!this.calm) for (const target of event.cells.slice(0, 40)) {
+        ctx.strokeStyle = '#fff296'; ctx.lineWidth = s * (event.combo ? .055 : .04)
+        for (const target of sample(event.cells.filter(i => i !== cell), 40)) {
           const q = this.centreOf(target); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo((p.x + q.x) / 2 + s * .2, (p.y + q.y) / 2 - s * .3, q.x, q.y); ctx.stroke()
+          ctx.fillStyle = '#fff8da'; star(ctx, q.x, q.y, s * .08 * (1 - t), t * Math.PI)
         }
-        ctx.beginPath(); ctx.arc(p.x, p.y, s * (.4 + t * 2.8), 0, TAU); ctx.strokeStyle = '#f5b5ff'; ctx.lineWidth = s * .1; ctx.stroke()
+        ctx.beginPath(); ctx.arc(p.x, p.y, s * (.4 + t * (event.combo ? 4 : 2.8)), 0, TAU); ctx.strokeStyle = '#f5b5ff'; ctx.lineWidth = s * .1; ctx.stroke()
       } else if (event.kind !== 'shuffle') {
-        ctx.beginPath(); ctx.arc(p.x, p.y, s * (.2 + t * (event.kind === 'tnt' ? 2.8 : 1)), 0, TAU)
+        const extent = event.kind === 'tnt' ? (event.radius ?? 2) + .45 : 1
+        ctx.beginPath(); ctx.arc(p.x, p.y, s * (.2 + (1 - Math.pow(1 - t, 2)) * extent), 0, TAU)
         ctx.strokeStyle = '#fff2a2'; ctx.lineWidth = s * .1 * (1 - t); ctx.stroke()
         ctx.fillStyle = '#ffed9930'; ctx.fill()
       }
@@ -508,7 +533,7 @@ export class RoyalRenderer {
       const age = Math.max(0, this.clock - p.birth), t = age / p.life
       ctx.save(); ctx.globalAlpha = clamp(1 - t)
       ctx.fillStyle = p.colour
-      star(ctx, p.x + p.vx * age, p.y + p.vy * age + s * 3 * age * age, p.size * (1 - t * .6), p.spin + (this.calm ? 0 : age * 7)); ctx.restore()
+      star(ctx, p.x + (this.calm ? 0 : p.vx * age), p.y + (this.calm ? 0 : p.vy * age + s * 3 * age * age), p.size * (1 - t * .6), p.spin + (this.calm ? 0 : age * 7)); ctx.restore()
     }
   }
 }

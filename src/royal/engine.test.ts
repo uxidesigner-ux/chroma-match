@@ -312,3 +312,93 @@ test('a custom dynamite box without a colour uses the default crown colour', () 
   assert.equal(game.swap(9, 16), true)
   assert.equal(game.state.goals[0]!.remaining, 1)
 })
+
+test('single lightball reports its origin and every cleared colour target for visible rays', () => {
+  const game = fixture()
+  power(game, 24, 'lightball')
+  assert.equal(game.tap(24), true)
+  const events = game.drainEvents(), beam = events.find(e => e.kind === 'lightball')!, clear = events.find(e => e.kind === 'clear')!
+  assert.equal(beam.from, 24)
+  assert.ok(beam.cells.length > 1, 'the visual includes destinations, not only the source')
+  assert.deepEqual(new Set(beam.cells), new Set(clear.cells))
+  assert.equal(game.state.moves, 19)
+})
+
+test('double rockets report one horizontal and one vertical beam matching their damage footprint', () => {
+  const game = fixture()
+  power(game, 23, 'rocket-h'); power(game, 24, 'rocket-v')
+  assert.equal(game.swap(23, 24), true)
+  const events = game.drainEvents(), beams = events.filter(e => e.kind === 'rocket')
+  assert.equal(beams.length, 2)
+  assert.deepEqual(new Set(beams.map(e => e.power)), new Set(['rocket-h', 'rocket-v']))
+  assert.ok(beams.every(e => e.from === 24 && e.combo === 2))
+  assert.deepEqual(new Set(beams.flatMap(e => e.cells)), new Set(events.find(e => e.kind === 'clear')!.cells))
+})
+
+test('rocket and TNT report all six sweeping lines without adding extra damage', () => {
+  const game = fixture({ obstacles: [obstacle('box', [10], 3)] })
+  power(game, 23, 'rocket-h'); power(game, 24, 'tnt')
+  assert.equal(game.swap(23, 24), true)
+  const events = game.drainEvents(), beams = events.filter(e => e.kind === 'rocket')
+  assert.equal(beams.filter(e => e.power === 'rocket-h').length, 3)
+  assert.equal(beams.filter(e => e.power === 'rocket-v').length, 3)
+  assert.equal(game.state.obstacles[0]!.hp, 2, 'six visual beams still belong to one combo damage wave')
+  const footprint = new Set(beams.flatMap(e => e.cells))
+  const affected = new Set([...events.find(e => e.kind === 'clear')!.cells, 10])
+  assert.deepEqual(footprint, affected)
+  assert.equal(game.state.moves, 19)
+})
+
+test('double TNT carries a larger presentation radius and actual blast footprint', () => {
+  for (const double of [false, true]) {
+    const game = fixture({ cols: 9, rows: 9, mask: Array(9).fill('111111111') })
+    power(game, 40, 'tnt')
+    if (double) { power(game, 39, 'tnt'); assert.equal(game.swap(39, 40), true) }
+    else assert.equal(game.tap(40), true)
+    const events = game.drainEvents(), blast = events.find(e => e.kind === 'tnt')!
+    assert.equal(blast.from, 40)
+    assert.equal(blast.radius, double ? 4 : 2)
+    assert.equal(blast.cells.length, double ? 81 : 25)
+    assert.deepEqual(new Set(blast.cells), new Set(events.find(e => e.kind === 'clear')!.cells))
+  }
+})
+
+test('double lightball rays cover the playable board and skip cutout cells', () => {
+  const game = fixture({ mask: ['0111110', ...Array(5).fill('1111111'), '0111110'] })
+  power(game, 23, 'lightball'); power(game, 24, 'lightball')
+  assert.equal(game.swap(23, 24), true)
+  const events = game.drainEvents(), beam = events.find(e => e.kind === 'lightball')!
+  assert.equal(beam.from, 24)
+  assert.equal(beam.combo, 2)
+  assert.equal(beam.cells.length, 45)
+  assert.ok([0, 6, 42, 48].every(cell => !beam.cells.includes(cell)))
+  assert.deepEqual(new Set(beam.cells), new Set(events.find(e => e.kind === 'clear')!.cells))
+})
+
+test('lightball conversion identifies the source and selected colour before child blasts', () => {
+  const game = fixture()
+  power(game, 23, 'lightball'); power(game, 24, 'tnt')
+  const counts = [0, 0, 0, 0]
+  for (const piece of game.state.pieces) if (piece && !piece.power) counts[piece.colour] = counts[piece.colour]! + 1
+  const mostCommon = counts.indexOf(Math.max(...counts))
+  const targets = game.state.pieces.flatMap((piece, cell) => piece && !piece.power && piece.colour === mostCommon ? [cell] : [])
+  assert.equal(game.swap(23, 24), true)
+  const events = game.drainEvents(), conversion = events.find(e => e.kind === 'lightball')!
+  assert.equal(conversion.from, 24)
+  assert.equal(conversion.colour, mostCommon)
+  assert.deepEqual(new Set(conversion.cells), new Set([23, 24, ...targets]))
+  assert.ok(events.indexOf(conversion) < events.findIndex(e => e.kind === 'tnt'))
+})
+
+test('victory emits one board-wide celebration after its final fall, without cutout cells', () => {
+  const game = fixture({ mask: ['0111110', ...Array(6).fill('1111111')], obstacles: [obstacle('box', [24], 1)], goals: [{ kind: 'box', count: 1 }] })
+  assert.equal(game.useTool('hammer', 24), true)
+  assert.equal(game.drainEvents().some(e => e.kind === 'win'), false)
+  settle(game)
+  const wins = game.drainEvents().filter(e => e.kind === 'win')
+  assert.equal(wins.length, 1)
+  assert.equal(wins[0]!.cells.length, 47)
+  assert.ok(!wins[0]!.cells.includes(0) && !wins[0]!.cells.includes(6))
+  game.update(1)
+  assert.equal(game.drainEvents().length, 0)
+})
