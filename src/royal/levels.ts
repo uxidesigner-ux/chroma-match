@@ -1,7 +1,7 @@
 import { makeRng } from '../game/rng.ts'
 import { isLevelId, normalizeLevelId } from './progression.ts'
 import { generateCampaignLevel } from './campaign-generator.ts'
-import { CAMPAIGN_MAX_COLS, CAMPAIGN_MAX_ROWS } from './campaign-geometry.ts'
+import { CAMPAIGN_MAX_COLS, CAMPAIGN_MAX_ROWS, connected, matchableCells, neighbours, playableCells, selectJellySeeds } from './campaign-geometry.ts'
 export { CAMPAIGN_MAX_COLS, CAMPAIGN_MAX_ROWS } from './campaign-geometry.ts'
 import {
   cellPlayable, type Colour, type Difficulty, type GoalDefinition, type GoalKind,
@@ -80,7 +80,7 @@ function shapeMask(cols: number, rows: number, shape: Shape, variation = 0): str
 
 interface Recipe {
   name: string; size: [number, number]; shape: Shape; moves: number; difficulty?: Difficulty
-  boxes?: number; gifts?: number; ice?: number; stone?: number; cuckoo?: number; dynamite?: number; jelly?: boolean
+  boxes?: number; gifts?: number; ice?: number; stone?: number; stoneHp?: number; cuckoo?: number; dynamite?: number; jelly?: boolean
   colours?: { colour: Colour; count: number }[]; introduction: string
 }
 const recipes: readonly Recipe[] = [
@@ -89,7 +89,7 @@ const recipes: readonly Recipe[] = [
   { name: '정원 창고', size: [7, 8], shape: 'rectangle', moves: 24, boxes: 6, introduction: '상자 옆에서 매치하면 상자가 부서져요.' },
   { name: '계단 위 상자', size: [8, 8], shape: 'stairs', moves: 25, boxes: 8, introduction: '빈 공간을 살피고 상자 가까이에서 매치하세요.' },
   { name: '첫 번째 선물', size: [7, 8], shape: 'rounded', moves: 28, gifts: 3, introduction: '선물상자를 네 번 맞춰 장난감을 꺼내세요.' },
-  { name: '선물의 회랑', size: [8, 9], shape: 'u', moves: 29, gifts: 4, boxes: 3, introduction: '여러 칸짜리 선물상자는 하나의 물건이에요.' },
+  { name: '선물의 회랑', size: [8, 9], shape: 'u', moves: 33, gifts: 4, boxes: 3, introduction: '여러 칸짜리 선물상자는 하나의 물건이에요.' },
   { name: '보랏빛 정원', size: [7, 8], shape: 'rectangle', moves: 27, jelly: true, introduction: '젤리 위에서 매치하면 젤리가 퍼져요. 보드를 보랏빛으로 채우세요.' },
   { name: '정원의 문', size: [8, 9], shape: 'arch', moves: 27, difficulty: 'hard', boxes: 8, jelly: true, introduction: '상자를 열고 남은 칸까지 젤리를 퍼뜨리세요.' },
   { name: '얼음 길', size: [8, 8], shape: 'hourglass', moves: 28, ice: 5, introduction: '얼음 옆에서 매치하면 끝부분이 줄어들어요. 길을 열어 보세요.' },
@@ -98,22 +98,22 @@ const recipes: readonly Recipe[] = [
   { name: '두 개의 둥지', size: [8, 9], shape: 'wings', moves: 31, cuckoo: 2, jelly: true, introduction: '문은 이동마다 열리고 닫혀요. 열린 둥지를 찾아보세요.' },
   { name: '돌의 정원', size: [8, 9], shape: 'terrace', moves: 30, stone: 3, boxes: 5, introduction: '돌은 파워업으로 세 번 타격해야 부서져요.' },
   { name: '회랑의 불꽃', size: [8, 8], shape: 'rounded', moves: 29, dynamite: 1, introduction: '다이너마이트와 같은 색을 옆에서 매치하면 큰 폭발이 일어나요.' },
-  { name: '왕실 금고', size: [8, 9], shape: 'courtyard', moves: 28, difficulty: 'super-hard', gifts: 5, stone: 3, introduction: '파워업끼리 합치면 두꺼운 장애물도 빠르게 열 수 있어요.' },
+  { name: '왕실 금고', size: [8, 9], shape: 'courtyard', moves: 32, difficulty: 'super-hard', gifts: 5, stone: 3, stoneHp: 2, introduction: '파워업끼리 합치면 두꺼운 장애물도 빠르게 열 수 있어요.' },
   { name: '햇살 아래 젤리', size: [8, 9], shape: 'diamond', moves: 30, jelly: true, colours: [{ colour: 3, count: 24 }], introduction: '잎을 모으며 가장자리까지 젤리를 퍼뜨리세요.' },
   { name: '정원 파티', size: [8, 9], shape: 'rounded', moves: 32, gifts: 6, cuckoo: 1, introduction: '선물의 장난감과 열린 둥지의 새를 함께 모으세요.' },
   { name: '유리창 너머', size: [8, 9], shape: 'windows', moves: 29, ice: 6, jelly: true, introduction: '작은 빈 칸들이 낙하 경로를 나눠요.' },
   { name: '불꽃 분수', size: [8, 9], shape: 'u', moves: 30, dynamite: 1, boxes: 10, jelly: true, introduction: '다이너마이트로 넓은 보드의 상자들을 동시에 타격하세요.' },
-  { name: '왕의 시험', size: [8, 9], shape: 'wings', moves: 28, difficulty: 'extreme', gifts: 5, stone: 4, cuckoo: 1, introduction: '목표가 많은 판에서는 특수 블록 조합이 큰 도움이 돼요.' },
+  { name: '왕의 시험', size: [8, 9], shape: 'wings', moves: 35, difficulty: 'extreme', gifts: 5, stone: 3, cuckoo: 1, introduction: '목표가 많은 판에서는 특수 블록 조합이 큰 도움이 돼요.' },
   { name: '새로운 산책', size: [7, 8], shape: 'cross', moves: 28, boxes: 5, colours: [{ colour: 0, count: 24 }], introduction: '잠깐 숨을 고르며 왕관과 상자를 모으세요.' },
-  { name: '연못의 선물', size: [8, 9], shape: 'courtyard', moves: 32, gifts: 7, jelly: true, introduction: '선물 아래에 있던 바닥도 젤리로 채워야 해요.' },
+  { name: '연못의 선물', size: [8, 9], shape: 'courtyard', moves: 36, gifts: 6, jelly: true, introduction: '선물 아래에 있던 바닥도 젤리로 채워야 해요.' },
   { name: '얼음 탑', size: [8, 9], shape: 'terrace', moves: 31, ice: 8, cuckoo: 1, introduction: '계단 모양 테라스의 얼음을 깨고 열린 둥지의 새를 모으세요.' },
   { name: '황금 다리', size: [8, 9], shape: 'wings', moves: 29, difficulty: 'hard', gifts: 6, dynamite: 1, introduction: '양쪽 날개를 잇는 중앙 통로가 중요해요.' },
   { name: '꽃잎 미로', size: [8, 9], shape: 'windows', moves: 32, boxes: 8, ice: 4, jelly: true, introduction: '여러 곳에 퍼진 젤리를 연결해 보세요.' },
   { name: '시계의 무도회', size: [8, 9], shape: 'rounded', moves: 32, cuckoo: 2, gifts: 5, introduction: '열린 둥지와 선물상자에 맞는 순서로 움직이세요.' },
   { name: '돌과 불꽃', size: [8, 9], shape: 'hourglass', moves: 30, stone: 5, dynamite: 1, introduction: '다이너마이트와 파워업으로 돌의 겹을 벗겨내세요.' },
-  { name: '별빛 회랑', size: [8, 9], shape: 'u', moves: 30, difficulty: 'super-hard', gifts: 7, cuckoo: 1, jelly: true, introduction: '좁은 날개에서도 프로펠러로 먼 목표를 도울 수 있어요.' },
+  { name: '별빛 회랑', size: [8, 9], shape: 'u', moves: 34, difficulty: 'super-hard', gifts: 6, cuckoo: 1, jelly: true, introduction: '좁은 날개에서도 프로펠러로 먼 목표를 도울 수 있어요.' },
   { name: '왕실 축제', size: [8, 9], shape: 'arch', moves: 33, gifts: 6, ice: 4, dynamite: 1, introduction: '여러 기믹이 만난 정원에서 큰 연쇄를 만들어 보세요.' },
-  { name: '왕관의 정원', size: [8, 9], shape: 'courtyard', moves: 29, difficulty: 'extreme', stone: 5, gifts: 7, cuckoo: 1, jelly: true, introduction: '목표와 남은 이동을 살피며 모든 장치를 활용하세요.' },
+  { name: '왕관의 정원', size: [8, 9], shape: 'courtyard', moves: 37, difficulty: 'extreme', stone: 4, stoneHp: 2, gifts: 6, cuckoo: 1, jelly: true, introduction: '목표와 남은 이동을 살피며 모든 장치를 활용하세요.' },
   { name: '비밀의 테라스', size: [8, 9], shape: 'terrace', moves: 32, boxes: 10, jelly: true, introduction: '계단 모양 가장자리까지 젤리를 퍼뜨려 보세요.' },
   { name: '축하의 불꽃', size: [8, 9], shape: 'diamond', moves: 33, dynamite: 2, gifts: 6, introduction: '색을 맞춰 다이너마이트를 연속으로 작동시키세요.' },
 ]
@@ -122,6 +122,7 @@ const recipes: readonly Recipe[] = [
 function decorate(level: LevelDefinition, recipe: Recipe): void {
   const rng = makeRng(level.seed)
   const occupied = new Set<number>()
+  const free = playableCells(level)
   const centerR = Math.floor(level.rows / 2), centerC = Math.floor(level.cols / 2)
   const reserved = new Set<number>()
   // Prefer a real free 3×3 region. Wings/U boards may need an off-centre region.
@@ -145,7 +146,17 @@ function decorate(level: LevelDefinition, recipe: Recipe): void {
         if (c + width > level.cols || r + height > level.rows) continue
         const cells = Array.from({ length: width * height }, (_, k) => (r + Math.floor(k / width)) * level.cols + c + k % width)
         if (cells.some(cell => !cellPlayable(level, cell) || occupied.has(cell) || reserved.has(cell))) continue
-        const o: ObstacleDefinition = { id: `${kind}-${i + 1}`, kind, cells, hp: kind === 'gift' ? 4 : kind === 'stone' ? 3 : kind === 'ice' ? 3 : kind === 'box' ? level.id > 12 ? 3 : 2 : 1 }
+        cells.forEach(cell => free.delete(cell))
+        const venues = matchableCells(free, level.cols, level.rows)
+        const accessible = (covered: number[]): boolean => covered.some(cell => neighbours(cell, level.cols, level.rows).some(n => venues.has(n)))
+        // The tutorial must teach matching next to its obstacles, rather than
+        // require an unintroduced power to reach a boxed-in corner or island.
+        if (!connected(free, level.cols, level.rows) || venues.size < Math.ceil(free.size * .7)
+          || kind !== 'stone' && !accessible(cells)
+          || level.obstacles.some(o => o.kind !== 'stone' && !accessible(o.cells))) {
+          cells.forEach(cell => free.add(cell)); continue
+        }
+        const o: ObstacleDefinition = { id: `${kind}-${i + 1}`, kind, cells, hp: kind === 'gift' ? 4 : kind === 'stone' ? recipe.stoneHp ?? 3 : kind === 'ice' ? 3 : kind === 'box' ? level.id > 12 ? 3 : 2 : 1 }
         if (kind === 'gift') o.stock = 1
         if (kind === 'cuckoo') { o.stock = 2; o.open = true }
         if (kind === 'dynamite') { o.stock = 4; o.colour = i % 4 as Colour }
@@ -162,12 +173,7 @@ function decorate(level: LevelDefinition, recipe: Recipe): void {
   place('ice', recipe.ice ?? 0, 1, 3)
   place('box', recipe.boxes ?? 0, 1, 1)
   if (recipe.jelly) {
-    const components = boardComponents(level)
-    level.jelly = components.flatMap(component => {
-      const free = component.filter(cell => !occupied.has(cell))
-      const choices = free.length ? free : component
-      return [choices[Math.floor(choices.length / 3)]!, choices[Math.floor(choices.length * 2 / 3)]!]
-    }).filter((cell, i, a) => a.indexOf(cell) === i)
+    level.jelly = selectJellySeeds(free, level.cols, level.rows, level.seed)
   }
   level.goals = deriveGoals(level)
   if (recipe.colours?.length) {

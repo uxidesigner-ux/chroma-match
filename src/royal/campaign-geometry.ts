@@ -37,6 +37,37 @@ export function matchableCells(free: Set<number>, cols: number, rows: number): S
   return result
 }
 
+/** Count independent line/square opportunities rather than treating every eligible cell equally. */
+export function matchingVenueCounts(free: Set<number>, cols: number, rows: number): Map<number, number> {
+  const counts = new Map<number, number>()
+  for (const cell of free) {
+    const c = cell % cols, r = Math.floor(cell / cols)
+    const groups = [c + 2 < cols ? [cell, cell + 1, cell + 2] : [], r + 2 < rows ? [cell, cell + cols, cell + cols * 2] : [], c + 1 < cols && r + 1 < rows ? [cell, cell + 1, cell + cols, cell + cols + 1] : []]
+    for (const group of groups) if (group.length && group.every(n => free.has(n))) for (const n of group) counts.set(n, (counts.get(n) ?? 0) + 1)
+  }
+  return counts
+}
+
+/** Two separated matching hubs; never inspect colours or predict a refill. */
+export function selectJellySeeds(free: Set<number>, cols: number, rows: number, seed = 0): number[] {
+  const counts = matchingVenueCounts(free, cols, rows)
+  if (!counts.size) return []
+  const rng = makeRng(seed), ties = new Map([...counts.keys()].sort((a, b) => a - b).map(cell => [cell, rng.next()]))
+  const branches = (cell: number): number => neighbours(cell, cols, rows).filter(n => free.has(n)).length
+  const hubs = [...counts.keys()].filter(cell => counts.get(cell)! >= 3 && branches(cell) >= 3)
+  const candidates = hubs.length >= 2 ? hubs : [...counts.keys()]
+  const byQuality = (a: number, b: number): number => counts.get(b)! - counts.get(a)! || branches(b) - branches(a) || ties.get(b)! - ties.get(a)!
+  const first = [...candidates].sort(byQuality)[0]!
+  const distance = new Map([[first, 0]]), queue = [first]
+  for (let i = 0; i < queue.length; i++) for (const n of neighbours(queue[i]!, cols, rows)) if (free.has(n) && !distance.has(n)) { distance.set(n, distance.get(queue[i]!)! + 1); queue.push(n) }
+  const remaining = candidates.filter(cell => cell !== first)
+  if (!remaining.length) return [first]
+  const farthest = Math.max(...remaining.map(cell => distance.get(cell) ?? 0))
+  const separated = remaining.filter(cell => (distance.get(cell) ?? 0) >= Math.max(2, Math.ceil(farthest * .65)))
+  const second = (separated.length ? separated : remaining).sort(byQuality)[0]!
+  return [first, second]
+}
+
 function baseMask(family: typeof families[number], cols: number, rows: number): string[] {
   return Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => {
     const edgeR = Math.min(r, rows - 1 - r), edgeC = Math.min(c, cols - 1 - c)

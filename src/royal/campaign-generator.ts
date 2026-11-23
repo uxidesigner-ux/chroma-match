@@ -1,6 +1,6 @@
 import { makeRng } from '../game/rng.ts'
 import type { Colour, GoalDefinition, LevelDefinition, ObstacleDefinition, ObstacleKind } from './model.ts'
-import { campaignGeometry, connected, matchableCells, neighbours, openSquares, playableCells } from './campaign-geometry.ts'
+import { campaignGeometry, connected, matchableCells, neighbours, openSquares, playableCells, selectJellySeeds } from './campaign-geometry.ts'
 import { campaignMoves, campaignProfile, type CampaignProfile } from './campaign-profile.ts'
 
 const themes: { name: string; kinds: ObstacleKind[]; jelly: boolean }[] = [
@@ -54,6 +54,9 @@ export function generateCampaignLevel(id: number, seed: number, deriveGoals: (le
       if (used + width * height > budget) return false
       if (kind === 'dynamite' && placed.some(o => o.kind === kind)) return false
       if (kind === 'cuckoo' && placed.filter(o => o.kind === kind).length >= 2) return false
+      // Recovery keeps the mechanic, but cannot fill half its board with stones
+      // that each require a newly made power-up. Other requested kinds fill it.
+      if (kind === 'stone' && profile.recovery && !kinds.includes('dynamite') && placed.filter(o => o.kind === kind).length >= 2) return false
       for (const anchor of anchors) {
         if (anchor % cols + width > cols || Math.floor(anchor / cols) + height > rows) continue
         const cells = Array.from({ length: width * height }, (_, i) => anchor + Math.floor(i / width) * cols + i % width)
@@ -84,10 +87,7 @@ export function generateCampaignLevel(id: number, seed: number, deriveGoals: (le
   }
   if (theme.jelly) {
     const occupied = new Set(best.flatMap(o => o.cells)), free = new Set(all.filter(cell => !occupied.has(cell)))
-    const venues = [...matchableCells(free, cols, rows)]
-    const first = venues[rng.int(venues.length)]!
-    const secondSeed = [...venues].sort((a, b) => distance(b, first) - distance(a, first))[0]!
-    level.jelly = [...new Set([first, secondSeed])]
+    level.jelly = selectJellySeeds(free, cols, rows, seed)
   }
   level.goals = deriveGoals(level)
   level.moves = campaignMoves(level, profile)

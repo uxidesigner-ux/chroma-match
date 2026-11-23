@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { campaignGeometry, campaignGeometryCount, connected, matchableCells, neighbours, openSquares, playableCells } from './campaign-geometry.ts'
+import { campaignGeometry, campaignGeometryCount, connected, matchableCells, matchingVenueCounts, neighbours, openSquares, playableCells, selectJellySeeds } from './campaign-geometry.ts'
 import { campaignMoves, campaignProfile, campaignWork } from './campaign-profile.ts'
 import { createBlankLevel, getLevel, validateLevel } from './levels.ts'
 import { MAX_LEVEL } from './progression.ts'
@@ -42,10 +42,45 @@ test('generated windows keep piece corridors, accessible obstacles, bounded pres
         if (o.kind === 'ice') assert.equal(o.hp, o.cells.length, 'ice hit layers must agree with its shrinking footprint')
       }
       assert.ok(level.jelly.every(cell => venues.has(cell)), `jelly seed cannot participate in a match at ${id}`)
+      if (level.jelly.length) {
+        const counts = matchingVenueCounts(free, level.cols, level.rows)
+        assert.equal(new Set(level.jelly).size, 2)
+        for (const seed of level.jelly) {
+          assert.ok(counts.get(seed)! >= 3, `jelly seed at ${id}:${seed} has only one way to start spreading`)
+          assert.ok(neighbours(seed, level.cols, level.rows).filter(cell => free.has(cell)).length >= 3)
+        }
+      }
       assert.equal(level.moves, campaignMoves(level, profile), 'moves use actual placed work')
       assert.ok(level.moves >= 24 && level.moves <= 54)
     }
   }
+})
+
+test('jelly starts at two reproducible matching hubs instead of distant low-opportunity corners', () => {
+  for (const id of [35, 36, 40, 42, 72]) {
+    const level = getLevel(id), occupied = new Set(level.obstacles.flatMap(o => o.cells))
+    const free = new Set([...playableCells(level)].filter(cell => !occupied.has(cell))), original = [...free]
+    const seeds = selectJellySeeds(free, level.cols, level.rows, level.seed)
+    assert.deepEqual(seeds, level.jelly)
+    assert.deepEqual(selectJellySeeds(free, level.cols, level.rows, level.seed), seeds)
+    assert.deepEqual([...free], original, 'seed selection must not alter the board')
+    const counts = matchingVenueCounts(free, level.cols, level.rows)
+    assert.ok(seeds.every(cell => counts.get(cell)! >= 5), `regression: a weak initial seed returned in level ${id}`)
+  }
+})
+
+test('recovery boards limit unassisted stone work while retaining their occupied area and other mechanics', () => {
+  for (const id of [88, 1003, 12073, 100138]) {
+    const level = getLevel(id), profile = campaignProfile(id), work = campaignWork(level)
+    assert.ok(profile.recovery)
+    assert.equal(level.obstacles.filter(o => o.kind === 'stone').length, 2)
+    assert.ok(work.stoneHits <= 6, 'a recovery board must not require dozens of power-only hits')
+    assert.equal(work.occupied, Math.round(work.playable * profile.density), 'the existing theme fills the area rather than leaving an empty board')
+    assert.ok(level.goals.some(goal => goal.kind === 'box'))
+    assert.equal(level.moves, campaignMoves(level, profile))
+  }
+  assert.equal(getLevel(47).obstacles.filter(o => o.kind === 'stone').length, 9, 'ordinary stone challenges are not globally reduced')
+  assert.equal(getLevel(61).obstacles.filter(o => o.kind === 'stone').length, 8)
 })
 
 test('difficulty rhythm includes recovery and a bounded final challenge without consulting player history', () => {

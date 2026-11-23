@@ -1,0 +1,2473 @@
+{
+  "method": "Actual mouse swipes/taps at normal UI settings, 1.4x built-in speed. Fresh storage for each board, default move budget, no starting boosters, super-lightball, tools, or state mutation. Visible-board automated policy; not human win-rate evidence.",
+  "results": [
+    {
+      "id": 30,
+      "seedOffset": 2026,
+      "speed": 1.4,
+      "status": "won",
+      "turn": 29,
+      "moves": 8,
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 6,
+          "remaining": 0
+        },
+        {
+          "kind": "cuckoo",
+          "count": 2,
+          "remaining": 0
+        },
+        {
+          "kind": "stone",
+          "count": 4,
+          "remaining": 0
+        },
+        {
+          "kind": "jelly",
+          "count": 54,
+          "remaining": 0
+        }
+      ],
+      "errors": [],
+      "frames": [
+        {
+          "turn": 0,
+          "moves": 37,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 6
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 2
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 4
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 54
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 2,
+              "open": true
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-4",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-6",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 1,
+          "moves": 36,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 6
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 2
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 4
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 52
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 2,
+              "open": false
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-4",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-6",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "moves": 35,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 6
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 2
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 4
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 50
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 2,
+              "open": true
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-4",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-6",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 3,
+          "moves": 34,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 6
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 2
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 4
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 50
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 2,
+              "open": false
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-4",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-6",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 4,
+          "moves": 33,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 5
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 2
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 4
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 45
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 2,
+              "open": true
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-6",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 5,
+          "moves": 32,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 5
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 2
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 4
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 35
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 2,
+              "open": false
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-6",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 6,
+          "moves": 31,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 4
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 2
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 4
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 34
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 2,
+              "open": true
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 7,
+          "moves": 30,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 4
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 2
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 3
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 33
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 2,
+              "open": false
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 8,
+          "moves": 29,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 4
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 2
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 3
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 33
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 2,
+              "open": true
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 9,
+          "moves": 28,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 4
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 1
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 3
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 29
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 1,
+              "open": false
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 10,
+          "moves": 27,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 4
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 1
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 3
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 27
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "cuckoo-1",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 11,
+          "moves": 26,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 4
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 3
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 27
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-5",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 12,
+          "moves": 25,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 3
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 3
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 26
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 13,
+          "moves": 24,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 3
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 3
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 26
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 4,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-3",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 14,
+          "moves": 23,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 2
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 3
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 16
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-1",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 15,
+          "moves": 22,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 2
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 2
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 16
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 16,
+          "moves": 21,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 2
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 2
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 16
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-4",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 17,
+          "moves": 20,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 2
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 1
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 14
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 18,
+          "moves": 19,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 2
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 1
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 13
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 19,
+          "moves": 18,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 2
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 1
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 13
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "gift-2",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 20,
+          "moves": 17,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 1
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 1
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 12
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "gift-1",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-2",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 21,
+          "moves": 16,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 0
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 1
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 12
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "stone-2",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 22,
+          "moves": 15,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 0
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 1
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 11
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "stone-2",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 23,
+          "moves": 14,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 0
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 0
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 8
+            }
+          ],
+          "obstacles": []
+        },
+        {
+          "turn": 24,
+          "moves": 13,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 0
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 0
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 8
+            }
+          ],
+          "obstacles": []
+        },
+        {
+          "turn": 25,
+          "moves": 12,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 0
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 0
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 4
+            }
+          ],
+          "obstacles": []
+        },
+        {
+          "turn": 26,
+          "moves": 11,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 0
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 0
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 4
+            }
+          ],
+          "obstacles": []
+        },
+        {
+          "turn": 27,
+          "moves": 10,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 0
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 0
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 3
+            }
+          ],
+          "obstacles": []
+        },
+        {
+          "turn": 28,
+          "moves": 9,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 0
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 0
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 1
+            }
+          ],
+          "obstacles": []
+        },
+        {
+          "turn": 29,
+          "moves": 8,
+          "status": "won",
+          "goals": [
+            {
+              "kind": "toy",
+              "count": 6,
+              "remaining": 0
+            },
+            {
+              "kind": "cuckoo",
+              "count": 2,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 4,
+              "remaining": 0
+            },
+            {
+              "kind": "jelly",
+              "count": 54,
+              "remaining": 0
+            }
+          ],
+          "obstacles": []
+        }
+      ]
+    },
+    {
+      "id": 12073,
+      "seedOffset": 2026,
+      "speed": 1.4,
+      "status": "won",
+      "turn": 7,
+      "moves": 38,
+      "goals": [
+        {
+          "kind": "box",
+          "count": 16,
+          "remaining": 0
+        },
+        {
+          "kind": "stone",
+          "count": 2,
+          "remaining": 0
+        }
+      ],
+      "errors": [],
+      "frames": [
+        {
+          "turn": 0,
+          "moves": 45,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "box",
+              "count": 16,
+              "remaining": 16
+            },
+            {
+              "kind": "stone",
+              "count": 2,
+              "remaining": 2
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "stone-1",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-2",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-4",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-5",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-6",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-7",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-8",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-9",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-10",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-11",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-12",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-13",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-14",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-15",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-16",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-17",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-18",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 1,
+          "moves": 44,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "box",
+              "count": 16,
+              "remaining": 16
+            },
+            {
+              "kind": "stone",
+              "count": 2,
+              "remaining": 2
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "stone-1",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-2",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-4",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-5",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-6",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-7",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-8",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-9",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-10",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-11",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-12",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-13",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-14",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-15",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-16",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-17",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-18",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "moves": 43,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "box",
+              "count": 16,
+              "remaining": 15
+            },
+            {
+              "kind": "stone",
+              "count": 2,
+              "remaining": 2
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "stone-1",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-2",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "stone-3",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-4",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-5",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-6",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-7",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-8",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-9",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-10",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-12",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-13",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-14",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-15",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-16",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-17",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-18",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 3,
+          "moves": 42,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "box",
+              "count": 16,
+              "remaining": 9
+            },
+            {
+              "kind": "stone",
+              "count": 2,
+              "remaining": 0
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "box-4",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-5",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-6",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-7",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-9",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-10",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-12",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-14",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-16",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 4,
+          "moves": 41,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "box",
+              "count": 16,
+              "remaining": 8
+            },
+            {
+              "kind": "stone",
+              "count": 2,
+              "remaining": 0
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "box-4",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-5",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-6",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-7",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-9",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-10",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-12",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-14",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 5,
+          "moves": 40,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "box",
+              "count": 16,
+              "remaining": 7
+            },
+            {
+              "kind": "stone",
+              "count": 2,
+              "remaining": 0
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "box-4",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-5",
+              "hp": 1,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-6",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-7",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-9",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-10",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-14",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 6,
+          "moves": 39,
+          "status": "playing",
+          "goals": [
+            {
+              "kind": "box",
+              "count": 16,
+              "remaining": 6
+            },
+            {
+              "kind": "stone",
+              "count": 2,
+              "remaining": 0
+            }
+          ],
+          "obstacles": [
+            {
+              "id": "box-4",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-6",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-7",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-9",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-10",
+              "hp": 2,
+              "stock": 1,
+              "open": true
+            },
+            {
+              "id": "box-14",
+              "hp": 3,
+              "stock": 1,
+              "open": true
+            }
+          ]
+        },
+        {
+          "turn": 7,
+          "moves": 38,
+          "status": "won",
+          "goals": [
+            {
+              "kind": "box",
+              "count": 16,
+              "remaining": 0
+            },
+            {
+              "kind": "stone",
+              "count": 2,
+              "remaining": 0
+            }
+          ],
+          "obstacles": []
+        }
+      ]
+    }
+  ]
+}

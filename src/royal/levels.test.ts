@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { AUTHORED_LEVEL_COUNT, CAMPAIGN_MAX_COLS, CAMPAIGN_MAX_ROWS, LEVEL_PREVIEWS, createBlankLevel, deriveGoals, getLevel, validateLevel } from './levels.ts'
 import { cellPlayable, type LevelDefinition, type ObstacleDefinition } from './model.ts'
 import { MAX_LEVEL } from './progression.ts'
+import { connected, matchableCells, neighbours, playableCells } from './campaign-geometry.ts'
 
 function accepted(level: LevelDefinition): LevelDefinition {
   const result = validateLevel(level)
@@ -47,6 +48,21 @@ test('curated progression teaches distinct goals on varied board geometries', ()
   assert.ok(levels[20]!.obstacles.length < levels[19]!.obstacles.length, 'a simpler board follows the challenge')
 })
 
+test('tutorial obstacles are reachable by ordinary matches without splitting the playable pieces', () => {
+  for (let id = 1; id <= AUTHORED_LEVEL_COUNT; id++) {
+    const level = getLevel(id), occupied = new Set(level.obstacles.flatMap(o => o.cells))
+    const free = new Set([...playableCells(level)].filter(cell => !occupied.has(cell)))
+    const venues = matchableCells(free, level.cols, level.rows)
+    assert.ok(connected(free, level.cols, level.rows), `tutorial ${id} starts with separated pieces`)
+    assert.ok(venues.size >= Math.ceil(free.size * .7))
+    for (const obstacle of level.obstacles) {
+      if (obstacle.kind === 'stone') continue
+      assert.ok(obstacle.cells.some(cell => neighbours(cell, level.cols, level.rows).some(n => venues.has(n))), `tutorial ${id} hides ${obstacle.id} from normal matches`)
+    }
+    assert.ok(level.jelly.every(cell => venues.has(cell)), `tutorial ${id} starts jelly in a matching dead end`)
+  }
+})
+
 test('compact campaign geometry and collectible inventories stay structurally possible across many seeds', () => {
   const geometry = new Set<string>(), layouts = new Set<string>(), difficulties = new Set<string>()
   const ids = [...Array.from({ length: 1000 }, (_, i) => i + 1), 12000, 12297, 15321, 20000, 65535, 100000, 999999, 1000000, 0x100000000+12000, MAX_LEVEL-1, MAX_LEVEL]
@@ -81,10 +97,10 @@ test('level 23 keeps its ice and bird challenge within nine rows', () => {
   assert.match(level.description!, /테라스의 얼음/)
 })
 
-test('authored boards keep their established challenge and generated IDs keep their seed identity', () => {
+test('authored milestone budgets and generated seed identities remain deliberate', () => {
   const established = [
     { id: 23, seed: 1411741688, moves: 31, difficulty: 'normal' },
-    { id: 30, seed: 3898530721, moves: 29, difficulty: 'extreme' },
+    { id: 30, seed: 3898530721, moves: 37, difficulty: 'extreme' },
   ]
   for (const expected of established) {
     const { id, seed, moves, difficulty } = getLevel(expected.id)

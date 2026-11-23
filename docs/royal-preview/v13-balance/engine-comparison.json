@@ -1,0 +1,497 @@
+{
+  "scope": "Paired actual-engine diagnostics before and after the v13 authored-access/jelly-hub/recovery-stone changes. All comparisons below use the same unchanged visible-board policy hash; no tools, boosters, unlimited moves, future refill RNG, or outcome mutation.",
+  "policyHash": "6ae4cceafd29432c2c3801fa6466b364684a5c41d36a247724008236469d25fa",
+  "totalRecordedRuns": 4380,
+  "sourceChanges": ["src/royal/levels.ts","src/royal/campaign-generator.ts","src/royal/campaign-geometry.ts"],
+  "pairNotation": "Every [before, after] pair compares ddb965b snapshot against the frozen v13 working-tree source hashes recorded in each linked report.",
+  "fixed": {
+    "seedOffsets": [7,777,2026,104729,2654435761],
+    "before": {
+      "runs": 1820,
+      "completed": 1359,
+      "goalCoverage": 0.9126,
+      "workCleared": 0.9257,
+      "engineErrors": 0,
+      "unexpectedStartingPowers": 0,
+      "maxWorkStall": 28,
+      "shuffleCalls": 82,
+      "startupShuffleCalls": 4,
+      "silentShuffleCalls": 4,
+      "neverProgressedGoals": 39
+    },
+    "after": {
+      "runs": 1820,
+      "completed": 1387,
+      "goalCoverage": 0.9328,
+      "workCleared": 0.9417,
+      "engineErrors": 0,
+      "unexpectedStartingPowers": 0,
+      "maxWorkStall": 28,
+      "shuffleCalls": 76,
+      "startupShuffleCalls": 4,
+      "silentShuffleCalls": 4,
+      "neverProgressedGoals": 19
+    },
+    "bands": [
+      {
+        "policy": "objective",
+        "band": "authored",
+        "runs": 160,
+        "completed": [143,156],
+        "goalCoverage": [0.969,0.9977],
+        "meanTurns": [12.5062,13.2188],
+        "meanMoveBudget": [29.0625,30.0313],
+        "maxWorkStall": [7,7]
+      },
+      {
+        "policy": "objective",
+        "band": "firstGenerated",
+        "runs": 200,
+        "completed": [198,199],
+        "goalCoverage": [0.9976,0.9999],
+        "meanTurns": [11.48,10.115],
+        "meanMoveBudget": [30,30],
+        "maxWorkStall": [5,5]
+      },
+      {
+        "policy": "objective",
+        "band": "hundred",
+        "runs": 100,
+        "completed": [99,100],
+        "goalCoverage": [0.9993,1],
+        "meanTurns": [11.88,10.96],
+        "meanMoveBudget": [30.85,30.85],
+        "maxWorkStall": [7,6]
+      },
+      {
+        "policy": "objective",
+        "band": "thousand",
+        "runs": 100,
+        "completed": [99,99],
+        "goalCoverage": [0.9986,0.9998],
+        "meanTurns": [13.63,12.68],
+        "meanMoveBudget": [32.55,32.45],
+        "maxWorkStall": [6,7]
+      },
+      {
+        "policy": "objective",
+        "band": "twelveThousand",
+        "runs": 100,
+        "completed": [100,100],
+        "goalCoverage": [1,1],
+        "meanTurns": [14.63,12.56],
+        "meanMoveBudget": [36.4,36.2],
+        "maxWorkStall": [13,13]
+      },
+      {
+        "policy": "objective",
+        "band": "growthCap",
+        "runs": 100,
+        "completed": [99,98],
+        "goalCoverage": [0.9994,0.9993],
+        "meanTurns": [17.35,16.79],
+        "meanMoveBudget": [38.55,38.4],
+        "maxWorkStall": [8,8]
+      },
+      {
+        "policy": "objective",
+        "band": "million",
+        "runs": 100,
+        "completed": [100,100],
+        "goalCoverage": [1,1],
+        "meanTurns": [15.45,14.13],
+        "meanMoveBudget": [39.7,39.7],
+        "maxWorkStall": [5,8]
+      },
+      {
+        "policy": "objective",
+        "band": "maxSafe",
+        "runs": 50,
+        "completed": [50,50],
+        "goalCoverage": [1,1],
+        "meanTurns": [16.74,15.06],
+        "meanMoveBudget": [41.9,41.9],
+        "maxWorkStall": [4,6]
+      },
+      {
+        "policy": "hint",
+        "band": "authored",
+        "runs": 160,
+        "completed": [81,79],
+        "goalCoverage": [0.7797,0.8057],
+        "meanTurns": [22.4063,22.9438],
+        "meanMoveBudget": [29.0625,30.0313],
+        "maxWorkStall": [16,25]
+      },
+      {
+        "policy": "hint",
+        "band": "firstGenerated",
+        "runs": 200,
+        "completed": [116,108],
+        "goalCoverage": [0.8329,0.8618],
+        "meanTurns": [22.38,22.385],
+        "meanMoveBudget": [30,30],
+        "maxWorkStall": [24,22]
+      },
+      {
+        "policy": "hint",
+        "band": "hundred",
+        "runs": 100,
+        "completed": [51,58],
+        "goalCoverage": [0.8314,0.8769],
+        "meanTurns": [25.17,23.27],
+        "meanMoveBudget": [30.85,30.85],
+        "maxWorkStall": [23,21]
+      },
+      {
+        "policy": "hint",
+        "band": "thousand",
+        "runs": 100,
+        "completed": [43,47],
+        "goalCoverage": [0.8116,0.8438],
+        "meanTurns": [26.71,25.55],
+        "meanMoveBudget": [32.55,32.45],
+        "maxWorkStall": [26,19]
+      },
+      {
+        "policy": "hint",
+        "band": "twelveThousand",
+        "runs": 100,
+        "completed": [57,62],
+        "goalCoverage": [0.8719,0.9279],
+        "meanTurns": [27.88,27.19],
+        "meanMoveBudget": [36.4,36.2],
+        "maxWorkStall": [19,19]
+      },
+      {
+        "policy": "hint",
+        "band": "growthCap",
+        "runs": 100,
+        "completed": [46,48],
+        "goalCoverage": [0.8214,0.8462],
+        "meanTurns": [31.16,30.28],
+        "meanMoveBudget": [38.55,38.4],
+        "maxWorkStall": [17,20]
+      },
+      {
+        "policy": "hint",
+        "band": "million",
+        "runs": 100,
+        "completed": [53,58],
+        "goalCoverage": [0.8833,0.9159],
+        "meanTurns": [30.59,30.43],
+        "meanMoveBudget": [39.7,39.7],
+        "maxWorkStall": [28,28]
+      },
+      {
+        "policy": "hint",
+        "band": "maxSafe",
+        "runs": 50,
+        "completed": [24,25],
+        "goalCoverage": [0.8675,0.9167],
+        "meanTurns": [35.6,35.6],
+        "meanMoveBudget": [41.9,41.9],
+        "maxWorkStall": [18,18]
+      }
+    ],
+    "earlyOutliers": {
+      "before": [
+        {
+          "id": 15,
+          "difficulty": "super-hard",
+          "completionFraction": 0.4,
+          "meanGoalCoverage": 0.8,
+          "localCompletion": 1,
+          "localGoalCoverage": 1
+        },
+        {
+          "id": 20,
+          "difficulty": "extreme",
+          "completionFraction": 0.2,
+          "meanGoalCoverage": 0.6545,
+          "localCompletion": 0.95,
+          "localGoalCoverage": 0.9861
+        },
+        {
+          "id": 28,
+          "difficulty": "super-hard",
+          "completionFraction": 0.2,
+          "meanGoalCoverage": 0.92,
+          "localCompletion": 0.75,
+          "localGoalCoverage": 0.9221
+        },
+        {
+          "id": 30,
+          "difficulty": "extreme",
+          "completionFraction": 0,
+          "meanGoalCoverage": 0.6882,
+          "localCompletion": 0.8,
+          "localGoalCoverage": 0.98
+        },
+        {
+          "id": 72,
+          "difficulty": "extreme",
+          "completionFraction": 0.6,
+          "meanGoalCoverage": 0.9029,
+          "localCompletion": 1,
+          "localGoalCoverage": 1
+        }
+      ],
+      "after": []
+    }
+  },
+  "freshHoldout": {
+    "seedOffsets": [23,239,2081,10007,99991,161803,524287,1000003,1234567,9876543],
+    "policy": "objective",
+    "ids": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,72,88,1003,12073,100138],
+    "before": {
+      "runs": 370,
+      "completed": 333,
+      "goalCoverage": 0.9793,
+      "workCleared": 0.983,
+      "engineErrors": 0,
+      "unexpectedStartingPowers": 0,
+      "maxWorkStall": 12,
+      "shuffleCalls": 3,
+      "startupShuffleCalls": 0,
+      "silentShuffleCalls": 0,
+      "neverProgressedGoals": 4
+    },
+    "after": {
+      "runs": 370,
+      "completed": 352,
+      "goalCoverage": 0.9959,
+      "workCleared": 0.9964,
+      "engineErrors": 0,
+      "unexpectedStartingPowers": 0,
+      "maxWorkStall": 7,
+      "shuffleCalls": 5,
+      "startupShuffleCalls": 1,
+      "silentShuffleCalls": 1,
+      "neverProgressedGoals": 0
+    },
+    "authoredBefore": {
+      "runs": 320,
+      "completed": 286,
+      "goalCoverage": 0.9769,
+      "workCleared": 0.981,
+      "engineErrors": 0,
+      "unexpectedStartingPowers": 0,
+      "maxWorkStall": 12,
+      "shuffleCalls": 2,
+      "startupShuffleCalls": 0,
+      "silentShuffleCalls": 0,
+      "neverProgressedGoals": 4
+    },
+    "authoredAfter": {
+      "runs": 320,
+      "completed": 305,
+      "goalCoverage": 0.9962,
+      "workCleared": 0.9967,
+      "engineErrors": 0,
+      "unexpectedStartingPowers": 0,
+      "maxWorkStall": 6,
+      "shuffleCalls": 4,
+      "startupShuffleCalls": 1,
+      "silentShuffleCalls": 1,
+      "neverProgressedGoals": 0
+    },
+    "selectedLevels": [
+      {
+        "id": 6,
+        "difficulty": "normal",
+        "runs": 10,
+        "completed": [8,10],
+        "goalCoverage": [0.9714,1],
+        "meanTurns": [20.9,22.5],
+        "moveBudget": [29,33]
+      },
+      {
+        "id": 15,
+        "difficulty": "super-hard",
+        "runs": 10,
+        "completed": [4,7],
+        "goalCoverage": [0.85,0.9625],
+        "meanTurns": [24.2,23.4],
+        "moveBudget": [28,32]
+      },
+      {
+        "id": 20,
+        "difficulty": "extreme",
+        "runs": 10,
+        "completed": [3,8],
+        "goalCoverage": [0.7455,0.98],
+        "meanTurns": [27.7,28.7],
+        "moveBudget": [28,35]
+      },
+      {
+        "id": 22,
+        "difficulty": "normal",
+        "runs": 10,
+        "completed": [7,7],
+        "goalCoverage": [0.9541,0.975],
+        "meanTurns": [28.5,27.1],
+        "moveBudget": [32,36]
+      },
+      {
+        "id": 23,
+        "difficulty": "normal",
+        "runs": 10,
+        "completed": [10,10],
+        "goalCoverage": [1,1],
+        "meanTurns": [10.5,8.9],
+        "moveBudget": [31,31]
+      },
+      {
+        "id": 28,
+        "difficulty": "super-hard",
+        "runs": 10,
+        "completed": [2,5],
+        "goalCoverage": [0.9164,0.9759],
+        "meanTurns": [26.8,31.9],
+        "moveBudget": [30,34]
+      },
+      {
+        "id": 30,
+        "difficulty": "extreme",
+        "runs": 10,
+        "completed": [2,8],
+        "goalCoverage": [0.8221,0.9864],
+        "meanTurns": [28.1,28.5],
+        "moveBudget": [29,37]
+      },
+      {
+        "id": 72,
+        "difficulty": "extreme",
+        "runs": 10,
+        "completed": [7,7],
+        "goalCoverage": [0.9765,0.9691],
+        "meanTurns": [26.1,24.6],
+        "moveBudget": [30,30]
+      },
+      {
+        "id": 88,
+        "difficulty": "normal",
+        "runs": 10,
+        "completed": [10,10],
+        "goalCoverage": [1,1],
+        "meanTurns": [20.8,15.9],
+        "moveBudget": [37,35]
+      },
+      {
+        "id": 1003,
+        "difficulty": "normal",
+        "runs": 10,
+        "completed": [10,10],
+        "goalCoverage": [1,1],
+        "meanTurns": [14.7,18.4],
+        "moveBudget": [39,37]
+      },
+      {
+        "id": 12073,
+        "difficulty": "normal",
+        "runs": 10,
+        "completed": [10,10],
+        "goalCoverage": [1,1],
+        "meanTurns": [20,14.4],
+        "moveBudget": [49,45]
+      },
+      {
+        "id": 100138,
+        "difficulty": "normal",
+        "runs": 10,
+        "completed": [10,10],
+        "goalCoverage": [1,1],
+        "meanTurns": [22.5,17.7],
+        "moveBudget": [54,54]
+      }
+    ],
+    "remainingEarlyOutliers": [
+      {
+        "id": 28,
+        "difficulty": "super-hard",
+        "completionFraction": 0.5,
+        "meanGoalCoverage": 0.9759,
+        "localCompletion": 0.95,
+        "localGoalCoverage": 0.9966
+      }
+    ],
+    "remainingLevel28Cases": [
+      {
+        "seedOffset": 239,
+        "remaining": [
+          {
+            "kind": "toy",
+            "remaining": 1,
+            "work": 2,
+            "maxStall": 5
+          }
+        ]
+      },
+      {
+        "seedOffset": 2081,
+        "remaining": [
+          {
+            "kind": "toy",
+            "remaining": 2,
+            "work": 3,
+            "maxStall": 6
+          }
+        ]
+      },
+      {
+        "seedOffset": 10007,
+        "remaining": [
+          {
+            "kind": "toy",
+            "remaining": 2,
+            "work": 5,
+            "maxStall": 8
+          },
+          {
+            "kind": "jelly",
+            "remaining": 4,
+            "work": 4,
+            "maxStall": 4
+          }
+        ]
+      },
+      {
+        "seedOffset": 99991,
+        "remaining": [
+          {
+            "kind": "toy",
+            "remaining": 2,
+            "work": 4,
+            "maxStall": 10
+          },
+          {
+            "kind": "jelly",
+            "remaining": 1,
+            "work": 1,
+            "maxStall": 9
+          }
+        ]
+      },
+      {
+        "seedOffset": 1000003,
+        "remaining": [
+          {
+            "kind": "toy",
+            "remaining": 1,
+            "work": 2,
+            "maxStall": 4
+          }
+        ]
+      }
+    ]
+  },
+  "conclusions": ["No engine-error, rejected-action, unresolved-settlement, or unexpected fallback-power cases in the recorded before/after runs. Startup shuffles are counted separately; zero fallback power does not mean zero startup reshuffling.","Fixed-sample objective authored completion increased from 143/160 to 156/160. Fresh holdout completion increased from 333/370 to 352/370; remaining work also decreased.","The independent holdout retains a level-28 difficulty candidate: 5/10 completed with mean target coverage 97.59%; failures mostly leave one or two gifts with two to five hits, sometimes four jelly cells. This is not a claim that every sharp or subjective difficulty issue is solved.","First-hint completion fell slightly in two early bands despite better mean goal coverage. Results are policy-dependent; no claim of universal completion-rate improvement is made.","A strong visible-board policy clears nearly all sampled generated levels. Its outcome and move slack are not human win-rate measurements or evidence of original-game difficulty equivalence.","The holdout seeds were requested only after gameplay source was frozen and were not used in the earlier tuning runs. Any subsequent tuning against these results would require a new independent holdout."],
+  "reproducibility": {
+    "baseline": "node scripts/royal-balance-audit.mjs --source-root /tmp/chroma-balance-ddb965b --label ddb965b --output docs/royal-preview/v13-balance/engine-baseline.json",
+    "final": "node scripts/royal-balance-audit.mjs --label v13-final --output docs/royal-preview/v13-balance/engine-final.json",
+    "holdoutExtraArgs": "--ids 1-32,72,88,1003,12073,100138 --seed-offsets 23,239,2081,10007,99991,161803,524287,1000003,1234567,9876543 --policies objective",
+    "baselineNote": "For another machine, obtain the ddb965b source tree from Git into an isolated directory and pass that directory as --source-root. The /tmp snapshot is local evidence, not a runtime dependency.",
+    "raw": "Optional --raw-output /tmp/report.json includes per-run goals and source definitions; tracked reports omit full boards and per-frame traces."
+  }
+}
