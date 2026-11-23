@@ -1,0 +1,601 @@
+{
+  "source": "user .mov",
+  "resolution": [
+    1290,
+    2796
+  ],
+  "scaledFrame": [
+    645,
+    1398
+  ],
+  "crop": [
+    350,
+    380,
+    645,
+    1160
+  ],
+  "frames": [
+    {
+      "sheet": "initial",
+      "target": 0.0,
+      "pts": 0.0,
+      "frame": 1
+    },
+    {
+      "sheet": "initial",
+      "target": 0.05,
+      "pts": 0.05,
+      "frame": 4
+    },
+    {
+      "sheet": "initial",
+      "target": 0.1,
+      "pts": 0.1,
+      "frame": 7
+    },
+    {
+      "sheet": "initial",
+      "target": 0.15,
+      "pts": 0.15,
+      "frame": 10
+    },
+    {
+      "sheet": "initial",
+      "target": 0.2,
+      "pts": 0.2,
+      "frame": 13
+    },
+    {
+      "sheet": "initial",
+      "target": 0.25,
+      "pts": 0.25,
+      "frame": 16
+    },
+    {
+      "sheet": "initial",
+      "target": 0.3,
+      "pts": 0.3,
+      "frame": 19
+    },
+    {
+      "sheet": "initial",
+      "target": 0.35,
+      "pts": 0.35,
+      "frame": 22
+    },
+    {
+      "sheet": "initial",
+      "target": 0.4,
+      "pts": 0.4,
+      "frame": 25
+    },
+    {
+      "sheet": "initial",
+      "target": 0.45,
+      "pts": 0.45,
+      "frame": 28
+    },
+    {
+      "sheet": "initial",
+      "target": 0.5,
+      "pts": 0.5,
+      "frame": 31
+    },
+    {
+      "sheet": "initial",
+      "target": 0.55,
+      "pts": 0.55,
+      "frame": 34
+    },
+    {
+      "sheet": "initial",
+      "target": 0.6,
+      "pts": 0.6,
+      "frame": 37
+    },
+    {
+      "sheet": "initial",
+      "target": 0.65,
+      "pts": 0.65,
+      "frame": 40
+    },
+    {
+      "sheet": "initial",
+      "target": 0.7,
+      "pts": 0.7,
+      "frame": 43
+    },
+    {
+      "sheet": "initial",
+      "target": 0.75,
+      "pts": 0.75,
+      "frame": 46
+    },
+    {
+      "sheet": "initial",
+      "target": 0.8,
+      "pts": 0.8,
+      "frame": 49
+    },
+    {
+      "sheet": "initial",
+      "target": 0.85,
+      "pts": 0.85,
+      "frame": 52
+    },
+    {
+      "sheet": "initial",
+      "target": 0.9,
+      "pts": 0.9,
+      "frame": 55
+    },
+    {
+      "sheet": "initial",
+      "target": 0.95,
+      "pts": 0.95,
+      "frame": 58
+    },
+    {
+      "sheet": "initial",
+      "target": 1.0,
+      "pts": 1.0,
+      "frame": 61
+    },
+    {
+      "sheet": "initial",
+      "target": 1.05,
+      "pts": 1.05,
+      "frame": 64
+    },
+    {
+      "sheet": "initial",
+      "target": 1.1,
+      "pts": 1.1,
+      "frame": 67
+    },
+    {
+      "sheet": "initial",
+      "target": 1.15,
+      "pts": 1.15,
+      "frame": 70
+    },
+    {
+      "sheet": "initial",
+      "target": 1.2,
+      "pts": 1.2,
+      "frame": 73
+    },
+    {
+      "sheet": "combo",
+      "target": 2.2,
+      "pts": 2.201667,
+      "frame": 133
+    },
+    {
+      "sheet": "combo",
+      "target": 2.25,
+      "pts": 2.251667,
+      "frame": 136
+    },
+    {
+      "sheet": "combo",
+      "target": 2.3,
+      "pts": 2.301667,
+      "frame": 139
+    },
+    {
+      "sheet": "combo",
+      "target": 2.35,
+      "pts": 2.351667,
+      "frame": 142
+    },
+    {
+      "sheet": "combo",
+      "target": 2.4,
+      "pts": 2.401667,
+      "frame": 145
+    },
+    {
+      "sheet": "combo",
+      "target": 2.45,
+      "pts": 2.451667,
+      "frame": 148
+    },
+    {
+      "sheet": "combo",
+      "target": 2.5,
+      "pts": 2.501667,
+      "frame": 151
+    },
+    {
+      "sheet": "combo",
+      "target": 2.55,
+      "pts": 2.551667,
+      "frame": 154
+    },
+    {
+      "sheet": "combo",
+      "target": 2.6,
+      "pts": 2.601667,
+      "frame": 157
+    },
+    {
+      "sheet": "combo",
+      "target": 2.65,
+      "pts": 2.651667,
+      "frame": 160
+    },
+    {
+      "sheet": "combo",
+      "target": 2.7,
+      "pts": 2.701667,
+      "frame": 163
+    },
+    {
+      "sheet": "combo",
+      "target": 2.75,
+      "pts": 2.751667,
+      "frame": 166
+    },
+    {
+      "sheet": "combo",
+      "target": 2.8,
+      "pts": 2.801667,
+      "frame": 169
+    },
+    {
+      "sheet": "combo",
+      "target": 2.85,
+      "pts": 2.851667,
+      "frame": 172
+    },
+    {
+      "sheet": "combo",
+      "target": 2.9,
+      "pts": 2.901667,
+      "frame": 175
+    },
+    {
+      "sheet": "combo",
+      "target": 2.95,
+      "pts": 2.951667,
+      "frame": 178
+    },
+    {
+      "sheet": "combo",
+      "target": 3.0,
+      "pts": 3.001667,
+      "frame": 181
+    },
+    {
+      "sheet": "combo",
+      "target": 3.05,
+      "pts": 3.051667,
+      "frame": 184
+    },
+    {
+      "sheet": "combo",
+      "target": 3.1,
+      "pts": 3.101667,
+      "frame": 187
+    },
+    {
+      "sheet": "combo",
+      "target": 3.15,
+      "pts": 3.151667,
+      "frame": 190
+    },
+    {
+      "sheet": "combo",
+      "target": 3.2,
+      "pts": 3.201667,
+      "frame": 193
+    },
+    {
+      "sheet": "combo",
+      "target": 3.25,
+      "pts": 3.251667,
+      "frame": 196
+    },
+    {
+      "sheet": "combo",
+      "target": 3.3,
+      "pts": 3.301667,
+      "frame": 199
+    },
+    {
+      "sheet": "combo",
+      "target": 3.35,
+      "pts": 3.351667,
+      "frame": 202
+    },
+    {
+      "sheet": "combo",
+      "target": 3.4,
+      "pts": 3.401667,
+      "frame": 205
+    },
+    {
+      "sheet": "combo",
+      "target": 3.45,
+      "pts": 3.451667,
+      "frame": 208
+    },
+    {
+      "sheet": "combo",
+      "target": 3.5,
+      "pts": 3.501667,
+      "frame": 211
+    },
+    {
+      "sheet": "followup",
+      "target": 3.5,
+      "pts": 3.501667,
+      "frame": 211
+    },
+    {
+      "sheet": "followup",
+      "target": 3.55,
+      "pts": 3.551667,
+      "frame": 214
+    },
+    {
+      "sheet": "followup",
+      "target": 3.6,
+      "pts": 3.601667,
+      "frame": 217
+    },
+    {
+      "sheet": "followup",
+      "target": 3.65,
+      "pts": 3.651667,
+      "frame": 220
+    },
+    {
+      "sheet": "followup",
+      "target": 3.7,
+      "pts": 3.701667,
+      "frame": 223
+    },
+    {
+      "sheet": "followup",
+      "target": 3.75,
+      "pts": 3.751667,
+      "frame": 226
+    },
+    {
+      "sheet": "followup",
+      "target": 3.8,
+      "pts": 3.801667,
+      "frame": 229
+    },
+    {
+      "sheet": "followup",
+      "target": 3.85,
+      "pts": 3.851667,
+      "frame": 232
+    },
+    {
+      "sheet": "followup",
+      "target": 3.9,
+      "pts": 3.901667,
+      "frame": 235
+    },
+    {
+      "sheet": "followup",
+      "target": 3.95,
+      "pts": 3.951667,
+      "frame": 238
+    },
+    {
+      "sheet": "followup",
+      "target": 4.0,
+      "pts": 4.003333,
+      "frame": 241
+    },
+    {
+      "sheet": "followup",
+      "target": 4.05,
+      "pts": 4.053333,
+      "frame": 244
+    },
+    {
+      "sheet": "followup",
+      "target": 4.1,
+      "pts": 4.103333,
+      "frame": 247
+    },
+    {
+      "sheet": "followup",
+      "target": 4.15,
+      "pts": 4.153333,
+      "frame": 250
+    },
+    {
+      "sheet": "followup",
+      "target": 4.2,
+      "pts": 4.203333,
+      "frame": 253
+    },
+    {
+      "sheet": "followup",
+      "target": 4.25,
+      "pts": 4.253333,
+      "frame": 256
+    },
+    {
+      "sheet": "followup",
+      "target": 4.3,
+      "pts": 4.303333,
+      "frame": 259
+    },
+    {
+      "sheet": "followup",
+      "target": 4.35,
+      "pts": 4.353333,
+      "frame": 262
+    },
+    {
+      "sheet": "followup",
+      "target": 4.4,
+      "pts": 4.403333,
+      "frame": 265
+    },
+    {
+      "sheet": "followup",
+      "target": 4.45,
+      "pts": 4.453333,
+      "frame": 268
+    },
+    {
+      "sheet": "followup",
+      "target": 4.5,
+      "pts": 4.503333,
+      "frame": 271
+    },
+    {
+      "sheet": "second",
+      "target": 5.0,
+      "pts": 5.003333,
+      "frame": 301
+    },
+    {
+      "sheet": "second",
+      "target": 5.05,
+      "pts": 5.053333,
+      "frame": 304
+    },
+    {
+      "sheet": "second",
+      "target": 5.1,
+      "pts": 5.103333,
+      "frame": 307
+    },
+    {
+      "sheet": "second",
+      "target": 5.15,
+      "pts": 5.153333,
+      "frame": 310
+    },
+    {
+      "sheet": "second",
+      "target": 5.2,
+      "pts": 5.203333,
+      "frame": 313
+    },
+    {
+      "sheet": "second",
+      "target": 5.25,
+      "pts": 5.253333,
+      "frame": 316
+    },
+    {
+      "sheet": "second",
+      "target": 5.3,
+      "pts": 5.303333,
+      "frame": 319
+    },
+    {
+      "sheet": "second",
+      "target": 5.35,
+      "pts": 5.353333,
+      "frame": 322
+    },
+    {
+      "sheet": "second",
+      "target": 5.4,
+      "pts": 5.403333,
+      "frame": 325
+    },
+    {
+      "sheet": "second",
+      "target": 5.45,
+      "pts": 5.453333,
+      "frame": 328
+    },
+    {
+      "sheet": "second",
+      "target": 5.5,
+      "pts": 5.503333,
+      "frame": 331
+    },
+    {
+      "sheet": "second",
+      "target": 5.55,
+      "pts": 5.553333,
+      "frame": 334
+    },
+    {
+      "sheet": "second",
+      "target": 5.6,
+      "pts": 5.603333,
+      "frame": 337
+    },
+    {
+      "sheet": "second",
+      "target": 5.65,
+      "pts": 5.653333,
+      "frame": 340
+    },
+    {
+      "sheet": "second",
+      "target": 5.7,
+      "pts": 5.703333,
+      "frame": 343
+    },
+    {
+      "sheet": "second",
+      "target": 5.75,
+      "pts": 5.753333,
+      "frame": 346
+    },
+    {
+      "sheet": "second",
+      "target": 5.8,
+      "pts": 5.803333,
+      "frame": 349
+    },
+    {
+      "sheet": "second",
+      "target": 5.85,
+      "pts": 5.853333,
+      "frame": 352
+    },
+    {
+      "sheet": "second",
+      "target": 5.9,
+      "pts": 5.903333,
+      "frame": 355
+    },
+    {
+      "sheet": "second",
+      "target": 5.95,
+      "pts": 5.953333,
+      "frame": 358
+    },
+    {
+      "sheet": "second",
+      "target": 6.0,
+      "pts": 6.003333,
+      "frame": 361
+    },
+    {
+      "sheet": "second",
+      "target": 6.05,
+      "pts": 6.055,
+      "frame": 364
+    },
+    {
+      "sheet": "second",
+      "target": 6.1,
+      "pts": 6.105,
+      "frame": 367
+    },
+    {
+      "sheet": "second",
+      "target": 6.15,
+      "pts": 6.155,
+      "frame": 370
+    }
+  ]
+}

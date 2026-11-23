@@ -1,13 +1,14 @@
 import { cellPlayable, type EffectEvent, type GameState, type LevelDefinition, type ObstacleState, type Piece, type Tool } from './model.ts'
 import { iconData } from './art.ts'
 import { rasterIcon } from './raster-art.ts'
+import { CLEAR_DURATION, INVALID_SWAP_DURATION, MATCH_CONVERGE_DURATION, POWER_CREATION_DURATION, PROPELLER_LIFT_DURATION, SWAP_DURATION, fallDuration } from './timing.ts'
 export { iconData } from './art.ts'
 
 type Ctx = CanvasRenderingContext2D
-interface Motion { start: number; duration: number; dx: number; dy: number; bounce: boolean }
-interface Particle { x: number; y: number; vx: number; vy: number; birth: number; life: number; size: number; colour: string; spin: number }
+interface Motion { start: number; duration: number; dx: number; dy: number; kind: 'swap' | 'invalid' | 'fall'; spawned?: boolean }
+interface Particle { x: number; y: number; vx: number; vy: number; birth: number; life: number; size: number; colour: string; spin: number; shape: 'chip' | 'spark' | 'panel' }
 interface Visual { event: EffectEvent; birth: number; life: number }
-interface Ghost { piece: Piece; cell: number; birth: number }
+interface Ghost { piece: Piece; cell: number; birth: number; life: number; to?: number }
 const TAU = Math.PI * 2
 const COLOURS = ['#ffe557', '#ff5265', '#4dd9ff', '#91f747']
 const sprites = new Map<string, HTMLImageElement>()
@@ -98,6 +99,8 @@ export class RoyalRenderer {
   private motions = new Map<number, Motion>()
   private damage = new Map<number, number>()
   private previousPieces = new Map<number, Piece>()
+  private previousObstacles = new Map<number, ObstacleState['kind']>()
+  private boardClip = new Path2D()
   private animationSeed = 43
   private observer: ResizeObserver
 
@@ -129,12 +132,18 @@ export class RoyalRenderer {
     this.size = Math.max(1, this.size)
     this.offsetX = (this.width - level.cols * this.size) / 2
     this.offsetY = (this.height - level.rows * this.size) / 2
+    this.boardClip = new Path2D()
+    for (let cell = 0; cell < level.cols * level.rows; cell++) {
+      if (!cellPlayable(level, cell)) continue
+      const p = this.centreOf(cell)
+      this.boardClip.rect(p.x - this.size / 2, p.y - this.size / 2, this.size + .2, this.size + .2)
+    }
     if (changed) this.resetEffects()
   }
 
   destroy(): void { this.observer.disconnect(); this.resetEffects() }
   resetEffects(): void {
-    this.particles = []; this.visuals = []; this.ghosts = []; this.motions.clear(); this.damage.clear(); this.previousPieces.clear()
+    this.particles = []; this.visuals = []; this.ghosts = []; this.motions.clear(); this.damage.clear(); this.previousPieces.clear(); this.previousObstacles.clear()
   }
   centreOf(cell: number): { x: number; y: number } {
     const cols = this.level?.cols ?? 1
@@ -153,57 +162,82 @@ export class RoyalRenderer {
     this.animationSeed = (Math.imul(this.animationSeed, 1664525) + 1013904223) >>> 0
     return this.animationSeed / 4294967296
   }
-  private burst(cell: number, colour: string, count: number, strong = false): void {
+  private burst(cell: number, colour: string, count: number, birth: number, material?: ObstacleState['kind']): void {
     const p = this.centreOf(cell)
+    const palettes: Partial<Record<ObstacleState['kind'], string[]>> = {
+      gift: ['#b60a47', '#e54365', '#f5c129', '#50c8ea'], box: ['#c87726', '#f6ba65', '#87421d'],
+      ice: ['#e7ffff', '#69ddff', '#a5eaff'], stone: ['#8492bc', '#c2c8db', '#596180'],
+      cuckoo: ['#efac58', '#bd692b', '#9457d3'], dynamite: ['#666cb1', '#f6c331', '#f45d58'],
+    }
     for (let i = 0; i < count; i++) {
-      const angle = this.random() * TAU, speed = this.size * (.8 + this.random() * (strong ? 4.5 : 2.2))
-      this.particles.push({ x: p.x, y: p.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - this.size * .5, birth: this.clock,
-        life: .24 + this.random() * .4, size: this.size * (.025 + this.random() * .045), colour: i % 3 ? colour : '#fff8bb', spin: this.random() * TAU })
+      const angle = this.random() * TAU, speed = this.size * (1.2 + this.random() * (material ? 3 : 2))
+      const shape = i % 4 === 0 ? 'spark' : material === 'gift' && i % 2 === 1 || (material === 'cuckoo' || material === 'box') && i % 3 === 1 ? 'panel' : 'chip'
+      const palette = material ? palettes[material] : undefined
+      this.particles.push({ x: p.x, y: p.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - this.size * 1.1, birth,
+        life: material ? .55 + this.random() * .35 : .26 + this.random() * .23,
+        size: this.size * (shape === 'panel' ? .15 + this.random() * .11 : shape === 'chip' ? .035 + this.random() * .06 : .035 + this.random() * .025),
+        colour: shape === 'spark' ? '#fff6c0' : material === 'gift' && shape === 'panel' ? i % 3 ? '#b60a47' : '#e54365' : palette?.[i % palette.length] ?? colour,
+        spin: this.random() * TAU, shape })
     }
     if (this.particles.length > 450) this.particles.splice(0, this.particles.length - 450)
   }
   pushEvents(events: EffectEvent[]): void {
     for (const event of events) {
-      const cells = event.cells
+      const { cells } = event, birth = event.at + (event.delay ?? 0)
       if (event.kind === 'clear') {
         for (const cell of cells) {
-          const old = this.previousPieces.get(cell)
-          if (old && !this.calm) this.ghosts.push({ piece: old, cell, birth: this.clock })
-          this.burst(cell, COLOURS[event.colour ?? old?.colour ?? 0]!, this.calm ? 2 : 8)
+          const old = event.pieces?.find(p => p.cell === cell)?.piece ?? this.previousPieces.get(cell)
+          const gathered = old && this.visuals.some(v => v.event.kind === 'power' && birth - v.birth <= POWER_CREATION_DURATION && v.event.pieces?.some(p => p.piece.id === old.id))
+          if (gathered || old?.power) continue
+          if (old && !this.calm) this.ghosts.push({ piece: old, cell, birth, life: CLEAR_DURATION })
+          this.burst(cell, COLOURS[old?.colour ?? event.colour ?? 0]!, this.calm ? 1 : 6, birth)
         }
-      } else if (event.kind === 'swap' && event.from !== undefined && event.to !== undefined) {
-        const a = this.centreOf(event.from), b = this.centreOf(event.to)
-        this.motions.set(event.from, { start: this.clock, duration: .13, dx: b.x - a.x, dy: b.y - a.y, bounce: false })
-        this.motions.set(event.to, { start: this.clock, duration: .13, dx: a.x - b.x, dy: a.y - b.y, bounce: false })
+      } else if ((event.kind === 'swap' || event.kind === 'invalid') && event.from !== undefined && event.to !== undefined) {
+        const snapshots = event.pieces ?? [event.from, event.to].flatMap(cell => {
+          const piece = this.previousPieces.get(cell); return piece ? [{ cell, piece }] : []
+        })
+        for (const { cell, piece } of snapshots) {
+          const source = this.centreOf(cell), target = this.centreOf(cell === event.from ? event.to : event.from)
+          const invalid = event.kind === 'invalid'
+          this.motions.set(piece.id, { start: birth, duration: event.duration ?? (invalid ? INVALID_SWAP_DURATION : SWAP_DURATION),
+            dx: (target.x - source.x) * (invalid ? 1 : -1), dy: (target.y - source.y) * (invalid ? 1 : -1), kind: invalid ? 'invalid' : 'swap' })
+        }
       } else if (event.kind === 'fall') {
-        if (event.from !== undefined && event.to !== undefined) {
-          const a = this.centreOf(event.from), b = this.centreOf(event.to)
-          this.motions.set(event.to, { start: this.clock, duration: .19, dx: a.x - b.x, dy: a.y - b.y, bounce: true })
-        } else for (const cell of cells) {
-          this.motions.set(cell, { start: this.clock, duration: .21, dx: 0, dy: -this.size * .65, bounce: true })
+        for (const { cell, piece } of event.pieces ?? []) {
+          const dest = this.centreOf(cell), from = event.from === undefined ? null : this.centreOf(event.from)
+          const y = event.fromRow === undefined ? from?.y ?? dest.y - this.size : this.offsetY + (event.fromRow + .5) * this.size
+          this.motions.set(piece.id, { start: birth, duration: event.duration ?? fallDuration(Math.abs(y - dest.y) / this.size),
+            dx: from ? from.x - dest.x : 0, dy: y - dest.y, kind: 'fall', spawned: event.from === undefined })
         }
-      } else if (event.kind === 'damage' || event.kind === 'invalid') {
-        for (const cell of cells) this.damage.set(cell, this.clock)
-        if (event.kind === 'damage') for (const cell of cells.slice(0, 3)) this.burst(cell, '#ffd46b', this.calm ? 2 : 6)
+      } else if (event.kind === 'damage') {
+        for (const cell of cells) this.damage.set(cell, birth)
+        for (const cell of sample(cells, 4)) this.burst(cell, '#ffd46b', this.calm ? 1 : this.previousObstacles.get(cell) === 'gift' ? 10 : 7, birth, this.previousObstacles.get(cell))
       } else if (event.kind === 'collect') {
-        for (const cell of cells.slice(0, 6)) this.burst(cell, '#fff097', this.calm ? 3 : 12, true)
+        for (const cell of sample(cells, 4)) this.burst(cell, '#fff097', this.calm ? 1 : 5, birth, this.previousObstacles.get(cell))
       } else if (event.kind === 'power') {
-        for (const cell of cells) this.burst(cell, '#fff1a3', this.calm ? 3 : 18, true)
+        const to = event.to ?? event.from ?? cells[0]
+        if (to !== undefined) {
+          for (const { cell, piece } of event.pieces ?? []) this.ghosts.push({ piece, cell, birth, life: MATCH_CONVERGE_DURATION, to })
+          this.burst(to, '#ffe867', this.calm ? 2 : 12, birth + MATCH_CONVERGE_DURATION)
+        }
       } else if (event.kind === 'win') {
-        for (const cell of sample(cells, 30)) this.burst(cell, COLOURS[cell % 4]!, this.calm ? 2 : 12, true)
+        for (const cell of sample(cells, 24)) this.burst(cell, COLOURS[cell % 4]!, this.calm ? 2 : 10, birth)
       }
-      if (['rocket', 'tnt', 'lightball', 'propeller', 'power', 'shuffle'].includes(event.kind)) {
-        const life = event.kind === 'propeller' ? .48 : event.kind === 'lightball' ? event.combo ? .62 : .48 : event.kind === 'tnt' ? .4 + (event.radius ?? 2) * .035 : .35
-        this.visuals.push({ event, birth: this.clock, life })
+      if (['activate', 'rocket', 'tnt', 'lightball', 'propeller', 'power', 'shuffle'].includes(event.kind)) {
+        const life = event.duration ?? (event.kind === 'power' ? POWER_CREATION_DURATION : .25)
+        if (event.kind === 'activate' && event.pieces?.length) {
+          const previous = this.visuals.find(v => v.event.kind === 'activate' && v.event.power === event.power
+            && Math.abs(v.birth + v.life - birth) < 1e-5 && v.event.pieces?.length === event.pieces!.length
+            && event.pieces!.every(p => v.event.pieces!.some(old => old.piece.id === p.piece.id)))
+          // A landing wait can extend anticipation. Keep the rotor lifted instead
+          // of replaying its takeoff from the tile on every continuation event.
+          if (previous) { previous.life = birth + life - previous.birth; continue }
+        }
+        this.visuals.push({ event, birth, life })
       }
     }
-    if (this.visuals.length > 50) {
-      // Keep the combo's source flash/beam when it creates dozens of child blasts.
-      const priority = this.visuals.filter(v => v.event.combo).slice(-12)
-      const rest = this.visuals.filter(v => !priority.includes(v)).slice(-(50 - priority.length))
-      this.visuals = [...priority, ...rest]
-    }
-    if (this.ghosts.length > 100) this.ghosts.splice(0, this.ghosts.length - 100)
+    if (this.visuals.length > 80) this.visuals.splice(0, this.visuals.length - 80)
+    if (this.ghosts.length > 150) this.ghosts.splice(0, this.ghosts.length - 150)
   }
 
   draw(state: GameState, timeSeconds: number, selected: number | null, aim: Tool | null, calm: boolean): void {
@@ -216,26 +250,48 @@ export class RoyalRenderer {
     this.drawBoard(state)
     if (selected !== null) this.drawSelection(state, selected, aim)
     const occupied = new Set(state.obstacles.flatMap(o => o.cells))
+    const activating = new Set(this.visuals.filter(v => v.event.kind === 'activate' && this.clock >= v.birth && this.clock < v.birth + v.life).flatMap(v => v.event.pieces?.map(p => p.piece.id) ?? []))
+    const gathering = new Set(this.ghosts.filter(g => g.to !== undefined && this.clock < g.birth + g.life).map(g => g.piece.id))
+    ctx.save(); ctx.clip(this.boardClip)
     for (let i = 0; i < state.pieces.length; i++) {
       const piece = state.pieces[i]
-      if (!piece || !cellPlayable(level, i) || occupied.has(i)) continue
-      const p = this.centreOf(i), motion = this.motions.get(i), hit = this.damage.get(i)
-      let dx = 0, dy = 0, scale = 1
+      if (!piece || !cellPlayable(level, i) || occupied.has(i) || gathering.has(piece.id) || activating.has(piece.id)) continue
+      const p = this.centreOf(i), motion = this.motions.get(piece.id)
+      let dx = 0, dy = 0, sx = 1, sy = 1
       if (motion) {
         const t = clamp((this.clock - motion.start) / motion.duration)
-        if (t >= 1) this.motions.delete(i)
+        if (t >= 1) this.motions.delete(piece.id)
         else if (!calm) {
-          const ease = motion.bounce ? 1 - Math.pow(1 - t, 2) + Math.sin(t * Math.PI) * .09 : 1 - Math.pow(1 - t, 3)
-          dx = motion.dx * (1 - ease); dy = motion.dy * (1 - ease)
-          if (motion.bounce && t > .65) scale = 1 + Math.sin((t - .65) / .35 * Math.PI) * .07
+          if (motion.kind === 'fall') {
+            // The last 16% is a small landing compression, after accelerated travel.
+            const flight = clamp(t / .84), travel = flight * flight
+            dx = motion.dx * (1 - travel); dy = motion.dy * (1 - travel)
+            const landing = Math.sin(clamp((t - .84) / .16) * Math.PI)
+            sx = 1 + landing * .07; sy = 1 - landing * .09
+            if (flight < 1) { sx -= flight * .025; sy += flight * .04 }
+          } else {
+            const offset = motion.kind === 'invalid' ? Math.sin(t * Math.PI) : 1 - t * t * (3 - 2 * t)
+            dx = motion.dx * offset; dy = motion.dy * offset
+          }
         }
       }
-      if (hit !== undefined) {
-        const t = (this.clock - hit) / .25
-        if (t > 1) this.damage.delete(i)
-        else if (!calm) dx += Math.sin(t * 28) * s * .06 * (1 - t)
+      if (!calm) for (const v of this.visuals) {
+        const age = this.clock - v.birth
+        if (age < 0 || age > v.life) continue
+        if (v.event.kind === 'power' && v.event.createdPiece?.id === piece.id) {
+          const t = clamp((age - MATCH_CONVERGE_DURATION) / Math.max(.01, v.life - MATCH_CONVERGE_DURATION))
+          sx *= .7 + .3 * t + Math.sin(t * Math.PI) * .22; sy *= .7 + .3 * t + Math.sin(t * Math.PI) * .22
+        }
       }
-      ctx.save(); ctx.translate(p.x + dx, p.y + dy); ctx.scale(scale, 1 / scale)
+      ctx.save()
+      if (motion?.spawned) {
+        // New pieces enter below each obstacle/cutout, never through a separate segment above it.
+        let top = i
+        while (top >= level.cols && cellPlayable(level, top - level.cols) && !occupied.has(top - level.cols)) top -= level.cols
+        const ceiling = this.centreOf(top).y - s / 2
+        ctx.beginPath(); ctx.rect(p.x - s / 2, ceiling, s, this.height - ceiling); ctx.clip()
+      }
+      ctx.translate(p.x + dx, p.y + dy); ctx.scale(sx, sy)
       sprite(ctx, piece.power ?? 'colour', 0, 0, s * .98, piece.colour)
       if (piece.power === 'lightball' && !calm) {
         ctx.fillStyle = '#fffbd1'; const a = this.clock * 1.7 + i
@@ -243,11 +299,15 @@ export class RoyalRenderer {
       }
       ctx.restore()
     }
-    for (const obstacle of state.obstacles) this.drawObstacle(state, obstacle)
     this.drawGhosts()
+    ctx.restore()
+    for (const obstacle of state.obstacles) this.drawObstacle(state, obstacle)
     this.drawEffects()
-    this.previousPieces.clear()
+    this.previousPieces.clear(); this.previousObstacles.clear()
     state.pieces.forEach((p, cell) => { if (p) this.previousPieces.set(cell, p) })
+    state.obstacles.forEach(o => o.cells.forEach(cell => this.previousObstacles.set(cell, o.kind)))
+    for (const [cell, at] of this.damage) if (this.clock - at > .3) this.damage.delete(cell)
+    for (const [id, motion] of this.motions) if (this.clock - motion.start > motion.duration) this.motions.delete(id)
   }
 
   private drawBoard(state: GameState): void {
@@ -468,72 +528,192 @@ export class RoyalRenderer {
   }
 
   private drawGhosts(): void {
-    const ctx = this.ctx
-    this.ghosts = this.ghosts.filter(g => this.clock - g.birth < .16)
-    if (this.calm) return
+    const ctx = this.ctx, s = this.size
+    this.ghosts = this.ghosts.filter(g => this.clock - g.birth < g.life)
     for (const ghost of this.ghosts) {
-      const t = clamp((this.clock - ghost.birth) / .16), p = this.centreOf(ghost.cell)
-      ctx.save(); ctx.globalAlpha = (1 - t) * .8; ctx.translate(p.x, p.y); ctx.rotate(t * .35)
-      sprite(ctx, ghost.piece.power ?? 'colour', 0, 0, this.size * .98 * (1 - t * .7), ghost.piece.colour); ctx.restore()
+      const age = this.clock - ghost.birth
+      if (age < 0) continue
+      const t = clamp(age / ghost.life), p = this.centreOf(ghost.cell)
+      ctx.save()
+      if (ghost.to !== undefined) {
+        const q = this.centreOf(ghost.to), converge = t * t
+        ctx.globalAlpha = this.calm ? 1 - t : 1
+        ctx.translate(p.x + (this.calm ? 0 : (q.x - p.x) * converge), p.y + (this.calm ? 0 : (q.y - p.y) * converge))
+        const scale = this.calm ? 1 : 1 - .48 * t * t
+        sprite(ctx, ghost.piece.power ?? 'colour', 0, 0, s * .98 * scale, ghost.piece.colour)
+      } else {
+        ctx.globalAlpha = 1 - t * t
+        ctx.translate(p.x, p.y)
+        const scale = this.calm ? 1 : 1 + .12 * Math.sin(t * Math.PI) - .4 * t * t
+        sprite(ctx, ghost.piece.power ?? 'colour', 0, 0, s * .98 * scale, ghost.piece.colour)
+        if (!this.calm) {
+          const flash = ctx.createRadialGradient(0, 0, 0, 0, 0, s * .43)
+          flash.addColorStop(0, '#ffffeccc'); flash.addColorStop(.3, '#ffffb866'); flash.addColorStop(1, '#fff2a200')
+          ctx.globalAlpha = (1 - t) * .65; ctx.fillStyle = flash; ctx.fillRect(-s / 2, -s / 2, s, s)
+        }
+      }
+      ctx.restore()
     }
   }
+
+  /** A brief filled flash, with a soft warm edge rather than an expanding outline. */
+  private flash(x: number, y: number, radius: number, t: number, strong = false, blast = false): void {
+    const ctx = this.ctx, r = radius * (.42 + .58 * (1 - Math.pow(1 - t, 3)))
+    ctx.save(); ctx.translate(x, y); ctx.globalAlpha *= blast ? clamp((1 - t) / .4) : Math.pow(1 - t, .8)
+    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
+    glow.addColorStop(0, '#fffff7'); glow.addColorStop(blast ? .4 : .22, '#ffffef'); glow.addColorStop(blast ? .62 : .48, blast ? '#fff589ff' : '#ffe95ee0'); glow.addColorStop(blast ? .82 : .72, blast ? '#ffba35b0' : '#ffb9236b'); glow.addColorStop(1, '#ffad1800')
+    ctx.fillStyle = glow; ctx.fillRect(-r, -r, r * 2, r * 2)
+    if (strong) {
+      ctx.fillStyle = '#fff8cd'; ctx.beginPath()
+      for (let i = 0; i < 24; i++) {
+        const angle = i * TAU / 24, reach = r * (i % 2 ? blast ? .32 : .2 : (blast ? .72 : .55) + (i % 3) * .08)
+        if (i) ctx.lineTo(Math.cos(angle) * reach, Math.sin(angle) * reach)
+        else ctx.moveTo(Math.cos(angle) * reach, Math.sin(angle) * reach)
+      }
+      ctx.closePath(); ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  private drawRocket(event: EffectEvent, t: number, p: { x: number; y: number }): void {
+    const ctx = this.ctx, s = this.size, horizontal = event.power !== 'rocket-v'
+    if (event.stage === 'impact') { for (const cell of sample(event.cells, 18)) { const q = this.centreOf(cell); this.flash(q.x, q.y, s * .55, t) } return }
+    const coords = event.cells.map(i => { const q = this.centreOf(i); return horizontal ? q.x : q.y })
+    const origin = horizontal ? p.x : p.y
+    for (const direction of [-1, 1]) {
+      const end = direction < 0 ? Math.min(origin, ...coords) - s * .7 : Math.max(origin, ...coords) + s * .7
+      const pos = origin + (end - origin) * Math.pow(t, .8)
+      ctx.save(); ctx.translate(horizontal ? pos : p.x, horizontal ? p.y : pos)
+      ctx.rotate(horizontal ? direction < 0 ? Math.PI : 0 : direction < 0 ? -Math.PI / 2 : Math.PI / 2)
+      // A short tapered flame follows each red half of the split rocket.
+      const tail = s * (1.1 + t * .8), flame = ctx.createLinearGradient(-tail, 0, 0, 0)
+      flame.addColorStop(0, '#ffb42a00'); flame.addColorStop(.45, '#ffc53c88'); flame.addColorStop(1, '#ffffdd')
+      ctx.fillStyle = flame; ctx.beginPath(); ctx.moveTo(0, -s * .12); ctx.quadraticCurveTo(-tail * .5, -s * .09, -tail, 0); ctx.quadraticCurveTo(-tail * .5, s * .09, 0, s * .12); ctx.closePath(); ctx.fill()
+      const cap = ctx.createLinearGradient(0, -s * .22, 0, s * .22)
+      cap.addColorStop(0, '#ffb0a2'); cap.addColorStop(.28, '#ff464c'); cap.addColorStop(1, '#a80031')
+      ctx.fillStyle = cap; ctx.strokeStyle = '#98133e'; ctx.lineWidth = s * .025
+      ctx.beginPath(); ctx.moveTo(-s * .18, -s * .2); ctx.bezierCurveTo(s * .26, -s * .22, s * .3, s * .19, -s * .18, s * .2); ctx.closePath(); ctx.fill(); ctx.stroke()
+      plate(ctx, -s * .22, -s * .21, s * .09, s * .42, s * .025, '#fff3a2', '#e8a919', '#aa6714', s * .015)
+      ctx.restore()
+    }
+  }
+
+  private drawPropeller(event: EffectEvent, age: number, life: number, p: { x: number; y: number }): void {
+    const ctx = this.ctx, s = this.size
+    if (event.stage === 'impact') {
+      const q = this.centreOf(event.to ?? event.cells[0] ?? 0); this.flash(q.x, q.y, s * .9, clamp(age / life), true); return
+    }
+    if (event.to === undefined) return
+    const q = this.centreOf(event.to), lifting = event.kind === 'activate'
+    const lift = lifting ? clamp(age / Math.min(PROPELLER_LIFT_DURATION, life)) : 1, fly = lifting ? 0 : clamp(age / life)
+    const travel = fly * fly * (.5 + .5 * fly), bend = Math.sin(travel * Math.PI)
+    const x = p.x + (q.x - p.x) * travel + bend * s * .65
+    const y = p.y + (q.y - p.y) * travel - s * .5 * Math.sin(lift * Math.PI / 2) * (1 - travel) - bend * s * .55
+    const scale = 1 + Math.sin(lift * Math.PI / 2) * (.32 - .12 * fly)
+    ctx.save(); ctx.globalAlpha = .15 * (1 - fly * .6)
+    const shadow = ctx.createRadialGradient(x, y + s * .65, 0, x, y + s * .65, s * .5)
+    shadow.addColorStop(0, '#152248'); shadow.addColorStop(1, '#15224800')
+    ctx.fillStyle = shadow; ctx.beginPath(); ctx.ellipse(x, y + s * .65, s * .5, s * .2, 0, 0, TAU); ctx.fill(); ctx.restore()
+    ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale)
+    // The body stays readable. Only the flattened rotor rotates at high speed.
+    if (event.carriedPower) sprite(ctx, event.carriedPower, 0, s * .14, s * .58)
+    else {
+      const body = ctx.createLinearGradient(0, -s * .04, 0, s * .37)
+      body.addColorStop(0, '#5482dc'); body.addColorStop(.5, '#234d9c'); body.addColorStop(1, '#0d225e')
+      ctx.fillStyle = body; ctx.strokeStyle = '#192b65'; ctx.lineWidth = s * .025
+      ctx.beginPath(); ctx.ellipse(0, s * .19, s * .23, s * .20, 0, 0, TAU); ctx.fill(); ctx.stroke()
+      ctx.strokeStyle = '#f6bc2a'; ctx.lineWidth = s * .05; ctx.beginPath(); ctx.ellipse(0, s * .11, s * .24, s * .08, 0, 0, TAU); ctx.stroke()
+      line(ctx, -s * .1, s * .12, -s * .065, s * .28, '#99b6f0', s * .018)
+    }
+    ctx.save(); ctx.translate(0, -s * .035); ctx.scale(1, .60)
+    const disc = ctx.createRadialGradient(-s * .10, -s * .12, s * .04, 0, 0, s * .49)
+    disc.addColorStop(0, '#fffac0'); disc.addColorStop(.40, '#ffe34acc'); disc.addColorStop(.72, '#f5b826dc'); disc.addColorStop(.88, '#ffb5a5cc'); disc.addColorStop(1, '#e63b4cdd')
+    ctx.fillStyle = disc; ctx.beginPath(); ctx.ellipse(0, 0, s * .49, s * .49, 0, 0, TAU); ctx.fill()
+    ctx.strokeStyle = '#f76c6ab3'; ctx.lineWidth = s * .085; ctx.beginPath(); ctx.arc(0, 0, s * .45, 0, TAU); ctx.stroke()
+    ctx.rotate(age * 48)
+    for (let blade = 0; blade < 3; blade++) {
+      ctx.rotate(TAU / 3)
+      const gold = ctx.createLinearGradient(0, -s * .12, 0, s * .12)
+      gold.addColorStop(0, '#fff1a5'); gold.addColorStop(.4, '#ffd84b'); gold.addColorStop(1, '#c77a13')
+      ctx.fillStyle = gold; ctx.strokeStyle = '#c38520'; ctx.lineWidth = s * .018
+      ctx.beginPath(); ctx.moveTo(s * .03, -s * .08); ctx.bezierCurveTo(s * .2, -s * .18, s * .48, -s * .14, s * .49, -.015 * s); ctx.bezierCurveTo(s * .46, s * .1, s * .17, s * .13, s * .03, s * .06); ctx.closePath(); ctx.fill(); ctx.stroke()
+      ctx.fillStyle = '#ef3d43'; ctx.beginPath(); ctx.ellipse(s * .43, -s * .015, s * .055, s * .095, .3, 0, TAU); ctx.fill()
+    }
+    ctx.restore()
+    const hub = ctx.createRadialGradient(-s * .025, -s * .065, 0, 0, -s * .035, s * .115)
+    hub.addColorStop(0, '#ffbda4'); hub.addColorStop(.4, '#f54e44'); hub.addColorStop(1, '#a71927')
+    ctx.fillStyle = hub; ctx.beginPath(); ctx.ellipse(0, -s * .035, s * .105, s * .073, 0, 0, TAU); ctx.fill()
+    ctx.restore()
+  }
+
   private drawEffects(): void {
     const ctx = this.ctx, s = this.size
     this.visuals = this.visuals.filter(v => this.clock - v.birth < v.life)
     this.particles = this.particles.filter(p => this.clock - p.birth < p.life)
     for (const visual of this.visuals) {
-      const { event } = visual, t = clamp((this.clock - visual.birth) / visual.life)
-      const cell = event.from ?? event.cells[0] ?? 0, p = this.centreOf(cell)
-      ctx.save(); ctx.globalAlpha = (1 - t) * (this.calm ? .4 : 1)
-      if (this.calm) {
-        // Reduced motion communicates the affected tiles without flights, beam
-        // sweeps, expanding rings or a full-screen flash.
-        for (const target of sample(event.cells, 24)) {
+      const { event } = visual, age = this.clock - visual.birth, t = clamp(age / visual.life)
+      if (age < 0) continue
+      const cell = event.kind === 'power' ? event.to ?? event.from ?? event.cells[0] ?? 0 : event.from ?? event.cells[0] ?? 0
+      const p = this.centreOf(cell)
+      ctx.save()
+      if (event.kind === 'activate') {
+        for (const { cell: origin, piece } of event.pieces ?? []) {
+          const q = this.centreOf(origin)
+          if (!this.calm && piece.power === 'propeller') this.drawPropeller({ ...event, from: origin, to: origin }, age, visual.life, q)
+          else {
+            const squeeze = this.calm ? 0 : Math.sin(t * Math.PI)
+            ctx.save(); ctx.translate(q.x, q.y); ctx.scale(1 + squeeze * .13, 1 - squeeze * .10)
+            sprite(ctx, piece.power ?? 'colour', 0, 0, s * .98, piece.colour); ctx.restore()
+          }
+        }
+      } else if (this.calm) {
+        if (event.stage !== 'launch') for (const target of sample(event.cells, 24)) {
           const q = this.centreOf(target)
-          rounded(ctx, q.x - s * .4, q.y - s * .4, s * .8, s * .8, s * .12)
-          ctx.fillStyle = event.kind === 'lightball' ? '#f3ceff' : '#fff2a2'; ctx.fill()
+          rounded(ctx, q.x - s * .38, q.y - s * .38, s * .76, s * .76, s * .12)
+          ctx.globalAlpha = (1 - t) * .25; ctx.fillStyle = '#fff2a2'; ctx.fill()
         }
-        ctx.restore(); continue
-      }
-      if (event.kind === 'rocket') {
-        const horizontal = event.power !== 'rocket-v', reach = clamp(.16 + t * 1.2)
-        const positions = event.cells.map(i => this.centreOf(i))
-        const coordinates = positions.map(q => horizontal ? q.x : q.y)
-        const origin = horizontal ? p.x : p.y
-        const lo = Math.min(origin, ...coordinates) - s * .46, hi = Math.max(origin, ...coordinates) + s * .46
-        const start = origin + (lo - origin) * reach, end = origin + (hi - origin) * reach
-        const wide = s * (.16 * (1 - t) + .04)
-        ctx.shadowColor = '#ffcd26'; ctx.shadowBlur = s * .3
-        if (horizontal) { line(ctx, start, p.y, end, p.y, '#ffc93d', wide * 2); line(ctx, start, p.y, end, p.y, '#fffad4', wide) }
-        else { line(ctx, p.x, start, p.x, end, '#ffc93d', wide * 2); line(ctx, p.x, start, p.x, end, '#fffad4', wide) }
-      } else if (event.kind === 'propeller' && event.to !== undefined) {
-        const q = this.centreOf(event.to), bend = Math.sin(t * Math.PI) * s * .8
-        const x = p.x + (q.x - p.x) * t + bend * .3, y = p.y + (q.y - p.y) * t - bend
-        if (!this.calm) {
-          ctx.globalAlpha = .45 * (1 - t); ctx.strokeStyle = '#fff6b3'; ctx.lineWidth = s * .045; ctx.setLineDash([s * .08, s * .1]); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo((p.x + q.x) / 2, (p.y + q.y) / 2 - s * .8, x, y); ctx.stroke(); ctx.setLineDash([])
-        }
-        ctx.globalAlpha = 1; ctx.translate(x, y); ctx.rotate(this.calm ? 0 : t * TAU * 3)
-        sprite(ctx, 'propeller', 0, 0, s * .9)
+      } else if (event.kind === 'rocket') this.drawRocket(event, t, p)
+      else if (event.kind === 'propeller') this.drawPropeller(event, age, visual.life, p)
+      else if (event.kind === 'tnt' && event.stage !== 'launch') this.flash(p.x, p.y, s * ((event.radius ?? 2) + .65), t, true, true)
+      else if (event.kind === 'power') {
+        if (age >= MATCH_CONVERGE_DURATION) this.flash(p.x, p.y, s * 1.15, clamp((age - MATCH_CONVERGE_DURATION) / (visual.life - MATCH_CONVERGE_DURATION)), true)
       } else if (event.kind === 'lightball') {
-        ctx.strokeStyle = '#fff296'; ctx.lineWidth = s * (event.combo ? .055 : .04)
-        for (const target of sample(event.cells.filter(i => i !== cell), 40)) {
-          const q = this.centreOf(target); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo((p.x + q.x) / 2 + s * .2, (p.y + q.y) / 2 - s * .3, q.x, q.y); ctx.stroke()
-          ctx.fillStyle = '#fff8da'; star(ctx, q.x, q.y, s * .08 * (1 - t), t * Math.PI)
+        if (event.stage === 'impact') {
+          for (const target of sample(event.cells, 30)) { const q = this.centreOf(target); this.flash(q.x, q.y, s * .65, t) }
+        } else {
+          this.flash(p.x, p.y, s * .7, t * .65)
+          const reach = clamp((t - .15) / .7)
+          for (const target of sample(event.cells.filter(i => i !== cell), 36)) {
+            const q = this.centreOf(target), cx = (p.x + q.x) / 2 + s * .18, cy = (p.y + q.y) / 2 - s * .25
+            const x = (1 - reach) ** 2 * p.x + 2 * (1 - reach) * reach * cx + reach ** 2 * q.x
+            const y = (1 - reach) ** 2 * p.y + 2 * (1 - reach) * reach * cy + reach ** 2 * q.y
+            ctx.globalAlpha = 1 - clamp((t - .85) / .15)
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo(p.x + (cx - p.x) * reach, p.y + (cy - p.y) * reach, x, y)
+            ctx.strokeStyle = '#f8d65a99'; ctx.lineWidth = s * .07; ctx.stroke()
+            ctx.strokeStyle = '#fffbe5'; ctx.lineWidth = s * .025; ctx.stroke()
+            ctx.fillStyle = '#ffffff'; star(ctx, x, y, s * .08, t * 4)
+          }
         }
-        ctx.beginPath(); ctx.arc(p.x, p.y, s * (.4 + t * (event.combo ? 4 : 2.8)), 0, TAU); ctx.strokeStyle = '#f5b5ff'; ctx.lineWidth = s * .1; ctx.stroke()
-      } else if (event.kind !== 'shuffle') {
-        const extent = event.kind === 'tnt' ? (event.radius ?? 2) + .45 : 1
-        ctx.beginPath(); ctx.arc(p.x, p.y, s * (.2 + (1 - Math.pow(1 - t, 2)) * extent), 0, TAU)
-        ctx.strokeStyle = '#fff2a2'; ctx.lineWidth = s * .1 * (1 - t); ctx.stroke()
-        ctx.fillStyle = '#ffed9930'; ctx.fill()
+      } else if (event.kind === 'shuffle') {
+        for (const target of sample(event.cells, 20)) { const q = this.centreOf(target); this.flash(q.x, q.y, s * .5, t) }
       }
       ctx.restore()
     }
     for (const p of this.particles) {
-      const age = Math.max(0, this.clock - p.birth), t = age / p.life
-      ctx.save(); ctx.globalAlpha = clamp(1 - t)
+      const age = this.clock - p.birth
+      if (age < 0) continue
+      const t = age / p.life, fade = clamp((1 - t) / .35)
+      ctx.save(); ctx.globalAlpha = fade * (this.calm ? .45 : 1)
+      ctx.translate(p.x + (this.calm ? 0 : p.vx * age), p.y + (this.calm ? 0 : p.vy * age + s * 4.5 * age * age))
       ctx.fillStyle = p.colour
-      star(ctx, p.x + (this.calm ? 0 : p.vx * age), p.y + (this.calm ? 0 : p.vy * age + s * 3 * age * age), p.size * (1 - t * .6), p.spin + (this.calm ? 0 : age * 7)); ctx.restore()
+      if (p.shape === 'spark' || this.calm) star(ctx, 0, 0, p.size * (1 - t * .6), p.spin + age * 3)
+      else {
+        ctx.rotate(p.spin + age * (p.shape === 'panel' ? 5 : 9)); ctx.scale(1, .55 + .45 * Math.abs(Math.cos(age * 8 + p.spin)))
+        const r = p.size * (1 - t * .2)
+        ctx.beginPath(); ctx.moveTo(-r, -r * .65); ctx.lineTo(r * .7, -r); ctx.lineTo(r, r * .35); ctx.lineTo(-r * .35, r); ctx.closePath(); ctx.fill()
+        ctx.strokeStyle = p.shape === 'panel' && (p.colour === '#b60a47' || p.colour === '#e54365') ? '#ffc65d' : '#ffffff88'; ctx.lineWidth = Math.max(.6, r * .15); ctx.beginPath(); ctx.moveTo(-r, -r * .65); ctx.lineTo(r * .7, -r); ctx.lineTo(r, r * .35); ctx.stroke()
+      }
+      ctx.restore()
     }
   }
 }

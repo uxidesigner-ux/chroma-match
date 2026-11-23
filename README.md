@@ -1,6 +1,6 @@
 # Chroma Match
 
-> **개인용 왕실 리뉴얼 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. v4는 `main` 반영과 Pages 배포를 마쳤으며, [후속 시작 성능·조합 효과 개선](docs/royal-followup-v5.md)을 이어 적용했습니다. [실행 및 설정 안내](docs/ROYAL-LOCAL.md)를 참고하세요.
+> **개인용 왕실 리뉴얼 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. 시작 성능 개선에 이어, 첨부 영상의 교환·특수 생성·폭발·프로펠러 비행·낙하 순서를 기준으로 모션을 다시 구현했습니다. [영상 분석과 모션 검수](docs/research/royal-motion-v6.md), [이전 성능 개선](docs/royal-followup-v5.md)을 참고하세요. [실행 및 설정 안내](docs/ROYAL-LOCAL.md)를 참고하세요.
 
 ## 현재 개인용 게임
 

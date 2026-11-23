@@ -1,0 +1,990 @@
+{
+  "note": "Canvas capture ~50ms intervals adds overhead. Simulation deltas, not real-time FPS. Origin is document-bubble pointer event that first observes accepted turn; RAF trace is recorded each frame; images captured about every50ms. Raw frames/fullstates retained in /tmp only.",
+  "scenarios": [
+    {
+      "scenario": "creation",
+      "frameCount": 44,
+      "sampleScheduleMs": 45,
+      "acceptedInput": {
+        "kind": "pointermove",
+        "at": 0.28669999980926514,
+        "time": 0.5498999999999999,
+        "turn": 1
+      },
+      "firstPointerDown": {
+        "kind": "pointerdown",
+        "at": 0.2732999997138977,
+        "time": 0.48330000000000006,
+        "turn": 0
+      },
+      "errors": [],
+      "captureIntervalMs": {
+        "median": 50.0,
+        "max": 266.7,
+        "over100ms": 1
+      },
+      "rafDiagnostics": {
+        "count": 131,
+        "medianMs": 16.7,
+        "maxMs": 250.1,
+        "over50ms": 1
+      },
+      "final": {
+        "time": 2.6497999999999977,
+        "turn": 1,
+        "moves": 19,
+        "status": "playing",
+        "locked": [],
+        "goals": [
+          {
+            "kind": "colour",
+            "count": 500,
+            "colour": 0,
+            "remaining": 496
+          }
+        ]
+      },
+      "samples": [
+        {
+          "wallSeconds": 0.2676,
+          "simulationDelta": 0.0,
+          "turn": 0,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 0.3176,
+          "simulationDelta": 0.05,
+          "turn": 1,
+          "locked": 21
+        },
+        {
+          "wallSeconds": 0.3676,
+          "simulationDelta": 0.1,
+          "turn": 1,
+          "locked": 21
+        },
+        {
+          "wallSeconds": 0.4176,
+          "simulationDelta": 0.15,
+          "turn": 1,
+          "locked": 21
+        },
+        {
+          "wallSeconds": 0.4675,
+          "simulationDelta": 0.1999,
+          "turn": 1,
+          "locked": 21
+        },
+        {
+          "wallSeconds": 0.5175,
+          "simulationDelta": 0.2499,
+          "turn": 1,
+          "locked": 21
+        },
+        {
+          "wallSeconds": 0.5675,
+          "simulationDelta": 0.2999,
+          "turn": 1,
+          "locked": 14
+        },
+        {
+          "wallSeconds": 0.6175,
+          "simulationDelta": 0.3499,
+          "turn": 1,
+          "locked": 14
+        },
+        {
+          "wallSeconds": 0.6676,
+          "simulationDelta": 0.4,
+          "turn": 1,
+          "locked": 14
+        },
+        {
+          "wallSeconds": 0.7175,
+          "simulationDelta": 0.4499,
+          "turn": 1,
+          "locked": 14
+        },
+        {
+          "wallSeconds": 0.7675,
+          "simulationDelta": 0.4999,
+          "turn": 1,
+          "locked": 14
+        },
+        {
+          "wallSeconds": 0.8676,
+          "simulationDelta": 0.6,
+          "turn": 1,
+          "locked": 14
+        },
+        {
+          "wallSeconds": 0.9675,
+          "simulationDelta": 0.6999,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 1.0675,
+          "simulationDelta": 0.7999,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 1.1676,
+          "simulationDelta": 0.9,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 1.2675,
+          "simulationDelta": 0.9999,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 1.3675,
+          "simulationDelta": 1.0999,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 1.4675,
+          "simulationDelta": 1.1999,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 1.6674,
+          "simulationDelta": 1.3998,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 1.8675,
+          "simulationDelta": 1.5999,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.0674,
+          "simulationDelta": 1.7998,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.2674,
+          "simulationDelta": 1.9998,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.3675,
+          "simulationDelta": 2.0999,
+          "turn": 1,
+          "locked": 0
+        }
+      ]
+    },
+    {
+      "scenario": "tnt-chain",
+      "frameCount": 73,
+      "sampleScheduleMs": 45,
+      "acceptedInput": {
+        "kind": "pointerup",
+        "at": 0.012900000095367431,
+        "time": 0.45,
+        "turn": 1
+      },
+      "firstPointerDown": {
+        "kind": "pointerdown",
+        "at": 0.012200000286102295,
+        "time": 0.45,
+        "turn": 0
+      },
+      "errors": [],
+      "captureIntervalMs": {
+        "median": 50.0,
+        "max": 50.1,
+        "over100ms": 0
+      },
+      "rafDiagnostics": {
+        "count": 217,
+        "medianMs": 16.7,
+        "maxMs": 16.8,
+        "over50ms": 0
+      },
+      "final": {
+        "time": 4.066499999999996,
+        "turn": 1,
+        "moves": 19,
+        "status": "playing",
+        "locked": [],
+        "goals": [
+          {
+            "kind": "cuckoo",
+            "count": 1,
+            "remaining": 0
+          },
+          {
+            "kind": "colour",
+            "count": 500,
+            "colour": 0,
+            "remaining": 490
+          }
+        ]
+      },
+      "samples": [
+        {
+          "wallSeconds": 0.0125,
+          "simulationDelta": 0.0166,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.0625,
+          "simulationDelta": 0.0666,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.1125,
+          "simulationDelta": 0.1166,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.1626,
+          "simulationDelta": 0.1667,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.2126,
+          "simulationDelta": 0.2167,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.2625,
+          "simulationDelta": 0.2666,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.3125,
+          "simulationDelta": 0.3166,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.3625,
+          "simulationDelta": 0.3666,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.4126,
+          "simulationDelta": 0.4167,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.4625,
+          "simulationDelta": 0.4666,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.5125,
+          "simulationDelta": 0.5166,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.6125,
+          "simulationDelta": 0.6166,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.7125,
+          "simulationDelta": 0.7166,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 0.8125,
+          "simulationDelta": 0.8166,
+          "turn": 1,
+          "locked": 28
+        },
+        {
+          "wallSeconds": 0.9125,
+          "simulationDelta": 0.9166,
+          "turn": 1,
+          "locked": 28
+        },
+        {
+          "wallSeconds": 1.0125,
+          "simulationDelta": 1.0166,
+          "turn": 1,
+          "locked": 35
+        },
+        {
+          "wallSeconds": 1.1125,
+          "simulationDelta": 1.1166,
+          "turn": 1,
+          "locked": 42
+        },
+        {
+          "wallSeconds": 1.2125,
+          "simulationDelta": 1.2166,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 1.4125,
+          "simulationDelta": 1.4166,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 1.6125,
+          "simulationDelta": 1.6166,
+          "turn": 1,
+          "locked": 28
+        },
+        {
+          "wallSeconds": 1.8125,
+          "simulationDelta": 1.8166,
+          "turn": 1,
+          "locked": 28
+        },
+        {
+          "wallSeconds": 2.0124,
+          "simulationDelta": 2.0165,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.4125,
+          "simulationDelta": 2.4166,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 3.0125,
+          "simulationDelta": 3.0166,
+          "turn": 1,
+          "locked": 0
+        }
+      ]
+    },
+    {
+      "scenario": "lightball-rocket",
+      "frameCount": 81,
+      "sampleScheduleMs": 45,
+      "acceptedInput": {
+        "kind": "pointermove",
+        "at": 0.024300000190734864,
+        "time": 0.44989999999999997,
+        "turn": 1
+      },
+      "firstPointerDown": {
+        "kind": "pointerdown",
+        "at": 0.013599999904632568,
+        "time": 0.44989999999999997,
+        "turn": 0
+      },
+      "errors": [],
+      "captureIntervalMs": {
+        "median": 50.0,
+        "max": 50.1,
+        "over100ms": 0
+      },
+      "rafDiagnostics": {
+        "count": 241,
+        "medianMs": 16.7,
+        "maxMs": 16.8,
+        "over50ms": 0
+      },
+      "final": {
+        "time": 4.449799999999998,
+        "turn": 1,
+        "moves": 19,
+        "status": "playing",
+        "locked": [],
+        "goals": [
+          {
+            "kind": "colour",
+            "count": 500,
+            "colour": 0,
+            "remaining": 484
+          }
+        ]
+      },
+      "samples": [
+        {
+          "wallSeconds": 0.0069,
+          "simulationDelta": 0.0,
+          "turn": 0,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 0.057,
+          "simulationDelta": 0.0501,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.1069,
+          "simulationDelta": 0.1,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.157,
+          "simulationDelta": 0.1501,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.2069,
+          "simulationDelta": 0.2,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.2569,
+          "simulationDelta": 0.25,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.3069,
+          "simulationDelta": 0.3,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.3569,
+          "simulationDelta": 0.35,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.4069,
+          "simulationDelta": 0.4,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.4569,
+          "simulationDelta": 0.45,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.5069,
+          "simulationDelta": 0.5,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.6069,
+          "simulationDelta": 0.6,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.7069,
+          "simulationDelta": 0.7,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.8069,
+          "simulationDelta": 0.8,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 0.9069,
+          "simulationDelta": 0.9,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 1.0069,
+          "simulationDelta": 1.0,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 1.1069,
+          "simulationDelta": 1.1,
+          "turn": 1,
+          "locked": 49
+        },
+        {
+          "wallSeconds": 1.2069,
+          "simulationDelta": 1.2,
+          "turn": 1,
+          "locked": 14
+        },
+        {
+          "wallSeconds": 1.4068,
+          "simulationDelta": 1.3999,
+          "turn": 1,
+          "locked": 14
+        },
+        {
+          "wallSeconds": 1.6069,
+          "simulationDelta": 1.6,
+          "turn": 1,
+          "locked": 14
+        },
+        {
+          "wallSeconds": 1.8069,
+          "simulationDelta": 1.8,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.0068,
+          "simulationDelta": 1.9999,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.4068,
+          "simulationDelta": 2.3999,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 3.0068,
+          "simulationDelta": 2.9999,
+          "turn": 1,
+          "locked": 0
+        }
+      ]
+    },
+    {
+      "scenario": "12297-normal",
+      "frameCount": 78,
+      "sampleScheduleMs": 45,
+      "acceptedInput": {
+        "kind": "pointerup",
+        "at": 0.2075,
+        "time": 0.45,
+        "turn": 1
+      },
+      "firstPointerDown": {
+        "kind": "pointerdown",
+        "at": 0.20630000019073486,
+        "time": 0.45,
+        "turn": 0
+      },
+      "errors": [],
+      "captureIntervalMs": {
+        "median": 50.0,
+        "max": 200.0,
+        "over100ms": 1
+      },
+      "rafDiagnostics": {
+        "count": 231,
+        "medianMs": 16.7,
+        "maxMs": 183.4,
+        "over50ms": 1
+      },
+      "final": {
+        "time": 4.316399999999996,
+        "turn": 1,
+        "moves": 31,
+        "status": "playing",
+        "locked": [],
+        "goals": [
+          {
+            "kind": "toy",
+            "count": 18,
+            "remaining": 18
+          },
+          {
+            "kind": "dynamite",
+            "count": 8,
+            "remaining": 8
+          },
+          {
+            "kind": "cuckoo",
+            "count": 2,
+            "remaining": 0
+          },
+          {
+            "kind": "jelly",
+            "count": 81,
+            "remaining": 81
+          }
+        ]
+      },
+      "samples": [
+        {
+          "wallSeconds": -0.0015,
+          "simulationDelta": 0.0,
+          "turn": 0,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 0.1985,
+          "simulationDelta": 0.0666,
+          "turn": 1,
+          "locked": 85
+        },
+        {
+          "wallSeconds": 0.2484,
+          "simulationDelta": 0.1165,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.2984,
+          "simulationDelta": 0.1665,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.3485,
+          "simulationDelta": 0.2166,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.3985,
+          "simulationDelta": 0.2666,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.4485,
+          "simulationDelta": 0.3166,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.4984,
+          "simulationDelta": 0.3665,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.5484,
+          "simulationDelta": 0.4165,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.5984,
+          "simulationDelta": 0.4665,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.6484,
+          "simulationDelta": 0.5165,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.7485,
+          "simulationDelta": 0.6166,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.8484,
+          "simulationDelta": 0.7165,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.9484,
+          "simulationDelta": 0.8165,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 1.0484,
+          "simulationDelta": 0.9165,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 1.1484,
+          "simulationDelta": 1.0165,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 1.2484,
+          "simulationDelta": 1.1165,
+          "turn": 1,
+          "locked": 33
+        },
+        {
+          "wallSeconds": 1.3484,
+          "simulationDelta": 1.2165,
+          "turn": 1,
+          "locked": 33
+        },
+        {
+          "wallSeconds": 1.5483,
+          "simulationDelta": 1.4164,
+          "turn": 1,
+          "locked": 33
+        },
+        {
+          "wallSeconds": 1.7484,
+          "simulationDelta": 1.6165,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 1.9483,
+          "simulationDelta": 1.8164,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.1483,
+          "simulationDelta": 2.0164,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.5483,
+          "simulationDelta": 2.4164,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 3.1484,
+          "simulationDelta": 3.0165,
+          "turn": 1,
+          "locked": 0
+        }
+      ]
+    },
+    {
+      "scenario": "12297-reduced",
+      "frameCount": 81,
+      "sampleScheduleMs": 45,
+      "acceptedInput": {
+        "kind": "pointerup",
+        "at": 0.002800000190734863,
+        "time": 0.4499,
+        "turn": 1
+      },
+      "firstPointerDown": {
+        "kind": "pointerdown",
+        "at": 0.002,
+        "time": 0.4499,
+        "turn": 0
+      },
+      "errors": [],
+      "captureIntervalMs": {
+        "median": 50.0,
+        "max": 50.1,
+        "over100ms": 0
+      },
+      "rafDiagnostics": {
+        "count": 241,
+        "medianMs": 16.7,
+        "maxMs": 16.8,
+        "over50ms": 0
+      },
+      "final": {
+        "time": 4.466499999999999,
+        "turn": 1,
+        "moves": 31,
+        "status": "playing",
+        "locked": [],
+        "goals": [
+          {
+            "kind": "toy",
+            "count": 18,
+            "remaining": 18
+          },
+          {
+            "kind": "dynamite",
+            "count": 8,
+            "remaining": 8
+          },
+          {
+            "kind": "cuckoo",
+            "count": 2,
+            "remaining": 0
+          },
+          {
+            "kind": "jelly",
+            "count": 81,
+            "remaining": 81
+          }
+        ]
+      },
+      "samples": [
+        {
+          "wallSeconds": 0.0051,
+          "simulationDelta": 0.0167,
+          "turn": 1,
+          "locked": 85
+        },
+        {
+          "wallSeconds": 0.0551,
+          "simulationDelta": 0.0667,
+          "turn": 1,
+          "locked": 85
+        },
+        {
+          "wallSeconds": 0.1051,
+          "simulationDelta": 0.1167,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.155,
+          "simulationDelta": 0.1666,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.205,
+          "simulationDelta": 0.2166,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.2551,
+          "simulationDelta": 0.2667,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.3051,
+          "simulationDelta": 0.3167,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.3551,
+          "simulationDelta": 0.3667,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.4051,
+          "simulationDelta": 0.4167,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.4551,
+          "simulationDelta": 0.4667,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.5051,
+          "simulationDelta": 0.5167,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.605,
+          "simulationDelta": 0.6166,
+          "turn": 1,
+          "locked": 55
+        },
+        {
+          "wallSeconds": 0.7051,
+          "simulationDelta": 0.7167,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.805,
+          "simulationDelta": 0.8166,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 0.9051,
+          "simulationDelta": 0.9167,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 1.005,
+          "simulationDelta": 1.0166,
+          "turn": 1,
+          "locked": 44
+        },
+        {
+          "wallSeconds": 1.105,
+          "simulationDelta": 1.1166,
+          "turn": 1,
+          "locked": 33
+        },
+        {
+          "wallSeconds": 1.2051,
+          "simulationDelta": 1.2167,
+          "turn": 1,
+          "locked": 33
+        },
+        {
+          "wallSeconds": 1.4051,
+          "simulationDelta": 1.4167,
+          "turn": 1,
+          "locked": 33
+        },
+        {
+          "wallSeconds": 1.605,
+          "simulationDelta": 1.6166,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 1.805,
+          "simulationDelta": 1.8166,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.005,
+          "simulationDelta": 2.0166,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 2.405,
+          "simulationDelta": 2.4166,
+          "turn": 1,
+          "locked": 0
+        },
+        {
+          "wallSeconds": 3.005,
+          "simulationDelta": 3.0166,
+          "turn": 1,
+          "locked": 0
+        }
+      ]
+    }
+  ],
+  "normalReducedFinalEqual": {
+    "moves": true,
+    "turn": true,
+    "status": true,
+    "goals": true,
+    "pieces": true,
+    "locked": true
+  }
+}

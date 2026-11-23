@@ -24,10 +24,17 @@ export interface GameState {
   locked: Set<number>; turn: number; combo: number;
 }
 export interface EffectEvent {
-  kind: 'swap' | 'invalid' | 'clear' | 'power' | 'rocket' | 'propeller' | 'tnt' | 'lightball' | 'damage' | 'collect' | 'fall' | 'shuffle' | 'win' | 'lose';
+  kind: 'swap' | 'invalid' | 'activate' | 'clear' | 'power' | 'rocket' | 'propeller' | 'tnt' | 'lightball' | 'damage' | 'collect' | 'fall' | 'shuffle' | 'win' | 'lose';
+  /** Absolute simulation time at which this event starts. */
+  at: number;
   cells: number[]; from?: number; to?: number; colour?: Colour; power?: Power; combo?: number;
   /** Blast radius in board cells; presentation only, never used to apply damage. */
   radius?: number;
+  duration?: number; delay?: number; fromRow?: number;
+  pieces?: { cell: number; piece: Piece }[];
+  createdPiece?: Piece;
+  carriedPower?: Power;
+  stage?: 'launch' | 'impact';
 }
 export interface EngineOptions { seed?: number; unlimitedMoves?: boolean; startingBoosters?: Power[]; superLightBall?: boolean }
 export const COLOUR_NAMES = ['왕관', '책', '방패', '잎'] as const

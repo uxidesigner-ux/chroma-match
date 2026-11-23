@@ -57,11 +57,12 @@ let attempt=0,simTime=0,lastTime=performance.now(),idleTime=0,resultDelay=-1,res
 let resultMode:'win'|'lose'|'restart'='restart',levelPage=Math.floor((prefs.level-1)/30)
 let superEnabled=false
 let toolCounts:Record<Tool,number>={hammer:3,arrow:3,cannon:3,shuffle:3},lastHud=''
+let keyboardInput=false
 let toastTimer:ReturnType<typeof setTimeout>|undefined
 const dialogs=()=>[...document.querySelectorAll<HTMLDialogElement>('dialog')]
 const modalOpen=()=>dialogs().some(d=>d.open)
 function toast(message:string):void{clearTimeout(toastTimer);$('toast').textContent=message;$('toast').classList.add('visible');toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2400)}
-function open(id:string):void{const d=$<HTMLDialogElement>(id);if(!d.open)d.showModal();audio.unlock()}
+function open(id:string):void{cancelPointer();const d=$<HTMLDialogElement>(id);if(!d.open)d.showModal();audio.unlock()}
 function closeAll():void{dialogs().forEach(d=>{if(d.open)d.close()})}
 function store():void{save(PREFS_KEY,prefs);save(PROGRESS_KEY,progress)}
 function start(level?:LevelDefinition):void{
@@ -71,7 +72,7 @@ function start(level?:LevelDefinition):void{
  superEnabled=prefs.forceSuper||(activeLevel.id>=292&&progress.superActive)
  engine=new RoyalEngine(activeLevel,{seed,unlimitedMoves:prefs.unlimitedMoves,startingBoosters:startingPowers(prefs,progress),superLightBall:superEnabled})
  renderer?.destroy();renderer=new RoyalRenderer(canvas);renderer.resize(activeLevel)
- selected=null;hintCell=null;cursor=activeLevel.mask.join('').indexOf('1');armed=null;toolCounts={hammer:3,arrow:3,cannon:3,shuffle:3};simTime=0;idleTime=0;resultDelay=-1;resultRecorded=false;lastHud=''
+ cancelPointer();keyboardInput=false;selected=null;hintCell=null;cursor=activeLevel.mask.join('').indexOf('1');armed=null;toolCounts={hammer:3,arrow:3,cannon:3,shuffle:3};simTime=0;idleTime=0;resultDelay=-1;resultRecorded=false;lastHud=''
  audio.enabled=prefs.sound;document.documentElement.dataset.calm=String(prefs.calm);store();renderHud();renderer.draw(engine.state,simTime,selected,armed,prefs.calm)
 }
 function goalIcon(g:GoalState):string{return picture(g.kind==='colour'?'colour':g.kind,g.colour)}
@@ -110,12 +111,40 @@ function choose(cell:number):void{
  if(engine.state.pieces[cell]?.power&&engine.tap(cell)){accepted();return}
  selected=selected===cell?null:cell;audio.select();updateStatus()
 }
-let pointer:{x:number;y:number;cell:number}|null=null
-canvas.addEventListener('pointerdown',e=>{if(modalOpen())return;audio.unlock();const c=renderer.cellAt(e.clientX,e.clientY);if(c!==null){pointer={x:e.clientX,y:e.clientY,cell:c};canvas.setPointerCapture(e.pointerId)}})
-canvas.addEventListener('pointerup',e=>{const p=pointer;pointer=null;if(!p||modalOpen())return;const dx=e.clientX-p.x,dy=e.clientY-p.y;if(!armed&&Math.hypot(dx,dy)>12){const target=p.cell+(Math.abs(dx)>Math.abs(dy)?Math.sign(dx):Math.sign(dy)*activeLevel.cols);if(cellPlayable(activeLevel,target)&&engine.swap(p.cell,target)){cursor=target;accepted();updateStatus()}else selected=null}else choose(p.cell)})
-canvas.addEventListener('pointercancel',()=>{pointer=null})
+let pointer:{id:number;x:number;y:number;cell:number;committed:boolean}|null=null
+function cancelPointer():void{
+ if(pointer&&canvas.hasPointerCapture(pointer.id))canvas.releasePointerCapture(pointer.id)
+ pointer=null
+}
+function swipeTo(clientX:number,clientY:number):void{
+ if(!pointer||pointer.committed||armed||modalOpen()||home?.isVisible())return
+ const dx=clientX-pointer.x,dy=clientY-pointer.y
+ if(Math.max(Math.abs(dx),Math.abs(dy))<Math.max(10,Math.min(18,renderer.cellSize*.25)))return
+ pointer.committed=true
+ const horizontal=Math.abs(dx)>Math.abs(dy)
+ const target=pointer.cell+(horizontal?Math.sign(dx):Math.sign(dy)*activeLevel.cols)
+ const sameRow=!horizontal||Math.floor(target/activeLevel.cols)===Math.floor(pointer.cell/activeLevel.cols)
+ if(sameRow&&cellPlayable(activeLevel,target)&&engine.swap(pointer.cell,target)){cursor=target;accepted();updateStatus()}
+ else selected=null
+}
+canvas.addEventListener('pointerdown',e=>{
+ if(pointer||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0)||modalOpen()||home?.isVisible())return
+ audio.unlock();keyboardInput=false
+ const cell=renderer.cellAt(e.clientX,e.clientY)
+ if(cell!==null){pointer={id:e.pointerId,x:e.clientX,y:e.clientY,cell,committed:false};canvas.setPointerCapture(e.pointerId)}
+})
+canvas.addEventListener('pointermove',e=>{if(pointer?.id===e.pointerId)swipeTo(e.clientX,e.clientY)})
+canvas.addEventListener('pointerup',e=>{
+ if(pointer?.id!==e.pointerId)return
+ swipeTo(e.clientX,e.clientY)
+ const gesture=pointer;cancelPointer()
+ if(!gesture.committed&&!modalOpen()&&!home?.isVisible())choose(gesture.cell)
+})
+canvas.addEventListener('pointercancel',e=>{if(pointer?.id===e.pointerId)cancelPointer()})
+canvas.addEventListener('lostpointercapture',e=>{if(pointer?.id===e.pointerId)pointer=null})
 canvas.addEventListener('keydown',e=>{
  if(modalOpen()||home?.isVisible())return
+ keyboardInput=true
  const dirs:Record<string,number>={ArrowLeft:-1,ArrowRight:1,ArrowUp:-activeLevel.cols,ArrowDown:activeLevel.cols}
  if(e.key in dirs){
   e.preventDefault()
@@ -190,28 +219,28 @@ function drawKingdom():void{
 }
 $('kingdom-open').onclick=()=>{drawKingdom();open('kingdom-dialog')}
 const workshop=mountWorkshop($<HTMLDialogElement>('editor-dialog'),{getCurrent:()=>activeLevel,getSaved:()=>custom,onSave:level=>{custom=structuredClone(level);save(CUSTOM_KEY,custom);toast('나만의 보드를 저장했어요')},onPlay:level=>{custom=structuredClone(level);save(CUSTOM_KEY,custom);start(level)},notify:toast})
-$('editor-open').onclick=()=>workshop.open()
+$('editor-open').onclick=()=>{cancelPointer();workshop.open()}
 new ResizeObserver(()=>{if(renderer)renderer.resize(activeLevel)}).observe(canvas)
 window.addEventListener('resize',()=>{if(renderer)renderer.resize(activeLevel)})
-document.addEventListener('visibilitychange',()=>{lastTime=performance.now()})
+document.addEventListener('visibilitychange',()=>{cancelPointer();lastTime=performance.now()})
 function frame(now:number):void{
  const dt=Math.min(.05,(now-lastTime)/1000);lastTime=now
- if(engine&&!modalOpen()&&!home?.isVisible()&&!document.hidden){simTime+=dt;engine.update(dt*prefs.speed);const events=engine.drainEvents();renderer.pushEvents(events)
-  if(events.some(e=>e.kind==='swap'))audio.swap();if(events.some(e=>e.kind==='invalid'))audio.reject();const clear=events.find(e=>e.kind==='clear');if(clear)audio.clear(clear.combo??1);if(events.some(e=>['rocket','tnt','lightball','propeller'].includes(e.kind)))audio.strike(.7)
+ if(engine&&!modalOpen()&&!home?.isVisible()&&!document.hidden){const step=dt*prefs.speed;engine.update(step);simTime=engine.time;const events=engine.drainEvents();renderer.pushEvents(events)
+  if(events.some(e=>e.kind==='swap'))audio.swap();if(events.some(e=>e.kind==='invalid'))audio.reject();const clear=events.find(e=>e.kind==='clear');if(clear)audio.clear(clear.combo??1);if(events.some(e=>e.kind==='power'))audio.power();if(events.some(e=>e.kind==='shuffle'))audio.shuffle();if(events.some(e=>['rocket','tnt','lightball','propeller'].includes(e.kind)&&e.stage==='impact'))audio.strike(events.some(e=>e.kind==='tnt'&&e.stage==='impact')?1:.45)
   if(engine.state.status!=='playing'&&!resultRecorded){resultRecorded=true;resultDelay=.65;if(engine.state.status==='won'){const wasCompleted=progress.completed.includes(activeLevel.id);if(activeLevel.provenance!=='custom')progress=rewardWin(progress,activeLevel.id);$('win-reward').innerHTML=picture('star')+`<strong>${activeLevel.provenance==='custom'||wasCompleted?'완료':'+1'}</strong>`;audio.levelUp()}else{if(activeLevel.provenance!=='custom')progress=recordLoss(progress);audio.gameOver()}store()}
-  if(resultDelay>=0){resultDelay-=dt;if(resultDelay<0)result(engine.state.status==='won'?'win':'lose')}
+  if(resultDelay>=0){resultDelay-=step;if(resultDelay<0)result(engine.state.status==='won'?'win':'lose')}
   idleTime+=dt;if(prefs.hints&&idleTime>9&&engine.state.status==='playing'&&engine.state.locked.size===0&&selected===null){const hint=engine.hint();if(hint){hintCell=hint[0];$('game-tip').textContent='반짝이는 블록 주변을 살펴보세요'}idleTime=0}
   const maxCombo=Math.max(0,...events.map(e=>e.combo??0));if(maxCombo>=2){$('combo-banner').textContent=maxCombo>=4?'환상적인 콤보!':`멋져요! ×${maxCombo}`;$('combo-banner').classList.remove('show');void $('combo-banner').offsetWidth;$('combo-banner').classList.add('show')}
-  renderHud();renderer.draw(engine.state,simTime,selected??(document.activeElement===canvas?cursor:hintCell),armed,prefs.calm||matchMedia('(prefers-reduced-motion: reduce)').matches)
+  renderHud();renderer.draw(engine.state,simTime,selected??(keyboardInput&&document.activeElement===canvas?cursor:hintCell),armed,prefs.calm||matchMedia('(prefers-reduced-motion: reduce)').matches)
  }
  requestAnimationFrame(frame)
 }
 start()
-function showHome():void{closeAll();document.querySelector<HTMLElement>('.game-shell')!.hidden=true;home?.show();document.documentElement.dataset.view='home'}
+function showHome():void{cancelPointer();closeAll();document.querySelector<HTMLElement>('.game-shell')!.hidden=true;home?.show();document.documentElement.dataset.view='home'}
 function resumeGame():void{audio.unlock();if(engine.state.status!=='playing'){start(activeLevel.provenance==='custom'?(custom??activeLevel):undefined);return}home?.hide();document.querySelector<HTMLElement>('.game-shell')!.hidden=false;document.documentElement.dataset.view='game';renderer.resize(activeLevel);lastTime=performance.now()}
 home=mountHome($('home-mount'),{
  getState:()=>({level:activeLevel.provenance==='custom'?prefs.level:activeLevel.id,...(activeLevel.provenance==='custom'?{customBoardName:activeLevel.name}:{}),stars:progress.stars,coins:progress.coins,completed:progress.completed.length,streak:progress.streak,tasks:progress.tasks.length,superActive:superEnabled,lightWins:progress.lightWins}),
- onPlay:resumeGame,onLevels:()=>{$('level-picker').click()},onKingdom:()=>{drawKingdom();open('kingdom-dialog')},onSettings:()=>{fillSettings();open('settings-dialog')},onEditor:()=>workshop.open(),onHelp:()=>open('help-dialog'),
+ onPlay:resumeGame,onLevels:()=>{$('level-picker').click()},onKingdom:()=>{drawKingdom();open('kingdom-dialog')},onSettings:()=>{fillSettings();open('settings-dialog')},onEditor:()=>{cancelPointer();workshop.open()},onHelp:()=>open('help-dialog'),
 })
 $('game-home').onclick=showHome
 const route=new URL(location.href).searchParams
@@ -229,4 +258,4 @@ window.addEventListener('royal-update-ready',()=>{
 void registerRoyalPwa()
 requestAnimationFrame(frame)
 // Keep a tiny read-only inspection surface in development, never a mutation API.
-if(import.meta.env.DEV)Object.defineProperty(window,'__royalSnapshot',{get:()=>({level:activeLevel.id,cols:activeLevel.cols,rows:activeLevel.rows,goals:structuredClone(engine.state.goals),moves:engine.state.moves,status:engine.state.status,turn:engine.state.turn,locked:[...engine.state.locked],hint:engine.hint()}),configurable:true})
+if(import.meta.env.DEV)Object.defineProperty(window,'__royalSnapshot',{get:()=>({level:activeLevel.id,cols:activeLevel.cols,rows:activeLevel.rows,goals:structuredClone(engine.state.goals),moves:engine.state.moves,status:engine.state.status,turn:engine.state.turn,locked:[...engine.state.locked],hint:engine.hint(),pieces:structuredClone(engine.state.pieces),time:engine.time}),configurable:true})
