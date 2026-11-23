@@ -1,0 +1,99 @@
+/* One contact/release language for native buttons and label-backed controls. */
+:where(button,.booster-option,.file-button,.switch-row,.preference-grid label,summary){
+  --press-travel:3px;
+  --press-scale-x:.97;
+  --press-scale-y:.95;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  user-select:none;
+  touch-action:manipulation;
+  transform-origin:50% 65%;
+  translate:var(--press-rest-x,0px) var(--press-rest-y,0px);
+  scale:1;
+  transition:translate .29s cubic-bezier(.16,1.65,.32,1),scale .29s cubic-bezier(.16,1.65,.32,1),box-shadow .12s,filter .12s,background-color .12s;
+}
+/* Earlier styles used :active transforms, which would double the new travel. */
+button:active:not(:disabled){transform:var(--press-base-transform,none)!important;filter:unset}
+.update-button{--press-rest-x:-50%;transform:none}
+:where(button,.booster-option,.file-button,.switch-row,.preference-grid label,summary)[data-press-state=down],
+html:not([data-press-feedback=ready]) :where(button,.booster-option,.file-button,.switch-row,.preference-grid label,summary):active:not(:disabled){
+  translate:var(--press-rest-x,0px) calc(var(--press-rest-y,0px) + var(--press-travel));
+  scale:var(--press-scale-x) var(--press-scale-y);
+  filter:brightness(.94) saturate(1.06);
+  transition-duration:55ms;
+  transition-timing-function:cubic-bezier(.2,.8,.3,1);
+}
+:where(button,.booster-option,.file-button,.switch-row,.preference-grid label,summary):focus-visible{outline:3px solid #fff4a1;outline-offset:4px}
+.switch-row,.preference-grid label,summary{--press-travel:1px;--press-scale-x:.99;--press-scale-y:.98;border-radius:8px}
+.text-button,.level-pill,.bottom-bar button{--press-travel:2px;--press-scale-x:.96;--press-scale-y:.96;border-radius:9px}
+:is(.text-button,.level-pill,.bottom-bar button,.switch-row,.preference-grid label,summary)[data-press-state=down]{background-color:#f4f9dc25}
+.home-event{--press-travel:4px;--press-scale-x:.95;--press-scale-y:.94}
+.home-bottom-nav button{--press-travel:3px;--press-scale-y:.95}
+.home-bottom-nav button[data-press-state=down]{box-shadow:inset 0 4px 6px #00326977;background-color:#07509e}
+.editor-cell,.brush{--press-travel:1px;--press-scale-x:.92;--press-scale-y:.92}
+.editor-cell{touch-action:none}
+
+/* Fixed square geometry: the icon's intrinsic height cannot stretch its button. */
+.tools{align-items:start;gap:clamp(9px,2.8vw,14px);padding:4px 13px 0}
+.tools .tool{
+  --press-travel:5px;
+  --press-scale-x:.95;
+  --press-scale-y:.93;
+  position:relative;
+  width:100%;height:auto;min-height:0;max-height:none;max-width:88px;
+  aspect-ratio:1;justify-self:center;align-self:start;
+  display:block;padding:0;margin-bottom:21px;
+  border:3px solid #ffdc50;border-radius:50%;
+  background:radial-gradient(ellipse at 38% 20%,#d0f64c 0%,#9adb16 24%,#64b509 60%,#338a09 100%);
+  box-shadow:inset 0 2px 1px #f6ffba,inset 0 -5px 1px #217600,0 0 0 1px #ba670c,0 5px 0 #bd790e,0 7px 1px #164664,0 9px 8px #082f5a55;
+  isolation:isolate;
+}
+.tools .tool::before{
+  content:'';position:absolute;inset:3px;border-radius:inherit;pointer-events:none;
+  border:1px solid #c3ed49;border-top-color:#ecffab;border-bottom-color:#2a790f;
+  background:radial-gradient(ellipse at 32% 12%,#ffffff38,transparent 52%);
+}
+.tools .tool::after{
+  content:'';position:absolute;right:21%;top:8%;width:23%;height:7%;border-radius:50%;
+  background:#f9ffd698;rotate:-18deg;pointer-events:none;
+}
+.tools .tool>img{
+  position:absolute;inset:8%;width:84%;height:84%;object-fit:contain;
+  translate:0 -1px;filter:drop-shadow(0 4px 1px #22520780) drop-shadow(0 1px 0 #fff59a55);
+  transition:translate .24s cubic-bezier(.2,1.5,.35,1),scale .24s cubic-bezier(.2,1.5,.35,1);
+}
+.tools .settings-tool{
+  background:radial-gradient(ellipse at 37% 20%,#9eeafb 0%,#50c3ed 27%,#198fcd 62%,#0865a2 100%);
+  box-shadow:inset 0 2px 1px #d6fbff,inset 0 -5px 1px #074e88,0 0 0 1px #ba670c,0 5px 0 #bd790e,0 7px 1px #164664,0 9px 8px #082f5a55;
+}
+.tools .settings-tool::before{border-color:#71d5ee;border-top-color:#dcfaff;border-bottom-color:#07588e}
+.tools .settings-tool>img{inset:17%;width:66%;height:66%;filter:drop-shadow(0 4px 1px #07406e88)}
+.tools .tool.selected{--press-rest-y:-3px;transform:none;box-shadow:inset 0 2px 1px #f8ffcb,inset 0 -5px 1px #217600,0 0 0 1px #b76b0c,0 5px 0 #bd790e,0 7px 1px #164664,0 0 0 4px #fff4b3,0 0 17px #ffe32e99}
+.tools .tool[data-press-state=down]{box-shadow:inset 0 1px 1px #e5f8b2,inset 0 -2px #217600,0 0 0 1px #ba670c,0 1px 0 #bd790e,0 3px 2px #143f5e}
+.tools .settings-tool[data-press-state=down]{box-shadow:inset 0 1px #d6fbff,inset 0 -2px #074e88,0 0 0 1px #ba670c,0 1px #bd790e,0 3px 2px #143f5e}
+.tools .tool[data-press-state=down]>img{translate:0 2px;scale:.95}
+.tools .tool-count{z-index:2;right:-5px;bottom:-3px;min-width:25px;width:25px;height:25px;border:2px solid #ffd98c;border-radius:50%;background:radial-gradient(ellipse at 35% 20%,#ff9c78 0%,#f13728 35%,#d10e16 74%);box-shadow:inset 0 1px #ffcaaa,0 2px 0 #8e1a10,0 3px 2px #143f5c66;font-size:16px;line-height:1;color:#fffbe2;text-shadow:0 2px #9d2217}
+.tools .tool-name{top:calc(100% + 9px);font-size:10px;font-weight:800;letter-spacing:-.3px;line-height:12px;color:#fff8ce;text-shadow:0 1px 2px #063d6f}
+.tools .tool:disabled{filter:saturate(.35);opacity:.58;translate:none;scale:1;box-shadow:inset 0 1px #bcd69b,inset 0 -2px #417d1e,0 0 0 1px #ad7728,0 2px #956918,0 3px #164664}
+
+/* Matching compression on primary actions, close buttons and booster selectors. */
+:is(.green-button,.blue-button,.gold-button,.home-play-button,.home-task-banner){--press-travel:4px;--press-scale-x:.985;--press-scale-y:.95}
+:is(.green-button,.home-play-button)[data-press-state=down]{box-shadow:inset 0 2px #d5ed77,inset 0 -2px #397500,0 0 0 2px #12526b,0 1px #073862!important}
+:is(.blue-button,.gold-button,.home-task-banner,.reference-button,.level-tile,.task-row)[data-press-state=down]{box-shadow:inset 0 2px #ffffff55,inset 0 -1px #002f5777,0 1px #153f66!important}
+:is(.round-button,.home-setting-button,.close-button){--press-travel:3px;--press-scale-x:.92;--press-scale-y:.92}
+:is(.round-button,.home-setting-button)[data-press-state=down]{box-shadow:inset 0 2px 2px #063e7a88,0 1px #06305b!important}
+.close-button[data-press-state=down]{box-shadow:inset 0 2px 3px #9d102b99,0 1px #761721!important}
+.booster-option{--press-travel:4px;--press-scale-x:.95;--press-scale-y:.93;min-height:0}
+.booster-option>img{position:absolute;inset:8%;width:84%;height:84%;object-fit:contain}
+.booster-option[data-press-state=down]{box-shadow:inset 0 2px #fff0a4,inset 0 -1px #dc8505,0 0 0 2px #bfa563,0 1px #9b5814!important}
+.booster-option:has(input:checked){border-color:#fff9b4}
+.bottom-bar{height:33px;margin-top:4px}
+.bottom-bar button{min-height:29px;padding:5px 6px}
+
+@media(max-width:370px){.tools{gap:9px;padding-inline:10px}.tools .tool{border-width:2px}.tools .tool-count{width:23px;min-width:23px;height:23px;font-size:14px}.tools .tool-name{font-size:9px}}
+@media(max-height:750px) and (orientation:portrait){.tools{padding-inline:11px;gap:10px}.tools .tool{max-width:61px;margin-bottom:19px}.tools .tool-name{top:calc(100% + 8px);font-size:9px}.tools .tool-count{width:23px;min-width:23px;height:23px;font-size:14px}.bottom-bar{height:28px}.bottom-bar button{min-height:27px}}
+@media(orientation:landscape) and (max-height:600px){.tools{padding:2px 7px;gap:7px}.tools .tool{width:47px;height:47px;max-width:47px;aspect-ratio:1;margin:0 0 10px;flex-shrink:0;border-width:2px;--press-travel:3px}.tools .tool-name{top:calc(100% + 5px);font-size:8px;line-height:9px}.tools .tool-count{width:18px;min-width:18px;height:18px;font-size:11px;right:-4px;bottom:-2px}.bottom-bar{height:auto;margin:0}.bottom-bar button{min-height:22px;padding:0}}
+@media(prefers-reduced-motion:reduce){:where(button,.booster-option,.file-button,.switch-row,.preference-grid label,summary){--press-travel:2px!important;--press-scale-x:1!important;--press-scale-y:1!important;transition:none!important}.tools .tool>img{transition:none!important}.tools .tool[data-press-state=down]>img{translate:0 1px;scale:1}}
+html[data-calm=true] :where(button,.booster-option,.file-button,.switch-row,.preference-grid label,summary){--press-travel:2px!important;--press-scale-x:1!important;--press-scale-y:1!important;transition:none!important}
+html[data-calm=true] .tools .tool>img{transition:none!important}
+html[data-calm=true] .tools .tool[data-press-state=down]>img{translate:0 1px;scale:1}

@@ -1,6 +1,6 @@
 # Chroma Match
 
-> **개인용 왕실 리뉴얼 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. 시작 성능 개선에 이어, 첨부 영상의 교환·특수 생성·폭발·프로펠러 비행·낙하 순서를 기준으로 모션을 다시 구현했습니다. [영상 분석과 모션 검수](docs/research/royal-motion-v6.md), [이전 성능 개선](docs/royal-followup-v5.md)을 참고하세요. [실행 및 설정 안내](docs/ROYAL-LOCAL.md)를 참고하세요.
+> **개인용 왕실 리뉴얼 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. 원형 도구 버튼과 전체 버튼의 누름/복귀, 블록 교환·착지·재질 파편, 충돌 시점의 효과음·햅틱을 개선했습니다. [v7 인터랙션 검수](docs/royal-rich-interaction-v7.md) · [iPhone 앱 준비·설치 안내](ios/README.md) · [영상 분석과 모션 검수](docs/research/royal-motion-v6.md) · [실행 및 설정 안내](docs/ROYAL-LOCAL.md)
 
 ## 현재 개인용 게임
 

@@ -6,3 +6,8 @@ dist
 .claude
 test-results/
 playwright-report/
+
+# Generated iPhone bundle, signing and local Xcode state
+ios/.generated/
+**/xcuserdata/
+*.xcuserstate

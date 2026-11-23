@@ -20,7 +20,9 @@
     "icons": "node scripts/make-icons.mjs",
     "sprites:build": "node scripts/build-royal-sprites.mjs",
     "tune": "node scripts/tune-board.ts",
-    "test:royal": "playwright test --config playwright.royal.config.ts"
+    "test:royal": "playwright test --config playwright.royal.config.ts",
+    "ios:prepare": "node scripts/prepare-ios.mjs",
+    "ios:verify": "node scripts/verify-ios.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

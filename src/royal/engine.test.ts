@@ -646,3 +646,30 @@ test('a travelling chain cannot steal gathering pieces from a cascade that began
   assert.equal(game.state.turn, 2)
   assert.equal(game.state.moves, 18)
 })
+
+test('tool contact feedback shares the actual damage timestamp and rejected uses emit nothing', () => {
+  for (const tool of ['hammer', 'arrow', 'cannon'] as const) {
+    const game = fixture()
+    game.update(.25)
+    assert.equal(game.useTool(tool, 24), true)
+    const events = game.drainEvents(), contact = events.find(event => event.kind === 'tool')!
+    assert.equal(contact.tool, tool)
+    assert.equal(contact.stage, 'impact')
+    assert.equal(contact.from, 24)
+    assert.equal(contact.at, .25)
+    assert.ok(contact.duration! > 0)
+    const clear = events.find(event => event.kind === 'clear')!
+    assert.equal(clear.at, contact.at, 'contact must not imply delayed damage')
+    assert.deepEqual(new Set(contact.cells), new Set(clear.cells))
+    assert.equal(game.state.moves, 20)
+    assert.equal(game.useTool(tool, 24), false)
+    assert.equal(game.drainEvents().length, 0, 'locked-board attempts cannot play success feedback')
+    settle(game)
+  }
+  const game = fixture()
+  assert.equal(game.useTool('shuffle'), true)
+  const events = game.drainEvents()
+  assert.equal(events.filter(event => event.kind === 'tool' && event.tool === 'shuffle').length, 1)
+  assert.equal(events.find(event => event.kind === 'tool')!.at, events.find(event => event.kind === 'shuffle')!.at)
+  assert.equal(game.state.moves, 20)
+})

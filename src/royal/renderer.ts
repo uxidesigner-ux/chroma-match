@@ -6,9 +6,10 @@ export { iconData } from './art.ts'
 
 type Ctx = CanvasRenderingContext2D
 interface Motion { start: number; duration: number; dx: number; dy: number; kind: 'swap' | 'invalid' | 'fall'; spawned?: boolean }
-interface Particle { x: number; y: number; vx: number; vy: number; birth: number; life: number; size: number; colour: string; spin: number; shape: 'chip' | 'spark' | 'panel' }
+interface Particle { x: number; y: number; vx: number; vy: number; birth: number; life: number; size: number; colour: string; spin: number; shape: 'chip' | 'spark' | 'panel' | 'leaf' | 'crystal' | 'wood' | 'feather' | 'ribbon' | 'gold' }
 interface Visual { event: EffectEvent; birth: number; life: number }
 interface Ghost { piece: Piece; cell: number; birth: number; life: number; to?: number }
+interface Impulse { cell: number; birth: number; strength: number }
 const TAU = Math.PI * 2
 const COLOURS = ['#ffe557', '#ff5265', '#4dd9ff', '#91f747']
 const sprites = new Map<string, HTMLImageElement>()
@@ -101,6 +102,9 @@ export class RoyalRenderer {
   private previousPieces = new Map<number, Piece>()
   private previousObstacles = new Map<number, ObstacleState['kind']>()
   private boardClip = new Path2D()
+  private press: { cell: number; x: number; y: number; at: number } | null = null
+  private impulses: Impulse[] = []
+  private landings = new Map<number, number>()
   private animationSeed = 43
   private observer: ResizeObserver
 
@@ -111,12 +115,20 @@ export class RoyalRenderer {
     this.observer = new ResizeObserver(() => { if (this.level) this.resize(this.level) })
     this.observer.observe(canvas)
     // Resolve SVGs before the first board frame whenever possible.
-    for (const kind of ['colour', 'rocket-h', 'rocket-v', 'propeller', 'tnt', 'lightball', 'box', 'stone', 'ice', 'toy', 'cuckoo']) {
+    for (const kind of ['colour', 'rocket-h', 'rocket-v', 'propeller', 'tnt', 'lightball', 'box', 'stone', 'ice', 'toy', 'cuckoo', 'hammer', 'arrow', 'cannon', 'shuffle']) {
       for (let colour = 0; colour < (kind === 'colour' ? 4 : 1); colour++) sprite(ctx, kind, -200, -200, 1, colour)
     }
   }
 
   get cellSize(): number { return this.size }
+
+  /** Finger preview only; logical swaps remain owned by the engine. */
+  setPress(cell: number | null, dx = 0, dy = 0): void {
+    if (cell === null) { this.press = null; return }
+    const length = Math.hypot(dx, dy), cap = this.size * .11
+    const scale = length ? Math.min(1, cap / length) : 1
+    this.press = { cell, x: dx * scale, y: dy * scale, at: this.press?.cell === cell ? this.press.at : this.clock }
+  }
 
   resize(level: LevelDefinition): void {
     const changed = !this.level || this.level.id !== level.id || this.level.cols !== level.cols || this.level.rows !== level.rows || this.level !== level
@@ -143,7 +155,7 @@ export class RoyalRenderer {
 
   destroy(): void { this.observer.disconnect(); this.resetEffects() }
   resetEffects(): void {
-    this.particles = []; this.visuals = []; this.ghosts = []; this.motions.clear(); this.damage.clear(); this.previousPieces.clear(); this.previousObstacles.clear()
+    this.particles = []; this.visuals = []; this.ghosts = []; this.motions.clear(); this.damage.clear(); this.previousPieces.clear(); this.previousObstacles.clear(); this.press = null; this.impulses = []; this.landings.clear()
   }
   centreOf(cell: number): { x: number; y: number } {
     const cols = this.level?.cols ?? 1
@@ -171,12 +183,18 @@ export class RoyalRenderer {
     }
     for (let i = 0; i < count; i++) {
       const angle = this.random() * TAU, speed = this.size * (1.2 + this.random() * (material ? 3 : 2))
-      const shape = i % 4 === 0 ? 'spark' : material === 'gift' && i % 2 === 1 || (material === 'cuckoo' || material === 'box') && i % 3 === 1 ? 'panel' : 'chip'
+      const shape: Particle['shape'] = i % 5 === 0 ? 'spark'
+        : material === 'gift' ? i % 2 ? 'panel' : i % 3 ? 'ribbon' : 'gold'
+        : material === 'box' ? 'wood'
+        : material === 'cuckoo' ? i % 3 ? 'wood' : 'feather'
+        : material === 'ice' || !material && colour === COLOURS[2] ? 'crystal'
+        : !material && colour === COLOURS[3] ? 'leaf'
+        : !material && colour === COLOURS[0] ? 'gold' : 'chip'
       const palette = material ? palettes[material] : undefined
       this.particles.push({ x: p.x, y: p.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - this.size * 1.1, birth,
         life: material ? .55 + this.random() * .35 : .26 + this.random() * .23,
-        size: this.size * (shape === 'panel' ? .15 + this.random() * .11 : shape === 'chip' ? .035 + this.random() * .06 : .035 + this.random() * .025),
-        colour: shape === 'spark' ? '#fff6c0' : material === 'gift' && shape === 'panel' ? i % 3 ? '#b60a47' : '#e54365' : palette?.[i % palette.length] ?? colour,
+        size: this.size * (shape === 'panel' ? .15 + this.random() * .11 : shape === 'wood' || shape === 'ribbon' ? .10 + this.random() * .09 : shape === 'spark' ? .035 + this.random() * .025 : .055 + this.random() * .055),
+        colour: shape === 'spark' ? '#fff6c0' : shape === 'ribbon' ? '#47c9ef' : shape === 'feather' ? '#9d60df' : shape === 'wood' ? ['#f4b35b', '#c5752b'][i % 2]! : material === 'gift' && shape === 'panel' ? i % 3 ? '#b60a47' : '#e54365' : palette?.[i % palette.length] ?? colour,
         spin: this.random() * TAU, shape })
     }
     if (this.particles.length > 450) this.particles.splice(0, this.particles.length - 450)
@@ -184,6 +202,10 @@ export class RoyalRenderer {
   pushEvents(events: EffectEvent[]): void {
     for (const event of events) {
       const { cells } = event, birth = event.at + (event.delay ?? 0)
+      if (event.stage === 'impact' && ['tnt', 'rocket', 'propeller', 'tool'].includes(event.kind)) {
+        const cell = event.from ?? event.to ?? cells[0]
+        if (cell !== undefined) this.impulses.push({ cell, birth, strength: event.kind === 'tnt' ? 1 : event.kind === 'tool' ? .8 : .4 })
+      }
       if (event.kind === 'clear') {
         for (const cell of cells) {
           const old = event.pieces?.find(p => p.cell === cell)?.piece ?? this.previousPieces.get(cell)
@@ -206,8 +228,10 @@ export class RoyalRenderer {
         for (const { cell, piece } of event.pieces ?? []) {
           const dest = this.centreOf(cell), from = event.from === undefined ? null : this.centreOf(event.from)
           const y = event.fromRow === undefined ? from?.y ?? dest.y - this.size : this.offsetY + (event.fromRow + .5) * this.size
-          this.motions.set(piece.id, { start: birth, duration: event.duration ?? fallDuration(Math.abs(y - dest.y) / this.size),
+          const duration = event.duration ?? fallDuration(Math.abs(y - dest.y) / this.size)
+          this.motions.set(piece.id, { start: birth, duration,
             dx: from ? from.x - dest.x : 0, dy: y - dest.y, kind: 'fall', spawned: event.from === undefined })
+          this.landings.set(cell, birth + duration * .84)
         }
       } else if (event.kind === 'damage') {
         for (const cell of cells) this.damage.set(cell, birth)
@@ -223,7 +247,7 @@ export class RoyalRenderer {
       } else if (event.kind === 'win') {
         for (const cell of sample(cells, 24)) this.burst(cell, COLOURS[cell % 4]!, this.calm ? 2 : 10, birth)
       }
-      if (['activate', 'rocket', 'tnt', 'lightball', 'propeller', 'power', 'shuffle'].includes(event.kind)) {
+      if (['activate', 'rocket', 'tnt', 'lightball', 'propeller', 'power', 'shuffle', 'tool'].includes(event.kind)) {
         const life = event.duration ?? (event.kind === 'power' ? POWER_CREATION_DURATION : .25)
         if (event.kind === 'activate' && event.pieces?.length) {
           const previous = this.visuals.find(v => v.event.kind === 'activate' && v.event.power === event.power
@@ -236,6 +260,7 @@ export class RoyalRenderer {
         this.visuals.push({ event, birth, life })
       }
     }
+    if (this.impulses.length > 18) this.impulses.splice(0, this.impulses.length - 18)
     if (this.visuals.length > 80) this.visuals.splice(0, this.visuals.length - 80)
     if (this.ghosts.length > 150) this.ghosts.splice(0, this.ghosts.length - 150)
   }
@@ -249,6 +274,7 @@ export class RoyalRenderer {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round'
     this.drawBoard(state)
     if (selected !== null) this.drawSelection(state, selected, aim)
+    this.drawContact(state)
     const occupied = new Set(state.obstacles.flatMap(o => o.cells))
     const activating = new Set(this.visuals.filter(v => v.event.kind === 'activate' && this.clock >= v.birth && this.clock < v.birth + v.life).flatMap(v => v.event.pieces?.map(p => p.piece.id) ?? []))
     const gathering = new Set(this.ghosts.filter(g => g.to !== undefined && this.clock < g.birth + g.life).map(g => g.piece.id))
@@ -257,7 +283,7 @@ export class RoyalRenderer {
       const piece = state.pieces[i]
       if (!piece || !cellPlayable(level, i) || occupied.has(i) || gathering.has(piece.id) || activating.has(piece.id)) continue
       const p = this.centreOf(i), motion = this.motions.get(piece.id)
-      let dx = 0, dy = 0, sx = 1, sy = 1
+      let dx = 0, dy = 0, sx = 1, sy = 1, rotation = 0, shadow = .13
       if (motion) {
         const t = clamp((this.clock - motion.start) / motion.duration)
         if (t >= 1) this.motions.delete(piece.id)
@@ -267,11 +293,17 @@ export class RoyalRenderer {
             const flight = clamp(t / .84), travel = flight * flight
             dx = motion.dx * (1 - travel); dy = motion.dy * (1 - travel)
             const landing = Math.sin(clamp((t - .84) / .16) * Math.PI)
-            sx = 1 + landing * .07; sy = 1 - landing * .09
-            if (flight < 1) { sx -= flight * .025; sy += flight * .04 }
+            sx = 1 + landing * .105; sy = 1 - landing * .12
+            if (flight < 1) { sx -= flight * .035; sy += flight * .065; shadow = .07 + .06 * flight }
           } else {
             const offset = motion.kind === 'invalid' ? Math.sin(t * Math.PI) : 1 - t * t * (3 - 2 * t)
             dx = motion.dx * offset; dy = motion.dy * offset
+            if (motion.kind === 'swap') {
+              const stretch = Math.sin(t * Math.PI) * .075, horizontal = Math.abs(motion.dx) > Math.abs(motion.dy)
+              sx *= 1 + (horizontal ? stretch : -stretch * .42)
+              sy *= 1 + (horizontal ? -stretch * .42 : stretch)
+              rotation = horizontal ? Math.sin(t * Math.PI) * Math.sign(motion.dx) * .025 : 0
+            }
           }
         }
       }
@@ -283,6 +315,30 @@ export class RoyalRenderer {
           sx *= .7 + .3 * t + Math.sin(t * Math.PI) * .22; sy *= .7 + .3 * t + Math.sin(t * Math.PI) * .22
         }
       }
+      if (!calm && this.press?.cell === i && !motion && !state.locked.has(i)) {
+        const down = clamp((this.clock - this.press.at) / .055)
+        sx *= 1 + .045 * down; sy *= 1 - .08 * down
+        dx += this.press.x; dy += this.press.y + s * .025 * down; shadow = .20
+      }
+      if (!calm && !motion) {
+        let pressureX = 0, pressureY = 0
+        for (const impulse of this.impulses) {
+          const age = this.clock - impulse.birth
+          if (age < 0 || age > .22 || impulse.cell === i) continue
+          const origin = this.centreOf(impulse.cell), distance = Math.hypot(p.x - origin.x, p.y - origin.y) / s
+          if (distance < .4 || distance > 3) continue
+          const force = Math.sin(age / .22 * Math.PI * 2) * Math.exp(-age * 12) * impulse.strength * (1 - distance / 3) * s * .04
+          pressureX += (p.x - origin.x) / (distance * s) * force
+          pressureY += (p.y - origin.y) / (distance * s) * force
+        }
+        const length = Math.hypot(pressureX, pressureY), limit = length ? Math.min(1, s * .045 / length) : 1
+        dx += pressureX * limit; dy += pressureY * limit
+      }
+      const shuffled = this.visuals.find(v => v.event.kind === 'shuffle' && this.clock >= v.birth && this.clock < v.birth + v.life)
+      if (shuffled && !calm && !motion) {
+        const t = clamp((this.clock - shuffled.birth) / shuffled.life), pulse = Math.sin(t * Math.PI)
+        sx *= 1 - pulse * .09; sy *= 1 + pulse * .04; rotation += pulse * .10 * (i % 2 ? -1 : 1)
+      }
       ctx.save()
       if (motion?.spawned) {
         // New pieces enter below each obstacle/cutout, never through a separate segment above it.
@@ -291,7 +347,11 @@ export class RoyalRenderer {
         const ceiling = this.centreOf(top).y - s / 2
         ctx.beginPath(); ctx.rect(p.x - s / 2, ceiling, s, this.height - ceiling); ctx.clip()
       }
-      ctx.translate(p.x + dx, p.y + dy); ctx.scale(sx, sy)
+      if (!calm && (motion || this.press?.cell === i)) {
+        ctx.fillStyle = `rgba(21,37,79,${shadow})`; ctx.beginPath()
+        ctx.ellipse(p.x + dx, p.y + dy + s * .35, s * .28 * sx, s * .075, 0, 0, TAU); ctx.fill()
+      }
+      ctx.translate(p.x + dx, p.y + dy); ctx.rotate(rotation); ctx.scale(sx, sy)
       sprite(ctx, piece.power ?? 'colour', 0, 0, s * .98, piece.colour)
       if (piece.power === 'lightball' && !calm) {
         ctx.fillStyle = '#fffbd1'; const a = this.clock * 1.7 + i
@@ -306,8 +366,31 @@ export class RoyalRenderer {
     this.previousPieces.clear(); this.previousObstacles.clear()
     state.pieces.forEach((p, cell) => { if (p) this.previousPieces.set(cell, p) })
     state.obstacles.forEach(o => o.cells.forEach(cell => this.previousObstacles.set(cell, o.kind)))
+    this.impulses = this.impulses.filter(impulse => this.clock - impulse.birth < .22)
+    for (const [cell, at] of this.landings) if (this.clock - at > .12) this.landings.delete(cell)
     for (const [cell, at] of this.damage) if (this.clock - at > .3) this.damage.delete(cell)
     for (const [id, motion] of this.motions) if (this.clock - motion.start > motion.duration) this.motions.delete(id)
+  }
+
+  private drawContact(state: GameState): void {
+    const ctx = this.ctx, s = this.size
+    if (this.press && !state.locked.has(this.press.cell) && state.pieces[this.press.cell]) {
+      const p = this.centreOf(this.press.cell)
+      ctx.save(); ctx.globalAlpha = this.calm ? .35 : .55
+      const glow = ctx.createRadialGradient(p.x, p.y, s * .12, p.x, p.y, s * .58)
+      glow.addColorStop(0, '#fff6ab00'); glow.addColorStop(.65, '#fff5b455'); glow.addColorStop(.84, '#fffbdbaa'); glow.addColorStop(1, '#fff3ac00')
+      ctx.fillStyle = glow; ctx.fillRect(p.x - s * .6, p.y - s * .6, s * 1.2, s * 1.2); ctx.restore()
+    }
+    if (this.calm) return
+    ctx.save(); ctx.clip(this.boardClip)
+    for (const [cell, birth] of this.landings) {
+      const age = this.clock - birth
+      if (age < 0 || age > .12) continue
+      const p = this.centreOf(cell), t = age / .12
+      ctx.globalAlpha = (1 - t) * .28
+      ctx.fillStyle = '#eff5ff'; ctx.beginPath(); ctx.ellipse(p.x, p.y + s * .35, s * (.18 + t * .22), s * .045 * (1 - t * .4), 0, 0, TAU); ctx.fill()
+    }
+    ctx.restore()
   }
 
   private drawBoard(state: GameState): void {
@@ -542,9 +625,9 @@ export class RoyalRenderer {
         const scale = this.calm ? 1 : 1 - .48 * t * t
         sprite(ctx, ghost.piece.power ?? 'colour', 0, 0, s * .98 * scale, ghost.piece.colour)
       } else {
-        ctx.globalAlpha = 1 - t * t
+        ctx.globalAlpha = Math.pow(1 - t, 1.3)
         ctx.translate(p.x, p.y)
-        const scale = this.calm ? 1 : 1 + .12 * Math.sin(t * Math.PI) - .4 * t * t
+        const scale = this.calm ? 1 : 1 - .07 * Math.sin(t * TAU) + .12 * Math.sin(t * Math.PI)
         sprite(ctx, ghost.piece.power ?? 'colour', 0, 0, s * .98 * scale, ghost.piece.colour)
         if (!this.calm) {
           const flash = ctx.createRadialGradient(0, 0, 0, 0, 0, s * .43)
@@ -646,6 +729,101 @@ export class RoyalRenderer {
     ctx.restore()
   }
 
+  private drawTool(event: EffectEvent, t: number, p: { x: number; y: number }): void {
+    const ctx = this.ctx, s = this.size
+    // Tools damage on contact. These are contact/recoil frames, not a late
+    // decorative approach that would misrepresent the engine's impact time.
+    if (event.tool === 'hammer') {
+      this.flash(p.x, p.y, s * 1.05, Math.min(1, t * 1.7), true)
+      ctx.save(); ctx.globalAlpha = clamp((1 - t) / .35)
+      ctx.translate(p.x + s * .18, p.y + s * .25 - s * .50 * Math.sin(t * Math.PI / 2))
+      ctx.rotate(-.18 - .55 * Math.sin(t * Math.PI / 2))
+      sprite(ctx, 'hammer', 0, 0, s * 1.55); ctx.restore()
+      return
+    }
+    if (event.tool === 'shuffle') {
+      const centre = this.centreOf(Math.floor((this.level?.rows ?? 1) / 2) * (this.level?.cols ?? 1) + Math.floor((this.level?.cols ?? 1) / 2))
+      ctx.save(); ctx.translate(centre.x, centre.y); ctx.globalAlpha = Math.sin(t * Math.PI) * .65
+      for (const direction of [-1, 1]) {
+        ctx.save(); ctx.rotate(t * .9 + (direction < 0 ? Math.PI : 0))
+        ctx.strokeStyle = '#fff3a3'; ctx.lineWidth = s * .055
+        ctx.beginPath(); ctx.arc(0, 0, s * 1.2, -.7, .7); ctx.stroke()
+        ctx.fillStyle = '#fff7c5'; ctx.beginPath(); ctx.moveTo(s * .90, s * .88); ctx.lineTo(s * .72, s * .53); ctx.lineTo(s * 1.15, s * .65); ctx.closePath(); ctx.fill(); ctx.restore()
+      }
+      ctx.restore(); return
+    }
+    const horizontal = event.tool === 'arrow', positions = event.cells.map(cell => this.centreOf(cell))
+    const values = positions.map(q => horizontal ? q.x : q.y)
+    const low = Math.min(...values) - s * .45, high = Math.max(...values) + s * .45
+    ctx.save(); ctx.globalAlpha = (1 - t) ** 1.4
+    if (horizontal) {
+      line(ctx, low, p.y, high, p.y, '#ffc95066', s * .36 * (1 - t))
+      line(ctx, low, p.y, high, p.y, '#fffbd0', s * .07 * (1 - t))
+    } else {
+      line(ctx, p.x, low, p.x, high, '#ffc95066', s * .40 * (1 - t))
+      line(ctx, p.x, low, p.x, high, '#fffbd0', s * .09 * (1 - t))
+    }
+    for (const direction of [-1, 1]) {
+      const position = direction < 0 ? low - t * s : high + t * s
+      ctx.save(); ctx.translate(horizontal ? position : p.x, horizontal ? p.y : position)
+      ctx.rotate(horizontal ? direction < 0 ? Math.PI : 0 : direction < 0 ? -Math.PI / 2 : Math.PI / 2)
+      if (horizontal) {
+        ctx.fillStyle = '#ffdc62'; ctx.strokeStyle = '#fff9cb'; ctx.lineWidth = s * .025
+        ctx.beginPath(); ctx.moveTo(s * .2, 0); ctx.lineTo(-s * .12, -s * .17); ctx.lineTo(-s * .04, 0); ctx.lineTo(-s * .12, s * .17); ctx.closePath(); ctx.fill(); ctx.stroke()
+      } else {
+        const ball = ctx.createRadialGradient(-s * .045, -s * .05, 0, 0, 0, s * .17)
+        ball.addColorStop(0, '#e8f9ff'); ball.addColorStop(.28, '#92bbf5'); ball.addColorStop(.55, '#395994'); ball.addColorStop(1, '#192d5d')
+        ctx.fillStyle = ball; ctx.strokeStyle = '#ffe8a2'; ctx.lineWidth = s * .025
+        ctx.beginPath(); ctx.arc(0, 0, s * .17, 0, TAU); ctx.fill(); ctx.stroke()
+      }
+      ctx.restore()
+    }
+    ctx.restore()
+    if (!horizontal) {
+      this.flash(p.x, p.y, s * .8, t, true)
+      ctx.save(); ctx.globalAlpha = clamp((1 - t) / .45)
+      ctx.translate(p.x, p.y + s * (.25 + .16 * Math.sin(t * Math.PI)))
+      ctx.rotate(-.08 + .12 * Math.sin(t * Math.PI))
+      sprite(ctx, 'cannon', 0, 0, s * 1.25); ctx.restore()
+    }
+  }
+
+  private drawFragment(p: Particle, age: number, t: number): void {
+    const ctx = this.ctx, r = p.size * (1 - t * .2)
+    ctx.rotate(p.spin + age * (p.shape === 'panel' || p.shape === 'wood' ? 5 : 9))
+    ctx.scale(1, .55 + .45 * Math.abs(Math.cos(age * 8 + p.spin)))
+    ctx.beginPath()
+    if (p.shape === 'leaf' || p.shape === 'feather') {
+      ctx.moveTo(-r, r * .65); ctx.bezierCurveTo(-r * .8, -r * .7, r * .25, -r, r, -r * .55)
+      ctx.bezierCurveTo(r * .7, r * .45, -r * .2, r, -r, r * .65)
+    } else if (p.shape === 'panel') {
+      ctx.moveTo(-r, -r * .7); ctx.quadraticCurveTo(-r * .15, -r * .25, r * .8, -r)
+      ctx.lineTo(r, r * .3); ctx.quadraticCurveTo(r * .2, r * .9, -r * .7, r * .7); ctx.closePath()
+    } else if (p.shape === 'wood') {
+      ctx.moveTo(-r, -r * .25); ctx.lineTo(r * .78, -r * .37); ctx.lineTo(r * .55, -.05 * r)
+      ctx.lineTo(r, r * .18); ctx.lineTo(-r * .8, r * .32); ctx.lineTo(-r * .6, 0); ctx.closePath()
+    } else if (p.shape === 'ribbon') {
+      ctx.moveTo(-r, -r * .18); ctx.bezierCurveTo(-r * .25, -r * .65, r * .1, r * .4, r, r * .05)
+      ctx.lineTo(r * .85, r * .35); ctx.bezierCurveTo(r * .1, r * .65, -r * .25, -r * .35, -r * .85, r * .1); ctx.closePath()
+    } else if (p.shape === 'crystal') {
+      ctx.moveTo(-r, -r * .18); ctx.lineTo(-r * .15, -r); ctx.lineTo(r, -r * .15)
+      ctx.lineTo(r * .5, r * .8); ctx.lineTo(-r * .6, r * .55); ctx.closePath()
+    } else if (p.shape === 'gold') {
+      ctx.moveTo(-r, r * .55); ctx.lineTo(-r * .6, -r * .75); ctx.lineTo(r * .12, -r * .3)
+      ctx.lineTo(r * .65, -r); ctx.lineTo(r, r * .35); ctx.closePath()
+    } else {
+      ctx.moveTo(-r, -r * .65); ctx.lineTo(r * .7, -r); ctx.lineTo(r, r * .35); ctx.lineTo(-r * .35, r); ctx.closePath()
+    }
+    ctx.fill()
+    ctx.save(); ctx.clip(); ctx.fillStyle = '#ffffff38'; ctx.beginPath(); ctx.moveTo(-r, -r); ctx.lineTo(r, -r); ctx.lineTo(-r * .3, r * .2); ctx.closePath(); ctx.fill(); ctx.restore()
+    ctx.strokeStyle = p.shape === 'panel' ? '#ffc65d' : p.shape === 'wood' ? '#ffe0a0' : '#ffffff99'
+    ctx.lineWidth = Math.max(.6, r * .13)
+    if (p.shape === 'leaf' || p.shape === 'feather') line(ctx, -r * .75, r * .5, r * .7, -r * .4, '#e0ffae88', Math.max(.6, r * .12))
+    else if (p.shape === 'crystal') {
+      ctx.beginPath(); ctx.moveTo(-r, -r * .18); ctx.lineTo(r * .12, 0); ctx.lineTo(-r * .15, -r); ctx.moveTo(r * .12, 0); ctx.lineTo(r * .5, r * .8); ctx.stroke()
+    } else { ctx.beginPath(); ctx.moveTo(-r * .8, -r * .5); ctx.lineTo(r * .7, -r * .65); ctx.stroke() }
+  }
+
   private drawEffects(): void {
     const ctx = this.ctx, s = this.size
     this.visuals = this.visuals.filter(v => this.clock - v.birth < v.life)
@@ -672,7 +850,8 @@ export class RoyalRenderer {
           rounded(ctx, q.x - s * .38, q.y - s * .38, s * .76, s * .76, s * .12)
           ctx.globalAlpha = (1 - t) * .25; ctx.fillStyle = '#fff2a2'; ctx.fill()
         }
-      } else if (event.kind === 'rocket') this.drawRocket(event, t, p)
+      } else if (event.kind === 'tool') this.drawTool(event, t, p)
+      else if (event.kind === 'rocket') this.drawRocket(event, t, p)
       else if (event.kind === 'propeller') this.drawPropeller(event, age, visual.life, p)
       else if (event.kind === 'tnt' && event.stage !== 'launch') this.flash(p.x, p.y, s * ((event.radius ?? 2) + .65), t, true, true)
       else if (event.kind === 'power') {
@@ -704,15 +883,10 @@ export class RoyalRenderer {
       if (age < 0) continue
       const t = age / p.life, fade = clamp((1 - t) / .35)
       ctx.save(); ctx.globalAlpha = fade * (this.calm ? .45 : 1)
-      ctx.translate(p.x + (this.calm ? 0 : p.vx * age), p.y + (this.calm ? 0 : p.vy * age + s * 4.5 * age * age))
+      ctx.translate(p.x + (this.calm ? 0 : p.vx * (1 - Math.exp(-age * 1.8)) / 1.8), p.y + (this.calm ? 0 : p.vy * age + s * 4.5 * age * age))
       ctx.fillStyle = p.colour
       if (p.shape === 'spark' || this.calm) star(ctx, 0, 0, p.size * (1 - t * .6), p.spin + age * 3)
-      else {
-        ctx.rotate(p.spin + age * (p.shape === 'panel' ? 5 : 9)); ctx.scale(1, .55 + .45 * Math.abs(Math.cos(age * 8 + p.spin)))
-        const r = p.size * (1 - t * .2)
-        ctx.beginPath(); ctx.moveTo(-r, -r * .65); ctx.lineTo(r * .7, -r); ctx.lineTo(r, r * .35); ctx.lineTo(-r * .35, r); ctx.closePath(); ctx.fill()
-        ctx.strokeStyle = p.shape === 'panel' && (p.colour === '#b60a47' || p.colour === '#e54365') ? '#ffc65d' : '#ffffff88'; ctx.lineWidth = Math.max(.6, r * .15); ctx.beginPath(); ctx.moveTo(-r, -r * .65); ctx.lineTo(r * .7, -r); ctx.lineTo(r, r * .35); ctx.stroke()
-      }
+      else this.drawFragment(p, age, t)
       ctx.restore()
     }
   }

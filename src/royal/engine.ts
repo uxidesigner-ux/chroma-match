@@ -232,9 +232,13 @@ export class RoyalEngine {
 
   useTool(tool: Tool, cell?: number): boolean {
     if (this.state.status !== 'playing' || this.jobs.length || this.flights.length) return false
-    if (tool === 'shuffle') { this.shuffleBoard(true); return true }
+    if (tool === 'shuffle') {
+      this.emit({ kind: 'tool', tool, cells: this.allCells(), stage: 'impact', duration: .28 })
+      this.shuffleBoard(true); return true
+    }
     if (cell === undefined || !cellPlayable(this.state.level, cell)) return false
     const cells = tool === 'arrow' ? this.row(cell) : tool === 'cannon' ? this.column(cell) : [cell]
+    this.emit({ kind: 'tool', tool, cells, from: cell, stage: 'impact', duration: tool === 'hammer' ? .26 : .22 })
     const job = this.makeJob(this.allCells(), 0, () => {})
     this.resolve(job, [], [{ cells, power: true, spread: cells.some(i => this.state.jelly[i]), adjacent: false }])
     return true

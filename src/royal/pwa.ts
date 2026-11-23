@@ -12,6 +12,7 @@ function reportUpdate(): void {
 export function registerRoyalPwa(): Promise<PwaResult> {
   if (loading) return loading
   if (!import.meta.env.PROD) return Promise.resolve({ status: 'development' })
+  if (!['https:', 'http:'].includes(location.protocol)) return Promise.resolve({ status: 'unsupported' })
   if (!('serviceWorker' in navigator) || !window.isSecureContext) return Promise.resolve({ status: 'unsupported' })
   loading = (async (): Promise<PwaResult> => {
     try {

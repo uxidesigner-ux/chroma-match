@@ -24,7 +24,7 @@ export interface GameState {
   locked: Set<number>; turn: number; combo: number;
 }
 export interface EffectEvent {
-  kind: 'swap' | 'invalid' | 'activate' | 'clear' | 'power' | 'rocket' | 'propeller' | 'tnt' | 'lightball' | 'damage' | 'collect' | 'fall' | 'shuffle' | 'win' | 'lose';
+  kind: 'swap' | 'invalid' | 'activate' | 'clear' | 'power' | 'rocket' | 'propeller' | 'tnt' | 'lightball' | 'damage' | 'collect' | 'fall' | 'shuffle' | 'tool' | 'win' | 'lose';
   /** Absolute simulation time at which this event starts. */
   at: number;
   cells: number[]; from?: number; to?: number; colour?: Colour; power?: Power; combo?: number;
@@ -34,6 +34,8 @@ export interface EffectEvent {
   pieces?: { cell: number; piece: Piece }[];
   createdPiece?: Piece;
   carriedPower?: Power;
+  /** Tool contact is emitted at the same instant as its logical damage. */
+  tool?: Tool;
   stage?: 'launch' | 'impact';
 }
 export interface EngineOptions { seed?: number; unlimitedMoves?: boolean; startingBoosters?: Power[]; superLightBall?: boolean }
