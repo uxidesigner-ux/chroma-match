@@ -1,3 +1,4 @@
+import { ROYAL } from './royal.ts'
 import { GLASS } from './glass.ts'
 import { JEWEL } from './jewel.ts'
 import { PAPER } from './paper.ts'
@@ -8,7 +9,7 @@ export type { BoardStyle, GemPaint, GemStyle, Shape, Skin } from './types.ts'
 export { SKIN_VARS } from './types.ts'
 
 /** Every skin, in the order the toggle cycles them. The first one is the default. */
-export const SKINS: readonly Skin[] = [JEWEL, GLASS, PAPER]
+export const SKINS: readonly Skin[] = [ROYAL, JEWEL, GLASS, PAPER]
 
 const STORAGE_KEY = 'chroma.skin'
 

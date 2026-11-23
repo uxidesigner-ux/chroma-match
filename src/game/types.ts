@@ -73,6 +73,8 @@ export type Power = 'none' | 'rowClear' | 'colClear' | 'bomb' | 'rainbow'
 export interface Gem {
   /** Stationary layered crate; negative kind is never a matching colour. */
   durability?: number
+  /** Private royal-stage obstacle behavior and visual identity. */
+  obstacle?: 'ribbon' | 'crate' | 'ice'
   /** Stable identity, so the renderer can follow a gem as it falls. */
   readonly id: number
   kind: Kind

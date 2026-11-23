@@ -1,7 +1,7 @@
 import type { Geom } from './types.ts'
 import type { Mission } from './campaign.ts'
 
-export interface Terrain { shape: 'full'|'corners'|'hourglass'|'cross'; voidCells: ReadonlySet<number>; crates: readonly number[]; durability: number }
+export interface Terrain { shape: 'full'|'corners'|'hourglass'|'cross'|'rectangle'|'courtyard'|'bridge'; voidCells: ReadonlySet<number>; crates: readonly number[]; durability: number }
 /** Pure authored geometry, derived only from immutable mission identity. */
 export function terrainFor(geom: Geom, mission: Mission|null, rules: number): Terrain {
   const step=rules>=8 ? mission?.step ?? 1 : 1

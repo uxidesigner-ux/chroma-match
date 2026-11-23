@@ -19,6 +19,7 @@ import { makeRng, randomSeed, type Rng } from './rng.ts'
 import { at, BOARD } from './types.ts'
 import type { Geom, Grid, Kind, Power } from './types.ts'
 import { terrainFor } from './terrain.ts'
+import { royalMission, type RoyalMission, type RoyalOptions } from './royal.ts'
 import { isCampaignRules, CURRENT_RULES, canFuse } from './rules.ts'
 import type { RulesVersion } from './rules.ts'
 import { fusionClear } from './fusion.ts'
@@ -149,6 +150,10 @@ export class Game {
   readonly geom: Geom
   rules: RulesVersion
   mission: Mission | null = null
+  /** Private configurations never use the public leaderboard replay format. */
+  royal: RoyalMission | null = null
+  get royalRemaining(): number { return this.grid.filter(g => g?.obstacle && g.durability).length }
+  get royalDestroyed(): number { return (this.royal?.obstacles.length ?? 0) - this.royalRemaining }
   grid: Grid
   rng: Rng
   /**
@@ -311,10 +316,10 @@ export class Game {
     return this.phase.kind !== 'idle' || this.status !== 'playing'
   }
 
-  get bonusRound() { return this.mission ? missionMode(this.mission) : bonusForLevel(this.level, this.rules) }
+  get bonusRound() { if (this.royal) return null; return this.mission ? missionMode(this.mission) : bonusForLevel(this.level, this.rules) }
   get upgradeOptions(): Upgrade[] { return UPGRADES.filter(u => this.upgrades[u] < UPGRADE_CAP) }
   get upgradeDue(): boolean {
-    return !this.mission && this.rules >= 4 && this.status === 'levelComplete' && this.level % 3 === 0
+    return !this.royal && !this.mission && this.rules >= 4 && this.status === 'levelComplete' && this.level % 3 === 0
       && this.lastUpgradeLevel !== this.level && this.upgradeOptions.length > 0
   }
   private get boosts(): Upgrades | undefined { return this.rules >= 4 ? this.upgrades : undefined }
@@ -324,12 +329,21 @@ export class Game {
   }
   private terrainCache: {key:string; value:ReturnType<typeof terrainFor>} | null=null
   get terrain() {
+    if (this.royal) return this.royal.terrain
     const key=`${this.rules}:${this.mission?.id??''}`
     if(this.terrainCache?.key!==key)this.terrainCache={key,value:terrainFor(this.geom,this.mission,this.rules)}
     return this.terrainCache.value
   }
   private seedTerrain(): void {
     if(this.rules<8)return
+    if (this.royal) {
+      for (const obstacle of this.royal.obstacles) {
+        const gem = at(this.grid, obstacle.cell)
+        if (gem) { gem.kind = -1; gem.power = 'none'; gem.durability = obstacle.durability; gem.obstacle = obstacle.kind }
+      }
+      if (!findMoves(this.geom, this.grid, this.rules).length) shuffleBoard(this.refillGeom, this.grid, this.rng, this.rules)
+      return
+    }
     for(const cell of this.terrain.crates){const gem=at(this.grid,cell);if(gem){gem.kind=-1;gem.power='none';gem.durability=this.terrain.durability}}
     if(findMoves(this.geom,this.grid,this.rules).length===0)shuffleBoard(this.refillGeom,this.grid,this.rng,this.rules)
   }
@@ -791,12 +805,14 @@ export class Game {
     }
     if(this.rules>=8){
       // One damage per resolved wave, regardless of overlapping blasts.
+      const directHits = new Set(cleared)
       const hits=new Set<number>(cleared)
       for(const cell of cleared)for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){
         const c=this.geom.colOf(cell)+dc!,r=this.geom.rowOf(cell)+dr!
         if(this.geom.inBounds(c,r))hits.add(this.geom.idx(c,r))
       }
       for(const cell of hits){const gem=at(this.grid,cell);if(!gem?.durability)continue
+        if (gem.obstacle === 'ice' && !directHits.has(cell)) continue
         gem.durability--;gem.flash=.45
         if(gem.durability>0)cleared.delete(cell)
         else {delete gem.durability;cleared.add(cell)}
@@ -914,7 +930,7 @@ export class Game {
     this.idleTime = 0
     this.hint = null
 
-    if (this.progress >= this.goal.need) {
+    if (this.progress >= this.goal.need && (!this.royal || this.royalRemaining === 0)) {
       this.status = 'levelComplete'
       // Earned here rather than in nextLevel(), so the payout is part of
       // finishing the level and lands before the card that announces it.
@@ -976,6 +992,13 @@ export class Game {
   }
 
   nextLevel(): boolean {
+    if (this.royal) {
+      if (this.status !== 'levelComplete') return false
+      const options = { ...this.royal.options, level: this.level + 1 }
+      if (options.seed !== undefined) options.seed = (options.seed + 7919) >>> 0
+      this.startRoyal(options)
+      return true
+    }
     if (this.mission) return false
     if (this.rules >= 4 && (this.status !== 'levelComplete' || this.upgradeDue)) return false
     if (this.rules >= 4) this.log.push({ kind: 'advance' })
@@ -1000,10 +1023,26 @@ export class Game {
     return true
   }
 
+  /** Start/retry a personal stage, keeping public and historical rules untouched. */
+  startRoyal(options: RoyalOptions = {}): void {
+    const stage = royalMission(options, this.geom)
+    this.restart(stage.seed, 9)
+    this.royal = stage
+    this.rng = makeRng(stage.seed)
+    this.hintRng = makeRng((stage.seed ^ 0x9e3779b9) >>> 0)
+    this.level = stage.level
+    this.moves = stage.moves
+    this.goal = { ...stage.goal }
+    this.target = stage.goal.need
+    this.grid = createBoard(this.refillGeom, this.rng, 9)
+    this.seedTerrain()
+  }
+
   restart(seed: number = randomSeed(), rules: RulesVersion = CURRENT_RULES, missionId: string | null = null): void {
     const mission = missionFor(missionId)
     if (rules === 6 && mission && !MISSIONS.includes(mission)) throw new Error('unknown v6 mission')
     if ((isCampaignRules(rules)) !== Boolean(mission)) throw new Error('campaign rules require a valid mission')
+    this.royal = null
     this.mission = mission
     this.rules = rules
     this.seed = seed

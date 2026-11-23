@@ -10,6 +10,10 @@
  */
 
 export type Shape =
+  | 'tablet'
+  | 'crown'
+  | 'leaf'
+  | 'shield'
   | 'circle'
   | 'triangle'
   | 'square'

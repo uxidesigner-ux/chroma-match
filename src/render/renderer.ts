@@ -7,6 +7,7 @@ import { activeSkin } from './skins/index.ts'
 import { drawStrikes } from './strikes.ts'
 import { reducedMotion } from './motion.ts'
 import { drawFusion } from './fusion.ts'
+import { drawRoyalObstacle, drawRoyalPower } from './royal-objects.ts'
 
 interface Layout {
   /** Board origin in CSS pixels, its drawn size, and the size of one cell. */
@@ -217,6 +218,7 @@ export class Renderer {
   }
 
   private drawBoardPlate(game: Game): void {
+    if (activeSkin().id === 'royal') { this.drawRoyalPlate(game); return }
     const ctx = this.ctx
     const { x, y, w, h } = this.layout
     ctx.save()
@@ -243,10 +245,41 @@ export class Renderer {
     ctx.restore()
   }
 
+  /** Only exposed edges get trim, so a courtyard remains a real opening. */
+  private drawRoyalPlate(game: Game): void {
+    const ctx = this.ctx, { x, y, cell } = this.layout
+    const available = (c: number, r: number) => this.geom.inBounds(c, r) && !game.terrain.voidCells.has(this.geom.idx(c, r))
+    ctx.save()
+    ctx.fillStyle = '#8da4db'
+    for (let r = 0; r < this.geom.rows; r++) for (let c = 0; c < this.geom.cols; c++) {
+      if (available(c, r)) ctx.fillRect(x + c * cell, y + r * cell, cell, cell)
+    }
+    ctx.beginPath()
+    for (let r = 0; r < this.geom.rows; r++) for (let c = 0; c < this.geom.cols; c++) {
+      if (!available(c, r)) continue
+      const left = x + c * cell, top = y + r * cell, right = left + cell, bottom = top + cell
+      if (!available(c, r - 1)) { ctx.moveTo(left, top); ctx.lineTo(right, top) }
+      if (!available(c + 1, r)) { ctx.moveTo(right, top); ctx.lineTo(right, bottom) }
+      if (!available(c, r + 1)) { ctx.moveTo(right, bottom); ctx.lineTo(left, bottom) }
+      if (!available(c - 1, r)) { ctx.moveTo(left, bottom); ctx.lineTo(left, top) }
+    }
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round'
+    ctx.shadowColor = '#17284b99'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 4
+    ctx.strokeStyle = '#88511c'; ctx.lineWidth = 6; ctx.stroke()
+    ctx.shadowColor = 'transparent'
+    ctx.strokeStyle = '#ffc642'; ctx.lineWidth = 4; ctx.stroke()
+    ctx.strokeStyle = '#fff0aa'; ctx.lineWidth = 1.25; ctx.stroke()
+    if (this.impact > 0 && !reducedMotion()) {
+      ctx.globalAlpha = this.impact * .8; ctx.strokeStyle = '#fff8cb'; ctx.lineWidth = 5; ctx.stroke()
+    }
+    ctx.restore()
+  }
+
   private drawWells(game: Game): void {
     const ctx = this.ctx
     const { x, y, cell } = this.layout
-    const inset = cell * 0.08
+    const royal = activeSkin().id === 'royal'
+    const inset = royal ? 0 : cell * 0.08
     const board = activeSkin().board
     ctx.save()
     ctx.fillStyle = board.cellFill
@@ -258,12 +291,13 @@ export class Renderer {
       for (let c = 0; c < this.geom.cols; c++) {
         if(game.terrain.voidCells.has(this.geom.idx(c,r)))continue
         ctx.beginPath()
+        if (royal) ctx.fillStyle = (c + r) % 2 ? '#9bb0e2' : '#b1c1ec'
         ctx.roundRect(
           x + c * cell + inset,
           y + r * cell + inset,
           cell - inset * 2,
           cell - inset * 2,
-          cell * 0.22,
+          royal ? 0 : cell * 0.22,
         )
         ctx.fill()
         if (board.cellStroke) ctx.stroke()
@@ -312,6 +346,11 @@ export class Renderer {
   }
 
   private drawCrate(gem: Gem,x:number,y:number,scale:number,alpha:number):void {
+    if (activeSkin().id === 'royal') {
+      this.ctx.save(); this.ctx.translate(x, y); this.ctx.scale(scale, scale); this.ctx.globalAlpha = alpha
+      drawRoyalObstacle(this.ctx, gem, this.layout.cell)
+      this.ctx.restore(); return
+    }
     const ctx=this.ctx,s=this.layout.cell*.78
     ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.globalAlpha=alpha
     const fill=ctx.createLinearGradient(0,-s/2,0,s/2)
@@ -340,7 +379,7 @@ export class Renderer {
     const skin = activeSkin()
     const style = skin.palette[gem.kind % skin.palette.length]
     if (!style) return
-    const r = this.layout.cell * 0.37
+    const r = this.layout.cell * (skin.id === 'royal' ? .42 : .37)
     const paint = {
       style,
       r,
@@ -354,6 +393,11 @@ export class Renderer {
     ctx.globalAlpha = alpha
     ctx.translate(cx, cy)
     ctx.scale(scale, scale)
+
+    if (skin.id === 'royal' && gem.power !== 'none') {
+      drawRoyalPower(ctx, gem, r, time)
+      ctx.restore(); return
+    }
 
     // How a gem is finished belongs to the skin; what is drawn and in what
     // order belongs here, so every skin gets the same three passes and the

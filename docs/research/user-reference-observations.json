@@ -1,0 +1,171 @@
+{
+  "kind": "observation-not-playable-level",
+  "observedAt": "2026-11-23",
+  "source": {
+    "type": "user-recording",
+    "file": "1-ScreenRecording_11-23-2026-10-15-18_1.mov",
+    "sha256": "594cc57642bbf96c43aff1e591a9c6a69c82f6210c7341fde7486db44e6142c7",
+    "durationSeconds": 6.576667,
+    "resolution": [
+      1290,
+      2796
+    ],
+    "frameSeconds": 0.2
+  },
+  "unknown": {
+    "gameVersion": null,
+    "initialMoves": null,
+    "initialBoard": null,
+    "spawnWeights": null
+  },
+  "observed": {
+    "remainingMoves": [
+      22,
+      21,
+      20
+    ],
+    "gridBounds": {
+      "columns": 9,
+      "rows": 11,
+      "confidence": "visual count; not original level data"
+    },
+    "playableMask": [
+      "111111111",
+      "111111111",
+      "111111111",
+      "111111111",
+      "111001111",
+      "111001111",
+      "111001111",
+      "111001111",
+      "111001111",
+      "111001111",
+      "111001111"
+    ],
+    "hudTargets": [
+      {
+        "icon": "teddy bear",
+        "remaining": 18
+      },
+      {
+        "icon": "rainbow cylinder with wick",
+        "remaining": 8
+      },
+      {
+        "icon": "purple bird",
+        "remaining": 2
+      },
+      {
+        "icon": "purple square",
+        "remaining": 81
+      }
+    ],
+    "multiCellObjects": [
+      {
+        "appearance": "colored dynamite tray",
+        "columnsOneBased": [
+          4,
+          5
+        ],
+        "rowsOneBased": [
+          3,
+          4
+        ],
+        "identifiedAs": "Dynamite Box",
+        "identificationBasis": "official image correspondence; supplemental screenshot clarifies cylinder wick"
+      },
+      {
+        "appearance": "bird cabinet",
+        "columnsOneBased": [
+          7,
+          8
+        ],
+        "rowsOneBased": [
+          3,
+          4
+        ]
+      }
+    ],
+    "tools": [
+      "hammer",
+      "arrow",
+      "cannon",
+      "jester hat",
+      "settings"
+    ]
+  },
+  "inferences": [
+    {
+      "appearance": "red gift ribbon",
+      "candidate": "Gift Box",
+      "basis": "official visual and target toy correspondence",
+      "source": "https://dreamgames.helpshift.com/hc/en/3-royal-match/faq/423-gift-box/"
+    },
+    {
+      "appearance": "purple goal",
+      "candidate": "Jelly",
+      "basis": "official purple-square visual; motion/spread needs additional observation",
+      "source": "https://dreamgames.helpshift.com/hc/en/3-royal-match/faq/392-jelly/"
+    },
+    {
+      "appearance": "rainbow cylinder goal and colored 2x2 tray",
+      "candidate": "Dynamite Box",
+      "confidence": {
+        "trayIdentification": "high; official image matches",
+        "goalIconAssociation": "high-confidence inference; exact goal icon not shown in official help"
+      },
+      "source": "https://dreamgames.helpshift.com/hc/en/3-royal-match/faq/371-dynamite-box/",
+      "officialImage": "https://d2duuy9yo5pldo.cloudfront.net/dreamgames/2d24e51e-12f8-4dae-985f-8336e6f43837.png"
+    }
+  ],
+  "limits": [
+    "Recording begins mid-level;22 is remaining moves, not level starting budget.",
+    "Animation positions can differ from logical grid occupancy.",
+    "This is an observed cutout mask, not a verified full original level definition.",
+    "Level 12297 is confirmed by user and supplementary screenshot; starting board, initial moves and game version remain unknown."
+  ],
+  "level": {
+    "id": 12297,
+    "basis": [
+      "user explicitly identified the earlier recording",
+      "supplementary screenshot displays 레벨 12297"
+    ],
+    "scope": "Grid dimensions and mask describe this recorded level only, not a global board template."
+  },
+  "additionalSources": [
+    {
+      "type": "user-screenshot",
+      "file": "1-사진-1.jpg",
+      "storedAs": "level-12297-retry.jpg",
+      "sha256": "3c502f7015b384fbca1a49ed9cc12223ce49d6f0fd9e4dd64b38d505d87f42b7",
+      "observed": {
+        "levelLabel": 12297,
+        "screen": "level failure and retry",
+        "targetStatus": {
+          "teddyBear": "incomplete",
+          "rainbowCylinder": "complete",
+          "purpleBird": "complete",
+          "purpleSquare": "incomplete"
+        },
+        "startingBoosterInventory": {
+          "rocket": 73,
+          "tnt": 27,
+          "lightBall": 4
+        },
+        "superLightBallCounter": "6/10",
+        "butlersGiftCounter": "0/3",
+        "backgroundRemainingMoves": 9
+      },
+      "limits": [
+        "Failure reason is not shown.",
+        "A single screenshot does not establish how either counter changes on failure.",
+        "Rainbow cylinder goal is inferred to represent dynamite; the tray is identified by matching the official Dynamite Box image."
+      ]
+    }
+  ],
+  "userClarification": {
+    "boardVariesBetweenGames": true,
+    "implementationRequirement": "Store board dimensions, mask, obstacles, goals and move limit per level. Separate level layout from per-attempt random piece arrangement.",
+    "unverified": "Whether the same level changes its board silhouette on retry."
+  }
+}

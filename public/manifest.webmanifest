@@ -1,18 +1,30 @@
 {
-  "name": "Chroma Match",
-  "short_name": "Chroma",
-  "description": "A match-3 puzzle drawn entirely from canvas primitives.",
+  "name": "Chroma Royale · 나만의 왕실",
+  "short_name": "Royale",
+  "description": "왕실 퍼즐과 나만의 보드. 목표를 모으고 정원을 꾸며보세요.",
   "start_url": "./",
   "scope": "./",
-  "id": "chroma-match",
+  "id": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#080B14",
-  "theme_color": "#080B14",
-  "categories": ["games"],
+  "background_color": "#0b4997",
+  "theme_color": "#0b4997",
+  "categories": [
+    "games"
+  ],
   "icons": [
-    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+    {
+      "src": "./royal/app-icon-v3-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./royal/app-icon-v3.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "lang": "ko"
 }

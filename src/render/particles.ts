@@ -22,6 +22,7 @@ export interface FloatingText {
 }
 
 import { boardStyle } from './theme.ts'
+import { activeSkin } from './skins/index.ts'
 import { reducedMotion } from './motion.ts'
 
 export const EFFECT_LIMITS = { particles: 180, impacts: 12, texts: 8 } as const
@@ -150,6 +151,11 @@ export class Effects {
       ctx.save()
       ctx.translate(impact.x, impact.y)
       ctx.globalAlpha = (1 - age) * 0.75
+      if (activeSkin().id === 'royal') {
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, radius)
+        glow.addColorStop(0, '#fffbdccc'); glow.addColorStop(.28, '#ffe98a66'); glow.addColorStop(1, '#ffe98a00')
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fill()
+      }
       ctx.strokeStyle = impact.color
       ctx.lineWidth = 2.5 * (1 - age) + 0.5
       ctx.beginPath()
@@ -174,7 +180,16 @@ export class Effects {
       // Shrinking on the way out, not only fading: a chip that disappears at
       // full size reads as a frame being dropped.
       const size = p.size * (0.35 + left * 0.65)
-      ctx.fillRect(-size / 2, -size / 2, size, size * 1.6)
+      if (activeSkin().id === 'royal' && p.spin > 0) {
+        ctx.fillStyle = '#fff1a1'
+        ctx.beginPath()
+        for (let i = 0; i < 8; i++) {
+          const angle = i * Math.PI / 4, radius = size * (i % 2 ? .30 : 1.15)
+          if (i === 0) ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+          else ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+        }
+        ctx.closePath(); ctx.fill()
+      } else ctx.fillRect(-size / 2, -size / 2, size, size * 1.6)
       ctx.restore()
     }
 

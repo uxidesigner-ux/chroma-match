@@ -1,0 +1,40 @@
+{
+  "generator": "Built-in image_gen",
+  "created": "2026-11-23",
+  "purpose": "Royal Match style reference; original generated production sprites and home environment",
+  "assets": [
+    {
+      "file": "home-castle-v3.webp",
+      "source": "exec-ff565b73-b2b9-4276-b1ab-cad06615629d.png",
+      "prompt": "Use case: stylized-concept. Asset type: finished background for the HOME LOBBY of a premium royal match-3 mobile game. Portrait 1024x1536 composition. A magnificent welcoming cream-stone fairy-tale palace with shiny royal-blue roofs and warm golden architectural trims, a luxurious sunny courtyard garden, central decorative fountain with soft turquoise water and luminous golden crest, symmetrical blue carpet entrance stairs, round manicured shrubs and red/pink flowers, blue sky with very soft clouds. The palace is in the middle upper half, fountain lower middle, perspective slightly elevated and inviting. Expensive polished 3D cartoon game art with rounded sculpted shapes, soft bevel highlights, ambient occlusion, broad smooth materials, clear saturated cobalt-blue/cyan/leaf-green/gold colors, bright warm left-front sunlight. Rich artistic detail but very legible at phone size. Keep upper 15% mostly quiet sky for resource HUD, and lower 25% quiet blue stone foreground for large play button and navigation. Center perspective, no clutter crossing the center. No text, no logo, no lettering, no UI panels/buttons, no character, no puzzle grid, no watermark. Not a photo, not flat vector, no grain. Finished AAA casual mobile game environment asset."
+    },
+    {
+      "file": "royal-sprites-v3.webp",
+      "source": "exec-9e79408b-734b-4c0d-a892-27d00dcc9e42.png",
+      "transparent": true,
+      "grid": [
+        4,
+        5
+      ],
+      "prompt": "Use case: precise-object-edit. This is a game sprite atlas with 4 columns by5 rows. Preserve transparent background, exact grid layout and positions, every icon except three specified edits, same high quality 3D lighting, same dimensions. Change only: row1column2 redbook should be a SIMPLE rounded bright red closed book puzzle piece with cream page edges and plain red cover, remove all gold corners/bindings and crown emblem. Row1column3 shield should have a thick bright cyan/blue rim rather than gold, same shiny blue body and form. Row3column1 magenta light ball should have two horizontal polished gold bands and MANY small circular luminous green/red/blue studs, not four large gemstones or vertical crossbands. Leave all other icons exactly as they are. Genuine transparent background no labels or grid lines.",
+      "sourceAtlasPrompt": "4x5 transparent, evenly spaced 20-icon polished 3D casual royal mobile game atlas. Rows: crown/plain red book/blue shield/green leaf; horizontal rocket/vertical rocket/propeller/TNT; lightball/hammer/arrow/cannon; jester hat/settings gear/heart/star; coin stack/chest/castle/silver butler bell. Soft bevel highlights, ambient occlusion, coherent upper-left lighting, saturated materials, no outlines/grid labels."
+    },
+    {
+      "file": "royal-obstacles-v3.webp",
+      "source": "exec-252f0b76-29f8-4868-98d7-d84de77c3a30.png",
+      "transparent": true,
+      "grid": [
+        4,
+        2
+      ],
+      "prompt": "Use case: stylized-concept. Asset type: mobile puzzle game obstacle/icon sprite atlas. Exactly FOUR columns by TWO rows, 8 icons in evenly sized invisible square cells, genuine transparent background. Every complete object centered in its cell with generous12percent transparent padding, no overlap, no cropping, no labels, no grid lines, no added UI. Production-ready polished3D casual mobile game art, Royal Match-style resource quality, soft rounded toy-like sculpting, rich saturated materials, warm upper-left lighting, smooth bevels, soft ambient occlusion and tight contact shadows, no black outlines. Row1 left to right: a tall rectangular crimson red giftbox with a shiny vertical gold ribbon and turquoise-blue bow at its middle; a cute plush golden-brown teddy bear with a red bowtie and tiny golden crown; a small plump purple wooden cuckoo bird with cream belly yellow beak and very cute eyes; a glossy thick rounded purple jelly square tile. Row2 left to right: a wooden crate with thick golden honey-coloured timber and diagonal braces; an icy cyan rectangular frosted ice-block with translucent beveled edges; a chunky pale lavender-gray stoneblock with a few cartoon cracks and beveled edges; one upright rainbow-coloured cylinder of dynamite with a small tan wick on top (red top through yellow green blue bottom). Coherent rendering style and equal perceived visual size. No environment, no confetti, no decorative text. Overallwide2:1 image with 4x2 grid; true transparent alpha outsideicons."
+    }
+  ],
+  "processing": "Converted generated PNG to WebP preserving alpha; browser decodes atlas into normalized optical-size icons via src/royal/raster-art.ts.",
+  "appIcon": {
+    "file": "app-icon-v3.png",
+    "source": "exec-39787b58-026a-41ba-8fd6-e2cb016624cc.png",
+    "prompt": "Use case: stylized-concept. Asset type: polished square iPhone home screen game app icon for Chroma Royale. One large rounded golden crown with three soft triangular points, warm dimensional gold bevels, one ruby red jewel at its center, subtle tiny blue inset jewels. Crown tilted slightly forward, centered and fills 76 percent of square. Background fills every corner with rich saturated royal blue to cyan gradient and a very subtle soft radial glow. Premium casual match-3 mobile game 3D art finish: smooth modeled volume, broad clean glossy highlights, soft ambient occlusion, distinct readable silhouette, no outlines. No text, no letters, no border, no rounded exterior corners, no extra objects, no watermarks. Entire square opaque.",
+    "processing": "Copied original, resized to512px with sips"
+  }
+}

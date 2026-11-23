@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#080B14" />
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icons/icon-180.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Chroma" />
+    <!-- The page already pads itself with the safe-area insets, so it can run
+         under the status bar for a full-bleed standalone window. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="description"
+      content="Chroma Match — a match-3 puzzle drawn entirely from canvas primitives. No engine, no sprites."
+    />
+    <title>Chroma Match</title>
+    <!--
+      The skin, before the first pixel.
+
+      `theme-color` is what the browser tints the status bar and the standalone
+      window's chrome with, and the module that applies the remembered skin is
+      deferred behind the whole import graph. Until it ran, a player on the
+      Paper skin got this file's near-black default painted into the safe areas
+      while the page itself came up cream — the bands read as holes in the app.
+
+      Only the page background is set here; src/render/skins owns the rest and
+      fills it in on load. The three values below are checked against those
+      modules by src/render/skins/skins.test.ts, so this copy cannot drift.
+    -->
+    <script>
+      (function () {
+        var bg = { jewel: '#080b14', glass: '#060818', paper: '#f2ecde' }
+        var id = null
+        try {
+          id = new URLSearchParams(location.search).get('skin') || localStorage.getItem('chroma.skin')
+        } catch (error) {
+          id = null
+        }
+        if (!bg[id]) return
+        document.documentElement.dataset.skin = id
+        document.documentElement.style.setProperty('--bg', bg[id])
+        var meta = document.querySelector('meta[name="theme-color"]')
+        if (meta) meta.setAttribute('content', bg[id])
+      })()
+    </script>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23080B14'/%3E%3Ccircle cx='11' cy='11' r='5' fill='%23FF4D6D'/%3E%3Ccircle cx='21' cy='21' r='5' fill='%2334D399'/%3E%3Crect x='17' y='6' width='10' height='10' rx='3' fill='%2338BDF8'/%3E%3Cpath d='M11 26l-5-9h10z' fill='%23FFB020'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <!--
+      The product name lives here, not on the lobby. The 3D character is the
+      slow asset; this screen holds the player until it is actually ready.
+    -->
+    <div class="splash" id="splash" role="dialog" aria-modal="true" aria-labelledby="splash-title" aria-describedby="splash-status">
+      <div class="splash-inner">
+        <div class="splash-mark" aria-hidden="true">
+          <span class="splash-gem splash-gem-r"></span>
+          <span class="splash-gem splash-gem-y"></span>
+          <span class="splash-gem splash-gem-g"></span>
+          <span class="splash-gem splash-gem-b"></span>
+        </div>
+        <h1 id="splash-title">Chroma Match</h1>
+        <p class="splash-tag" data-i18n="tagline">Six across, nine down. Line up three.</p>
+        <div class="splash-load">
+          <div class="splash-meter">
+            <div
+              class="splash-track"
+              id="splash-bar"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              aria-labelledby="splash-status"
+            >
+              <div class="splash-fill" id="splash-fill"></div>
+            </div>
+            <strong class="splash-pct" id="splash-pct">0%</strong>
+          </div>
+          <p class="splash-status" id="splash-status">Preparing your 3D lobby…</p>
+          <button class="btn btn-ghost" id="splash-skip" type="button">Enter lobby now</button>
+          <p class="splash-tag" id="splash-skip-note"></p>
+        </div>
+      </div>
+    </div>
+
+    <main class="app" inert>
+      <!-- ---------------------------------------------------------------- -->
+      <!-- Launch screen                                                    -->
+      <!-- ---------------------------------------------------------------- -->
+      <section class="screen world" id="screen-map" aria-labelledby="world-heading">
+        <h1 id="world-heading" class="sr-only">Chroma Isles</h1>
+        <div class="world-art" id="world-art" aria-hidden="true">
+          <img id="world-image" src="%BASE_URL%chroma-world-v3.webp" alt="" width="1024" height="1536" fetchpriority="high" />
+        </div>
+        <header class="world-header">
+          <div class="world-identity">
+            <button id="map-profile" type="button" aria-label="Your profile"><canvas id="map-avatar" aria-hidden="true"></canvas></button>
+            <div><strong id="map-name">Player</strong><button class="world-wallet" id="map-wallet" type="button" aria-label="Shop"><span class="coin" aria-hidden="true"></span><span id="map-coins">0</span><span class="world-wallet-add" aria-hidden="true">+</span></button></div>
+          </div>
+          <div class="world-utilities">
+            <button class="circle-button" data-action="how-to" type="button" aria-expanded="false" data-i18n-attr="aria-label:howToPlay title:howToPlay"><span class="hud-ico hud-ico-help" aria-hidden="true"></span></button>
+            <button class="circle-button" id="map-settings" type="button" aria-label="Settings"><span class="hud-ico hud-ico-gear" aria-hidden="true"></span></button>
+          </div>
+        </header>
+        <div class="world-content">
+          <div class="world-pins" id="world-pins" role="group" aria-label="Choose a region"></div>
+          <div class="world-secondary">
+            <button class="world-quick" id="map-freeplay" type="button"><span class="world-infinity" aria-hidden="true">∞</span><span class="sr-only"></span></button>
+          </div>
+          <div class="world-journey">
+            <svg class="world-track" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-hidden="true">
+              <path class="world-track-base" d="M100 118 C165 118 214 44 290 44 S416 145 500 145 S633 42 710 42 S833 114 900 114" />
+              <g id="world-track-earned" class="world-track-earned">
+                <path d="M100 118 C165 118 214 44 290 44" />
+                <path d="M290 44 C366 44 416 145 500 145" />
+                <path d="M500 145 C584 145 633 42 710 42" />
+                <path d="M710 42 C787 42 833 114 900 114" />
+              </g>
+            </svg>
+            <div class="world-missions" id="world-missions" role="group" aria-label="Missions"></div>
+          </div>
+        </div>
+        <div class="world-footer">
+          <div class="world-stage">
+            <span id="world-region-mark" aria-hidden="true">◆</span><strong id="world-region">Gem Forest</strong><span id="world-stage-number">1/5</span>
+            <span class="world-loot" id="world-loot"><span class="coin" aria-hidden="true"></span><strong id="world-reward">+40</strong></span>
+            <span class="world-progress"><span class="world-completion-mark" aria-hidden="true">✦</span><span id="world-progress">0/120</span></span>
+          </div>
+          <p id="world-note" role="status" hidden></p>
+          <div class="world-actions">
+            <button class="btn btn-ghost" id="map-continue" type="button" hidden><span id="map-continue-label">Continue</span><span id="map-continue-sub"></span></button>
+            <button class="btn btn-primary" id="world-play" type="button" aria-describedby="world-context world-note"><span id="world-play-region" aria-hidden="true"></span><span id="world-play-label">Play</span></button>
+          </div>
+        </div>
+        <p class="sr-only" id="world-context"></p>
+        <nav class="world-nav" aria-label="Main">
+          <details class="world-list"><summary id="world-list-label" aria-current="page"><span class="world-nav-mark" aria-hidden="true">⌖</span><span id="map-nav-current">Map</span></summary><div id="world-region-list"></div></details>
+          <button id="map-character" type="button"><span class="hud-ico hud-ico-figure" aria-hidden="true"></span><span>Character</span></button>
+          <button id="map-today" type="button" aria-haspopup="dialog"><span class="hud-ico hud-ico-today" aria-hidden="true"></span><span class="sr-only"></span></button>
+          <button id="map-ranks" type="button" aria-haspopup="dialog"><span class="hud-ico hud-ico-ranks" aria-hidden="true"></span><span class="sr-only"></span></button>
+          <button id="map-shop" type="button"><span class="hud-ico hud-ico-shop" aria-hidden="true"></span><span>Shop</span></button>
+        </nav>
+      </section>
+      <section class="screen home" id="screen-home" hidden>
+        <!--
+          Identity owns the top row with icon-only utilities. Destinations have
+          their own footer row so they cannot squeeze or cover the profile.
+        -->
+        <header class="lobby-head">
+          <section class="profile" aria-labelledby="profile-name">
+            <button class="profile-face" id="profile-face" type="button" aria-label="Your profile" data-i18n-attr="aria-label:profileAria">
+              <canvas class="avatar" id="profile-avatar" aria-hidden="true"></canvas>
+              <span class="profile-pen" aria-hidden="true"></span>
+            </button>
+            <div class="profile-body">
+              <strong class="profile-name" id="profile-name">Player</strong>
+              <span class="profile-wallet" data-i18n-attr="aria-label:walletAria">
+                <span class="coin" aria-hidden="true"></span>
+                <span class="wallet-value" id="home-coins">0</span>
+              </span>
+              <div class="profile-stats">
+                <span class="pstat">
+                  <span class="pstat-label" data-i18n="statBest">Best</span>
+                  <strong class="pstat-value" id="home-best">0</strong>
+                </span>
+                <span class="pstat">
+                  <span class="pstat-label" data-i18n="statRank">Rank</span>
+                  <strong class="pstat-value" id="home-rank">&mdash;</strong>
+                </span>
+                <span class="pstat">
+                  <span class="pstat-label" data-i18n="statLevel">Level</span>
+                  <strong class="pstat-value" id="home-level">1</strong>
+                </span>
+              </div>
+            </div>
+          </section>
+          <div class="lobby-utilities">
+            <button class="lobby-map" id="lobby-map" type="button">Map</button>
+            <button class="circle-button" data-action="how-to" type="button" aria-expanded="false" data-i18n-attr="aria-label:howToPlay title:howToPlay"><span class="hud-ico hud-ico-help" aria-hidden="true"></span></button>
+            <button class="circle-button" id="open-settings" type="button" data-i18n-attr="aria-label:settings title:settings"><span class="hud-ico hud-ico-gear" aria-hidden="true"></span></button>
+          </div>
+        </header>
+
+        <section class="lobby-stage" id="lobby-stage" aria-label="3D character">
+          <canvas id="lobby-canvas" tabindex="0"></canvas>
+          <div class="lobby-loading" id="lobby-loading" role="status"></div>
+          <button class="lobby-edit" id="lobby-edit" type="button" data-i18n-attr="aria-label:editAvatar title:editAvatar">
+            <span class="hud-ico hud-ico-edit" aria-hidden="true"></span>
+            <span class="lobby-edit-label" data-i18n="customizeAvatar">Customize</span>
+          </button>
+          <div class="lobby-tools" id="lobby-tools"></div>
+        </section>
+        <p class="sr-only" id="lobby-hint"></p>
+        <nav class="quick lobby-nav" aria-label="Ranks, missions and shop" data-i18n-attr="aria-label:lobbyNav">
+          <button class="quick-btn" id="open-ranks" type="button" data-i18n-attr="aria-label:quickRanks title:quickRanks">
+            <span class="hud-ico hud-ico-ranks" aria-hidden="true"></span>
+            <span class="quick-label" data-i18n="quickRanks">Ranks</span>
+          </button>
+          <button class="quick-btn" id="today-row" type="button" data-i18n-attr="aria-label:quickToday title:quickToday">
+            <span class="hud-ico hud-ico-today" aria-hidden="true"></span>
+            <span class="quick-label" data-i18n="quickToday">Today</span>
+            <span class="quick-badge" id="today-summary-badge" hidden>0</span>
+          </button>
+          <button class="quick-btn" id="open-shop" type="button" data-i18n-attr="aria-label:quickShop title:quickShop">
+            <span class="hud-ico hud-ico-shop" aria-hidden="true"></span>
+            <span class="quick-label" data-i18n="quickShop">Shop</span>
+          </button>
+        </nav>
+        <!--
+          A kept run is the first thing offered, because a player who left one
+          behind came back for it. Starting fresh is still one tap, and says
+          what it costs. They share a row so neither is stacked under the other.
+        -->
+        <div class="lobby-play">
+          <button class="btn btn-primary btn-play" id="continue-run" type="button" hidden>
+            <span data-i18n="continueRun">Continue</span><span class="btn-sub" id="continue-sub"></span>
+          </button>
+          <button class="btn btn-primary btn-play" id="start-game" type="button" data-i18n="play">Play</button>
+        </div>
+      </section>
+
+      <!-- ---------------------------------------------------------------- -->
+      <!-- Game screen                                                      -->
+      <!-- ---------------------------------------------------------------- -->
+      <!-- ---------------------------------------------------------------- -->
+      <!-- Shop                                                             -->
+      <!-- ---------------------------------------------------------------- -->
+      <section class="screen shop" id="screen-shop" hidden>
+        <header class="shop-head">
+          <button class="circle-button" id="shop-back" type="button" data-i18n-attr="aria-label:back title:back">
+            <span class="hud-ico hud-ico-back" aria-hidden="true"></span>
+          </button>
+          <h2 data-i18n="shopTitle">Shop</h2>
+          <span class="wallet-coins">
+            <span class="coin" aria-hidden="true"></span>
+            <strong class="wallet-value" id="shop-coins">0</strong>
+          </span>
+        </header>
+
+        <p class="shop-note" data-i18n="shopNote">
+          Coins come from finishing runs. Items bought here are yours to keep — you choose which
+          to carry in when you press Play.
+        </p>
+
+        <ul class="shop-list" id="shop-list">
+          <li class="shop-row" data-shop="hammer">
+            <span class="item-art item-hammer" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name" data-i18n="itemHammer">Hammer</strong>
+              <span class="shop-desc" data-i18n="itemHammerShop">Smash any one gem.</span>
+            </span>
+            <span class="shop-owned" data-owned="hammer">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="hammer" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="hammer">0</span>
+            </button>
+          </li>
+          <li class="shop-row" data-shop="shuffle">
+            <span class="item-art item-shuffle" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name" data-i18n="itemShuffle">Shuffle</strong>
+              <span class="shop-desc" data-i18n="itemShuffleHint">Smash any one gem.</span>
+            </span>
+            <span class="shop-owned" data-owned="shuffle">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="shuffle" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="shuffle">0</span>
+            </button>
+          </li>
+          <li class="shop-row" data-shop="bow">
+            <span class="item-art item-bow" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name" data-i18n="itemBow">Bow</strong>
+              <span class="shop-desc" data-i18n="itemBowHint">Smash any one gem.</span>
+            </span>
+            <span class="shop-owned" data-owned="bow">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="bow" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="bow">0</span>
+            </button>
+          </li>
+          <li class="shop-row" data-shop="rocket">
+            <span class="item-art item-rocket" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name" data-i18n="itemRocket">Rocket</strong>
+              <span class="shop-desc" data-i18n="itemRocketShop">Clear a whole row.</span>
+            </span>
+            <span class="shop-owned" data-owned="rocket">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="rocket" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="rocket">0</span>
+            </button>
+          </li>
+          <li class="shop-row" data-shop="bomb">
+            <span class="item-art item-bomb" aria-hidden="true"></span>
+            <span class="shop-text">
+              <strong class="shop-name" data-i18n="itemBomb">Bomb</strong>
+              <span class="shop-desc" data-i18n="itemBombShop">Blow up the square around a gem.</span>
+            </span>
+            <span class="shop-owned" data-owned="bomb">0</span>
+            <button class="btn btn-primary shop-buy" data-buy="bomb" type="button">
+              <span class="coin" aria-hidden="true"></span><span data-price="bomb">0</span>
+            </button>
+          </li>
+        </ul>
+
+        <h3 class="shop-sub" data-i18n="shopPacks">Coin packs</h3>
+        <!--
+          Nothing here charges anybody — see src/packs.ts. The note says so out
+          loud rather than in a tooltip, because a storefront that looks real
+          and is not is the one thing on this screen that could mislead.
+        -->
+        <p class="shop-note shop-note-demo" data-i18n="shopDemoNote">
+          Prototype checkout. No payment is taken and nothing is charged — Buy adds the coins so
+          the price ladder can be judged.
+        </p>
+        <ul class="packs" id="packs"></ul>
+
+        <p class="shop-status" id="shop-status" role="status"></p>
+
+        <p class="shop-foot" data-i18n="shopFoot">
+          A run pays out for the score it reached and every level it cleared. Items you carry in
+          are spent whether the run uses them or not.
+        </p>
+      </section>
+
+      <!-- ---------------------------------------------------------------- -->
+      <!-- Character creator                                                -->
+      <!-- ---------------------------------------------------------------- -->
+      <!--
+        Full-body character preview and appearance controls share one screen.
+        Draft changes are committed only by the Apply action.
+      -->
+      <section class="screen creator" id="screen-creator" hidden>
+        <header class="creator-head">
+          <button class="circle-button" id="creator-back" type="button" data-i18n-attr="aria-label:back title:back">
+            <span class="hud-ico hud-ico-back" aria-hidden="true"></span>
+          </button>
+          <h2 class="creator-title" data-i18n="editAvatar">Edit character</h2>
+          <div class="creator-head-actions" id="creator-actions"></div>
+        </header>
+
+        <div id="anime-studio"></div>
+      </section>
+
+      <section class="screen game" id="screen-game" hidden>
+        <section class="game-hud">
+          <div class="hud-goal">
+            <span class="hud-label" id="goal-text">Points to go</span>
+            <div class="goal-token"><canvas id="goal-gem" width="128" height="128" aria-hidden="true"></canvas><strong id="goal-remaining">1,800</strong></div>
+            <span class="goal-unit" id="goal-unit"></span>
+            <span class="sr-only"><span id="progress">0</span> / <span id="target">1,800</span></span>
+          </div>
+          <button class="hud-character" id="hud-character" type="button" aria-disabled="true">
+            <span class="hud-face"><canvas id="hud-avatar" aria-hidden="true"></canvas><svg class="fever-ring" viewBox="0 0 100 100" aria-hidden="true" hidden><circle class="fever-track" cx="50" cy="50" r="47"/><circle class="fever-fill" cx="50" cy="50" r="47" pathLength="100"/></svg><span class="hud-sparks" aria-hidden="true">✦</span><span id="hud-player-level" aria-hidden="true"></span></span>
+            <span class="hud-reaction" id="hud-reaction"></span>
+          </button>
+          <div class="stat hud-moves">
+            <span class="stat-label" data-i18n="statMoves">Moves</span>
+            <strong class="stat-value" id="moves">25</strong>
+          </div>
+        </section>
+
+        <section class="goal">
+          <div class="goal-row">
+            <span class="goal-level" id="level">Level 1</span>
+            <!-- What this level asks for. It changes from level to level now,
+                 so it cannot be left implied by a bare pair of numbers. -->
+          </div>
+          <div class="bar"><div class="bar-fill" id="bar"></div></div>
+        </section>
+
+        <!--
+          The legacy rotation prompt stays hidden: gameplay now uses a side
+          rail in wide windows and explicit row controls when a complete
+          nine-row board cannot fit at a usable gem size.
+        -->
+        <section class="rotate" id="rotate" role="alert" aria-live="assertive">
+          <div class="rotate-card">
+            <span class="rotate-icon" aria-hidden="true"></span>
+            <h2 data-i18n="rotateTitle">Turn your phone upright</h2>
+            <p data-i18n="rotateBody">
+              The board is nine rows tall. On a phone lying down there is no way to fit that
+              without shrinking the gems past a comfortable tap.
+            </p>
+            <button class="btn" id="rotate-dismiss" type="button" data-i18n="rotateDismiss">Play anyway</button>
+          </div>
+        </section>
+
+        <div class="game-playfield">
+          <!-- Feedback owns a permanent lane outside the scrolling canvas.
+               Showing, wrapping or animating it never moves a gem's target. -->
+          <div class="game-feedback">
+            <div class="combo" id="combo" role="status" aria-live="polite" aria-atomic="true" hidden>
+              <canvas id="combo-avatar" class="combo-avatar" aria-hidden="true" hidden></canvas>
+              <span class="combo-x" id="combo-x">&times;2</span>
+              <span class="combo-word" id="combo-word">chain</span>
+            </div>
+            <!-- One stable status lane: item targeting replaces idle fusion
+                 hints; a just-earned celebration briefly takes priority. -->
+            <p class="items-hint" id="items-hint" role="status" hidden></p>
+          </div>
+          <div class="stage">
+            <div class="board-wrap">
+              <canvas id="board" role="application" tabindex="0" aria-label="Game board" aria-describedby="board-key-help" data-i18n-attr="aria-label:boardAria"></canvas>
+              <p class="sr-only" id="board-key-help" data-i18n="boardKeys">Arrow keys move. Enter selects or swaps. Escape cancels. Tab leaves the board.</p>
+              <p class="sr-only" id="board-status" role="status"></p>
+            </div>
+          </div>
+        </div>
+
+        <!--
+          The tray sits under the board and above the footer: it is part of
+          playing, not part of the chrome, and a thumb reaching the board can
+          reach it without crossing anything else.
+        -->
+        <div class="items" id="items" role="group" aria-label="Items" data-i18n-attr="aria-label:itemsAria">
+          <button class="item" data-item="hammer" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-hammer" aria-hidden="true"></span>
+            <span class="item-name" data-i18n="itemHammer">Hammer</span>
+            <span class="item-count" data-count="hammer">0</span>
+          </button>
+          <button class="item" data-item="rocket" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-rocket" aria-hidden="true"></span>
+            <span class="item-name" data-i18n="itemRocket">Rocket</span>
+            <span class="item-count" data-count="rocket">0</span>
+          </button>
+          <button class="item" data-item="bomb" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-bomb" aria-hidden="true"></span>
+            <span class="item-name" data-i18n="itemBomb">Bomb</span>
+            <span class="item-count" data-count="bomb">0</span>
+          </button>
+          <button class="item" data-item="bow" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-bow" aria-hidden="true"></span>
+            <span class="item-name" data-i18n="itemBow">Bow</span>
+            <span class="item-count" data-count="bow">0</span>
+          </button>
+          <button class="item" data-item="shuffle" type="button" aria-pressed="false" disabled>
+            <span class="item-art item-shuffle" aria-hidden="true"></span>
+            <span class="item-name" data-i18n="itemShuffle">Shuffle</span>
+            <span class="item-count" data-count="shuffle">0</span>
+          </button>
+          <div class="board-scroll-hint" role="group" aria-labelledby="board-scroll-hint">
+            <p class="sr-only" id="board-scroll-hint"></p>
+            <button class="circle-button" id="board-scroll-up" type="button" aria-controls="board">↑</button>
+            <button class="circle-button" id="board-scroll-down" type="button" aria-controls="board">↓</button>
+          </div>
+          <button class="circle-button game-exit" id="pause" type="button" data-i18n-attr="aria-label:pauseAria title:pauseAria">
+            <span class="hud-ico hud-ico-exit" aria-hidden="true"></span>
+          </button>
+        </div>
+
+      </section>
+
+    </main>
+
+      <section class="overlay sheet" id="help" hidden>
+        <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="help-title">
+        <h2 id="help-title" tabindex="-1" data-i18n="howToPlay">How to play</h2>
+        <p class="card-body" id="help-intro"></p>
+        <div class="rule-patterns" id="rule-patterns"></div>
+        <p class="card-body" id="help-variety"></p>
+        <details class="rule-details"><summary id="help-details-title"></summary><ul>
+          <li data-i18n="helpSwap">Swap two neighbouring gems to line up three or more of a colour.</li>
+          <li data-i18n="helpShapes">Every colour has its own shape, so the board reads without relying on hue.</li>
+          <li data-i18n="helpFour">Four in a row leaves a striped gem that clears its whole line.</li>
+          <li data-i18n="helpLT">An L or T leaves a bomb that clears the surrounding 3×3.</li>
+          <li data-i18n="helpFive">
+            Five in a line leaves a prism — swap it onto any colour to wipe that colour off the
+            board.
+          </li>
+          <li data-i18n="helpCascade">Cascades multiply your score, up to ×8.</li>
+          <li data-i18n="helpFusion">In new runs, swap adjacent power gems to fuse them, even across colours. Stripes make a cross; stripe + bomb clears three rows and columns; two bombs clear 5×5.</li>
+          <li data-i18n="helpPrismFusion">Prism + power fires that power from every gem of its colour. Two prisms clear the board.</li>
+          <li data-i18n="helpItems">
+            Finish a level to earn an item, and land a ×5 chain for a bomb. Items cost no move —
+            and they are earned fresh every run, so the board is the same climb for everyone.
+          </li>
+        </ul><p data-i18n="boardKeys"></p></details>
+        <button class="btn btn-ghost" id="help-close" data-i18n="settingsDone" type="button">Done</button>
+        </div>
+      </section>
+
+    <!--
+      Who the player is: the face they play as, the name that posts, and the
+      account it all hangs off. One full-page destination — an
+      avatar editor on its own page and a sign-in row somewhere else is two
+      places to go to answer the same question.
+    -->
+    <section class="screen profile-page" id="sheet-profile" aria-labelledby="sheet-profile-title" hidden>
+      <div class="profile-page-content">
+        <header class="profile-page-head">
+          <button class="circle-button" id="profile-close" type="button" data-i18n-attr="aria-label:back title:back"><span aria-hidden="true">←</span></button>
+          <h2 class="sheet-title" id="sheet-profile-title" tabindex="-1" data-i18n="profileTitle">Your profile</h2>
+          <div id="profile-utilities"></div>
+        </header>
+
+        <section class="profile-hero">
+        <div class="editor">
+          <canvas class="editor-preview" id="profile-preview" aria-hidden="true"></canvas>
+          <label class="editor-name">
+            <span data-i18n="displayName">Display name</span>
+            <input
+              class="post-input"
+              id="profile-name-input"
+              type="text"
+              maxlength="16"
+              autocomplete="nickname"
+              placeholder="Your name"
+              data-i18n-attr="placeholder:namePlaceholder"
+              enterkeyhint="done"
+            />
+          </label>
+        </div>
+
+        <button class="btn btn-primary profile-edit" id="profile-edit" type="button" data-i18n="editAvatar">
+          Edit character
+        </button>
+        </section>
+        <div id="profile-growth-slot"></div>
+        <section class="profile-account" aria-labelledby="account-sub">
+        <p class="sheet-sub" id="account-sub">Sign in to keep your runs across devices</p>
+        <p class="profile-code" id="profile-code" hidden></p>
+        <button class="btn btn-primary sheet-cta" id="account-action" type="button">
+          Sign in with Google
+        </button>
+        </section>
+      </div>
+    </section>
+
+    <!--
+      The board, over the launch screen rather than on it. It was the tallest
+      thing on that screen and the one a player looks at least often.
+    -->
+    <!--
+      Settings. The language list is first because it is the one thing here a
+      player may need before they can read anything else on the screen, and it
+      is spelled in its own language for the same reason: somebody who has
+      landed in the wrong one cannot find their way out of a list written in it.
+    -->
+    <div class="overlay sheet" id="sheet-settings" hidden>
+      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-settings-title">
+        <span class="sheet-handle" aria-hidden="true"></span>
+        <h2 class="sheet-title" id="sheet-settings-title" data-i18n="settingsTitle">Settings</h2>
+
+        <section class="set-group" aria-labelledby="set-lang-title">
+          <h3 class="set-title" id="set-lang-title" data-i18n="settingsLanguage">Language</h3>
+          <div class="set-langs" id="set-langs" role="radiogroup" aria-labelledby="set-lang-title"></div>
+        </section>
+
+        <section class="set-group" aria-labelledby="set-skin-title">
+          <h3 class="set-title" id="set-skin-title" data-i18n="settingsSkin">Board style</h3>
+          <p class="set-sub" data-i18n="settingsSkinSub">The same game in a different coat of paint</p>
+          <div class="set-skins" id="set-skins" role="radiogroup" aria-labelledby="set-skin-title"></div>
+        </section>
+
+        <section class="set-group">
+          <button class="set-row" id="set-sound" type="button" role="switch" aria-checked="true">
+            <span class="set-row-text">
+              <strong class="set-row-name" data-i18n="settingsSound">Sound</strong>
+              <span class="set-row-sub" data-i18n="settingsSoundSub">Effects while you play</span>
+            </span>
+            <span class="set-switch" aria-hidden="true"></span>
+          </button>
+          <button class="set-row" id="set-haptics" type="button" role="switch" aria-checked="true">
+            <span class="set-row-text">
+              <strong class="set-row-name" data-i18n="settingsHaptics">Vibration</strong>
+              <span class="set-row-sub" id="set-haptics-sub"></span>
+            </span>
+            <span class="set-switch" aria-hidden="true"></span>
+          </button>
+        </section>
+
+        <button class="btn btn-primary sheet-cta" id="settings-done" type="button" data-i18n="settingsDone">
+          Done
+        </button>
+      </div>
+    </div>
+
+    <div class="overlay sheet" id="sheet-ranks" hidden>
+      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="ranks-title">
+        <span class="sheet-handle" aria-hidden="true"></span>
+        <section class="ranks">
+          <div class="ranks-banner">
+            <h2 id="ranks-title" tabindex="-1" data-i18n="leaderboard">Leaderboard</h2>
+            <button class="circle-button sheet-close" id="ranks-close" type="button" data-i18n-attr="aria-label:close title:close"><span aria-hidden="true">×</span></button>
+          </div>
+          <header class="ranks-head">
+            <!--
+              Two boards, not two screens. A friends board on its own page is a
+              page nobody opens; next to the global one it is a comparison, which
+              is the entire point of having friends on a leaderboard.
+            -->
+            <div class="ranks-tabs" role="tablist" aria-labelledby="ranks-title">
+              <button
+                class="ranks-tab is-on"
+                data-board="everyone"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                data-i18n="tabEveryone"
+              >
+                Everyone
+              </button>
+              <button
+                class="ranks-tab"
+                data-board="friends"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-i18n="tabFriends"
+              >
+                Friends
+              </button>
+            </div>
+            <span class="ranks-note" id="ranks-note" role="status">Loading&hellip;</span>
+          </header>
+
+          <!-- Only on the friends tab: your code to hand out, and a box to
+               take one in. -->
+          <div class="friends-tools" id="friends-tools" hidden>
+            <button class="code-chip" id="my-code" type="button" title="Copy your friend code" data-i18n-attr="title:copyCode">
+              <span class="code-label" data-i18n="myCode">Your code</span>
+              <strong class="code-value" id="my-code-value">&mdash;&mdash;&mdash;</strong>
+            </button>
+            <form class="friend-add" id="friend-add">
+              <input
+                class="friend-input"
+                id="friend-code"
+                type="text"
+                maxlength="9"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="Friend code"
+                data-i18n-attr="placeholder:friendCodePlaceholder"
+                enterkeyhint="done"
+              />
+              <button class="btn btn-primary" id="friend-submit" type="submit" data-i18n="addFriend">Add</button>
+            </form>
+            <p class="friend-status" id="friend-status" role="status"></p>
+          </div>
+
+          <ol class="ranks-list" id="ranks-list"></ol>
+        </section>
+      </div>
+    </div>
+
+
+    <!--
+      The character editor's file tools.
+
+      Exporting a .vrm, restoring a .json, choosing whether a PNG keeps its
+      background: real features, and none of them anything a player needs on
+      the way to picking a hairstyle. They sit behind one button in a sheet,
+      which is how the launch screen already handles a block that does not earn
+      a permanent row. The editor fills the panel; the markup is only the shell.
+    -->
+    <div class="overlay sheet" id="sheet-studio-files" hidden>
+      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-studio-files-title">
+        <span class="sheet-handle" aria-hidden="true"></span>
+        <h2 class="sheet-title" id="sheet-studio-files-title" data-i18n="studioFilesTitle">Files &amp; exports</h2>
+        <div id="studio-files-body"></div>
+      </div>
+    </div>
+
+    <!--
+      The today row's sheet: the daily reward and the three missions, moved
+      here wholesale from the launch screen. Nothing about how they work
+      changed — only where a player has to go to see them.
+    -->
+    <div class="overlay sheet" id="sheet-today" hidden>
+      <div class="card sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-today-title">
+        <span class="sheet-handle" aria-hidden="true"></span>
+        <h2 class="sheet-title" id="sheet-today-title" data-i18n="todayTitle">Today</h2>
+
+        <button class="daily" id="daily-claim" type="button">
+          <span class="daily-gift" aria-hidden="true"></span>
+          <span class="daily-text">
+            <strong class="daily-name" id="daily-name">Daily reward</strong>
+            <span class="daily-sub" id="daily-sub">&nbsp;</span>
+          </span>
+          <span class="daily-take" id="daily-take">Claim</span>
+        </button>
+
+        <ul class="missions" id="missions"></ul>
+      </div>
+    </div>
+
+    <!--
+      Chosen before the board is dealt, the way a loadout is: once a run has
+      started, an item is something you spend, not something you bring.
+    -->
+    <div class="overlay" id="paused" hidden>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="paused-title">
+        <p class="card-kicker" data-i18n="paused">Paused</p>
+        <h2 id="paused-title">Level 1</h2>
+        <p class="card-body" id="paused-body"></p>
+        <p class="card-body" id="run-upgrades" hidden></p>
+
+        <button class="btn btn-primary" id="paused-resume" type="button" data-i18n="resume">Resume</button>
+        <!--
+          Two ways out, and they are genuinely different. Keeping puts the run
+          down where it stands; ending it banks the score and pays the run out,
+          which is what leaving used to do silently and badly.
+        -->
+        <button class="btn" id="paused-keep" type="button" data-i18n="keepForLater">Keep for later</button>
+        <button class="btn" id="paused-end" type="button" data-i18n="endRunNow">End run now</button>
+
+        <div class="paused-tools">
+          <button class="btn btn-ghost" data-action="how-to" type="button" aria-expanded="false" data-i18n="howToPlay">
+            How to play
+          </button>
+          <button class="btn btn-ghost" data-action="sound" type="button" aria-pressed="true">
+            <span class="sound-label">Sound on</span>
+          </button>
+        </div>
+        <p class="seed" id="seed" title="Board seed — share it to replay the same board"></p>
+      </div>
+    </div>
+
+    <div class="overlay" id="loadout" hidden>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="loadout-title" aria-describedby="loadout-supply">
+        <p class="card-kicker" data-i18n="beforeYouStart">Before you start</p>
+        <h2 id="loadout-title" data-i18n="loadoutTitle">Your starting items are ready</h2>
+        <section class="loadout-content" id="loadout-content" tabindex="0" aria-labelledby="loadout-title">
+        <p class="card-body" id="loadout-supply">Every new run includes 3 hammers, 3 rockets and 3 bombs. Items cost no moves.</p>
+        <p class="card-body" id="loadout-body" data-i18n="loadoutBody">Optionally take up to two extra items from your stash.</p>
+
+        <div class="loadout-grid" id="loadout-grid">
+          <button class="loadout-pick" data-load="hammer" type="button" aria-pressed="false">
+            <span class="item-art item-hammer" aria-hidden="true"></span>
+            <span class="loadout-name" data-i18n="itemHammer">Hammer</span>
+            <span class="loadout-have" data-have="hammer">0</span>
+          </button>
+          <button class="loadout-pick" data-load="shuffle" type="button" aria-pressed="false">
+            <span class="item-art item-shuffle" aria-hidden="true"></span>
+            <span class="loadout-name" data-i18n="itemShuffle">Shuffle</span>
+            <span class="loadout-have" data-have="shuffle">0</span>
+          </button>
+          <button class="loadout-pick" data-load="bow" type="button" aria-pressed="false">
+            <span class="item-art item-bow" aria-hidden="true"></span>
+            <span class="loadout-name" data-i18n="itemBow">Bow</span>
+            <span class="loadout-have" data-have="bow">0</span>
+          </button>
+          <button class="loadout-pick" data-load="rocket" type="button" aria-pressed="false">
+            <span class="item-art item-rocket" aria-hidden="true"></span>
+            <span class="loadout-name" data-i18n="itemRocket">Rocket</span>
+            <span class="loadout-have" data-have="rocket">0</span>
+          </button>
+          <button class="loadout-pick" data-load="bomb" type="button" aria-pressed="false">
+            <span class="item-art item-bomb" aria-hidden="true"></span>
+            <span class="loadout-name" data-i18n="itemBomb">Bomb</span>
+            <span class="loadout-have" data-have="bomb">0</span>
+          </button>
+        </div>
+
+        <p class="loadout-empty" id="loadout-empty" data-i18n="loadoutEmpty" hidden>
+          No extras in your stash. You can start with the supplied items.
+        </p>
+        </section>
+        <div class="loadout-actions">
+        <button class="btn btn-primary" id="loadout-start" type="button" data-i18n="loadoutStart">Start run</button>
+        <button class="btn btn-ghost" id="loadout-cancel" type="button" data-i18n="back">Back</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay" hidden>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+        <div class="victory" id="overlay-victory" aria-hidden="true" hidden>
+          <div class="victory-confetti" id="victory-confetti"></div>
+          <span class="victory-orbit"></span>
+          <canvas id="victory-avatar"></canvas>
+          <span class="victory-star">✦</span>
+        </div>
+        <p class="card-kicker" id="overlay-kicker"></p>
+        <h2 id="overlay-title"></h2>
+        <div class="card-hero" id="overlay-hero" hidden>
+          <strong class="card-hero-value" id="overlay-hero-value"></strong>
+          <span class="card-hero-caption" id="overlay-hero-caption"></span>
+          <span class="card-flair" id="overlay-flair" hidden></span>
+        </div>
+        <p class="card-body" id="overlay-body"></p>
+        <fieldset class="upgrade-choices" id="upgrade-choices" hidden><legend id="upgrade-legend"></legend><div id="upgrade-options"></div></fieldset>
+
+        <!-- Only shown when a finished run can be posted to the board. -->
+        <form class="post-run" id="post-run" hidden>
+          <label class="post-label" for="post-name" data-i18n="postThisRun">Post this run</label>
+          <div class="post-row">
+            <input
+              class="post-input"
+              id="post-name"
+              type="text"
+              maxlength="16"
+              autocomplete="nickname"
+              placeholder="Your name"
+              data-i18n-attr="placeholder:namePlaceholder"
+              enterkeyhint="send"
+            />
+            <button class="btn btn-primary" id="post-submit" type="submit" data-i18n="postScore">Post</button>
+          </div>
+          <p class="post-status" id="post-status" role="status"></p>
+        </form>
+
+        <button class="btn btn-primary" id="overlay-action" type="button"></button>
+        <button class="btn btn-ghost" id="overlay-home" type="button" data-i18n="backToHome" hidden>Back to home</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

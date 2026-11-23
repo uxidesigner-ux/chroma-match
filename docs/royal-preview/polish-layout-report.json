@@ -1,0 +1,86 @@
+[
+  {
+    "width": 320,
+    "height": 568,
+    "errors": [],
+    "overflow": false,
+    "smallTargets": [],
+    "outside": [],
+    "dialog": {
+      "height": 533.90625,
+      "clientHeight": 526,
+      "scrollHeight": 550
+    },
+    "cta": {
+      "x": 55,
+      "y": 383.953125,
+      "width": 210,
+      "height": 62.390625
+    }
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "smallTargets": [],
+    "outside": [],
+    "dialog": {
+      "height": 703.859375,
+      "clientHeight": 696,
+      "scrollHeight": 696
+    },
+    "cta": {
+      "x": 62,
+      "y": 522.03125,
+      "width": 266,
+      "height": 74
+    }
+  },
+  {
+    "width": 430,
+    "height": 932,
+    "errors": [],
+    "overflow": false,
+    "smallTargets": [],
+    "outside": [],
+    "dialog": {
+      "height": 717.1875,
+      "clientHeight": 709,
+      "scrollHeight": 709
+    },
+    "cta": {
+      "x": 62,
+      "y": 572.703125,
+      "width": 306,
+      "height": 74
+    }
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "errors": [],
+    "overflow": false,
+    "smallTargets": [
+      {
+        "label": "내 왕국과 보상 보기",
+        "x": 22,
+        "y": 10.5,
+        "w": 43,
+        "h": 43
+      }
+    ],
+    "outside": [],
+    "dialog": {
+      "height": 360.75,
+      "clientHeight": 353,
+      "scrollHeight": 356
+    },
+    "cta": {
+      "x": 444,
+      "y": 150.578125,
+      "width": 267,
+      "height": 62.390625
+    }
+  }
+]

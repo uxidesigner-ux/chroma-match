@@ -1,0 +1,17 @@
+{
+  "generator": "Built-in image_gen",
+  "created": "2026-11-23",
+  "assets": [
+    {
+      "file": "castle-courtyard.webp",
+      "original": "castle-courtyard.png",
+      "prompt": "Use case: stylized-concept. Create a finished background illustration asset for a premium royal-themed mobile match-3 puzzle game, portrait 1024x1536. Vibrant polished rounded 3D cartoon art like a lavish storybook castle courtyard. Bright turquoise blue sky in upper quarter, cream-stone castle walls and round blue-roof turrets with warm golden trims along left and right edges, small flowing scarlet banners. Broad inviting blue royal carpet with gold edge on cool blue-gray stone paving in bottom half. Lush trimmed green shrubs and a few flower pots at outer edges. View slightly elevated facing into a courtyard with a distant arched golden gate. Center 70% width and middle 65% height should be calm, simple, low-detail blue-gray paving and sky so a game board can sit on top clearly. Strong readable silhouettes, soft bevels, beautiful ambient occlusion, warm sun at upper left, saturated royal blue and turquoise, golden highlights and muted lavender shadows. No characters, no gems, no puzzle board, no panels, no text, no lettering, no logos, no watermark. Fully finished production game environment background, not a UI mockup."
+    },
+    {
+      "file": "king-portrait.webp",
+      "original": "king-portrait.png",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Create a single isolated friendly king character portrait for a premium royal match-3 mobile game HUD, square 1024x1024. Original cartoon character: jovial broad-faced middle-aged king, round rosy nose, expressive warm brown eyes, raised thick eyebrows, magnificent curled silver moustache over a neatly shaped dark brown beard with silver edges, smiling. Large polished golden five-point crown with royal blue enamel base and a red ruby jewel; rich red royal coat with cream fur collar and gold trim, royal blue shoulders. Frame chest-up, head and crown fill almost entire square, symmetrical front view with slight natural tilt, confident welcoming expression, silhouette very readable at 80px. High-quality rounded 3D animated-film rendering, luscious glossy gold, soft detailed fur, saturated clear colors, warm front-left lighting and soft ambient occlusion. Genuine transparent background, clean alpha edges, no environment, no throne, no frame, no oval border, no pedestal, no text or logo or watermark. No hands, no objects. Entire crown visible, no cropping top."
+    }
+  ]
+}

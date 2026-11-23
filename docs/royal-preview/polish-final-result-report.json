@@ -1,0 +1,426 @@
+[
+  {
+    "width": 320,
+    "height": 568,
+    "errors": [],
+    "retry": {
+      "dialog": {
+        "x": 19,
+        "y": 33.46875,
+        "width": 282,
+        "height": 501.0625,
+        "bottom": 534.53125
+      },
+      "clientHeight": 501,
+      "scrollHeight": 501,
+      "frame": {
+        "x": 24,
+        "y": 33.46875,
+        "width": 272,
+        "height": 399.0625,
+        "bottom": 432.53125
+      },
+      "footer": {
+        "x": 19,
+        "y": 454.53125,
+        "width": 282,
+        "height": 80,
+        "bottom": 534.53125
+      },
+      "cta": {
+        "x": 60,
+        "y": 353.140625,
+        "width": 200,
+        "height": 62.390625,
+        "bottom": 415.53125
+      }
+    },
+    "failed": {
+      "dialog": {
+        "x": 19,
+        "y": 14.96875,
+        "width": 282,
+        "height": 538.0625,
+        "bottom": 553.03125
+      },
+      "clientHeight": 538,
+      "scrollHeight": 538,
+      "frame": {
+        "x": 24,
+        "y": 14.96875,
+        "width": 272,
+        "height": 436.0625,
+        "bottom": 451.03125
+      },
+      "footer": {
+        "x": 19,
+        "y": 473.03125,
+        "width": 282,
+        "height": 80,
+        "bottom": 553.03125
+      },
+      "cta": {
+        "x": 60,
+        "y": 334.640625,
+        "width": 200,
+        "height": 62.390625,
+        "bottom": 397.03125
+      }
+    },
+    "dialogVisible": true,
+    "horizontalOverflow": false,
+    "snapshot": {
+      "level": 12297,
+      "cols": 9,
+      "rows": 11,
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 18,
+          "remaining": 18
+        },
+        {
+          "kind": "dynamite",
+          "count": 8,
+          "remaining": 8
+        },
+        {
+          "kind": "cuckoo",
+          "count": 2,
+          "remaining": 1
+        },
+        {
+          "kind": "jelly",
+          "count": 81,
+          "remaining": 81
+        }
+      ],
+      "moves": 0,
+      "status": "lost",
+      "turn": 1,
+      "locked": [],
+      "hint": [
+        14,
+        14
+      ]
+    }
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "retry": {
+      "dialog": {
+        "x": 19,
+        "y": 100.90625,
+        "width": 352,
+        "height": 642.171875,
+        "bottom": 743.078125
+      },
+      "clientHeight": 642,
+      "scrollHeight": 642,
+      "frame": {
+        "x": 24,
+        "y": 100.90625,
+        "width": 342,
+        "height": 502.171875,
+        "bottom": 603.078125
+      },
+      "footer": {
+        "x": 19,
+        "y": 634.078125,
+        "width": 352,
+        "height": 109,
+        "bottom": 743.078125
+      },
+      "cta": {
+        "x": 67,
+        "y": 503.078125,
+        "width": 256,
+        "height": 74,
+        "bottom": 577.078125
+      }
+    },
+    "failed": {
+      "dialog": {
+        "x": 19,
+        "y": 77.96875,
+        "width": 352,
+        "height": 688.0625,
+        "bottom": 766.03125
+      },
+      "clientHeight": 688,
+      "scrollHeight": 688,
+      "frame": {
+        "x": 24,
+        "y": 77.96875,
+        "width": 342,
+        "height": 548.0625,
+        "bottom": 626.03125
+      },
+      "footer": {
+        "x": 19,
+        "y": 657.03125,
+        "width": 352,
+        "height": 109,
+        "bottom": 766.03125
+      },
+      "cta": {
+        "x": 67,
+        "y": 480.140625,
+        "width": 256,
+        "height": 74,
+        "bottom": 554.140625
+      }
+    },
+    "dialogVisible": true,
+    "horizontalOverflow": false,
+    "snapshot": {
+      "level": 12297,
+      "cols": 9,
+      "rows": 11,
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 18,
+          "remaining": 18
+        },
+        {
+          "kind": "dynamite",
+          "count": 8,
+          "remaining": 8
+        },
+        {
+          "kind": "cuckoo",
+          "count": 2,
+          "remaining": 1
+        },
+        {
+          "kind": "jelly",
+          "count": 81,
+          "remaining": 81
+        }
+      ],
+      "moves": 0,
+      "status": "lost",
+      "turn": 1,
+      "locked": [],
+      "hint": [
+        14,
+        14
+      ]
+    }
+  },
+  {
+    "width": 430,
+    "height": 932,
+    "errors": [],
+    "retry": {
+      "dialog": {
+        "x": 19,
+        "y": 141.25,
+        "width": 392,
+        "height": 649.5,
+        "bottom": 790.75
+      },
+      "clientHeight": 650,
+      "scrollHeight": 650,
+      "frame": {
+        "x": 24,
+        "y": 141.25,
+        "width": 382,
+        "height": 509.5,
+        "bottom": 650.75
+      },
+      "footer": {
+        "x": 19,
+        "y": 681.75,
+        "width": 392,
+        "height": 109,
+        "bottom": 790.75
+      },
+      "cta": {
+        "x": 67,
+        "y": 550.75,
+        "width": 296,
+        "height": 74,
+        "bottom": 624.75
+      }
+    },
+    "failed": {
+      "dialog": {
+        "x": 19,
+        "y": 118.296875,
+        "width": 392,
+        "height": 695.390625,
+        "bottom": 813.6875
+      },
+      "clientHeight": 695,
+      "scrollHeight": 695,
+      "frame": {
+        "x": 24,
+        "y": 118.296875,
+        "width": 382,
+        "height": 555.390625,
+        "bottom": 673.6875
+      },
+      "footer": {
+        "x": 19,
+        "y": 704.6875,
+        "width": 392,
+        "height": 109,
+        "bottom": 813.6875
+      },
+      "cta": {
+        "x": 67,
+        "y": 527.796875,
+        "width": 296,
+        "height": 74,
+        "bottom": 601.796875
+      }
+    },
+    "dialogVisible": true,
+    "horizontalOverflow": false,
+    "snapshot": {
+      "level": 12297,
+      "cols": 9,
+      "rows": 11,
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 18,
+          "remaining": 18
+        },
+        {
+          "kind": "dynamite",
+          "count": 8,
+          "remaining": 8
+        },
+        {
+          "kind": "cuckoo",
+          "count": 2,
+          "remaining": 1
+        },
+        {
+          "kind": "jelly",
+          "count": 81,
+          "remaining": 81
+        }
+      ],
+      "moves": 0,
+      "status": "lost",
+      "turn": 1,
+      "locked": [],
+      "hint": [
+        14,
+        14
+      ]
+    }
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "errors": [],
+    "retry": {
+      "dialog": {
+        "x": 107,
+        "y": 11.125,
+        "width": 630,
+        "height": 367.75,
+        "bottom": 378.875
+      },
+      "clientHeight": 368,
+      "scrollHeight": 369,
+      "frame": {
+        "x": 112,
+        "y": 11.125,
+        "width": 620,
+        "height": 297.75,
+        "bottom": 308.875
+      },
+      "footer": {
+        "x": 107,
+        "y": 323.875,
+        "width": 630,
+        "height": 55,
+        "bottom": 378.875
+      },
+      "cta": {
+        "x": 444,
+        "y": 153.171875,
+        "width": 262,
+        "height": 62.390625,
+        "bottom": 215.5625
+      }
+    },
+    "failed": {
+      "dialog": {
+        "x": 107,
+        "y": 11.125,
+        "width": 630,
+        "height": 367.75,
+        "bottom": 378.875
+      },
+      "clientHeight": 368,
+      "scrollHeight": 369,
+      "frame": {
+        "x": 112,
+        "y": 11.125,
+        "width": 620,
+        "height": 297.75,
+        "bottom": 308.875
+      },
+      "footer": {
+        "x": 107,
+        "y": 323.875,
+        "width": 630,
+        "height": 55,
+        "bottom": 378.875
+      },
+      "cta": {
+        "x": 444,
+        "y": 135.578125,
+        "width": 262,
+        "height": 62.390625,
+        "bottom": 197.96875
+      }
+    },
+    "dialogVisible": true,
+    "horizontalOverflow": false,
+    "snapshot": {
+      "level": 12297,
+      "cols": 9,
+      "rows": 11,
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 18,
+          "remaining": 18
+        },
+        {
+          "kind": "dynamite",
+          "count": 8,
+          "remaining": 8
+        },
+        {
+          "kind": "cuckoo",
+          "count": 2,
+          "remaining": 1
+        },
+        {
+          "kind": "jelly",
+          "count": 81,
+          "remaining": 81
+        }
+      ],
+      "moves": 0,
+      "status": "lost",
+      "turn": 1,
+      "locked": [],
+      "hint": [
+        14,
+        14
+      ]
+    }
+  }
+]

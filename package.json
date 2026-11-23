@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "A match-3 puzzle game rendered on canvas. No engine, no sprites — every gem is drawn from shape primitives.",
+  "description": "A personal match-3 puzzle with a royal lobby, layered obstacles, level editor, and Canvas gameplay.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && node --check public/sw.js && vite build",
@@ -11,11 +11,15 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-game.mjs",
     "test:all": "node --test \"src/**/*.test.ts\"",
-    "test:game-ui": "playwright test --config playwright.game.config.ts",
+    "test:game-ui": "playwright test --config playwright.royal.config.ts",
+    "test:legacy-game-ui": "playwright test --config playwright.game.config.ts",
     "test:studio": "playwright test --config playwright.studio.config.ts",
-    "test:release": "playwright test --config playwright.release.config.ts",
+    "pretest:release": "node scripts/prepare-release-browsers.mjs",
+    "test:release": "playwright test --config playwright.royal-release.config.ts",
+    "test:legacy-release": "playwright test --config playwright.release.config.ts",
     "icons": "node scripts/make-icons.mjs",
-    "tune": "node scripts/tune-board.ts"
+    "tune": "node scripts/tune-board.ts",
+    "test:royal": "playwright test --config playwright.royal.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

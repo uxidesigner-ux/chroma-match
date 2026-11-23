@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { MAX_KINDS } from '../../game/types.ts'
+import { ROYAL } from './royal.ts'
 import { GLASS } from './glass.ts'
 import { JEWEL } from './jewel.ts'
 import { PAPER } from './paper.ts'
@@ -18,7 +19,7 @@ import type { Skin } from './types.ts'
  * Node. The skins themselves are pure data plus canvas calls, so they are
  * listed directly.
  */
-const SKINS: readonly Skin[] = [JEWEL, GLASS, PAPER]
+const SKINS: readonly Skin[] = [ROYAL, JEWEL, GLASS, PAPER]
 
 for (const skin of SKINS) {
   test(`${skin.id}: carries a colour for every kind the board can deal`, () => {
@@ -79,27 +80,25 @@ test('skins are visually distinct from one another', () => {
   assert.equal(new Set(firstColours).size, firstColours.length)
 })
 
-test("index.html's first-paint bootstrap carries every skin's real background", () => {
-  // The browser tints the status bar and the standalone window from
-  // `theme-color`, and this module is deferred behind the whole import graph —
-  // so index.html applies the remembered skin's ground itself, before the
-  // first paint, from a copy of these three values. A skin renamed or
-  // recoloured here without that copy following would put a stale colour in
-  // the safe areas of every launch. This is that check.
+test('royal entry loads the private target-driven application', () => {
   const html = readFileSync(new URL('../../../index.html', import.meta.url), 'utf8')
+  assert.match(html, /<html[^>]+data-skin="royal"/)
+  const theme = html.match(/<meta\s+name="theme-color"\s+content="([^"]+)"/)
+  assert.match(theme?.[1] ?? '', /^#[0-9a-f]{6}$/)
+  assert.match(html, /src="\/src\/royal\/app\.ts"/)
+  assert.doesNotMatch(html, /src="\/src\/main\.ts"/)
+})
+
+test('legacy first-paint map retains the original remembered skin colours', () => {
+  const html = readFileSync(new URL('../../../legacy.html', import.meta.url), 'utf8')
   const literal = html.match(/var bg = \{([^}]*)\}/)
-  assert.ok(literal, 'index.html has no first-paint skin map')
+  assert.ok(literal, 'legacy.html has no first-paint skin map')
   const bootstrap = new Map<string, string>()
   for (const entry of literal[1]!.split(',')) {
     const pair = entry.match(/\s*([a-z0-9-]+):\s*'(#[0-9a-f]{6})'\s*/)
     if (pair) bootstrap.set(pair[1]!, pair[2]!)
   }
-  assert.equal(bootstrap.size, SKINS.length)
-  for (const skin of SKINS) {
-    assert.equal(
-      bootstrap.get(skin.id),
-      skin.css.bg.toLowerCase(),
-      `index.html's first-paint colour for "${skin.id}" does not match the skin`,
-    )
-  }
+  const legacySkins = [JEWEL, GLASS, PAPER]
+  assert.equal(bootstrap.size, legacySkins.length)
+  for (const skin of legacySkins) assert.equal(bootstrap.get(skin.id), skin.css.bg.toLowerCase())
 })

@@ -40,6 +40,41 @@ function roundedPolyPath(ctx: CanvasRenderingContext2D, pts: Pt[], radius: numbe
 export function gemPath(ctx: CanvasRenderingContext2D, shape: Shape, r: number): void {
   ctx.beginPath()
   switch (shape) {
+    case 'tablet':
+      ctx.roundRect(-r * .84, -r * .91, r * 1.68, r * 1.82, r * .30)
+      break
+    case 'crown':
+      ctx.moveTo(-r * .76, r * .63)
+      ctx.quadraticCurveTo(-r * .93, r * .22, -r * .95, -r * .63)
+      ctx.quadraticCurveTo(-r * .94, -r * .96, -r * .72, -r * .70)
+      ctx.lineTo(-r * .35, -r * .23)
+      ctx.lineTo(-r * .14, -r * .91)
+      ctx.quadraticCurveTo(0, -r * 1.15, r * .14, -r * .91)
+      ctx.lineTo(r * .35, -r * .23)
+      ctx.lineTo(r * .72, -r * .70)
+      ctx.quadraticCurveTo(r * .94, -r * .96, r * .95, -r * .63)
+      ctx.quadraticCurveTo(r * .93, r * .22, r * .76, r * .63)
+      ctx.quadraticCurveTo(0, r * .96, -r * .76, r * .63)
+      ctx.closePath()
+      break
+    case 'leaf':
+      ctx.moveTo(0, -r * .98)
+      ctx.bezierCurveTo(-r * .27, -r * .77, -r * 1.02, -r * .30, -r * .94, r * .27)
+      ctx.bezierCurveTo(-r * .89, r * .64, -r * .54, r * .73, -r * .27, r * .40)
+      ctx.bezierCurveTo(-r * .29, r * 1.09, r * .30, r * 1.08, r * .27, r * .40)
+      ctx.bezierCurveTo(r * .54, r * .73, r * .89, r * .64, r * .94, r * .27)
+      ctx.bezierCurveTo(r * 1.02, -r * .30, r * .27, -r * .77, 0, -r * .98)
+      ctx.closePath()
+      break
+    case 'shield':
+      ctx.moveTo(-r * .77, -r * .81)
+      ctx.quadraticCurveTo(0, -r * 1.08, r * .77, -r * .81)
+      ctx.bezierCurveTo(r * .99, -r * .65, r * .82, r * .33, r * .48, r * .64)
+      ctx.quadraticCurveTo(r * .19, r * .95, 0, r * 1.02)
+      ctx.quadraticCurveTo(-r * .19, r * .95, -r * .48, r * .64)
+      ctx.bezierCurveTo(-r * .82, r * .33, -r * .99, -r * .65, -r * .77, -r * .81)
+      ctx.closePath()
+      break
     case 'circle':
       ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2)
       break

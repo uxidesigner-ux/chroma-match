@@ -1,0 +1,454 @@
+[
+  {
+    "width": 320,
+    "height": 568,
+    "errors": [],
+    "homeBackground": {
+      "complete": true,
+      "width": 1080,
+      "height": 2400,
+      "src": "http://127.0.0.1:5173/royal/home-castle-v4.webp"
+    },
+    "homeSmallTargets": [],
+    "homeOutside": [],
+    "horizontalOverflow": false,
+    "retry": {
+      "dialog": {
+        "x": 19.203125,
+        "y": 18.0625,
+        "width": 281.59375,
+        "height": 531.875,
+        "bottom": 549.9375
+      },
+      "clientHeight": 532,
+      "scrollHeight": 541,
+      "frame": {
+        "x": 24.203125,
+        "y": 18.0625,
+        "width": 271.59375,
+        "height": 410.875,
+        "bottom": 428.9375
+      },
+      "footer": {
+        "x": 2.203125,
+        "y": 466.9375,
+        "width": 315.59375,
+        "height": 83,
+        "bottom": 549.9375
+      },
+      "cta": {
+        "x": 62.203125,
+        "y": 342.9375,
+        "width": 195.59375,
+        "height": 64,
+        "bottom": 406.9375
+      }
+    },
+    "failed": {
+      "dialog": {
+        "x": 19.203125,
+        "y": 16.0625,
+        "width": 281.59375,
+        "height": 535.875,
+        "bottom": 551.9375
+      },
+      "clientHeight": 536,
+      "scrollHeight": 545,
+      "frame": {
+        "x": 24.203125,
+        "y": 16.0625,
+        "width": 271.59375,
+        "height": 414.875,
+        "bottom": 430.9375
+      },
+      "footer": {
+        "x": 2.203125,
+        "y": 468.9375,
+        "width": 315.59375,
+        "height": 83,
+        "bottom": 551.9375
+      },
+      "cta": {
+        "x": 62.203125,
+        "y": 344.9375,
+        "width": 195.59375,
+        "height": 64,
+        "bottom": 408.9375
+      }
+    },
+    "snapshot": {
+      "level": 12297,
+      "cols": 9,
+      "rows": 11,
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 18,
+          "remaining": 18
+        },
+        {
+          "kind": "dynamite",
+          "count": 8,
+          "remaining": 8
+        },
+        {
+          "kind": "cuckoo",
+          "count": 2,
+          "remaining": 1
+        },
+        {
+          "kind": "jelly",
+          "count": 81,
+          "remaining": 81
+        }
+      ],
+      "moves": 0,
+      "status": "lost",
+      "turn": 1,
+      "locked": [],
+      "hint": [
+        14,
+        14
+      ]
+    }
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "homeBackground": {
+      "complete": true,
+      "width": 1080,
+      "height": 2400,
+      "src": "http://127.0.0.1:5173/royal/home-castle-v4.webp"
+    },
+    "homeSmallTargets": [],
+    "homeOutside": [],
+    "horizontalOverflow": false,
+    "retry": {
+      "dialog": {
+        "x": 23.40625,
+        "y": 84.875,
+        "width": 343.1875,
+        "height": 674.25,
+        "bottom": 759.125
+      },
+      "clientHeight": 674,
+      "scrollHeight": 683,
+      "frame": {
+        "x": 28.40625,
+        "y": 84.875,
+        "width": 333.1875,
+        "height": 514.25,
+        "bottom": 599.125
+      },
+      "footer": {
+        "x": 0.40625,
+        "y": 647.125,
+        "width": 389.1875,
+        "height": 112,
+        "bottom": 759.125
+      },
+      "cta": {
+        "x": 77.40625,
+        "y": 490.125,
+        "width": 235.1875,
+        "height": 82,
+        "bottom": 572.125
+      }
+    },
+    "failed": {
+      "dialog": {
+        "x": 23.40625,
+        "y": 81.46875,
+        "width": 343.1875,
+        "height": 681.0625,
+        "bottom": 762.53125
+      },
+      "clientHeight": 681,
+      "scrollHeight": 690,
+      "frame": {
+        "x": 28.40625,
+        "y": 81.46875,
+        "width": 333.1875,
+        "height": 521.0625,
+        "bottom": 602.53125
+      },
+      "footer": {
+        "x": 0.40625,
+        "y": 650.53125,
+        "width": 389.1875,
+        "height": 112,
+        "bottom": 762.53125
+      },
+      "cta": {
+        "x": 77.40625,
+        "y": 493.53125,
+        "width": 235.1875,
+        "height": 82,
+        "bottom": 575.53125
+      }
+    },
+    "snapshot": {
+      "level": 12297,
+      "cols": 9,
+      "rows": 11,
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 18,
+          "remaining": 18
+        },
+        {
+          "kind": "dynamite",
+          "count": 8,
+          "remaining": 8
+        },
+        {
+          "kind": "cuckoo",
+          "count": 2,
+          "remaining": 1
+        },
+        {
+          "kind": "jelly",
+          "count": 81,
+          "remaining": 81
+        }
+      ],
+      "moves": 0,
+      "status": "lost",
+      "turn": 1,
+      "locked": [],
+      "hint": [
+        14,
+        14
+      ]
+    }
+  },
+  {
+    "width": 430,
+    "height": 932,
+    "errors": [],
+    "homeBackground": {
+      "complete": true,
+      "width": 1080,
+      "height": 2400,
+      "src": "http://127.0.0.1:5173/royal/home-castle-v4.webp"
+    },
+    "homeSmallTargets": [],
+    "homeOutside": [],
+    "horizontalOverflow": false,
+    "retry": {
+      "dialog": {
+        "x": 25.796875,
+        "y": 126.90625,
+        "width": 378.390625,
+        "height": 678.1875,
+        "bottom": 805.09375
+      },
+      "clientHeight": 678,
+      "scrollHeight": 687,
+      "frame": {
+        "x": 30.796875,
+        "y": 126.90625,
+        "width": 368.390625,
+        "height": 518.1875,
+        "bottom": 645.09375
+      },
+      "footer": {
+        "x": 2.796875,
+        "y": 693.09375,
+        "width": 424.390625,
+        "height": 112,
+        "bottom": 805.09375
+      },
+      "cta": {
+        "x": 79.796875,
+        "y": 536.09375,
+        "width": 270.390625,
+        "height": 82,
+        "bottom": 618.09375
+      }
+    },
+    "failed": {
+      "dialog": {
+        "x": 25.796875,
+        "y": 123.5,
+        "width": 378.390625,
+        "height": 685,
+        "bottom": 808.5
+      },
+      "clientHeight": 685,
+      "scrollHeight": 694,
+      "frame": {
+        "x": 30.796875,
+        "y": 123.5,
+        "width": 368.390625,
+        "height": 525,
+        "bottom": 648.5
+      },
+      "footer": {
+        "x": 2.796875,
+        "y": 696.5,
+        "width": 424.390625,
+        "height": 112,
+        "bottom": 808.5
+      },
+      "cta": {
+        "x": 79.796875,
+        "y": 539.5,
+        "width": 270.390625,
+        "height": 82,
+        "bottom": 621.5
+      }
+    },
+    "snapshot": {
+      "level": 12297,
+      "cols": 9,
+      "rows": 11,
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 18,
+          "remaining": 18
+        },
+        {
+          "kind": "dynamite",
+          "count": 8,
+          "remaining": 8
+        },
+        {
+          "kind": "cuckoo",
+          "count": 2,
+          "remaining": 1
+        },
+        {
+          "kind": "jelly",
+          "count": 81,
+          "remaining": 81
+        }
+      ],
+      "moves": 0,
+      "status": "lost",
+      "turn": 1,
+      "locked": [],
+      "hint": [
+        14,
+        14
+      ]
+    }
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "errors": [],
+    "homeBackground": {
+      "complete": true,
+      "width": 1080,
+      "height": 2400,
+      "src": "http://127.0.0.1:5173/royal/home-castle-v4.webp"
+    },
+    "homeSmallTargets": [],
+    "homeOutside": [],
+    "horizontalOverflow": false,
+    "retry": {
+      "dialog": {
+        "x": 112,
+        "y": 22.796875,
+        "width": 620,
+        "height": 344.390625,
+        "bottom": 367.1875
+      },
+      "clientHeight": 344,
+      "scrollHeight": 351,
+      "frame": {
+        "x": 117,
+        "y": 22.796875,
+        "width": 610,
+        "height": 264.390625,
+        "bottom": 287.1875
+      },
+      "footer": {
+        "x": 112,
+        "y": 309.1875,
+        "width": 620,
+        "height": 58,
+        "bottom": 367.1875
+      },
+      "cta": {
+        "x": 451,
+        "y": 147.484375,
+        "width": 243,
+        "height": 65,
+        "bottom": 212.484375
+      }
+    },
+    "failed": {
+      "dialog": {
+        "x": 112,
+        "y": 21.5,
+        "width": 620,
+        "height": 347,
+        "bottom": 368.5
+      },
+      "clientHeight": 347,
+      "scrollHeight": 354,
+      "frame": {
+        "x": 117,
+        "y": 21.5,
+        "width": 610,
+        "height": 267,
+        "bottom": 288.5
+      },
+      "footer": {
+        "x": 112,
+        "y": 310.5,
+        "width": 620,
+        "height": 58,
+        "bottom": 368.5
+      },
+      "cta": {
+        "x": 451,
+        "y": 147.5,
+        "width": 243,
+        "height": 65,
+        "bottom": 212.5
+      }
+    },
+    "snapshot": {
+      "level": 12297,
+      "cols": 9,
+      "rows": 11,
+      "goals": [
+        {
+          "kind": "toy",
+          "count": 18,
+          "remaining": 18
+        },
+        {
+          "kind": "dynamite",
+          "count": 8,
+          "remaining": 8
+        },
+        {
+          "kind": "cuckoo",
+          "count": 2,
+          "remaining": 1
+        },
+        {
+          "kind": "jelly",
+          "count": 81,
+          "remaining": 81
+        }
+      ],
+      "moves": 0,
+      "status": "lost",
+      "turn": 1,
+      "locked": [],
+      "hint": [
+        14,
+        14
+      ]
+    }
+  }
+]

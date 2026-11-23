@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-23",
+  "publication": "User authorized main commit and push after the v4 review on 2026-11-23.",
+  "generator": "Built-in image_gen; editing/extraction outputs are not asserted pixel-identical to official source.",
+  "referencePage": "https://www.dreamgames.com/games/royal-match",
+  "processing": "Generated PNG converted to WebP with alpha retained. Browser decodes sprites and normalizes optical size; no remote runtime requests.",
+  "assets": [
+    {
+      "file": "blocks-v4.webp",
+      "source": "exec-1161800a-e79b-4c14-a8ec-e7961eeeca06.png",
+      "references": [
+        "Dream Games official Match Items"
+      ],
+      "prompt": "Use case: background-extraction. These four supplied images are the exact edit targets. Make a 2 by 2 game sprite sheet with GENUINELY TRANSPARENT alpha outside the objects. Top left GOLD CROWN from image1; top right RED BOOK from image2; bottom left BLUE SHIELD from image3; bottom right SINGLE GREEN SPADE LEAF from image4. Remove only the white background. Preserve each object's exact shape, geometry, orientation, colors, internal highlights and material: no redesign, no added details, no outlines, no fake checkerboard. Objects remain separated, each centered in one equal square cell with 12 percent clear margin. Same visual object scale. High-resolution clean antialiased alpha edges. The plain red book is upright front-facing with its narrow ivory page strip on top; the leaf is one single spade with its stem down."
+    },
+    {
+      "file": "powers-v4.webp",
+      "source": "exec-ebe55a1a-9f31-4a2f-a0f3-da783a081ed8.png",
+      "references": [
+        "Dream Games PB11,PB10,PB12,PB9"
+      ],
+      "prompt": "Use case: background-extraction. Four supplied images are exact edit targets in order: horizontal red-blue-gold rocket; three-blade gold/red propeller on navy sphere; round red TNT barrel with gold TNT band and beige wick; navy lightball with gold equator and colored circular studs. Remove ONLY their solid white backgrounds, preserving exact shape, proportions, colors, orientation, highlights, material, every detail. Arrange them top-left,top-right,bottom-left,bottom-right in a2by2 game sprite atlas with genuine transparent alpha background. No redesign or added details, no black outline, no fake checkerboard, no labels. Each object complete and centered in equal square cell with12percenttransparentmargin. Clean edges."
+    },
+    {
+      "file": "tools-v4.webp",
+      "source": "exec-c7b405aa-ec57-416e-a278-2476f68bf7bc.png",
+      "references": [
+        "Dream Games PB16,PB15,PB13,PB14"
+      ],
+      "prompt": "Use case: background-extraction. Four supplied images are exact edit targets in order: purple/gold crown hammer with handle down; red bow shooting gold arrow right; navy/gold/red wheeled cannon; three-point blue/red/purple jester cap. Remove ONLY their solid white backgrounds, preserving exact shape, proportions, colors, orientation, highlights, material, every detail. Arrange them top-left,top-right,bottom-left,bottom-right in a2by2 game sprite atlas with genuine transparent alpha background. No redesign or added details, no black outline, no fake checkerboard, no labels. Each object complete and centered in equal square cell with12percenttransparentmargin. Clean edges."
+    },
+    {
+      "file": "extras-v4.webp",
+      "source": "exec-df19fde7-5da1-45f5-8ffc-5e46e4b996fb.png",
+      "references": [],
+      "prompt": "Use case: stylized-concept. Asset type: premium Royal Match-style UI utility sprites. Exactly FOUR columns by TWO rows, eight separate polished3D icons, genuine transparent background. Row1: folded cream parchment map with vivid red destination pin; small royal-blue house with warmcreamdoor and purpleblue roof (home navigation); thick wooden paintbrush with glossy red paint on bristles and goldmetal ferrule (customboard editor); shiny silver butler cloche service bell with very small silver top knob and silver raised base (NO gold knob, NO blue base). Row2: bright red broken heart with deep zigzag split; chunky creamivory six-tooth gear with circular navy central hole; chunky brightgreen check mark with darker greenextruded edge; chunky red X cross with darker redextruded edge. Soft sculpted rounded volumes, exact mobilecasualgame resourcequality, bright upper-left highlights, saturatedcolors butsubtle surfacegloss, NO black outlines, NO text or lettering, no surroundingUIbuttons. Eachobjectfitswithinitsowninvisibleequalcellwith15percentclear margins. Clear silhouettesat40px."
+    },
+    {
+      "file": "gifts-v4.webp",
+      "source": "exec-4f900bc8-7d7a-4359-b0e2-fcacd4c74b71.png",
+      "references": [
+        "User gameplay screenshot; inferred damage-state transitions"
+      ],
+      "prompt": "Use case: stylized-concept. Reconstruct the four red giftbox damage-state sprites from the reference Royal Match game board. Make a FOUR columns by ONE row atlas with each object complete in its equal SQUARE cell with generous12percenttransparentmargin. GENUINE TRANSPARENT BACKGROUND. All4objects are the SAME upright TALL burgundy red rounded rectangular present of width1 height2, front-on orthographic view. Plush molded glossy red surface, subtle pink crown pattern, thick curved red bevel, gentle upperleftreflection. Column1: gold vertical center ribbon and large cyan blue bow with two loop wings and two hanging tails at itsmiddle. Column2: same goldverticalribbon but smaller bluebow with no hangingtails. Column3: same tallbox with NO ribbon andNO bow, instead one roundgold medallion initsmiddle with darkburgundy fleur-de-lis mark. Column4: same redtallboxwith roundgoldmedallion whose center reveals tinycrownedbrown teddyface instead of fleur-de-lis. Exact reference-inspired colorsproportionsmaterial, NOT wood orflatvector, no text/nolabels/no grid/noenvironment. The fourstatesare separate gameicons not parts ofoneobject."
+    },
+    {
+      "file": "entry-garden-v4.webp",
+      "source": "exec-2fa42596-e3aa-491e-9f6c-28fe7cb5eb88.png",
+      "references": [
+        "Dream Games official tea scene"
+      ],
+      "prompt": "Use case: precise-object-edit. Edit this Royal Match garden tea scene as a portrait game entry background. Preserve the SAME exact people, dog, costumes, poses, facial identity, purple-spired castle, sky, furniture, lighting, colors and polished 3D rendering. Remove ONLY the Royal Match wordmark and its blue/gold plaque in the upper-right, replacing it with uninterrupted sky. Extend canvas vertically to a tall 1024x1792 portrait by outpainting calm bright blue sky above and open green lawn below. Keep the full castle on upper-left and the full tea table group in the lower-middle, with characters feet around 80 percent image height. Leave upper-right sky at 10–28percent height open for our own logo, and bottom12percent calm lawn for a button. Do not crop the figures, do not introduce a giant portrait, no new characters or objects, no text, no watermarks, no dark overlay."
+    },
+    {
+      "file": "king-portrait-v4.webp",
+      "source": "exec-986141ae-0b1f-4ec6-b472-bc65463942de.png",
+      "references": [
+        "User level12297 retry screenshot"
+      ],
+      "prompt": "Use case: background-extraction. Reconstruct and cleanly upscale ONLY the King Robert head-and-shoulders portrait visible at the top center of the supplied game screenshot. Same character identity and proportions: tall simple yellow gold angular crown with central ruby diamond and pink interior points, expressive thick dark eyebrows, large eyes, long rounded rosy nose, large gray swept moustache curling outward, layered gray-beige beard with broad central chin, narrow tall face, maroon robe and gold collar. Friendly attentive neutral smile with closed mouth, facing directly forward. Match the exact Royal Match game portrait style, softly modeled 3D surfaces, broad painterly light, no ornate additional jewels, no fur cape, no brown bushy beard, no black outlines. Show complete crown and shoulders on genuine transparent background; no medallion/frame, no UI, no other icons, no text. Square1024x1024, object centered with8percent clear margins. Remove the dim screenshot overlay; full brightness natural warm colors."
+    },
+    {
+      "file": "wordmark-v4.webp",
+      "source": "exec-fde12e17-63ea-440d-b9eb-34eddd2cbdf4.png",
+      "references": [
+        "Dream Games wordmark composition as style reference; customized CHROMA ROYALE"
+      ],
+      "prompt": "Use case: text-localization. Create ONLY the isolated 3D wordmark plaque visible at upper-right of reference, replacing its words exactly with CHROMA on the upper line and ROYALE on the lower line. Genuine transparent background outside complete plaque. Exact text: \"CHROMA\" / \"ROYALE\". Preserve original wordmark style: very fat chunky rounded block letters, top text rich yellow gold, bottom text warm ivory white, deep chunky navy-blue extruded sidewalls behind each letter, compact bouncy lettering baseline, thick darkblue rounded rectangular plaque and broad gold rim around left bottom right. Letter strokes must be thick and swollen, notthin, noserifs. Top line overhangstheplaqueabit. Compact wide shape ratio1.4:1, wholeplaque centeredwith8percenttransparentmargin. No crownicon, no environment, no other words, no characters."
+    },
+    {
+      "file": "board-terrace-v4.webp",
+      "source": "exec-423e9364-4e13-4f6e-81fd-1e1dc9ac53f2.png",
+      "references": [
+        "User gameplay screenshot visible terrace geometry"
+      ],
+      "prompt": "Use case: background-extraction. Reconstruct ONLY the environment behind the puzzle board in the reference screenshot, as a clean tallportrait game background, noUI/nocharacters/noboard/noblocks. The visible scene is a royal stone terrace: large muted dark slate-teal floor slabs with subtle diagonal perspective seams, edges of a darkblue rug with broad ochre-gold border near lower-right andcenterbottom, distant desaturatedtan mountain peaks and calm cyan/teal sky across upperquarter, verysubtle stone parapet atedges. Important: thisisNOTa frontalpalace/castleimage. Lowdetail calm largeareas, mutedcolors so brightpuzzlepiecesstandout. Match reference game-renderedsoft3Dmaterials, gentle shadows, no outlines, no elaborate flowers/statues/fountains, no goldarchitecture, no text or icons. Portrait1024x1792, floorfillsbottom80percent, sky/mountains top20percent. Thepuzzlegridwilloverlaymostmiddle, keepcenteruncluttered."
+    },
+    {
+      "file": "goals-v4.webp",
+      "source": "exec-bdaf55b4-cc6e-4d03-9d40-ad6988646918.png",
+      "references": [
+        "User level12297 images"
+      ],
+      "prompt": "Use case: background-extraction. Reconstruct ONLY the FOUR target icons visible in the cream goal panel of supplied Royal Match screenshot, preserving their exact silhouettes/colors/proportions. Arrange in a TWO by TWO atlas on genuine transparent background, no text/checks/crosses/numbers. Top-left: cute seated golden brown teddy bear with small simplegoldcrown, cream muzzle, tiny darkbrownnose, roundears, redbowtie, front-facing, soft toy surface. Top-right: single slender vertical dynamitecylinder with short tanwick on top, smooth RAINBOW gradient redtop-yellow-green-bluebottom, no horizontal segmented bands or cap. Bottom-left: small round plump PURPLE BIRD looking straightforward, creamovalbelly, small yellowbeak, two smallblackeyes, tuckedshortwings, no legs/tail sideprofile. Bottom-right: plain deep PURPLE rounded square tile, broad solidface, subtlelightlavenderbevelrim andgentleupperleftshine, NOT transparent jelly andNOT bubblyliquid. Matchactualmobilegamepainted3Dappearance, softcleanlighting, restrainedhighlights. Eachiconcompleteandcenteredwith12percentmargininitsownsame-size squarecell. No labels/gridlines, no dark outlines. Remove screenshotdimness; use clear original colors."
+    }
+  ],
+  "homeBackground": {
+    "file": "home-castle-v4.webp",
+    "source": "https://images.ecency.com/DQmZsvxt1FEjYeMuKgJNjRShPhkY36xrwMs5atSx9YYj7kv/1704463390855.jpg",
+    "kind": "Community gameplay capture, not generated",
+    "processing": "JPEG to WebP format conversion only",
+    "provenanceDocument": "docs/research/royal-ui-fidelity-v4.md"
+  }
+}

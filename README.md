@@ -1,5 +1,24 @@
 # Chroma Match
 
+> **개인용 왕실 리뉴얼 v4 (2026-11-23):** 현재 기본 화면은 Chroma Royale입니다. [실행 및 설정 안내](docs/ROYAL-LOCAL.md)를 참고하세요. 사용자 요청으로 `main`에 반영하며, CI 통과 후 기존 GitHub Pages 주소를 갱신합니다.
+
+## 현재 개인용 게임
+
+로컬 실행 주소: **http://127.0.0.1:5173/** (`Launch Chroma Royale.command`로 시작).
+
+- 목표 달성형 규칙, 로켓·프로펠러·TNT·라이트볼과 10종 조합
+- 레벨별 크기·모양, 다칸 장애물과 젤리 확산
+- 초반 32개 구성 레벨, 이후 생성 레벨, 영상의 12297 참고 판
+- 보드 편집·JSON 저장/불러오기·무제한 이동/도구 등 개인 설정
+- 실제 화면 자료를 참고한 진입·성 로비 홈, 블록·도구·목표·선물상자의 입체 이미지와 버튼 마감
+- 별·정원 작업, 분리형 실패·재시도 창, iPhone 홈 화면 아이콘과 오프라인 빌드
+
+[전달·iPhone 안내](docs/ROYAL-DELIVERY.md) · [v4 시각 비교·검수](docs/research/royal-ui-fidelity-v4.md) · [실행·기능·검증 및 재현 한계](docs/ROYAL-LOCAL.md) · [레벨 데이터](src/royal/LEVELS.md) · [조사 근거](docs/research/README.md)
+
+## 기존 공개판 문서
+
+아래 내용과 공개 주소는 `legacy.html`에 보존된 이전 구현을 설명합니다.
+
 A match-3 puzzle that runs in the browser. No game engine, no sprite sheets, no
 audio files — every gem is drawn from canvas path primitives and every sound is
 synthesised from a couple of oscillators. The character lobby separately loads
